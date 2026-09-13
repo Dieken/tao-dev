@@ -14,7 +14,7 @@ bootstrap: manual
 <!-- tao:section scope -->
 ## 一、适用范围与检查层次
 
-本契约定义 `tao.protocol/v0.1` 和 `tao.document-contract/v0.1` 两个内部开发文档 profile。产品面向使用方的规格、设计、变更与证据模板应另行定义 profile，并复用经过验证的通用规则；不得要求使用方复制本项目的章节结构、研发任务或设计记录。
+本契约定义 `tao.protocol/v0.1`、`tao.document-contract/v0.1` 和 `tao.plugin-design/v0.1` 三个内部开发文档 profile。产品面向使用方的规格、设计、变更与证据模板应另行定义 profile，并复用经过验证的通用规则；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用内部 profile。
 
 | 层次 | 检查内容 | 结论边界 |
 |---|---|---|
@@ -32,7 +32,7 @@ bootstrap: manual
 
 | 字段 | 约束 |
 |---|---|
-| `schema` | 必需，当前两个 profile 之一；未知版本报不支持，不能猜测兼容 |
+| `schema` | 必需，当前三个 profile 之一；未知版本报不支持，不能猜测兼容 |
 | `id` | 必需，符合 DOC 类型 ID |
 | `title` | 必需，非空文本，与一级标题文字一致 |
 | `locale` | 必需，BCP 47 语言标签；本项目使用 `zh-Hans` 表示简体中文，英文模板使用 `en`。不把书写语言误当地区约定 |
@@ -56,6 +56,7 @@ bootstrap: manual
 |---|---|
 | `tao.protocol/v0.1` | `purpose` → `requirements` → `workflow` → `artifacts` → `design` → `verification` → `bootstrap` → `open-questions` → `sources` |
 | `tao.document-contract/v0.1` | `scope` → `metadata` → `identity` → `entities` → `references` → `tasks` → `diagnostics` → `evolution` |
+| `tao.plugin-design/v0.1` | `scope` → `package` → `components` → `acceptance` → `sources` |
 
 一级标题与第一处二级标题之间允许导语。章节匹配依据 AST 位置和键，不依据中文标题、行号或全文正则搜索。
 
@@ -135,7 +136,7 @@ ID 在创建时用 UUID 库生成一次，禁止按标题、路径、内容哈�
 
 构建顺序为：解析全部纳入文档 → 注册定义 → 解析引用 → 检查类型与关系 → 输出诊断和索引。AST 必须区分顶层正式条目与代码示例；正文里提到一个 ID 不是新的定义。
 
-当前自举索引仅包括同目录的 `protocol.md`、`document-contract.md`。外部参考资料不纳入正式条目索引。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的身份索引，离线无索引时报告 unresolved，不能视为存在。
+当前自举索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`。外部参考资料不纳入正式条目索引。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的身份索引，离线无索引时报告 unresolved，不能视为存在。
 
 一条关系只维护其发出方：反向引用、需求覆盖表和汇总由索引生成，生成文件不得成为另一份人工维护的真相。检查目标存在、关系类型、任务依赖无环和替代关系无环。标为 superseded 的对象必须能找到至少一个替代者；引用 retired／superseded 对象给出复查提示，合法的历史解释不必全部阻断。
 
