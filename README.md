@@ -8,8 +8,11 @@
 
 1. [协作开发协议](docs/protocol.md)：项目目标、需求、流程、文档职责、设计取舍、验收用例和自举路线。
 2. [Markdown 文档契约](docs/document-contract.md)：章节结构、全局 ID、条目、引用、任务格式和诊断约定。
+3. [插件打包与运行环境](docs/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
 
 主协议目前同时承载需求与设计，二者通过条目类型和稳定 ID 区分；格式契约独立维护精确语法。暂不再创建内容重复的 spec、design 和 plan。
+
+首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码计划放在 `plugins/tao-dev/`，尚未创建或安装插件。
 
 ## 开发文档与分发边界
 

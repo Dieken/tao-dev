@@ -24,7 +24,7 @@ bootstrap: manual
 
 开发资料与分发产物分开管理。分发清单只包含实际运行所需的入口、参考、模板和脚本，不包含本项目的需求设计、开发任务和研究资料。验收分发包时，应在没有开发文档和本地研究目录的环境中检查运行材料的引用与必要流程。
 
-当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。具体运行适配器范围在实现前按实际使用环境确定。
+当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。首批运行验收环境固定为 Codex CLI 和 Claude Code CLI。
 
 本稿兼有两种职责：下节定义项目必须实现的结果，后续章节提出实现这些结果的协议设计。设计取舍用 ADR 表达并引用需求。出现独立维护或评审需要时再拆文档，移动时保留条目 ID。
 
@@ -176,6 +176,19 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 **来源：** BCP 47 的语言标记与 Sphinx 的翻译目录实践。正文语言和执行效果分开评估是本协议的设计选择。
 ```
 
+```{req} 按公共插件标准打包，在双 CLI 中验收
+:id: REQ_E2248E3FC6374DE8800B2540B94BE420
+:status: proposed
+
+公共 manifest 和 skill 定义遵循 Agent Plugins 1.0.0 与 Agent Skills；agent、command、hook 使用目标客户端支持的格式与适配。Codex CLI 和 Claude Code CLI 均为首批必需运行验收环境。
+
+<!-- tao:field acceptance -->
+**验收：** 同一发布版本在两端分别完成格式、加载与行为验证；平台专用组件不重复触发，不依赖开发文档或另一平台配置；未验证的能力不得标记兼容。
+
+<!-- tao:field source -->
+**来源：** Agent Plugins、Agent Skills 和目标客户端官方扩展文档；详细设计见插件打包文档。
+```
+
 <!-- tao:section workflow -->
 ## 三、协作流程与决定权
 
@@ -290,7 +303,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 **背景与备选：** 全靠提示容易遗漏检查；每次事件启动完整流程会增加延迟和失控循环。
 
 <!-- tao:field decision -->
-**选择：** 定义 start、clarify、design、plan、work、debug、review、verify、status、resume、finish、doctor 等操作语义，先实现必要子集。skill 按需读取协议；平台入口包装同一操作；hook 仅做上下文提示、快速校验和证据失效标记。
+**选择：** 定义 start、clarify、design、plan、work、debug、review、verify、status、resume、finish、doctor 等操作语义，先实现必要子集。skill 按需读取随包提供的运行规程；平台入口包装同一操作；hook 仅做上下文提示、快速校验和证据失效标记。
 
 <!-- tao:field consequences -->
 **代价：** 适配器需检测能力、配置版本和失败行为；hook 须有超时、幂等性及并发保护。CI 复核必要检查，运行环境落实权限。上述名称是拟议接口，目前没有可执行命令。
@@ -309,6 +322,21 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 
 <!-- tao:field consequences -->
 **代价：** 要把显示标签从解析逻辑中移出，并测试中英文及 Unicode 边界。初版验证简体中文与英文，不宣称完整支持所有语言。未来译文记录源版本及审校状态，过期译文不能成为新的权威规则。
+```
+
+```{adr} 公共插件结构与客户端适配分层
+:id: ADR_8AABB2FFA17A444AA1BB460559878E47
+:status: proposed
+:links: REQ_E2248E3FC6374DE8800B2540B94BE420, REQ_8D96CE7C86D6463194942315CB61B62B
+
+<!-- tao:field context -->
+**背景与备选：** 各自维护两套流程会漂移；把某个客户端的 agent、command 和 hook 当作公共标准则会产生虚假兼容。
+
+<!-- tao:field decision -->
+**选择：** 使用标准公共 manifest 和共享 skills，平台专用配置遵循官方扩展；首批同时验收 Codex CLI 与 Claude Code CLI。目录、定义边界和验收矩阵集中维护于 [插件打包与运行环境](plugin-design.md)。
+
+<!-- tao:field consequences -->
+**代价：** 需要维护少量适配配置并运行两套客户端验收；兼容元数据采用派生与一致性检查，运行材料保持独立于内部开发文档。
 ```
 
 <!-- tao:section verification -->
@@ -376,6 +404,19 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 **则：** 正常样例的结构和身份一致；缺键产生相同规则号与对象定位，消息随语言变化；未实现的内容质量语言规则显示未检查，不伪装通过。
 ```
 
+```{uc} 独立发布包在两种 CLI 中执行
+:id: UC_35A51A9A85DC4BA0806E41219241D1BC
+:status: proposed
+:verifies: REQ_E2248E3FC6374DE8800B2540B94BE420, REQ_8D96CE7C86D6463194942315CB61B62B
+
+<!-- tao:field given -->
+**给定：** 同一版本的发布包和两份隔离的使用方项目，无开发文档及未声明插件配置。
+<!-- tao:field when -->
+**当：** 分别在 Codex CLI 与 Claude Code CLI 加载插件并执行一个小变更，检查已声明角色和 hook，再禁用 hook 重复显式检查。
+<!-- tao:field then -->
+**则：** 两端产生独立运行证据；共享契约一致，入口和 hook 不重复加载；缺失能力明确失败，回退路径不会冒充未运行组件已通过。
+```
+
 <!-- tao:section bootstrap -->
 ## 七、渐进自举与项目任务
 
@@ -402,10 +443,10 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
   - depends_on: ["TASK_D141FDDCA82341ACA6A8C465CF1FBFB7"]
   - verify: 一个真实变更可被新会话接手，代码变化令旧证据过期，工具不可用不会产生通过声明，并记录流程成本。
 
-- [ ] `TASK_CDF69440A7D2404AB39DFA65C529EF74` 验证出版组合与首个 agent 适配
-  - relates: ["REQ_D3CC348D07B64AA188C079BE93B28E0A", "REQ_8D96CE7C86D6463194942315CB61B62B", "REQ_E58FFDB3015D4FC48E2481B83A5BFED8", "REQ_71288FB94E7E4DFBACCD15BF936D0290"]
+- [ ] `TASK_CDF69440A7D2404AB39DFA65C529EF74` 验证出版组合与双 CLI 插件适配
+  - relates: ["REQ_D3CC348D07B64AA188C079BE93B28E0A", "REQ_8D96CE7C86D6463194942315CB61B62B", "REQ_E58FFDB3015D4FC48E2481B83A5BFED8", "REQ_71288FB94E7E4DFBACCD15BF936D0290", "REQ_E2248E3FC6374DE8800B2540B94BE420"]
   - depends_on: ["TASK_B870F5217D8641569128F6EE84498610"]
-  - verify: 同源文档形成可导航书籍与可解析 ID；模板遵循使用方语言；分发包不含开发资料且无此类运行依赖；适配能力可检测，禁用 hook 后仍能用显式操作完成同一流程。
+  - verify: 同源文档形成可导航书籍与可解析 ID；模板遵循使用方语言；分发包不含开发资料且无此类运行依赖；Codex CLI 与 Claude Code CLI 分别通过插件加载、已声明组件和功能路径验收，禁用 hook 后显式检查仍可运行。
 
 首次批准规则时记录其适用版本。后续以既定版本审查变更，再验证新版规则；不能为了让本次检查通过而无记录地同步改变规则和预期结果。
 
@@ -416,7 +457,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 |---|---|---|
 | 解析器与实现语言 | 出版候选需要 Python，可先验证能否复用其 Markdown AST；不先自写 Markdown 解析器 | 开始校验器实现前 |
 | MyST／Sphinx-Needs 的具体适配 | 需求块优先复用；任务和章节检查独立完成 | 出版技术实验时 |
-| CLI 首批操作与首个平台 | 从文档检查、状态、验证开始，按使用环境选择一个 agent | 适配器实现前 |
+| CLI 首批操作与版本组合 | 目标已定为 Codex CLI 和 Claude Code CLI；从文档检查、状态、验证开始，固定实际测试版本与必要配置 | 双 CLI 验收前 |
 | 质量预算和默认检查集 | 发现项目现状，由项目配置确定；不设通用覆盖率或复杂度达标分 | 每个项目接入时 |
 
 正式校验器、可执行 skill、出版与恢复能力尚待实现。验收须包含实际运行证据，流程效率须由使用数据评估。
