@@ -9,7 +9,7 @@ bootstrap: manual
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_E2248E3FC6374DE8800B2540B94BE420`，总体协议见 [协作开发协议](protocol.md)。目录图和配置片段均为设计示例，尚未形成可安装插件。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_E2248E3FC6374DE8800B2540B94BE420`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已实现两个 manifest、skill 入口及工程规程，其余组件按需实现，运行验收尚未完成。
 
 <!-- tao:section scope -->
 ## 一、标准基线与目标环境
@@ -24,6 +24,8 @@ bootstrap: manual
 ## 二、源码与发布包
 
 开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 `AGENTS.md` 管理本项目开发，不作为产品 agent 定义。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
+
+当前 prompt 实现由 [SKILL.md](../plugins/tao-dev/skills/tao-dev/SKILL.md) 明确加载 [工程规程](../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_54CB0F04B5AF421F8FC3449A14449779`。工程条款的权威执行文本维护在该运行参考中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
 
 ```text
 tao-dev/
