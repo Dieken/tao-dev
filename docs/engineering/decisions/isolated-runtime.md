@@ -14,7 +14,7 @@ created: "2026-09-14"
 
 ```{adr} 开发锁定与插件运行环境分离
 :id: ADR_20260914_Z19W6HRG4MWQM97A
-:status: proposed
+:status: accepted
 :links: REQ_20260914_W1NDXAS6DMV7D7HH, REQ_20260914_GH69P66HSM6HDZXF, REQ_20260914_WAHF2CDHEJFSBGDC, REQ_20260914_5PFGD8NJKSAVG2NT
 
 <!-- tao:field context -->
