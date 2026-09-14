@@ -191,7 +191,12 @@ def setup(ctx, wheelhouse=None):
 
 
 def emit(command, outputs, error=None, json_output=True):
+    try:
+        version = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))["version"]
+    except (OSError, ValueError, KeyError):
+        version = "unknown"
     result = {"tool": "tao-dev", "protocol_version": "0.1", "command": command,
+              "tool_version": version,
               "status": "not_run" if error else "passed", "outputs": outputs,
               "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
                                                        "message": str(error), "message_locale": "en"}]}
@@ -227,7 +232,8 @@ def main(argv=None, entry="tao.py"):
         command = "validate"
     mode = "publication" if command == "docs" or command in ("setup", "doctor") and "--publication" in argv else "core"
     ctx = None
-    json_output = "json" in argv
+    json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
+                      for index, value in enumerate(argv))
     try:
         ctx = context(mode)
         if command == "setup":

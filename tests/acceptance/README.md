@@ -2,6 +2,8 @@
 
 这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不设置认证、不安装客户端、不注册市场、不修改全局配置。
 
+先按 README 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
+
 ```sh
 python tests/acceptance/clients.py --client claude --case inside --workspace /tmp/tao-cli-experiment
 python tests/acceptance/clients.py --client claude --case outside --workspace /tmp/tao-cli-experiment
@@ -22,3 +24,7 @@ inside 核对实际发现、引用定位、doctor/status；outside 不带加载�
 模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留未知；不要以两个 CLI 的名称断言两个供应商。每例默认 180 秒，到期终止该试验进程组。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
 
 recover 创建新的隔离项目，用实际 CLI 生成计划、执行失败基线并保存 handoff，然后启动没有旧会话历史的客户端。模型只能修改导出实现及已有计划；验收者另行检查 ID 保持、回归通过和修改范围。quality.py 用 Coverage.py 的 subprocess 支持执行维护测试并汇总报告，不调用模型；所有覆盖率数据位于 tmp/tao/coverage/。
+
+scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次传入新的 --workspace 和 --scope；脚本将 CLAUDE_CONFIG_DIR、XDG_CONFIG_HOME、GIT_CONFIG_GLOBAL 与运行目录限定在 workspace，再调用真实市场和插件安装命令。这里的 user 仅属于隔离客户端配置，不修改个人安装。加 --probe 读取项目内外初始化事件；scope_loading_verified 表示加载边界正确，model_execution_verified 单独表示模型执行成功。隔离配置没有认证时，加载成功不能代替命令或 hook 的模型行为验收。项目外应无项目级插件；user 范围则在隔离配置的两个目录中都可见。
+
+运行环境测试验证 Python 隔离启动，覆盖率只能统计实际接受 Coverage.py 注入的进程。发布环境不安装开发用 coverage，也不为提高数字关闭 Python 隔离模式；报告中的未观测行不能解释为行为测试未执行。

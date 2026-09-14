@@ -42,8 +42,13 @@ def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tm
     completed = invoke(bare_python, data, "doctor")
     assert completed.returncode == 2
     report = json.loads(completed.stdout)
+    assert report["tool_version"] == "0.1.0"
     assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-002"
     assert report["outputs"]["runtime"]["state"] == "missing"
+    joined = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), "doctor", "--format=json"],
+                            env=os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)},
+                            capture_output=True, text=True)
+    assert json.loads(joined.stdout)["tool_version"] == "0.1.0"
     assert not data.exists()
 
 
@@ -149,3 +154,20 @@ def test_symlinked_runtime_slot_never_writes_outside_data(bare_python, tmp_path)
     failed = invoke(bare_python, data, "setup", "--wheelhouse", str(WHEELS))
     assert failed.returncode == 2
     assert list(outside.iterdir()) == []
+
+
+def test_readonly_release_copy_builds_book_without_uv(tmp_path, tool_runtime):
+    from test_publication import project
+    plugin = tmp_path / "独立 plugin"
+    shutil.copytree(SCRIPTS.parent, plugin, ignore=shutil.ignore_patterns("__pycache__"))
+    for path in plugin.rglob("*"):
+        path.chmod(0o555 if path.is_dir() else 0o444)
+    root = tmp_path / "consumer"
+    root.mkdir()
+    project(root)
+    result = invoke(sys.executable, tool_runtime, "docs", "build", "--project", str(root),
+                    scripts=plugin / "scripts", cwd=root, extra={"PATH": ""})
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert (root / report["outputs"]["directory"] / "docs/spec.html").is_file()
+    assert not list(plugin.rglob("__pycache__"))
