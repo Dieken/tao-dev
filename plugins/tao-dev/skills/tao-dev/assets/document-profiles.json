@@ -1,0 +1,447 @@
+{
+  "format": "tao.document-profiles",
+  "version": "0.1",
+  "id": {
+    "pattern": "^(DOC|REQ|UC|ADR|TASK|CHG|EVD)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}$",
+    "date_format": "YYYYMMDD",
+    "calendar_validation": true,
+    "alphabet": "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
+    "random_bytes": 10,
+    "random_characters": 16,
+    "maximum_generation_attempts": 3
+  },
+  "base_metadata": {
+    "schema": {
+      "type": "string",
+      "required": true
+    },
+    "id": {
+      "type": "id",
+      "prefix": "DOC",
+      "role": "definition",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "locale": {
+      "type": "string",
+      "format": "bcp47",
+      "required": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "accepted",
+        "retired"
+      ],
+      "required": true
+    },
+    "created": {
+      "type": "string",
+      "format": "date",
+      "required": true
+    },
+    "updated": {
+      "type": "string",
+      "format": "date",
+      "required": false
+    }
+  },
+  "structure": {
+    "encoding": "UTF-8",
+    "unknown_metadata": "error",
+    "duplicate_metadata": "error",
+    "yaml_tags": "error",
+    "h1": "exactly one, equal to title",
+    "section_marker": "<!-- tao:section KEY -->",
+    "field_marker": "<!-- tao:field KEY -->",
+    "key_pattern": "^[a-z][a-z0-9-]*$",
+    "unregistered_h2": "error",
+    "template_placeholders_in_documents": "error"
+  },
+  "entities": {
+    "REQ": {
+      "directive": "req",
+      "statuses": [
+        "proposed",
+        "accepted",
+        "retired",
+        "superseded"
+      ],
+      "required_options": [
+        "id",
+        "status"
+      ],
+      "optional_options": [
+        "links",
+        "supersedes"
+      ],
+      "fields": [
+        "acceptance",
+        "source"
+      ],
+      "reference_types": {
+        "links": [
+          "DOC",
+          "REQ",
+          "UC",
+          "ADR",
+          "TASK",
+          "CHG",
+          "EVD"
+        ],
+        "supersedes": [
+          "REQ"
+        ]
+      }
+    },
+    "UC": {
+      "directive": "uc",
+      "statuses": [
+        "proposed",
+        "accepted",
+        "retired",
+        "superseded"
+      ],
+      "required_options": [
+        "id",
+        "status",
+        "verifies"
+      ],
+      "optional_options": [
+        "links",
+        "supersedes"
+      ],
+      "fields": [
+        "given",
+        "when",
+        "then"
+      ],
+      "reference_types": {
+        "links": [
+          "DOC",
+          "REQ",
+          "UC",
+          "ADR",
+          "TASK",
+          "CHG",
+          "EVD"
+        ],
+        "supersedes": [
+          "UC"
+        ],
+        "verifies": [
+          "REQ"
+        ]
+      }
+    },
+    "ADR": {
+      "directive": "adr",
+      "statuses": [
+        "proposed",
+        "accepted",
+        "retired",
+        "superseded"
+      ],
+      "required_options": [
+        "id",
+        "status"
+      ],
+      "optional_options": [
+        "links",
+        "supersedes"
+      ],
+      "fields": [
+        "context",
+        "decision",
+        "consequences"
+      ],
+      "reference_types": {
+        "links": [
+          "DOC",
+          "REQ",
+          "UC",
+          "ADR",
+          "TASK",
+          "CHG",
+          "EVD"
+        ],
+        "supersedes": [
+          "ADR"
+        ]
+      }
+    }
+  },
+  "reference_role": "need",
+  "entities_outside_registered_sections": false,
+  "entity_sections": {
+    "REQ": [
+      "requirements"
+    ],
+    "UC": [
+      "cases",
+      "invariants",
+      "design"
+    ],
+    "ADR": [
+      "decisions",
+      "design",
+      "architecture"
+    ]
+  },
+  "tasks": {
+    "section": "tasks",
+    "checkboxes": [
+      "[ ]",
+      "[x]"
+    ],
+    "id_prefix": "TASK",
+    "nested_tasks": false,
+    "field_order": [
+      "relates",
+      "depends_on",
+      "verify",
+      "evidence"
+    ],
+    "required_fields": [
+      "relates",
+      "depends_on",
+      "verify"
+    ],
+    "completed_requires": [
+      "evidence"
+    ],
+    "relates_types": [
+      "REQ",
+      "CHG"
+    ],
+    "depends_on_types": [
+      "TASK"
+    ],
+    "array_encoding": "single-line JSON string array",
+    "evidence_encoding": "one Markdown link"
+  },
+  "profiles": {
+    "tao.project.spec/v0.1": {
+      "template": "templates/spec.md",
+      "sections": [
+        "scope",
+        "terms",
+        "requirements",
+        "cases",
+        "questions"
+      ],
+      "metadata": {},
+      "minimum_entities": {
+        "REQ": 1
+      }
+    },
+    "tao.project.change/v0.1": {
+      "template": "templates/change.md",
+      "sections": [
+        "scope",
+        "references",
+        "design",
+        "tasks",
+        "verification",
+        "questions"
+      ],
+      "metadata": {
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "definition",
+          "required": true
+        },
+        "design_doc": {
+          "type": "id",
+          "prefix": "DOC",
+          "role": "reference",
+          "required": false
+        },
+        "tasks_doc": {
+          "type": "id",
+          "prefix": "DOC",
+          "role": "reference",
+          "required": false
+        }
+      },
+      "requires_task_set": true,
+      "attachments": {
+        "design_doc": {
+          "profile": "tao.project.design/v0.1",
+          "section": "design"
+        },
+        "tasks_doc": {
+          "profile": "tao.project.tasks/v0.1",
+          "section": "tasks"
+        }
+      }
+    },
+    "tao.project.design/v0.1": {
+      "template": "templates/design.md",
+      "sections": [
+        "overview",
+        "architecture",
+        "contracts",
+        "invariants",
+        "errors",
+        "verification"
+      ],
+      "metadata": {
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "reference",
+          "required": false
+        }
+      }
+    },
+    "tao.project.tasks/v0.1": {
+      "template": "templates/tasks.md",
+      "sections": [
+        "scope",
+        "tasks"
+      ],
+      "metadata": {
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "reference",
+          "required": true
+        }
+      },
+      "minimum_tasks": 1
+    },
+    "tao.project.decision/v0.1": {
+      "template": "templates/decision.md",
+      "sections": [
+        "decisions"
+      ],
+      "metadata": {},
+      "minimum_entities": {
+        "ADR": 1
+      },
+      "maximum_entities": {
+        "ADR": 1
+      }
+    },
+    "tao.project.user-guide/v0.1": {
+      "template": "templates/user-guide.md",
+      "sections": [
+        "scope",
+        "prerequisites",
+        "steps",
+        "troubleshooting"
+      ],
+      "metadata": {}
+    },
+    "tao.project.runbook/v0.1": {
+      "template": "templates/runbook.md",
+      "sections": [
+        "scope",
+        "prerequisites",
+        "steps",
+        "verification",
+        "recovery"
+      ],
+      "metadata": {}
+    },
+    "tao.project.glossary/v0.1": {
+      "template": "templates/glossary.md",
+      "sections": [
+        "terms",
+        "abbreviations"
+      ],
+      "metadata": {}
+    },
+    "tao.project.evidence/v0.1": {
+      "template": "templates/evidence.md",
+      "sections": [
+        "scope",
+        "inputs",
+        "checks",
+        "findings",
+        "retention"
+      ],
+      "metadata": {
+        "evidence": {
+          "type": "id",
+          "prefix": "EVD",
+          "role": "definition",
+          "required": true
+        },
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "reference",
+          "required": false
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "rfc3339",
+          "required": true
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "not_applicable",
+            "stale"
+          ],
+          "required": true
+        },
+        "coverage": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ],
+          "required": true
+        }
+      },
+      "section_fields": {
+        "inputs": [
+          "fingerprint",
+          "environment"
+        ],
+        "checks": [
+          "command",
+          "expected",
+          "observed",
+          "reports"
+        ],
+        "findings": [
+          "limits"
+        ],
+        "retention": [
+          "retention"
+        ]
+      }
+    },
+    "tao.project.handoff/v0.1": {
+      "template": "templates/handoff.md",
+      "sections": [
+        "scope",
+        "state",
+        "decisions",
+        "evidence",
+        "next"
+      ],
+      "metadata": {
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "reference",
+          "required": false
+        }
+      }
+    }
+  }
+}

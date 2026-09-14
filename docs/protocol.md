@@ -14,7 +14,7 @@ bootstrap: manual
 
 本文是 tao-dev 自身的需求与设计文档，供开发者和维护者评审、实现及验收。流程、模板和工具约定描述拟实现的产品行为；本文不属于向第三方项目分发的 skill 内容，也不是运行时指令入口。文档状态为草案，条目按各自状态评审。
 
-阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，精确语法集中在 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
+阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，内部 profile 与通用格式的关系见 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
 
 <!-- tao:section purpose -->
 ## 一、目标与边界
@@ -64,13 +64,13 @@ bootstrap: manual
 :id: REQ_20260914_42AXMZ2KH2RAZ8M3
 :status: proposed
 
-Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、引用和任务格式。检查区分结构错误、质量提示和语义审查意见。
+tao-dev 随 skill 分发统一、版本化的文档契约、格式注册表和模板，约束元数据、章节、条目、ID、引用和任务格式；使用方无需自行定义 schema，CLI 与 skill 使用同一份格式定义。检查区分结构错误、质量提示和语义审查意见。
 
 <!-- tao:field acceptance -->
-**验收：** 缺章节、重复 ID、悬空引用及非法任务格式能定位到文件和行；输出规则号、问题原因及修正建议。格式通过不得被报告为需求正确或设计合理。
+**验收：** 分发包离开开发仓库后，按随包模板可写出受支持的文档；中英文共用结构键，CLI 从同包注册表取得规则。缺章节、重复 ID、悬空引用及非法任务格式能定位到文件和行；输出规则号、问题原因及修正建议。格式通过不得被报告为需求正确或设计合理。
 
 <!-- tao:field source -->
-**来源：** 参考项目的固定模板实践。本协议补充语法层、关系层与语义层的边界。
+**来源：** Kiro 等参考项目的固定模板实践与 EARS 的条件化需求表达。本协议补充全局标识符、语法层、关系层与语义层的边界。
 ```
 
 ```{req} 标识符全局化且不随组织方式改变
@@ -260,6 +260,8 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 按职责确定唯一维护位置，按明确阈值拆分文件，规则集中在 [文档组织与产物保存](document-layout.md)。普通功能默认一份变更计划，规格留在能力文档；任务超过 20 个、设计超过 120 个非空源文件行或已确定存在并行写入冲突时，按约定抽取对应附件。局部文案／格式修改可用简化路径，不能让文档数量决定风险级别。
 
 长期文档使用语义文件名，变更文件使用日期、项目内序号和 slug；永久引用仍用完整 ID。`artifacts/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。用于长期完成声明的证据须转入受版本管理的证据目录或持久产物库，并记录校验和、保存位置和期限。
+
+使用方的具体 profile、模板和字段由随包文档规程维护；内部文档保留需求、理由和验收。需求借鉴条件化验收表达，设计明确不变量与失败处理，测试性质通过 UC 关联 REQ，任务通过关系字段生成依赖图；不依赖局部编号、手工同步 waves 或统一将测试标成可选。
 
 本项目内部文档也按职责分开：协议维护需求与设计决定，专题文档维护精确契约，README 组织阅读入口。产品目录不会作为一组空目录提前创建。
 
@@ -474,7 +476,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 - [ ] `TASK_20260914_067XEKJC4WFF87HQ` 评审并确定最小文档契约
   - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_5Y6CWDE3MFMKJXSB", "REQ_20260914_GDY8F3KPE6XBGWGD"]
   - depends_on: []
-  - verify: 关键语法、索引边界、诊断级别与语言解耦有决定；保留兼容性取舍；不存在阻断校验器实现的问题。
+  - verify: 随包文档规程、格式注册表与模板一致；关键语法、索引边界、诊断级别与语言解耦有决定；不存在阻断校验器实现的问题。
 
 - [ ] `TASK_20260914_1PBCZHJT2VM7EWNW` 建立最小校验器、核心命令与独立反例集
   - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_MG6TN8H5GBTAZZR3", "REQ_20260914_GDY8F3KPE6XBGWGD"]
@@ -527,7 +529,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 | [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
 | [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
 
-外部依据：[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
+外部依据：[Kiro 规格结构](https://kiro.dev/docs/specs/)、[EARS 需求表达](https://alistairmavin.com/ears/)、[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
 
 外部引用采用上游公开地址；具体格式或行为依赖某一版本时应注明版本。文档格式与 ID 细节属于本项目设计。
 

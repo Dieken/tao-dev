@@ -69,6 +69,7 @@ DOC、REQ、UC、ADR、TASK 已有自举语法；CHG、EVD 的产品模板仍待
 | CI | Continuous Integration | 持续集成；执行必要检查，不以流水线全绿代替需求验收 |
 | AST | Abstract Syntax Tree | 抽象语法树；识别正式条目与围栏示例，避免全文搜索误判 |
 | i18n / l10n | Internationalization / Localization | 国际化是让系统支持多语言的设计，本地化是某种语言及地区的具体呈现 |
+| EARS | Easy Approach to Requirements Syntax | 用条件、事件、系统主体与可观察结果约束需求表达；可按项目语言书写，不把关键词检查当作语义验收 |
 | RFC | Request for Comments | 标准与技术文档系列；精确时间戳格式参考 RFC 3339 |
 | BCP | Best Current Practice | 最佳当前实践文档系列；BCP 47 用于语言标签 |
 | GFM | GitHub Flavored Markdown | Markdown 方言；此处借用任务列表语法，不要求使用 GitHub 或 Git |
