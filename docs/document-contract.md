@@ -10,12 +10,12 @@ bootstrap: manual
 
 # Markdown 文档契约
 
-本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。现有六篇长期开发文档仍使用待迁移的内部 profile；新建交付文档采用随包 profile 自举。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，完整 AST 校验器仍待实现。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
+本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，完整 AST 校验器仍待实现。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
 
 <!-- tao:section scope -->
 ## 一、适用范围与检查层次
 
-本契约记录下表中尚待迁移的内部开发文档 profile，不用于新建文档；术语含义见 [术语与缩写](glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](document-layout.md)。使用方采用随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目只映射目录、选择语言及配置允许的阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用内部 profile。
+本文定义本仓库开发文档的 profile 与解析器实现边界；术语含义见 [术语与缩写](glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](document-layout.md)。本项目的交付文档与第三方使用方均采用随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目只映射目录、选择语言及配置允许的阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用内部 profile。
 
 格式设计优先复用公共语法与成熟惯例，具体映射维护在随包 [公共依据与写法](../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。EARS 约束 REQ 正文，验收方法留在 acceptance；保留现有模板变量与稳定结构键，不另建同义字段。格式解析与自然语言质量判断分别验收，不宣称符合完整 EARS、Gherkin 或 arc42 工具链。
 
@@ -26,7 +26,7 @@ bootstrap: manual
 
 通用元数据、日期、章节键、字段键与安全读取要求采用随包文档规程及格式注册表的共同部分。本节只定义开发文档差异，避免内部说明与执行规程各维护一套格式。
 
-内部 v0.2 profile 使用共同必需字段 schema、id、title、locale、status、created 与可选 updated；另允许 `bootstrap: manual`，表示采用手工或临时检查，不豁免格式错误。该字段不出现在使用方 profile 或其模板中。内部 DOC、REQ、UC、ADR 与 TASK 的定义和引用仍参与自举索引。
+本仓库六篇开发文档使用下表中的专用 v0.2 profile，不作为新建交付文档的模板，也不计作 tao.project.* 格式通过。其元数据使用共同必需字段 schema、id、title、locale、status、created 与可选 updated；另允许 `bootstrap: manual`，表示采用手工或临时检查，不豁免格式错误。该字段不出现在使用方 profile 或其模板中。内部 DOC、REQ、UC、ADR 与 TASK 的定义和引用仍参与自举索引。
 
 当前 profile 的必需二级章节按下列顺序出现，不允许未声明的二级章节；扩充时显式修订 profile。补充解释可以放在现有章节的三级标题下。
 
@@ -66,7 +66,7 @@ REQ／UC／ADR 的选项、字段键、状态、关系及片段模板采用随�
 
 构建顺序为：解析全部纳入文档 → 注册定义 → 解析引用 → 检查类型与关系 → 输出诊断和索引。AST 必须区分顶层正式条目与代码示例；正文里提到一个 ID 不是新的定义。
 
-现有内部 profile 的索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`、`glossary.md`、`document-layout.md`、`cli-design.md`。外部参考资料不纳入正式条目索引。新增的 docs/changes/ 文档采用随包 profile，并与上述范围共同检查 ID 唯一性和引用；共享格式与内部格式的检查结果分开报告。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的标识符索引，离线无索引时报告 unresolved，不能视为存在。
+本仓库专用 profile 的索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`、`glossary.md`、`document-layout.md`、`cli-design.md`。外部参考资料不纳入正式条目索引。docs/changes/ 文档采用随包 profile，并与上述范围共同检查 ID 唯一性和引用；共享格式与内部格式的检查结果分开报告。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的标识符索引，离线无索引时报告 unresolved，不能视为存在。
 
 退役数据由独立 JSONL 读取层按随包 retirement_records 契约提取，再与 Markdown 定义合并检查；docs/retired/ 的全部日期文件都参与索引，不以 Sphinx 导航或当前修改日期决定范围。该目录只在产生实际退役记录时建立，不预写示例作为正式数据；注册表定义格式不等于读取器已经实现。
 

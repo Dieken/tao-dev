@@ -79,7 +79,7 @@
     "Temporary source and graph checks, not the product AST validator.",
     "No Sphinx HTML or PDF build and no real CLI behavior test.",
     "Temporary checker code is identified by digest; it is not shipped.",
-    "Existing internal profiles remain a separately checked migration scope."
+    "Repository-specific and bundled document profiles were checked separately."
   ],
   "retention": "Keep this selected report in project version control; do not distribute with the skill.",
   "input_scope": "Repository documentation and runtime sources; evidence directories and generated outputs excluded.",

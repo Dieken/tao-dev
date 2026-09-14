@@ -14,7 +14,7 @@ bootstrap: manual
 
 本文是 tao-dev 自身的需求与设计文档，供开发者和维护者评审、实现及验收。流程、模板和工具约定描述拟实现的产品行为；本文不属于向第三方项目分发的 skill 内容，也不是运行时指令入口。文档状态为草案，条目按各自状态评审。
 
-阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，内部 profile 与通用格式的关系见 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
+阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，文档检查范围与解析器设计见 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
 
 <!-- tao:section purpose -->
 ## 一、目标与边界
