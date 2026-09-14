@@ -3,3 +3,4 @@ locale = "zh-Hans"
 
 [documents]
 include = ["docs/**/*.md"]
+book_root = "docs/index.md"

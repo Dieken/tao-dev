@@ -1,0 +1,3 @@
+Sphinx>=8,<10
+myst-parser>=4,<6
+sphinx-book-theme>=1,<2

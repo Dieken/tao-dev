@@ -23,7 +23,7 @@ change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
 <!-- tao:section design -->
 ## 实现约束
 
-使用统一的版本化文档契约，以可复现的小增量验证工具和流程；运行源码与开发资料分开。具体接口见 [命令设计](../../cli-design.md)。
+使用统一的版本化文档契约，以可复现的小增量验证工具和流程；运行源码与开发资料分开。具体接口见 [命令设计](../../engineering/cli-design.md)。
 
 <!-- tao:section tasks -->
 ## 既有研发任务

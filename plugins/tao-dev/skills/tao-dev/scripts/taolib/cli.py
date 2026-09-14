@@ -4,6 +4,7 @@ import argparse
 from dataclasses import asdict
 from datetime import date
 import json
+from importlib.util import find_spec
 from pathlib import Path
 import re
 import sys
@@ -16,6 +17,8 @@ from .project import ConfigurationError, ConflictError, Project, create_file
 
 
 CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "verify.docs"]
+if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
+    CAPABILITIES.append("docs.build")
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -48,6 +51,8 @@ def arguments(argv):
     verify.add_argument("--only")
     verify.add_argument("--scope", choices=("changed", "all"), default="changed")
     verify.add_argument("--dry-run", action="store_true")
+    docs = commands.add_parser("docs", parents=[common])
+    docs.add_subparsers(dest="operation", required=True).add_parser("build", parents=[common])
     args = parser.parse_args(argv)
     args.project = getattr(args, "project", None)
     args.format = getattr(args, "format", "text")
@@ -95,6 +100,12 @@ def dispatch(args):
     if args.command == "doctor":
         report.update(capabilities=CAPABILITIES, schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
+        return report, 0
+    if args.command == "docs":
+        if "docs.build" not in CAPABILITIES:
+            raise ConfigurationError("Publication dependencies are unavailable; consult requirements-publication.txt.")
+        from .publication import build
+        report["outputs"] = build(project)
         return report, 0
     if args.command == "verify":
         selected = args.only.split(",") if args.only else ["docs", "code", "evidence"]

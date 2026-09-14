@@ -2,7 +2,7 @@
 
 通过已信任的 Python 环境调用本 skill 的 [scripts/tao.py](../scripts/tao.py)。Python 需要 3.11 或以上版本及 [运行依赖](../scripts/requirements.txt)。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
 
-先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、verify.docs。尚不包含行为检查、证据复用、退役写入和出版；这些操作不应被假装执行。
+先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、verify.docs；安装可选出版依赖后还包含 docs.build。尚不包含行为检查、证据复用和退役写入；这些操作不应被假装执行。
 
 | 操作 | 已实现行为 |
 |---|---|
@@ -13,6 +13,7 @@
 | `tao show <ID>` | 显示定义、引用和源位置；站点未构建时 url 为空 |
 | `tao new --slug <slug> --locale en` | 排他创建本地日期的变更骨架；同名计划或附件存在时报错，不覆盖。agent 必须继续填写目标、范围和可确定内容，清除占位符 |
 | `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的 handoff 文档，保存到计划附件；更新保留 DOC ID，附只读状态观察；不停止会话或提交 |
+| `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
 | `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，证据复用状态为未评估 |
 
 通用 `--project` 与 `--format text|json` 可以放在操作前后。没有可靠影响基线时，changed 范围回退到 all 并说明原因。未提供历史基线时，源校验结果 deletion_checked 为 false；不能声称已检测所有历史删除。错误元数据、重复定义或越界路径会阻止分配新 ID，避免基于不完整索引生成文件。

@@ -1,2 +1,3 @@
 -r plugins/tao-dev/skills/tao-dev/scripts/requirements.txt
+-r plugins/tao-dev/skills/tao-dev/scripts/requirements-publication.txt
 pytest>=8,<10

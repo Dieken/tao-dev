@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已提供公共及 Claude manifest、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；真实加载和行为验收尚未完成。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](../product/protocol.md)。目录图展示目标布局；当前已提供公共及 Claude manifest、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；真实加载和行为验收尚未完成。
 
 <!-- tao:section overview -->
 ## 标准基线与目标环境
@@ -25,7 +25,7 @@ created: '2026-09-14'
 
 开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 `AGENTS.md` 管理本项目开发，旁置 `CLAUDE.md` 仅含一行 `@AGENTS.md` 供 Claude 导入；二者均不作为产品 agent 定义或分发内容。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
 
-当前 prompt 实现由 [SKILL.md](../plugins/tao-dev/skills/tao-dev/SKILL.md) 明确加载 [工程规程](../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_20260914_4CS6P421MGW68PME`。工程条款的权威执行文本维护在该运行参考中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
+当前 prompt 实现由 [SKILL.md](../../plugins/tao-dev/skills/tao-dev/SKILL.md) 明确加载 [工程规程](../../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_20260914_4CS6P421MGW68PME`。工程条款的权威执行文本维护在该运行参考中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
 
 ```text
 tao-dev/
@@ -50,7 +50,7 @@ tao-dev/
       hooks/hooks.json               # 按需：Claude Code hook 配置
 ```
 
-使用方格式同样随 skill 提供：[文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 负责编写规则，assets/document-profiles.json 负责机器可读结构，assets/templates 与 assets/locales 提供模板和显示资源。skill 和未来 CLI 读取同一版本，不从内部 docs 动态加载格式，也不要求使用方另建 schema。当前模板可填写，脚本和平台适配仍按实际能力验收。
+使用方格式同样随 skill 提供：[文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 负责编写规则，assets/document-profiles.json 负责机器可读结构，assets/templates 与 assets/locales 提供模板和显示资源。skill 和未来 CLI 读取同一版本，不从内部 docs 动态加载格式，也不要求使用方另建 schema。当前模板可填写，脚本和平台适配仍按实际能力验收。
 
 公共 manifest 的最小格式如下；示例产品版本不代表已经发布：
 
@@ -85,7 +85,7 @@ Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼�
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 `SKILL.md`、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。
 
-客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
+客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
 
 new 包装接收自然语言描述并保留会话上下文，调用共享流程规程，由 agent 整理输入并填写草稿；不能仅转发到终端生成器就宣称完成。CLI 使用显式 --slug，不能把描述当作 slug 或 shell 命令；两层契约见 [CLI 设计](cli-design.md)。
 
