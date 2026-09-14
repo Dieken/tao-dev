@@ -10,7 +10,7 @@ bootstrap: manual
 
 # Markdown 文档契约
 
-本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，完整 AST 校验器仍待实现。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
+本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，源文件 AST 校验器及回归测试已提供，工作流 CLI 与出版集成待实现。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
 
 <!-- tao:section scope -->
 ## 一、适用范围与检查层次
@@ -86,7 +86,7 @@ Sphinx-Needs 是候选索引与渲染工具，需配置自定义类型和关系�
 <!-- tao:section diagnostics -->
 ## 七、诊断、质量提示与修正
 
-诊断 JSON 字段、规则号、严重级别、退出码和修正边界统一见 [文档诊断规程](../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。CLI 的公共结果封装见 [命令设计](cli-design.md)。实现按规则号与参数消费结果，界面文字可本地化；当前完整校验器尚未实现。
+诊断 JSON 字段、规则号、严重级别、退出码和修正边界统一见 [文档诊断规程](../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。CLI 的公共结果封装见 [命令设计](cli-design.md)。实现按规则号与参数消费结果，界面文字可本地化；源文件校验器已输出稳定规则号；CLI 封装与出版验收另行实现。
 
 <!-- tao:section evolution -->
 ## 八、实现与演进约束

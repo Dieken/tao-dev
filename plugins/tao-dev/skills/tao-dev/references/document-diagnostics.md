@@ -1,6 +1,8 @@
 # 文档诊断与修正规程
 
-检查使用方项目的文档、解读诊断或修正文档时读取本文。它帮助 agent 区分错误、提示和语义判断，并解释诊断结果；完整校验器尚未提供，人工或临时检查须列出实际范围，不能虚构规则执行结果。
+检查使用方项目的文档、解读诊断或修正文档时读取本文。它帮助 agent 区分错误、提示和语义判断，并解释诊断结果。
+
+[源文件校验器](../scripts/validate_documents.py) 接受 `--project <项目目录>`、一个或多个项目相对 Markdown 文件路径、可选 `--format json` 和 `--book-root <导航文件>`。使用 Python 3.11 或以上版本及 [运行依赖](../scripts/requirements.txt)，遵守项目既有安装授权；依赖不可用时报告缺口，不擅自安装。它只读源文件并输出结果，检查共享 profile 的结构、ID、关系、任务、退役和导航。诊断当前使用英文，message_locale 如实为 en；未知 schema 报错。未提供基线时 deletion_checked 为 false；未指定书根时不声称检查整本书的可达性。生成 HTML、语义正确性和项目行为另行验收，不能从源文件检查通过推断。
 
 ## 检查层次
 
@@ -15,7 +17,7 @@
 
 ## 诊断与修正
 
-诊断结果同时面向终端阅读与机器消费。拟议 JSON 记录至少包含 `rule_id`、`severity`、`path`、`line`、`message`、`suggestion`、`message_locale`，可选 `column`、`entity_id`、`related_locations`、`parameters`。行列从 1 开始，重复定义同时报告两个位置；字符列按 Unicode 码点计数，适配采用 UTF-16 等定位方式的编辑器时显式转换。
+诊断结果同时面向终端阅读与机器消费。JSON 记录至少包含 `rule_id`、`severity`、`path`、`line`、`message`、`suggestion`、`message_locale`，可选 `column`、`entity_id`、`related_locations`、`parameters`。行列从 1 开始，重复定义同时报告两个位置；字符列按 Unicode 码点计数，适配采用 UTF-16 等定位方式的编辑器时显式转换。
 
 | 规则号 | 默认级别 | 诊断与建议 |
 |---|---|---|
@@ -33,7 +35,7 @@
 | TAO-REF-003 | warning | 引用已废弃或已替代条目；提示新目标或说明历史用途 |
 | TAO-REF-004 | error | 纳入管理的文档文件链接使用本机绝对地址或越出项目范围；改用项目内相对路径或公开上游链接 |
 
-上述规则号稳定，措辞可以改善。输入语法损坏时先报告根错误，抑制由它引起的大量误报。拟议退出码：`0` 无 error（可含 warning），`1` 有文档 error，`2` 工具或配置故障、检查未完成。发布就绪检查另评阻断问题，不能与格式退出码混为一谈。
+上述规则号稳定，措辞可以改善。输入语法损坏时先报告根错误，抑制由它引起的大量误报。退出码：`0` 无 error（可含 warning），`1` 有文档 error，`2` 工具或配置故障、检查未完成。发布就绪检查另评阻断问题，不能与格式退出码混为一谈。
 
 EARS 句式、条件类型与本地化表达按 [公共依据与写法](document-standards.md) 复查。关键词或模糊词匹配只产生 TAO-QUALITY-001 提示，不把中文缺少 When／shall 判为结构错误，不把句式匹配报告为语义通过。
 
