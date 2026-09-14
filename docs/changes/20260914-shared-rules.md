@@ -13,7 +13,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section scope -->
 ## 目标与边界
 
-把通用文档规则作为 skill 的权威分发内容，让本项目从源码入口和随包模板开始自举。保持项目内容与标识符稳定；正式校验器和平台行为验收不属于本次交付。
+把通用文档规则作为 skill 的权威分发内容，让本项目从源码入口和 skill 提供的模板开始自举。保持项目内容与标识符稳定；正式校验器和平台行为验收不属于本次交付。
 
 <!-- tao:section references -->
 ## 规格引用
@@ -31,7 +31,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 - [x] `TASK_20260914_VDJ82NS26W4AESFH` 完成规则归位与项目局部自举入口
   - relates: ["CHG_20260914_MPNFR3H9WQ7KHFAD"]
   - depends_on: []
-  - verify: 包内引用闭合且无项目专用标识符；原有正式 ID 保留；本计划与证据符合随包 profile；中英文模板及既有结构检查无新增错误，报告明确未覆盖的行为验收。
+  - verify: 包内引用闭合且无项目专用标识符；原有正式 ID 保留；本计划与证据符合 skill 提供的 profile；中英文模板及既有结构检查无新增错误，报告明确未覆盖的行为验收。
   - evidence: [检查记录](20260914-shared-rules/evidence/shared-rules.md)
 
 <!-- tao:section verification -->

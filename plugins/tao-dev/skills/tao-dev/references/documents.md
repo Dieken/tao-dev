@@ -2,7 +2,7 @@
 
 创建、修改、审查 tao 管理的规格、设计、计划、任务或证据时读取本文，再按需要读取相应模板。**文档格式由 tao-dev 提供；使用方填写内容，CLI 实现同一契约的确定性检查。** 本文、[格式注册表](../assets/document-profiles.json) 与模板随 skill 分发，运行时不依赖开发仓库。
 
-按本次工作定向读取补充规程：确定目录、拆分或保存报告读 [文档组织](document-layout.md)，生成或翻译文档读 [本地化](localization.md)，检查与修正文档读 [诊断](document-diagnostics.md)，出版及分享链接读 [出版](publication.md)，理解概念或前缀时查 [术语表](glossary.md)。这些也是随包的权威规则，无需一次加载全部参考。
+按本次工作定向读取补充规程：确定目录、拆分或保存报告读 [文档组织](document-layout.md)，生成或翻译文档读 [本地化](localization.md)，检查与修正文档读 [诊断](document-diagnostics.md)，出版及分享链接读 [出版](publication.md)，理解概念或前缀时查 [术语表](glossary.md)。这些也是 skill 的权威规则，无需一次加载全部参考。
 
 ## 选择范围与职责
 
