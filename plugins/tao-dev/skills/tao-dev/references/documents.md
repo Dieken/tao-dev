@@ -20,7 +20,7 @@
 |---|---|---|
 | 书／篇／多页章入口 `<group>/index.md` | `tao.project.navigation/v0.1` | [navigation](../assets/templates/navigation.md) |
 | 能力规格 `docs/product/<capability>.md` | `tao.project.spec/v0.1` | [spec](../assets/templates/spec.md) |
-| 一次交付计划 `docs/changes/<year>/<date>-<seq>-<slug>.md` | `tao.project.change/v0.1` | [change](../assets/templates/change.md) |
+| 一次交付计划 `docs/changes/<year>/<yyyymmdd>-<slug>.md` | `tao.project.change/v0.1` | [change](../assets/templates/change.md) |
 | 系统／模块设计 `docs/engineering/<module>.md`，或计划的设计附件 | `tao.project.design/v0.1` | [design](../assets/templates/design.md) |
 | 计划的任务附件 `<plan-stem>/tasks.md` | `tao.project.tasks/v0.1` | [tasks](../assets/templates/tasks.md) |
 | 长期决定 `docs/engineering/decisions/<slug>.md` | `tao.project.decision/v0.1` | [decision](../assets/templates/decision.md) |
@@ -30,7 +30,7 @@
 | 实际检查摘要 `<plan-stem>/evidence/<slug>.md` | `tao.project.evidence/v0.1` | [evidence](../assets/templates/evidence.md) |
 | 恢复摘要 `<plan-stem>/handoff.md` | `tao.project.handoff/v0.1` | [handoff](../assets/templates/handoff.md) |
 
-一次检查或交接没有关联变更时，分别放在 `docs/evidence/` 或 `docs/handoffs/`。规格定义承诺，计划引用这些定义并说明本次差异。内容归属、文件命名、拆分阈值及日期序号登记的权威规则见 [文档组织](document-layout.md)；目录、章节含义与注册表保持一致。
+一次检查或交接没有关联变更时，分别放在 `docs/evidence/` 或 `docs/handoffs/`。规格定义承诺，计划引用这些定义并说明本次差异。内容归属、文件命名及拆分阈值的权威规则见 [文档组织](document-layout.md)；目录、章节含义与注册表保持一致。
 
 拆分时计划通过 `tasks_doc`、`design_doc` 引用附件 DOC；附件通过 `change` 引用计划定义的 CHG。原章节只留对应 `{need}` 引用和职责说明，不能保留第二份正文。当前 tasks_doc 指向一份完整任务集合，不通过普通正文引用暗中扩展为多份任务附件；扩展该关系须先定义并验证格式。计划及其任务附件合起来至少有一个 TASK。
 
