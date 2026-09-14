@@ -67,6 +67,8 @@ tao-dev/
 
 Codex 专用 hook 在根 manifest 的 `extensions.com.openai.hooks` 显式指向 `./com.openai/hooks/hooks.json`，避免同时误载 Claude 默认 hook。该字段与对应短文档 hook 配置已提供，触发行为按双端验收记录判断。新包优先使用公共 manifest；`.codex-plugin/plugin.json` 仅作为有实际版本兼容需求时的回退，不再维护一份重复的默认定义。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
 
+Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook；同一运行代码采用兼容 manifest 后可以发现。针对这一具体版本，维护入口 `scripts/package_plugin.py --format codex-legacy --output <新目录>` 从权威元数据生成单独的 `.codex-plugin/plugin.json`，复制原样的 skills/ 与 com.openai/。兼容副本不包含优先级更高的根 manifest，也不带 Claude command／agent；Codex 通过 skill 执行相同操作。默认 public 输出保留公共布局。两种输出均不包含开发文档，不安装或注册插件，不覆盖已有目录；不能把“额外放一份兼容 manifest”误当作客户端已经选用了它。
+
 Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼容 manifest 的名称、版本和描述从公共元数据派生并检查一致性。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 
 公共版本需要 MCP 时才增加根 `mcp.json`；Claude 兼容配置按其原生格式生成并单独验收。初版不为符合目录示意而引入 MCP 服务。
@@ -111,6 +113,8 @@ Claude command 与角色的运行引用使用客户端展开的 `${CLAUDE_PLUGIN
 验收在隔离的使用方项目及测试配置中进行，使用同一发布版本和等价输入。两端分别记录证据，包含实际加载位置、CLI 版本、模型、系统环境、权限／hook 信任状态、命令、退出状态及观察结果。开发者日常环境已有的插件或配置不得掩盖缺失依赖。
 
 直接使用已配置好的 `claude` 和 `codex` 命令及既有认证，不为试验重新安装或配置客户端。试验 skill 只通过经确认的项目局部或单次调用加载机制启用；进入试验目录本身不代表安装范围已受限。禁止全局安装、注册，以及修改全局插件、skill、marketplace 或 hook 配置；这一限制同时传给受测 agent 和辅助脚本。项目局部配置及清理不得影响其他项目。若所选版本无法提供所需隔离，记录该项受阻，不回退到全局安装。
+
+Codex 验收使用独立临时 CODEX_HOME：原生安装缓存留在该目录，客户端默认禁用 tao-dev，仅受信任的试验项目启用。必须同时检查原生 skills/list、hooks/list 和实际模型行为；plugin list 在项目外为空不足以证明技能未进入上下文。已有、未过期的访问凭据可在显式授权的试验中临时复用，副本权限为 0600，不携带刷新令牌，结束后删除；不登录、不刷新、不改个人认证。hook 信任只绑定已核对代码及原生清单中的精确哈希，写入试验配置，不跳过客户端信任检查。源码、环境与真实结果保存规则见 [客户端验收说明](../../tests/acceptance/README.md)。
 
 | 验收项 | 两端都必须满足的结果 |
 |---|---|

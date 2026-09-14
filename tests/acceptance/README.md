@@ -1,6 +1,6 @@
 # 实际客户端试验
 
-这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不设置认证、不安装客户端、不注册市场、不修改全局配置。
+这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不安装客户端、不重新登录、不修改个人配置；原生安装试验仅写独立客户端状态。
 
 先按 README 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
@@ -9,17 +9,22 @@ python tests/acceptance/clients.py --client claude --case inside --workspace /tm
 python tests/acceptance/clients.py --client claude --case outside --workspace /tmp/tao-cli-experiment
 python tests/acceptance/clients.py --client claude --case write --workspace /tmp/tao-cli-experiment
 python tests/acceptance/clients.py --client claude --case review --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client codex --case inside --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client codex --case outside --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client codex --case review --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client codex --case recover --workspace /tmp/tao-cli-experiment
+.venv/bin/python tests/acceptance/clients.py --client codex --case write --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --workspace /tmp/tao-codex-write
+.venv/bin/python tests/acceptance/clients.py --client codex --case recover --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --disable-hooks --workspace /tmp/tao-codex-recover
+.venv/bin/python tests/acceptance/lifecycle.py --codex-legacy --workspace /tmp/tao-codex-lifecycle
 ```
 
-Claude 使用调用级 --plugin-dir。Codex 的项目内 .agents/skills/ 路径已做过实际试验，但 0.154.0 会自动把试验目录写入全局 projects 信任配置，调用级 trust override 也未阻止；脚本因此对这个已知版本返回 blocked，不再执行模型试验。先修复或确认客户端的隔离机制再解除此限制，不能改用全局注册绕过。原生 skill 结果也不能代替完整插件、命令或 hook 验收。未验证能够满足无全局安装约束的 Codex 插件加载路径前，不运行 marketplace add 或 plugin add。
+Claude 使用调用级 --plugin-dir。Codex 必须显式选择 --isolated-codex：每个案例使用新的独立 workspace，CODEX_HOME、XDG_CONFIG_HOME、Git 配置位置和安装缓存均留在该工作区；仅试验项目启用插件，客户端默认禁用。安装后用原生 app-server 查询技能边界，项目外空列表之外仍须模型对照。0.154.0 的个人配置模式继续返回 blocked，因为调用级 trust override 不能阻止其持久化项目信任；隔离模式不解除这个保护。
+
+--reuse-codex-auth 明确允许短时复用现有文件式 ChatGPT 认证；仅复制有效期能够覆盖本例的访问令牌、ID token 和账户标识，不复制刷新令牌。副本限制为 0600，调用结束删除并从事件日志中删去任何匹配的令牌值；过期、其他认证方式或自定义 provider/profile 返回未执行，不自动刷新。临时模型配置沿用个人已选模型及供应商路由，禁用远端插件目录、apps、网络搜索和代理委派。报告中的配置模型名不冒充服务端独立确认；Codex token 事件也不提供真实账单。该维护适配目前针对 POSIX，不能用它声称原生 Windows 验收通过。
+
+0.154.0 对公共包只发现 skill，不发现 hook。--codex-legacy 使用 [打包器](../../scripts/package_plugin.py) 从相同运行源生成明确的兼容副本；省略该选项可保留公共包反例。--trust-test-hook 先检查原生 hook 清单恰好只有项目内的已知 handler，核对安装脚本与资源字节，再将该 handler 的精确哈希信任写入临时配置，并重新查询确认；不使用信任绕过参数。--disable-hooks 用于真实客户端禁用后的显式验证案例。
+
+lifecycle.py 不调用模型，实际安装、禁用、重新启用、更新试验副本的版本及描述、卸载，再以新的原生查询验证变化。兼容包同时验证 hook 禁用／移除和定义变更后的信任失效；只改变包版本不会使相同定义的信任失效，信任哈希不是包代码的完整性证明。它不修改源版本或个人安装；更新重新产生默认启用项时必须恢复临时客户端的默认禁用，避免项目外可见。该检查证明加载生命周期，不能替代模型任务和原生 hook 行为。
 
 inside 核对实际发现、引用定位、doctor/status；outside 不带加载参数、不使用工具，只查询初始可用能力。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
 
-原始事件、错误流、运行时间及全局配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
+原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
 模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留未知；不要以两个 CLI 的名称断言两个供应商。每例默认 180 秒，到期终止该试验进程组。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
 
