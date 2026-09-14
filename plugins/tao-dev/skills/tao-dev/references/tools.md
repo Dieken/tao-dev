@@ -50,7 +50,7 @@ documents.include 与 documents.exclude 均按项目根目录使用 Python Path.
 
 配置只描述工具行为。路径和文件模式限定在项目内，解析符号链接后不得越界；未知键或配置版本报错。新文档语言先取显式 --locale，再取顶层 locale 配置，再取已有管理文档的唯一 locale；无法确定时报告缺口，由 agent 依据项目约定解决，不取聊天语言或机器时区作为文档语言。可省略 ui.locale，让文档诊断按各自源文档语言显示。
 
-配置中的目录仅在实际写入时创建。源文件校验器也可单独调用，见 [诊断规程](document-diagnostics.md)；它与 CLI 共用同一实现，不是另一套文档格式。原始输出默认留在临时目录或 CI，简短结果按 [保存规则](document-layout.md) 记录。
+配置中的目录仅在实际写入时创建。源文件校验器也可单独调用，见 [诊断规程](document-diagnostics.md)；它与 CLI 共用同一实现，不是另一套文档格式。原始输出默认留在临时目录或 CI，简短结果按 [保存规则](evidence-retention.md) 记录。
 
 ## 客户端入口与短检查
 

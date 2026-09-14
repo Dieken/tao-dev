@@ -2,7 +2,7 @@
 
 创建、修改、审查 tao 管理的规格、设计、计划、任务或证据时读取本文，再读取本次实际使用的 profile 所对应的模板；同一任务确实修改多类文档时才读取多个模板。普通代码、测试或配置修改没有文档同步职责时不读取本文。**文档格式由 tao-dev 提供；使用方填写内容，CLI 实现同一契约的确定性检查。** 本文、[格式注册表](../assets/document-profiles.json) 与模板随 skill 分发，运行时不依赖开发仓库。
 
-按本次工作定向读取补充规程：需要选择位置、拆分文件或保存报告时读 [文档组织](document-layout.md)；生成不同语言版本或翻译时读 [本地化](localization.md)；实际检查或修正文档时读 [诊断](document-diagnostics.md)；构建、发布或分享书籍链接时读 [出版](publication.md)；遇到不清楚的概念或前缀时查 [术语表](glossary.md)。编写或审查正式 REQ／UC／ADR 时读 [公共依据与写法](document-standards.md)。不满足触发条件就停止，不沿引用递归加载其他规程或未使用的模板。
+按本次工作定向读取补充规程：需要选择位置、拆分文件或组织书籍导航时读 [文档组织](document-layout.md)；决定验证结论、报告或临时产物的保存方式时读 [证据与产物保存](evidence-retention.md)；生成不同语言版本或翻译时读 [本地化](localization.md)；实际检查或修正文档时读 [诊断](document-diagnostics.md)；构建、发布或分享书籍链接时读 [出版](publication.md)；遇到不清楚的概念或前缀时查 [术语表](glossary.md)。编写或审查正式 REQ／UC／ADR 时读 [公共依据与写法](document-standards.md)。不满足触发条件就停止，不沿引用递归加载其他规程或未使用的模板。
 
 ## 选择范围与职责
 
@@ -124,11 +124,11 @@ checkbox 只接受 `[ ]` 或 `[x]`。字段行缩进两个空格，按 relates�
 
 evidence 可选，但勾选完成时必需，为指向验证记录的单个 Markdown 链接，默认指向本计划的 verification 章节，也可指向独立 evidence 摘要或实际报告；不要求另建文件或 EVD。章节链接使用出版规程定义的稳定锚点。链接存在不自动代表完成，checkbox 也不代表已合并或发布。依赖图、执行批次、反向引用和覆盖表由字段生成，不另手工维护 JSON waves 或重复状态。
 
-change 模板的 VERIFICATION 先填写检查办法，执行后在同一章节补充受检输入、时间、命令与环境、结果、范围及保存情况；不用另一份文档重复这些内容。独立 evidence 模板仅在保存规则要求拆分时使用，其中 reports 字段可写“原始输出未长期保存”及原因，无需伪造报告链接。
+change 模板的 VERIFICATION 先填写检查办法，执行后在同一章节补充受检输入、时间、命令与环境、结果、范围及保存情况；不用另一份文档重复这些内容。独立 evidence 模板仅在 [保存规则](evidence-retention.md) 要求拆分时使用，其中 reports 字段可写“原始输出未长期保存”及原因，无需伪造报告链接。
 
-evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 的 fingerprint 字段记录受检输入引用，优先使用固定 VCS 版本、范围及版本一致性结论；有未提交输入时按保存规则补充，environment 记录必要环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法还原输入或取得报告时如实说明限制，不虚构哈希、版本对应关系或 passed。
+evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 的 fingerprint 字段记录受检输入引用，优先使用固定 VCS 版本、范围及版本一致性结论；有未提交输入时按 [保存规则](evidence-retention.md) 补充，environment 记录必要环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法还原输入或取得报告时如实说明限制，不虚构哈希、版本对应关系或 passed。
 
-报告目录、持久保存、VCS 归属与受检输入的排除边界统一见 [文档组织规程](document-layout.md)。日志未保存或过期不自动否定历史结果；当前复用须满足输入一致性、摘要充分性和项目要求的材料保存条件。
+报告目录、持久保存、VCS 归属与受检输入的排除边界统一见 [证据与产物保存](evidence-retention.md)。日志未保存或过期不自动否定历史结果；当前复用须满足输入一致性、摘要充分性和项目要求的材料保存条件。
 
 ## 使用模板与检查
 
