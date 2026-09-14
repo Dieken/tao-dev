@@ -8,8 +8,11 @@ from importlib.util import find_spec
 from pathlib import Path
 import re
 import sys
+import time
 
 from . import __version__
+from .verification import policy, execute, evidence, file_digest, digest_json
+from .measurements import usage
 from .documents import ASSETS, validate
 from .identifiers import new_id
 from .handoff import save as save_handoff
@@ -92,13 +95,102 @@ def skeleton(project, args, registry, result):
     return {"path": path.relative_to(project.root).as_posix(), "ids": ids, "draft_complete": False}
 
 
+def document_snapshot(project):
+    paths = set(project.sources()) | set(project.output('retired').glob('*.jsonl'))
+    from .project import contained
+    return digest_json([(p.relative_to(project.root).as_posix(), file_digest(contained(project.root, p))) for p in sorted(paths)])
+
+
+def verify(project, args, report):
+    selected = args.only.split(",") if args.only else ["docs", "code", "evidence"]
+    if not selected or len(set(selected)) != len(selected) or set(selected) - {"docs", "code", "evidence"}:
+        raise ConfigurationError("--only accepts docs, code, evidence or a comma-separated combination.")
+    config = policy(project)
+    missing = [item for item in selected if item != "docs" and config is None]
+    report.update(coverage="partial" if args.only else "unknown", readiness="not-evaluated" if args.only else "blocked",
+                  scope="all", selection_reason="No verified impact baseline; include all configured checks and global relationships.",
+                  checks=selected, missing_capabilities=missing, target=args.change)
+    if args.dry_run:
+        report.update(status="planned" if not missing else "not_run", coverage="unknown", readiness="not-evaluated")
+        report["outputs"]["commands"] = config["checks"] if config and "code" in selected else []
+        return report, 2 if missing else 0
+    documents_before = document_snapshot(project) if "docs" in selected else None
+    result = index(project) if "docs" in selected or args.change or not args.only else None
+    if "docs" in selected:
+        if not project.sources():
+            raise ConfigurationError("No managed documents matched the configured scope.")
+        report["outputs"]["documents"] = result.to_dict()
+        report["diagnostics"] = [asdict(d) for d in result.diagnostics]
+    if args.change and (args.change not in result.definitions or not args.change.startswith("CHG_")):
+        raise ConfigurationError("Requested change is not in the managed index.")
+    if missing:
+        report["status"] = "not_run"
+        return report, 2
+    codes = [1] if result is not None and not result.valid else []
+    if config and any(item in selected for item in ('code', 'evidence')):
+        measurement = usage(project, config.get('usage_reports', []))
+        report['outputs']['usage'] = measurement
+        for key, observed in [('max_model_tokens', 'model_tokens'), ('max_estimated_usd', 'estimated_usd')]:
+            if key in config:
+                if measurement[observed] is None:
+                    report.update(status='not_run')
+                    report['outputs']['budget_reason'] = f'{key} cannot be checked: usage is unknown.'
+                    return report, 2
+                if measurement[observed] > config[key]:
+                    report.update(status='failed')
+                    report['outputs']['budget_reason'] = f'{key} exceeded before starting project checks.'
+                    return report, 1
+    if "code" in selected:
+        execution = execute(project, config)
+        report["outputs"]["execution"] = execution
+        codes.append(0 if execution["status"] == "passed" else 2 if execution["status"] == "not_run" else 1)
+    if "evidence" in selected:
+        current = evidence(project, config)
+        report["outputs"]["evidence"] = current
+        codes.append(0 if current["state"] == "reusable" else 1 if current["state"] in ("stale", "failed") else 2)
+    if documents_before is not None and documents_before != document_snapshot(project):
+        report['outputs']['documents_changed_during_checks'] = True
+        codes.append(1)
+    if not args.only:
+        changes = [d for d in result.documents.values() if d.metadata.get("schema") == "tao.project.change/v0.1"]
+        if not args.change and len(changes) == 1:
+            args.change = changes[0].metadata["change"]
+        if not args.change:
+            report["outputs"]["missing_target"] = "Select the active change when the index does not identify exactly one."
+            codes.append(2)
+        else:
+            report["target"] = args.change
+            tasks = [t for d in changes if d.metadata["change"] == args.change for t in d.tasks]
+            pending = list(tasks)
+            required = set(tasks)
+            while pending:
+                source = pending.pop()
+                for reference in result.references:
+                    if reference.source == source and reference.relation == 'depends_on' and reference.target not in required:
+                        required.add(reference.target)
+                        pending.append(reference.target)
+            open_tasks = [t for t in sorted(required) if t not in result.definitions or result.definitions[t].status != "completed"]
+            report["outputs"]["open_tasks"] = open_tasks
+            if not tasks or open_tasks:
+                codes.append(1)
+        if config.get("required_reviews"):
+            report["outputs"]["missing_reviews"] = config["required_reviews"]
+            report["outputs"]["review_limitation"] = "Required independent-review receipts need an adapter; document presence alone cannot satisfy this gate."
+            codes.append(2)
+    code = max(codes, default=0)
+    report["status"] = "passed" if code == 0 else "not_run" if code == 2 else "failed"
+    if not args.only and code == 0:
+        report.update(coverage="complete", readiness="checks-satisfied")
+    return report, code
+
+
 def dispatch(args):
     project = Project(args.project)
     registry = json.loads((ASSETS / "document-profiles.json").read_text())
     report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                   status="passed", diagnostics=[], outputs={})
     if args.command == "doctor":
-        report.update(capabilities=CAPABILITIES, schemas=list(registry["profiles"]))
+        report.update(capabilities=CAPABILITIES + (["verify.code", "verify.evidence"] if policy(project) else []), schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
         return report, 0
     if args.command == "docs":
@@ -108,31 +200,7 @@ def dispatch(args):
         report["outputs"] = build(project)
         return report, 0
     if args.command == "verify":
-        selected = args.only.split(",") if args.only else ["docs", "code", "evidence"]
-        if not selected or len(set(selected)) != len(selected) or set(selected) - {"docs", "code", "evidence"}:
-            raise ConfigurationError("--only accepts docs, code, evidence or a comma-separated combination.")
-        missing = [item for item in selected if "verify." + item not in CAPABILITIES]
-        report.update(coverage="partial" if args.only else "unknown", readiness="not-evaluated" if args.only else "blocked",
-                      scope="all", selection_reason="No verified impact baseline; include all managed sources and global relationships.",
-                      checks=selected, missing_capabilities=missing)
-        if args.dry_run:
-            report.update(status="planned" if not missing else "not_run", coverage="unknown", readiness="not-evaluated")
-            return report, 2 if missing else 0
-        result = index(project) if "docs" in selected else None
-        if result is not None and not project.sources():
-            raise ConfigurationError("No managed documents matched the configured scope.")
-        if result is not None:
-            report["outputs"]["documents"] = result.to_dict()
-            report["diagnostics"] = [asdict(d) for d in result.diagnostics]
-        if args.change and (result is None or args.change not in result.definitions or not args.change.startswith("CHG_")):
-            raise ConfigurationError("Requested change is not in the managed index.")
-        if missing:
-            report["status"] = "not_run"
-            return report, 2
-        if result and not result.valid:
-            report["status"] = "failed"
-            return report, 1
-        return report, 0
+        return verify(project, args, report)
     result = index(project)
     if args.command in ("id", "new") and any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004") for d in result.diagnostics):
         raise ConfigurationError("Cannot allocate IDs while the managed index has unreadable metadata, duplicate definitions or escaping paths.")
@@ -154,7 +222,9 @@ def dispatch(args):
         if args.change:
             documents = [d for d in documents if d.metadata.get("change") == args.change]
         tasks = [asdict(result.definitions[t]) for doc in documents for t in doc.tasks]
-        report["outputs"] = {"tasks": tasks, "evidence_reusability": "not-evaluated", "validation": "source diagnostics only; no checks rerun"}
+        current = evidence(project, policy(project)) if policy(project) else {"state": "not-evaluated"}
+        report["outputs"] = {"tasks": tasks, "evidence_reusability": current["state"], "evidence": current,
+                             "validation": "source diagnostics and receipt freshness only; no checks rerun"}
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     if args.command in ("show", "status") and not result.valid:
         report["status"] = "failed"
@@ -163,6 +233,7 @@ def dispatch(args):
 
 
 def main(argv=None):
+    started = time.monotonic()
     argv = sys.argv[1:] if argv is None else argv
     output_format = "json" if any(argv[i:i + 2] == ["--format", "json"] for i in range(len(argv))) else "text"
     args = argparse.Namespace(command="unknown", format=output_format)
@@ -173,6 +244,9 @@ def main(argv=None):
         code = 1 if isinstance(exc, ConflictError) else 2
         report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                       status="failed" if code == 1 else "not_run", diagnostics=[{"rule_id": "TAO-CLI-001", "severity": "error", "message": str(exc), "message_locale": "en"}], outputs={})
+    report["duration_seconds"] = round(time.monotonic() - started, 6)
+    if args.command == "verify" and "coverage" not in report:
+        report.update(coverage="unknown", readiness="not-evaluated" if getattr(args, "only", None) else "blocked")
     if args.format == "json":
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:

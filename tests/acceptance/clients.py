@@ -45,17 +45,28 @@ def prepare(directory, client):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--client', choices=['claude', 'codex'], required=True)
-    parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write'], required=True)
+    parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write', 'recover'], required=True)
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=180)
     args = parser.parse_args()
-    directory = args.workspace.resolve() / args.client / ('outside' if args.case == 'outside' else 'inside')
+    if args.client == 'codex':
+        version = subprocess.check_output(['codex', '--version'], text=True).strip()
+        if '0.154.0' in version:
+            print(json.dumps({'client':'codex', 'status':'blocked', 'reason':'The tested client persists project trust globally, even with an invocation override. Strict-isolation probes are disabled for this version.'}))
+            return 2
+    directory = args.workspace.resolve() / args.client / ('outside' if args.case == 'outside' else 'recovery-' + str(time.time_ns()) if args.case == 'recover' else 'inside')
     directory.mkdir(parents=True, exist_ok=True)
     plugin = None if args.case == 'outside' else prepare(directory, args.client)
+    recovery = None
+    if args.case == 'recover':
+        from recovery import prepare as prepare_recovery
+        recovery = prepare_recovery(directory, plugin)
     boundary = ('This is an isolated CLI acceptance experiment. Do not install, register, or change any global skill, plugin, marketplace, hook or client configuration. '
                 'Use scratch paths only inside this experiment directory. Do not search outside this experiment directory or read authentication files. Do not use network tools or delegate. ')
     if args.case in ('inside', 'outside'):
         prompt = boundary + ('Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not search the filesystem. If available, invoke its status operation, read only its relevant runtime references and run its doctor/status with the configured Python interpreter. Report limitations accurately. Interpreter: ' + sys.executable if args.case == 'inside' else 'Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not use any tools or search the filesystem. Reply with a short JSON object.')
+    elif args.case == 'recover':
+        prompt = boundary + 'Use tao-dev to continue solely from the persisted handoff at ' + recovery['handoff'] + '. Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. Detect stale evidence after the code change, run configured verification, and update the existing task checkbox and plan summary only using actual results. Do not create a new plan or ask for already supplied requirements. Use Python interpreter ' + sys.executable + '. Finish with the measured checks, outcomes and limits.'
     elif args.case == 'review':
         prompt = boundary + 'Use the available tao-dev review guidance to independently review example.py against requirements.txt. Do not change either file. Identify a concrete trigger, evidence and minimal fix; do not invent findings. This is your first review: no other reviewer conclusions are provided. Keep the response concise.'
     else:
@@ -69,7 +80,7 @@ def main():
         if args.case == 'review':
             command += ['--agent', 'tao-dev:reviewer']
     else:
-        command = ['codex', '-a', 'never', 'exec', '--ephemeral', '--json', '--skip-git-repo-check', '--sandbox', 'workspace-write']
+        command = ['codex', '-c', 'projects.' + json.dumps(str(directory)) + '.trust_level="trusted"', '-a', 'never', 'exec', '--ephemeral', '--json', '--skip-git-repo-check', '--sandbox', 'workspace-write']
     config_file = Path.home() / '.codex/config.toml'
     codex_before = tomllib.loads(config_file.read_text()) if config_file.exists() else {}
     before = global_configuration()
@@ -95,7 +106,7 @@ def main():
               'changed_global_files': [p for p in before if before[p] != after[p]],
               'changed_codex_sections': [k for k in codex_before.keys() | codex_after.keys() if codex_before.get(k) != codex_after.get(k)],
               'loading': 'session-plugin-dir' if plugin and args.client == 'claude' else 'project-native-skill' if plugin else 'no-test-loading',
-              'native_codex_plugin_tested': False,
+              'native_codex_plugin_tested': False, 'recovery': recovery,
               'codex_model_configuration': {'model': codex_before.get('model'), 'provider': codex_before.get('model_provider', 'openai')} if args.client == 'codex' else None}
     (logdir / (name + '.summary.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
