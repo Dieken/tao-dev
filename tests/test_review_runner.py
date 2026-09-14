@@ -101,7 +101,8 @@ def test_invalid_review_invocation_stops_before_reading_inputs(monkeypatch, opti
     assert result.value.code == 2
 
 
-@pytest.mark.parametrize('invalid', [False, 'severity', 'empty-summary', 'extra-field', 'duplicate-id'])
+@pytest.mark.parametrize('invalid', [False, 'severity', 'empty-summary', 'extra-field', 'duplicate-id',
+                                     'provider-conflict'])
 def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch, invalid):
     import json
     from types import SimpleNamespace
@@ -131,10 +132,12 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
             finding['rationale_note'] = ''
         elif invalid == 'duplicate-id':
             conclusion['findings'].append(dict(finding))
+        result = dict(type='result', subtype='success', is_error=False, session_id='reviewer-context',
+                      structured_output=conclusion, total_cost_usd=0)
+        if invalid == 'provider-conflict':
+            result['modelUsage'] = {'test-model': {'provider': 'different-provider'}}
         events = [dict(type='system', subtype='init', session_id='reviewer-context', apiProvider='test-provider'),
-                  dict(type='assistant', message={'model': 'test-model'}),
-                  dict(type='result', subtype='success', is_error=False, session_id='reviewer-context',
-                       structured_output=conclusion, total_cost_usd=0)]
+                  dict(type='assistant', message={'model': 'test-model'}), result]
         (output / 'events.jsonl').write_text('\n'.join(json.dumps(e) for e in events))
         return dict(exit_code=0, timed_out=False, error=None, personal_configuration_unchanged=True,
                     credentials_unchanged=True)
@@ -143,3 +146,6 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
     assert runner.main() == (2 if invalid else 0)
     reports = list((tmp_path / 'tmp/tao/review-runs').glob('*/review.json'))
     assert len(reports) == (0 if invalid else 1)
+    summaries = list((tmp_path / 'tmp/tao/review-runs').glob('*/summary.json'))
+    assert len(summaries) == 1
+    assert ('record_error' in json.loads(summaries[0].read_text())) is bool(invalid)

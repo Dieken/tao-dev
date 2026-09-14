@@ -151,18 +151,21 @@ def main():
             models = [event['message']['model'] for event in events if event.get('type') == 'assistant'
                       and isinstance(event.get('message', {}).get('model'), str) and event['message']['model'].strip()]
             if conclusion and models and conclusion.get('binding') == request['binding']:
-                record = {'schema': 'tao.review/v0.1', 'requirement': args.requirement, 'binding': request['binding'],
-                          'input_ref': 'git-tree:' + tree + '; scope: ' + ', '.join(args.files),
-                          'recorded_at': datetime.now(timezone.utc).isoformat(),
-                          'author': {'name': 'OpenAI coding agent', 'context': 'author-' + tree},
-                          'reviewer': {'kind': 'model', 'name': 'Claude CLI independent review', 'context': init['session_id'],
-                                       'model': models[-1], 'provider': observed_provider(init, done, models[-1])},
-                          'source': {'path': events_path.relative_to(ROOT).as_posix(), 'format': 'claude-stream-json',
-                                     'sha256': hashlib.sha256(events_path.read_bytes()).hexdigest()},
-                          **{key: conclusion[key] for key in ('summary', 'findings', 'limitations')}}
                 receipt = output / 'review.json'
                 result['estimated_usd'] = done.get('total_cost_usd')
                 try:
+                    record = {'schema': 'tao.review/v0.1', 'requirement': args.requirement,
+                              'binding': request['binding'],
+                              'input_ref': 'git-tree:' + tree + '; scope: ' + ', '.join(args.files),
+                              'recorded_at': datetime.now(timezone.utc).isoformat(),
+                              'author': {'name': 'OpenAI coding agent', 'context': 'author-' + tree},
+                              'reviewer': {'kind': 'model', 'name': 'Claude CLI independent review',
+                                           'context': init['session_id'], 'model': models[-1],
+                                           'provider': observed_provider(init, done, models[-1])},
+                              'source': {'path': events_path.relative_to(ROOT).as_posix(),
+                                         'format': 'claude-stream-json',
+                                         'sha256': hashlib.sha256(events_path.read_bytes()).hexdigest()},
+                              **{key: conclusion[key] for key in ('summary', 'findings', 'limitations')}}
                     validate(record)
                 except ValueError as exc:
                     result['record_error'] = str(exc)
