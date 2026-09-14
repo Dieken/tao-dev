@@ -161,7 +161,7 @@ def unique_object(pairs):
     return value
 
 
-def retirements(validator, directory):
+def retirements(validator, directory, overrides=None):
     from .documents import valid_date
 
     rule = validator.registry["retirement_records"]
@@ -171,13 +171,20 @@ def retirements(validator, directory):
     except ValueError:
         validator.error("TAO-REF-004", str(directory), 1, "Retirement directory is outside the project.")
         return
-    for full in sorted(path.glob("*.jsonl")):
+    overrides = overrides or {}
+    files = set(path.glob("*.jsonl"))
+    files.update(validator.root / name for name in overrides
+                 if Path(name).parent == Path(directory) and Path(name).suffix == '.jsonl')
+    for full in sorted(files):
         relative = full.relative_to(validator.root).as_posix()
         try:
             full.resolve().relative_to(validator.root)
             if not re.fullmatch(rule["filename_pattern"], full.name):
                 raise ValueError("Invalid retirement filename.")
-            lines = full.read_text(encoding="utf-8").splitlines()
+            content = overrides[relative] if relative in overrides else full.read_text(encoding="utf-8")
+            if content is None:
+                continue
+            lines = content.splitlines()
         except (ValueError, OSError, UnicodeError) as exc:
             validator.error("TAO-DOC-001", relative, 1, f"Cannot read retirement file: {type(exc).__name__}.")
             continue

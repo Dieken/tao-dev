@@ -81,6 +81,7 @@ class Validator:
         self.result = Result()
         self.md = parser()
         self.file_links = []
+        self.deleted_paths = set()
 
     def error(self, rule, path, line, message, **kwargs):
         self.result.diagnostics.append(Diagnostic(
@@ -362,7 +363,7 @@ class Validator:
             if target is None:
                 continue
             destination, fragment = target
-            if destination not in self.result.documents and not (self.root / destination).is_file():
+            if destination in self.deleted_paths or (destination not in self.result.documents and not (self.root / destination).is_file()):
                 self.error("TAO-REF-001", path, line, f"Missing file: {url}.")
             elif fragment and destination in anchors and fragment not in anchors[destination]:
                 self.error("TAO-LINK-001", path, line, f"Unknown stable anchor: {fragment}.")
@@ -408,6 +409,7 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
     """Validate explicit managed sources. Historical deletion needs a baseline."""
     validator = Validator(root)
     overrides = overrides or {}
+    validator.deleted_paths = {name for name, content in overrides.items() if content is None}
     for path in sorted(set(Path(p) for p in paths)):
         full = path if path.is_absolute() else validator.root / path
         try:
@@ -420,8 +422,10 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
         except (OSError, UnicodeError) as exc:
             validator.error("TAO-DOC-001", relative, 1, f"Cannot read UTF-8 document: {type(exc).__name__}.")
             continue
+        if source is None:
+            continue
         validator.document(source, relative)
-    relationships.retirements(validator, retirement_directory)
+    relationships.retirements(validator, retirement_directory, overrides)
     relationships.attachments(validator)
     relationships.book(validator, book_root)
     validator.resolve()

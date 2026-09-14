@@ -20,7 +20,7 @@ from .handoff import save as save_handoff
 from .project import ConfigurationError, ConflictError, Project, create_file
 
 
-CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "review", "verify.docs"]
+CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 
@@ -50,6 +50,11 @@ def arguments(argv):
     review = commands.add_parser("review", parents=[common])
     review.add_argument("change")
     review.add_argument("--from", dest="source")
+    retirement = commands.add_parser("retire", parents=[common])
+    retirement.add_argument("id")
+    retirement.add_argument("--reason", required=True)
+    retirement.add_argument("--replaced-by", action="append", default=[])
+    retirement.add_argument("--apply", action="store_true")
     handoff = commands.add_parser("handoff", parents=[common])
     handoff.add_argument("change", nargs="?")
     handoff.add_argument("--from", dest="source", required=True)
@@ -210,6 +215,11 @@ def dispatch(args):
         return report, 0
     if args.command == "verify":
         return verify(project, args, report)
+    if args.command == "retire":
+        from .retirement import retire
+        outcome, code = retire(project, args.id, args.reason, args.replaced_by, apply=args.apply)
+        report.update(outcome)
+        return report, code
     result = index(project)
     if args.command == "review":
         config = policy(project)

@@ -96,7 +96,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 | `tao doctor` | 检测项目根、配置、工具、schema 与命令能力 | 首批；只读，不安装依赖、不修复配置、不主动试跑构建 |
 | `tao setup [--publication] [--wheelhouse <目录>]` | 在已有安装授权内显式准备核心或出版环境 | 标准库入口；不依赖 uv，不向插件源码或业务 Python 安装依赖 |
 | `tao id new <TYPE>` | 为已支持的条目类型生成本地日期＋80 位安全随机部分的 ID，检查当前索引与退役记录是否重复 | 首批辅助命令；只输出 ID；正常生成文档由生成器自动分配，用户不逐项选号 |
-| `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记到 `docs/retired/<yyyymmdd>.jsonl`，日期取退役的本地日期 | 模板生成器阶段；默认预览，显式 `--apply` 才写入；不把退役叫作 deprecate 或 archive，以免混淆弃用通知、删除承诺与归档已完成工作 |
+| `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记到 `docs/retired/<yyyymmdd>.jsonl`，日期取退役的本地日期 | 已实现默认预览，显式 `--apply` 才写入；不把退役叫作 deprecate 或 archive，以免混淆弃用通知、删除承诺与归档已完成工作 |
 | `tao docs build` | 生成书籍、条目索引与永久链接入口 | 出版阶段；只写配置的生成目录，默认 `tmp/tao/book/`，不部署网站 |
 
 常规交互集中在创建、验证、查看进度；doctor、编号、保存等由 agent 按时机调用或供排障使用。没有单独 finish 命令：交付前必须核对的条件在完整 verify 中自动汇总，验收后的提交、合入、归档或发布仍按实际授权与项目流程处理，不因验证成功附带执行。
