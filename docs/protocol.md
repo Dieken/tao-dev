@@ -1,6 +1,6 @@
 ---
 schema: tao.protocol/v0.2
-id: DOC_479B0136F73749AFA32D8352A7228767
+id: DOC_20260914_4C7N0XHQSP7CY69P
 title: 协作开发协议
 locale: zh-Hans
 status: draft
@@ -35,7 +35,7 @@ bootstrap: manual
 以下条目是待评审的可验收需求。广泛共识仅指多个参考项目强调相同方向，不代表执行细节已成行业标准。
 
 ```{req} 按风险执行，保留人的决定权
-:id: REQ_7CAD959EA86F4868A056C7D1C8A2A916
+:id: REQ_20260914_BFNMKT34JF1BSGW2
 :status: proposed
 
 根据影响、不可逆性和不确定性选择流程级别，记录目标、边界、验收和需要人的决定。已作决定与授权跨阶段保留。
@@ -48,7 +48,7 @@ bootstrap: manual
 ```
 
 ```{req} 信息只维护一处，阅读可按主题组合
-:id: REQ_E58FFDB3015D4FC48E2481B83A5BFED8
+:id: REQ_20260914_NN0AEQ2E1GTVSMTV
 :status: proposed
 
 明确规格、设计、任务、决策与证据的职责；同一版本中的条目只有一个正式定义。索引和反向引用由定义生成。
@@ -61,7 +61,7 @@ bootstrap: manual
 ```
 
 ```{req} 文档可以校验并给出可修正的诊断
-:id: REQ_879A3065136F4F1993721F8840A0121D
+:id: REQ_20260914_42AXMZ2KH2RAZ8M3
 :status: proposed
 
 Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、引用和任务格式。检查区分结构错误、质量提示和语义审查意见。
@@ -74,7 +74,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 标识符全局化且不随组织方式改变
-:id: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F
+:id: REQ_20260914_5Y6CWDE3MFMKJXSB
 :status: proposed
 
 需求、用例、决策、任务、变更和文档采用离线生成的稳定 ID。标题、章节、路径与版本不得替代条目标识符。
@@ -83,11 +83,11 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 **验收：** 移动和改名保留 ID；不同变更中的任务没有局部编号歧义；废弃对象仍可追溯；复制成新对象时检测并解决重复标识符。
 
 <!-- tao:field source -->
-**来源：** RFC 9562 的 UUID 格式与分布式生成依据；前缀、紧凑大写文本及引用规则是本项目约定。日期序号只作为可读文件名，不能替代全局标识符。
+**来源：** ULID 规范中的 Crockford Base32 字符集与 80 位随机部分；可读日期、类型前缀及引用规则是本项目约定，不是标准 ULID。日期序号只作为可读文件名，不能替代全局标识符。
 ```
 
 ```{req} 完成声明绑定实际证据
-:id: REQ_B5412B888E844FD8AA6F76B9B59C4806
+:id: REQ_20260914_0J68SDKV86ENKER2
 :status: proposed
 
 记录验证对象、执行条件、结果和适用范围；受影响输入变化后使相关证据过期。质量与成本分别展示实测、风险信号和估算。
@@ -100,7 +100,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 核心流程不绑定 agent 或 issue 平台
-:id: REQ_8D96CE7C86D6463194942315CB61B62B
+:id: REQ_20260914_95193C19C90NRXV4
 :status: proposed
 
 相同的契约与检查可通过普通命令执行，skill、slash command、hook 和 issue 接入作为适配层；安装前检测所需能力。
@@ -113,7 +113,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 文档可持续组织成书
-:id: REQ_D3CC348D07B64AA188C079BE93B28E0A
+:id: REQ_20260914_3JQXRKWXKAZSNJ5R
 :status: proposed
 
 从同一份源文档生成按产品、工程、用户和运维组织的阅读入口与索引；区分开发中状态、发布版本及历史变更。
@@ -126,7 +126,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 工作可恢复，并行有明确边界
-:id: REQ_AD6954B59E45455287DB1A499FB7232F
+:id: REQ_20260914_6YZ1XE1GC369655H
 :status: proposed
 
 交接保留目标、决定、相关条目、当前证据、阻碍和下一步。并行前明确修改范围、共享契约、状态写入与集成责任。
@@ -139,7 +139,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 规则升级与例外可追踪
-:id: REQ_176AF58FB0F14E4292E8F89AEA0B789E
+:id: REQ_20260914_MG6TN8H5GBTAZZR3
 :status: proposed
 
 模板和契约带版本，升级提供诊断与明确迁移。质量例外记录理由、责任人、范围和复查条件，不能通过降低检查标准掩盖失败。
@@ -152,7 +152,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 用实际项目检验流程本身
-:id: REQ_44CE9AC254C5455F85181CE524D31EC6
+:id: REQ_20260914_4GKT5JRVBJNCQ05X
 :status: proposed
 
 本项目逐步采用自己的文档与工作流约定，并用正常案例和反例检验校验器及 agent 行为，记录增加的成本与发现的问题。
@@ -165,7 +165,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 ```
 
 ```{req} 项目语言与使用方语言解耦
-:id: REQ_71288FB94E7E4DFBACCD15BF936D0290
+:id: REQ_20260914_GDY8F3KPE6XBGWGD
 :status: proposed
 
 tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊断可按目标项目语言呈现。语言变化不得改变机器结构、标识符或关系，译文不成为第二套权威需求。
@@ -178,7 +178,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{req} 按公共插件标准打包，在双 CLI 中验收
-:id: REQ_E2248E3FC6374DE8800B2540B94BE420
+:id: REQ_20260914_BWAY1ZF6HNPM855Y
 :status: proposed
 
 公共 manifest 和 skill 定义遵循 Agent Plugins 1.0.0 与 Agent Skills；agent、command、hook 使用目标客户端支持的格式与适配。Codex CLI 和 Claude Code CLI 均为首批必需运行验收环境。
@@ -191,7 +191,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{req} 工程原则进入实际运行指令
-:id: REQ_54CB0F04B5AF421F8FC3449A14449779
+:id: REQ_20260914_4CS6P421MGW68PME
 :status: proposed
 
 分发的 skill 入口明确加载自包含的工程规程，指导需求、复杂度取舍、模块与状态设计、失败与安全、增量实现、验证、评审及运行演进。条款给出适用条件、具体动作和判断依据，而非仅宣示质量目标；按使用方风险和已有约定执行。
@@ -204,7 +204,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{req} 独立判断并按风险开展对抗式审查
-:id: REQ_A2D91BFB201543658A97160E64C394AC
+:id: REQ_20260914_M05MAGDARWBY5D44
 :status: proposed
 
 对用户和作者提出的方案，独立分析收益、代价、必要条件与更简单的替代方案。审查覆盖文档、代码、测试、配置及 prompt 等相关产物；按后果选择强度，加强审查优先采用不同模型供应商，并保留实际模型、输入、证据、处置和成本记录。
@@ -259,7 +259,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 
 按职责确定唯一维护位置，按明确阈值拆分文件，规则集中在 [文档组织与产物保存](document-layout.md)。普通功能默认一份变更计划，规格留在能力文档；任务超过 20 个、设计超过 120 个非空源文件行或已确定存在并行写入冲突时，按约定抽取对应附件。局部文案／格式修改可用简化路径，不能让文档数量决定风险级别。
 
-长期文档使用语义文件名，变更文件使用日期、项目内序号和 slug；永久引用仍用 UUID。`artifacts/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。用于长期完成声明的证据须转入受版本管理的证据目录或持久产物库，并记录校验和、保存位置和期限。
+长期文档使用语义文件名，变更文件使用日期、项目内序号和 slug；永久引用仍用完整 ID。`artifacts/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。用于长期完成声明的证据须转入受版本管理的证据目录或持久产物库，并记录校验和、保存位置和期限。
 
 本项目内部文档也按职责分开：协议维护需求与设计决定，专题文档维护精确契约，README 组织阅读入口。产品目录不会作为一组空目录提前创建。
 
@@ -267,9 +267,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ## 五、关键设计选择
 
 ```{adr} 正文保持 Markdown，机器读取明确结构
-:id: ADR_1BF0E2EB28C74F5FBDBE936DF1B93616
+:id: ADR_20260914_HHVX7YB5AG7J3TMT
 :status: proposed
-:links: REQ_879A3065136F4F1993721F8840A0121D, REQ_E58FFDB3015D4FC48E2481B83A5BFED8
+:links: REQ_20260914_42AXMZ2KH2RAZ8M3, REQ_20260914_NN0AEQ2E1GTVSMTV
 
 <!-- tao:field context -->
 **背景与备选：** 纯自由文本难稳定校验；全部改为 YAML 对人阅读不友好；维护并行 JSON 与正文会产生双份事实。
@@ -281,25 +281,25 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 **代价：** 需要 AST 级结构检查和少量扩展约定。JSON Schema 只负责提取后的数据，不声称能独自验证 Markdown 章节。具体字段见文档契约。
 ```
 
-```{adr} UUID 标识符与目录、标题、版本分离
-:id: ADR_97A68FCB0CE34226B49B5C4968D55123
+```{adr} 日期与随机串组成的标识符保持稳定
+:id: ADR_20260914_5R9RWAZTTBX9X86G
 :status: proposed
-:links: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F
+:links: REQ_20260914_5Y6CWDE3MFMKJXSB
 
 <!-- tao:field context -->
-**背景与备选：** 日期＋三位流水号便于阅读，但跨项目、并行分支或离线副本可能重复；删除最大号后仅扫描当前文件无法保证不复用。持久登记可以保存分配上限，但仍需协调和冲突处理。标题或内容哈希会随编辑变化。
+**背景与备选：** UUIDv4 不直观表达日期；ULID 更紧凑，但其时间需要解码。日期＋三位流水号便于阅读，却需要协调跨分支和离线分配。条目需要兼顾时间识别度、独立生成与稳定引用。
 
 <!-- tao:field decision -->
-**选择：** 正式 ID 保留类型前缀加完整 UUIDv4。日期单独记录，日期序号仅用于变更文件名。标题用于显示，索引负责解析位置和稳定分享入口；人可以搜索标题、复制链接，代码及跨文档引用保存完整 ID。
+**选择：** 正式 ID 使用 `类型_YYYYMMDD_16位随机串`，日期为分配时的本地日期，随机部分为 80 位安全随机数据的 Crockford Base32 编码。生成后完整 ID 固定；日期纠正、改名和移动不重新编号。标题用于显示，代码与跨文档引用保存完整 ID。
 
 <!-- tao:field consequences -->
-**代价：** ID 较长；工具需提供查找和复制支持。概率唯一仍须查重；正式删除保留小型退役记录，日期文件名需要独立的分配上限登记。标识符不表示内容版本；创建日期不从 UUIDv4 推断。
+**代价：** 这是项目自定义格式，需要日期与编码校验；概率唯一仍须查重，正式删除保留小型退役记录。内嵌日期是分配日线索，不代替精确时间戳或内容版本。变更文件名的日期序号另行登记，ID 本身不依赖该登记。
 ```
 
 ```{adr} 出版层优先验证 Sphinx 组合，执行核心保持独立
-:id: ADR_52902B3E6EBF4AE69E86E2A87C15BC70
+:id: ADR_20260914_ZJWEM2FQCMF5G4KJ
 :status: proposed
-:links: REQ_D3CC348D07B64AA188C079BE93B28E0A, REQ_8D96CE7C86D6463194942315CB61B62B
+:links: REQ_20260914_3JQXRKWXKAZSNJ5R, REQ_20260914_95193C19C90NRXV4
 
 <!-- tao:field context -->
 **背景与备选：** mdBook 简洁，但语义追踪需补充；Antora 适合多仓库版本聚合，当前负担偏大。
@@ -312,9 +312,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{adr} 显式操作推进流程，hook 执行短小的辅助动作
-:id: ADR_D908699BA58A49E6B530D61F99868874
+:id: ADR_20260914_V3NMPG25YZT8WQJA
 :status: proposed
-:links: REQ_8D96CE7C86D6463194942315CB61B62B, REQ_AD6954B59E45455287DB1A499FB7232F
+:links: REQ_20260914_95193C19C90NRXV4, REQ_20260914_6YZ1XE1GC369655H
 
 <!-- tao:field context -->
 **背景与备选：** 全靠提示容易遗漏检查；每次事件启动完整流程会增加延迟和失控循环。将文档检查、行为验证和收尾条件各设一个命令，会把工具内部分类变成用户必须选择的步骤。
@@ -327,9 +327,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{adr} 中文规范、英文机器标识，显示语言独立选择
-:id: ADR_72FF0980E36E4471B38F6577EBF53A83
+:id: ADR_20260914_WX7BFBRXENPN4CT7
 :status: proposed
-:links: REQ_71288FB94E7E4DFBACCD15BF936D0290, REQ_879A3065136F4F1993721F8840A0121D
+:links: REQ_20260914_GDY8F3KPE6XBGWGD, REQ_20260914_42AXMZ2KH2RAZ8M3
 
 <!-- tao:field context -->
 **背景与备选：** 项目主要维护者阅读中文更方便；全英文便于更广泛协作，但会增加当前审阅负担；同步维护两套全文容易发生语义漂移。不同模型和任务的语言表现需要实测，通用知识问答成绩不能直接证明 skill 的执行效果。
@@ -342,9 +342,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{adr} 公共插件结构与客户端适配分层
-:id: ADR_8AABB2FFA17A444AA1BB460559878E47
+:id: ADR_20260914_J5N1H8WPZZ4MNR04
 :status: proposed
-:links: REQ_E2248E3FC6374DE8800B2540B94BE420, REQ_8D96CE7C86D6463194942315CB61B62B
+:links: REQ_20260914_BWAY1ZF6HNPM855Y, REQ_20260914_95193C19C90NRXV4
 
 <!-- tao:field context -->
 **背景与备选：** 各自维护两套流程会漂移；把某个客户端的 agent、command 和 hook 当作公共标准则会产生虚假兼容。
@@ -370,9 +370,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 以下用例兼作未来校验器和流程的验收起点：
 
 ```{uc} 移动章节不改变需求标识符
-:id: UC_048BE528B93E475091A08DB06FA82DBC
+:id: UC_20260914_A98H5M8ZF9ZXHV6S
 :status: proposed
-:verifies: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F, REQ_E58FFDB3015D4FC48E2481B83A5BFED8
+:verifies: REQ_20260914_5Y6CWDE3MFMKJXSB, REQ_20260914_NN0AEQ2E1GTVSMTV
 
 <!-- tao:field given -->
 **给定：** 一个需求被任务和用例引用。
@@ -383,9 +383,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 文档错误给出有限且可定位的诊断
-:id: UC_4DF4178A72E143408A8987375EAD7E7D
+:id: UC_20260914_2CNRNTWZFWX995HA
 :status: proposed
-:verifies: REQ_879A3065136F4F1993721F8840A0121D
+:verifies: REQ_20260914_42AXMZ2KH2RAZ8M3
 
 <!-- tao:field given -->
 **给定：** 样例中分别引入缺失必需章节、重复 ID、未知引用及缺少验证方法的任务。
@@ -396,9 +396,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 代码变化后旧证据失效
-:id: UC_D2F248A999354CEFAAA3D82FF2657D2A
+:id: UC_20260914_RHQB9EH6JNB8DJBA
 :status: proposed
-:verifies: REQ_B5412B888E844FD8AA6F76B9B59C4806, REQ_AD6954B59E45455287DB1A499FB7232F
+:verifies: REQ_20260914_0J68SDKV86ENKER2, REQ_20260914_6YZ1XE1GC369655H
 
 <!-- tao:field given -->
 **给定：** 某任务已经有通过报告。
@@ -409,9 +409,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 翻译显示文本不改变机器含义
-:id: UC_9C088A12C27E4ACD8CF7E315DFBA9409
+:id: UC_20260914_YSP9ZDA6ZNV2PMXF
 :status: proposed
-:verifies: REQ_71288FB94E7E4DFBACCD15BF936D0290, REQ_879A3065136F4F1993721F8840A0121D
+:verifies: REQ_20260914_GDY8F3KPE6XBGWGD, REQ_20260914_42AXMZ2KH2RAZ8M3
 
 <!-- tao:field given -->
 **给定：** 两份隔离的中英文模板样例使用相同的稳定章节键、条目 ID 和关系，仅 locale 与显示文字不同。
@@ -422,9 +422,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 独立发布包在两种 CLI 中执行
-:id: UC_35A51A9A85DC4BA0806E41219241D1BC
+:id: UC_20260914_6M8S2YF09JDJSWPV
 :status: proposed
-:verifies: REQ_E2248E3FC6374DE8800B2540B94BE420, REQ_8D96CE7C86D6463194942315CB61B62B
+:verifies: REQ_20260914_BWAY1ZF6HNPM855Y, REQ_20260914_95193C19C90NRXV4
 
 <!-- tao:field given -->
 **给定：** 同一版本的发布包和两份隔离的使用方项目，无开发文档及未声明插件配置。
@@ -435,9 +435,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 运行规程独立可用并影响工程判断
-:id: UC_110ACB7BC1BC410E846625DE846A4552
+:id: UC_20260914_SZVA0530E14QCGQZ
 :status: proposed
-:verifies: REQ_54CB0F04B5AF421F8FC3449A14449779, REQ_B5412B888E844FD8AA6F76B9B59C4806
+:verifies: REQ_20260914_4CS6P421MGW68PME, REQ_20260914_0J68SDKV86ENKER2
 
 <!-- tao:field given -->
 **给定：** 仅含分发包与目标代码的隔离环境。用三个独立场景分别提供无实际扩展需求的局部功能、可以复现的缺陷、缺失必要测试工具的修改；包含中英文目标项目。
@@ -448,9 +448,9 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 ```
 
 ```{uc} 审查能纠正迎合和惯性，也能保留合理方案
-:id: UC_2A8B81ECCBFF441D8D4A208CC4DB40FA
+:id: UC_20260914_GFFHGA8RGYGRNGAN
 :status: proposed
-:verifies: REQ_A2D91BFB201543658A97160E64C394AC, REQ_54CB0F04B5AF421F8FC3449A14449779
+:verifies: REQ_20260914_M05MAGDARWBY5D44, REQ_20260914_4CS6P421MGW68PME
 
 <!-- tao:field given -->
 **给定：** 独立样例包括：局部文案修改；没有必要性证据却被建议增加服务的方案；具有明确隔离或恢复约束的相似方案；含已知缺陷的代码、配置和规格。为同一事实制作用户赞成与反对两种表达，另测供应商不可用及模型信息未知。
@@ -471,24 +471,24 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 
 以下任务构成项目实施路线；完成状态依据各任务的验收条件记录。
 
-- [ ] `TASK_CD97931014A54A7A954E90AEC5536887` 评审并确定最小文档契约
-  - relates: ["REQ_879A3065136F4F1993721F8840A0121D", "REQ_5348F468CC5E4EA6A33113E2E2F1FE4F", "REQ_71288FB94E7E4DFBACCD15BF936D0290"]
+- [ ] `TASK_20260914_067XEKJC4WFF87HQ` 评审并确定最小文档契约
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_5Y6CWDE3MFMKJXSB", "REQ_20260914_GDY8F3KPE6XBGWGD"]
   - depends_on: []
   - verify: 关键语法、索引边界、诊断级别与语言解耦有决定；保留兼容性取舍；不存在阻断校验器实现的问题。
 
-- [ ] `TASK_D141FDDCA82341ACA6A8C465CF1FBFB7` 建立最小校验器、核心命令与独立反例集
-  - relates: ["REQ_879A3065136F4F1993721F8840A0121D", "REQ_176AF58FB0F14E4292E8F89AEA0B789E", "REQ_71288FB94E7E4DFBACCD15BF936D0290"]
-  - depends_on: ["TASK_CD97931014A54A7A954E90AEC5536887"]
+- [ ] `TASK_20260914_1PBCZHJT2VM7EWNW` 建立最小校验器、核心命令与独立反例集
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_MG6TN8H5GBTAZZR3", "REQ_20260914_GDY8F3KPE6XBGWGD"]
+  - depends_on: ["TASK_20260914_067XEKJC4WFF87HQ"]
   - verify: 正常、重复 ID、悬空引用、非法章节、非法任务及未知版本样例得到预期诊断；中英文显示标签不影响结构解析；代码围栏中的示例不会误入正式索引；doctor、id new、show 和 verify 文档子集的能力、退出码、partial 标记及无 VCS／无 rg 场景可验证。
 
-- [ ] `TASK_B870F5217D8641569128F6EE84498610` 打通单个变更的实现、证据与恢复
-  - relates: ["REQ_7CAD959EA86F4868A056C7D1C8A2A916", "REQ_B5412B888E844FD8AA6F76B9B59C4806", "REQ_AD6954B59E45455287DB1A499FB7232F", "REQ_44CE9AC254C5455F85181CE524D31EC6", "REQ_54CB0F04B5AF421F8FC3449A14449779", "REQ_A2D91BFB201543658A97160E64C394AC"]
-  - depends_on: ["TASK_D141FDDCA82341ACA6A8C465CF1FBFB7"]
+- [ ] `TASK_20260914_0ZR8RND5PZ6136WX` 打通单个变更的实现、证据与恢复
+  - relates: ["REQ_20260914_BFNMKT34JF1BSGW2", "REQ_20260914_0J68SDKV86ENKER2", "REQ_20260914_6YZ1XE1GC369655H", "REQ_20260914_4GKT5JRVBJNCQ05X", "REQ_20260914_4CS6P421MGW68PME", "REQ_20260914_M05MAGDARWBY5D44"]
+  - depends_on: ["TASK_20260914_1PBCZHJT2VM7EWNW"]
   - verify: 一个真实变更可被新会话接手，代码变化令旧证据过期，工具不可用不会产生通过声明，并记录流程成本。
 
-- [ ] `TASK_CDF69440A7D2404AB39DFA65C529EF74` 验证出版组合与双 CLI 插件适配
-  - relates: ["REQ_D3CC348D07B64AA188C079BE93B28E0A", "REQ_8D96CE7C86D6463194942315CB61B62B", "REQ_E58FFDB3015D4FC48E2481B83A5BFED8", "REQ_71288FB94E7E4DFBACCD15BF936D0290", "REQ_E2248E3FC6374DE8800B2540B94BE420"]
-  - depends_on: ["TASK_B870F5217D8641569128F6EE84498610"]
+- [ ] `TASK_20260914_VCY68YN0NM3ZSD6B` 验证出版组合与双 CLI 插件适配
+  - relates: ["REQ_20260914_3JQXRKWXKAZSNJ5R", "REQ_20260914_95193C19C90NRXV4", "REQ_20260914_NN0AEQ2E1GTVSMTV", "REQ_20260914_GDY8F3KPE6XBGWGD", "REQ_20260914_BWAY1ZF6HNPM855Y"]
+  - depends_on: ["TASK_20260914_0ZR8RND5PZ6136WX"]
   - verify: 同源文档形成可导航书籍与可解析 ID；模板遵循使用方语言；分发包不含开发资料且无此类运行依赖；Codex CLI 与 Claude Code CLI 分别通过插件加载、已声明组件和功能路径验收，禁用 hook 后显式检查仍可运行。
 
 首次批准规则时记录其适用版本。后续以既定版本审查变更，再验证新版规则；不能为了让本次检查通过而无记录地同步改变规则和预期结果。
@@ -527,7 +527,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 | [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
 | [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
 
-外部依据：[UUID 标准](https://www.rfc-editor.org/rfc/rfc9562.html)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
+外部依据：[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
 
 外部引用采用上游公开地址；具体格式或行为依赖某一版本时应注明版本。文档格式与 ID 细节属于本项目设计。
 

@@ -1,6 +1,6 @@
 ---
 schema: tao.glossary/v0.2
-id: DOC_CF3029642DDF4DEB9FC229C49E216F86
+id: DOC_20260914_728EZ364G48T3QRK
 title: 术语与缩写
 locale: zh-Hans
 status: draft
@@ -29,6 +29,7 @@ bootstrap: manual
 | 文档契约、文档类型 | Schema / profile | schema 约束结构与关系；profile 为某类文档选择必需字段、章节和条目 |
 | 文件头元数据 | Frontmatter | Markdown 开头的结构化元数据；本项目使用 YAML，不把所有正文都转成 YAML |
 | 锚点、永久链接 | Anchor / permalink | 锚点定位页面内对象；永久链接还需保持或解析页面地址，只有稳定锚点不足以抵抗文件移动 |
+| Crockford Base32 | Crockford Base32 encoding | 使用 32 字符的编码；本项目将 80 位安全随机数据编码为 16 个大写字符，具体字符集见文档契约 |
 | 本地化 | Localization | 按语言与地区约定呈现文字、日期等；机器协议不随显示语言改变 |
 | 斜杠命令 | Slash command | agent 客户端中以 `/` 进入的交互操作，不是终端中的 `tao` 命令；包装层表示实现职责，不是命令类型 |
 | 钩子 | Hook | 客户端事件触发的处理器；用于短小的确定性动作，不替代完整流程或授权 |
@@ -41,7 +42,7 @@ bootstrap: manual
 <!-- tao:section prefixes -->
 ## 二、ID 类型前缀
 
-前缀是 tao-dev 的类型约定，不是 UUID 标准的一部分。完整格式与生命周期见 [文档契约](document-contract.md)。一个文件和文件中的条目是不同对象，例如文档有 DOC ID，其中的决策另有 ADR ID。
+完整 ID 采用 tao-dev 的 `类型_YYYYMMDD_16位随机串` 格式；类型前缀表示用途，日期表示首次分配日，随机串使用 Crockford Base32 字符集。完整格式与生命周期见 [文档契约](document-contract.md)。一个文件和文件中的条目是不同对象，例如文档有 DOC ID，其中的决策另有 ADR ID。
 
 | 前缀 | 对应英文 | 表达什么、用在哪里 |
 |---|---|---|
@@ -60,14 +61,15 @@ DOC、REQ、UC、ADR、TASK 已有自举语法；CHG、EVD 的产品模板仍待
 
 | 缩写 | 全称 | 用途或边界 |
 |---|---|---|
-| UUID | Universally Unique Identifier | 通用唯一标识符；本项目采用 v4，随机生成且不编码创建日期 |
+| UUID | Universally Unique Identifier | 通用唯一标识符；设计比较中的备选，本项目使用可读日期加随机串 |
+| ULID | Universally Unique Lexicographically Sortable Identifier | 含编码时间与随机部分的标识符；本项目借鉴其字符集与随机长度，不采用其完整格式 |
 | SDD | Spec-Driven Development | 本项目指“规格驱动开发”；不是另一些资料中的 Source-Driven Development（按来源核实技术用法） |
 | VCS | Version Control System | 版本控制系统；通用流程不假定 Git。本项目自身选用 Git，因此开发提交约定仍使用 Git 专有术语 |
 | CLI | Command-Line Interface | 命令行接口；区分 tao 工具与 Claude Code／Codex 客户端 |
 | CI | Continuous Integration | 持续集成；执行必要检查，不以流水线全绿代替需求验收 |
 | AST | Abstract Syntax Tree | 抽象语法树；识别正式条目与围栏示例，避免全文搜索误判 |
 | i18n / l10n | Internationalization / Localization | 国际化是让系统支持多语言的设计，本地化是某种语言及地区的具体呈现 |
-| RFC | Request for Comments | 标准与技术文档系列；UUID 依据 RFC 9562，日期格式参考 RFC 3339 |
+| RFC | Request for Comments | 标准与技术文档系列；精确时间戳格式参考 RFC 3339 |
 | BCP | Best Current Practice | 最佳当前实践文档系列；BCP 47 用于语言标签 |
 | GFM | GitHub Flavored Markdown | Markdown 方言；此处借用任务列表语法，不要求使用 GitHub 或 Git |
 | MCP | Model Context Protocol | 工具和资源接入协议；初版没有引入 MCP 服务的必要 |
