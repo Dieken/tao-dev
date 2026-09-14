@@ -1,9 +1,10 @@
 ---
-schema: tao.plugin-design/v0.1
+schema: tao.plugin-design/v0.2
 id: DOC_B85C6E8585B8493AA5902D6D799989D7
 title: 插件打包与运行环境
 locale: zh-Hans
 status: draft
+created: "2026-09-14"
 bootstrap: manual
 ---
 
@@ -23,7 +24,7 @@ bootstrap: manual
 <!-- tao:section package -->
 ## 二、源码与发布包
 
-开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 `AGENTS.md` 管理本项目开发，不作为产品 agent 定义。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
+开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 `AGENTS.md` 管理本项目开发，旁置 `CLAUDE.md` 仅含一行 `@AGENTS.md` 供 Claude 导入；二者均不作为产品 agent 定义或分发内容。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
 
 当前 prompt 实现由 [SKILL.md](../plugins/tao-dev/skills/tao-dev/SKILL.md) 明确加载 [工程规程](../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_54CB0F04B5AF421F8FC3449A14449779`。工程条款的权威执行文本维护在该运行参考中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
 
@@ -46,7 +47,7 @@ tao-dev/
       .claude-plugin/
         plugin.json                  # Claude Code 兼容 manifest
       agents/                        # 按需：Claude Code 原生角色入口
-      commands/                      # 按需：Claude Code 薄命令入口
+      commands/                      # 按需：Claude Code 斜杠命令入口
       hooks/hooks.json               # 按需：Claude Code hook 配置
 ```
 
@@ -78,7 +79,7 @@ Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼�
 |---|---|---|---|
 | skill | `skills/<name>/SKILL.md`；YAML 元数据＋Markdown 正文；必需字段为 `name`、`description` | 通过原生 skill 发现与显式调用使用 | 通过插件 skill 发现及带插件命名空间的入口使用 |
 | agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 复用角色规程，按原生子代理能力执行；具名 agent 配置须按目标版本另行验证 | 按需用 `agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式 |
-| command | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/*.md` 提供薄包装 |
+| 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/*.md` 提供仅转发操作与参数的斜杠命令包装 |
 | hook | 共享可确定的检查逻辑；事件绑定与输入输出由平台适配 | 使用 Codex hook JSON、受支持事件与执行类型 | 使用 Claude hook JSON、受支持事件与执行类型 |
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 `SKILL.md`、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。

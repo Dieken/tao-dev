@@ -1,9 +1,10 @@
 ---
-schema: tao.protocol/v0.1
+schema: tao.protocol/v0.2
 id: DOC_479B0136F73749AFA32D8352A7228767
 title: 协作开发协议
 locale: zh-Hans
 status: draft
+created: "2026-09-14"
 bootstrap: manual
 ---
 
@@ -13,7 +14,7 @@ bootstrap: manual
 
 本文是 tao-dev 自身的需求与设计文档，供开发者和维护者评审、实现及验收。流程、模板和工具约定描述拟实现的产品行为；本文不属于向第三方项目分发的 skill 内容，也不是运行时指令入口。文档状态为草案，条目按各自状态评审。
 
-阅读顺序：先看目标和流程，再看文档、证据及自举安排。精确语法集中在 [Markdown 文档契约](document-contract.md)，本稿不重复定义。
+阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，精确语法集中在 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
 
 <!-- tao:section purpose -->
 ## 一、目标与边界
@@ -72,17 +73,17 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 **来源：** 参考项目的固定模板实践。本协议补充语法层、关系层与语义层的边界。
 ```
 
-```{req} 身份全局化且不随组织方式改变
+```{req} 标识符全局化且不随组织方式改变
 :id: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F
 :status: proposed
 
-需求、用例、决策、任务、变更和文档采用离线生成的稳定 ID。标题、章节、路径与版本不得替代条目身份。
+需求、用例、决策、任务、变更和文档采用离线生成的稳定 ID。标题、章节、路径与版本不得替代条目标识符。
 
 <!-- tao:field acceptance -->
-**验收：** 移动和改名保留 ID；不同变更中的任务没有局部编号歧义；废弃对象仍可追溯；复制成新对象时检测并解决重复身份。
+**验收：** 移动和改名保留 ID；不同变更中的任务没有局部编号歧义；废弃对象仍可追溯；复制成新对象时检测并解决重复标识符。
 
 <!-- tao:field source -->
-**来源：** UUID 标准。本协议修正基于标题或文件内编号的身份方案。
+**来源：** RFC 9562 的 UUID 格式与分布式生成依据；前缀、紧凑大写文本及引用规则是本项目约定。日期序号只作为可读文件名，不能替代全局标识符。
 ```
 
 ```{req} 完成声明绑定实际证据
@@ -167,7 +168,7 @@ Markdown 文档具有版本化契约，约束元数据、章节、条目、ID、
 :id: REQ_71288FB94E7E4DFBACCD15BF936D0290
 :status: proposed
 
-tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊断可按目标项目语言呈现。语言变化不得改变机器结构、身份或关系，译文不成为第二套权威需求。
+tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊断可按目标项目语言呈现。语言变化不得改变机器结构、标识符或关系，译文不成为第二套权威需求。
 
 <!-- tao:field acceptance -->
 **验收：** 同一内容的中英文模板提取出相同的结构键和关系；修改“验收”为“Acceptance”不影响解析；更换诊断语言保留规则号和定位；使用方的英文项目不会因 tao-dev 的中文正文而被改为中文。
@@ -237,27 +238,11 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 | 证据 | 对某个输入实际进行了什么检查 | 对象、命令与环境、结果、报告、有效性 |
 | 用户／运维说明 | 当前使用与操作方式 | 按读者任务组织，必要时区分教程、指南、参考与解释 |
 
-这是信息职责的切分，不要求各占一份文件。普通变更默认一份紧凑计划；独立评审、并行编辑或维护周期不同才拆分。对同一规范项，只保留一个正式定义；计划、代码和测试引用 ID，反向索引自动生成。
+按职责确定唯一维护位置，按明确阈值拆分文件，规则集中在 [文档组织与产物保存](document-layout.md)。普通功能默认一份变更计划，规格留在能力文档；任务超过 20 个、设计超过 120 个非空源文件行或已确定存在并行写入冲突时，按约定抽取对应附件。局部文案／格式修改可用简化路径，不能让文档数量决定风险级别。
 
-推荐在变更分支直接修改长期规格，通过 Git diff 审查变化，代码与文档一起合入。主分支文档代表开发基线，发布文档绑定发布版本。历史档案不参与“当前定义”索引，跨版本查询必须明确版本。接口和配置参考资料优先从实际 schema 或代码生成。
+长期文档使用语义文件名，变更文件使用日期、项目内序号和 slug；永久引用仍用 UUID。`artifacts/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。用于长期完成声明的证据须转入受版本管理的证据目录或持久产物库，并记录校验和、保存位置和期限。
 
-目标目录按需要逐步形成：
-
-```text
-docs/
-  index.md
-  product/          # 产品、术语、按能力组织的规格
-  engineering/     # 架构、模块、决策
-  user/            # 教程、操作指南、参考、解释
-  operations/      # 部署、观测、恢复
-  changes/         # 各变更的意图、任务与证据入口
-.tao/
-  config.toml      # 项目配置；仅在工具实现时创建
-  local/           # 可重建的本地缓存，不提交
-artifacts/         # 生成报告；重要证据另有持久保存策略
-```
-
-本项目的需求与设计集中在主协议，精确格式单独维护；按独立维护和评审需要拆分。源文档应能直接阅读，书籍目录与查询视图由出版层组合。
+本项目内部文档也按职责分开：协议维护需求与设计决定，专题文档维护精确契约，README 组织阅读入口。产品目录不会作为一组空目录提前创建。
 
 <!-- tao:section design -->
 ## 五、关键设计选择
@@ -277,19 +262,19 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 **代价：** 需要 AST 级结构检查和少量扩展约定。JSON Schema 只负责提取后的数据，不声称能独自验证 Markdown 章节。具体字段见文档契约。
 ```
 
-```{adr} UUID 身份与目录、标题、版本分离
+```{adr} UUID 标识符与目录、标题、版本分离
 :id: ADR_97A68FCB0CE34226B49B5C4968D55123
 :status: proposed
 :links: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F
 
 <!-- tao:field context -->
-**背景与备选：** 局部流水号会歧义；标题或内容哈希会随编辑变化；集中编号依赖协调服务。
+**背景与备选：** 日期＋三位流水号便于阅读，但跨项目、并行分支或离线副本可能重复；删除最大号后仅扫描当前文件无法保证不复用。持久登记可以保存分配上限，但仍需协调和冲突处理。标题或内容哈希会随编辑变化。
 
 <!-- tao:field decision -->
-**选择：** ID 使用类型前缀加完整 UUIDv4，由工具生成并永久保留。标题用于显示，索引负责解析位置。人可以搜索标题，持久引用保存完整 ID。
+**选择：** 正式 ID 保留类型前缀加完整 UUIDv4。日期单独记录，日期序号仅用于变更文件名。标题用于显示，索引负责解析位置和稳定分享入口；人可以搜索标题、复制链接，代码及跨文档引用保存完整 ID。
 
 <!-- tao:field consequences -->
-**代价：** ID 较长；工具需提供查找和复制支持。概率唯一仍须配合查重，尤其防止误复制 ID。身份不表示内容版本。
+**代价：** ID 较长；工具需提供查找和复制支持。概率唯一仍须查重；正式删除保留小型退役记录，日期文件名需要独立的分配上限登记。标识符不表示内容版本；创建日期不从 UUIDv4 推断。
 ```
 
 ```{adr} 出版层优先验证 Sphinx 组合，执行核心保持独立
@@ -357,7 +342,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 
 项目先发现已有构建、测试、lint、类型检查与报告工具，缺少时再提出最小补充。不要先安装工具全集。对格式错误提供确定性诊断；对复杂度、模糊词和覆盖缺口提供复查信号；对需求正确性、设计代价和用户体验保留有证据的语义审查。
 
-每份证据关联需求或任务，并记录：提交与工作树内容指纹、相关契约版本、命令、工具及配置版本、必要环境、时间、退出码、结果摘要与原报告位置。人工验证也记录操作、环境、观察结果与执行者，不虚构退出码。报告保存期限与发布重要性匹配；本地临时文件消失后不得保留虚假的可复核声明。
+每份证据关联需求或任务，并记录：VCS 修订标识（可用时）与受检文件内容指纹、相关契约版本、命令、工具及配置版本、必要环境、时间、退出码、结果摘要与原报告位置。人工验证也记录操作、环境、观察结果与执行者，不虚构退出码。报告保存期限与发布重要性匹配；本地临时文件消失后不得保留虚假的可复核声明。
 
 区分通过、失败、未执行、不适用和已过期；工具故障归入未执行并说明原因。有效性可由当前输入与证据中的指纹比较派生。只存在代码、连接、测试或引用均不足以证明行为已验证。
 
@@ -365,7 +350,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 
 以下用例兼作未来校验器和流程的验收起点：
 
-```{uc} 移动章节不改变需求身份
+```{uc} 移动章节不改变需求标识符
 :id: UC_048BE528B93E475091A08DB06FA82DBC
 :status: proposed
 :verifies: REQ_5348F468CC5E4EA6A33113E2E2F1FE4F, REQ_E58FFDB3015D4FC48E2481B83A5BFED8
@@ -375,7 +360,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 <!-- tao:field when -->
 **当：** 修改标题并将其移入另一文档，重新构建索引。
 <!-- tao:field then -->
-**则：** ID 保留，引用定位到新位置，旧文件不再产生第二个正式定义。
+**则：** ID 保留，引用定位到新位置，旧文件不再产生第二个正式定义；实际 HTML 标题链接使用稳定锚点，原有分享入口仍能解析到条目，退役后显示原因或替代入口。
 ```
 
 ```{uc} 文档错误给出有限且可定位的诊断
@@ -414,7 +399,7 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 <!-- tao:field when -->
 **当：** 分别检查并导出结构，切换诊断输出语言，再故意删除其中一份的 acceptance 键。
 <!-- tao:field then -->
-**则：** 正常样例的结构和身份一致；缺键产生相同规则号与对象定位，消息随语言变化；未实现的内容质量语言规则显示未检查，不伪装通过。
+**则：** 正常样例的结构和标识符一致；缺键产生相同规则号与对象定位，消息随语言变化；未实现的内容质量语言规则显示未检查，不伪装通过。
 ```
 
 ```{uc} 独立发布包在两种 CLI 中执行
@@ -493,14 +478,22 @@ artifacts/         # 生成报告；重要证据另有持久保存策略
 
 工程原则的执行文本维护在分发包的工程规程中，以降低维护成本、控制复杂度和形成可靠证据为目的。内部文档只维护其需求及验收关系。公开参考项目用于比较实现方式；其审批规则和技术选择不自动成为本项目要求。
 
-参考项目及借鉴内容：
+公开参考及实际取舍如下。设计先行、小步验证、证据与上下文恢复在多个项目中反复出现，属于这些参考中的广泛共识；编号格式、拆分阈值和工具接口是本项目自己的选择。下表覆盖已评估的来源，不把来源数量当作质量保证。
 
-- [Spec Kit](https://github.com/github/spec-kit)：规格与实施产物边界。
-- [OpenSpec 工作流 schema](https://github.com/Fission-AI/OpenSpec/blob/0a99f410457271aa773d8b106f03f637f7c6b3c0/schemas/spec-driven/schema.yaml)：产物依赖与长期规格。
-- [BMAD](https://github.com/bmad-code-org/BMAD-METHOD)：紧凑变更与意图边界。
-- [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin)：统一产物、就绪程度与定向读取。
-- [Trellis](https://github.com/mindfold-ai/trellis)：任务与角色相关的上下文材料。
-- [GSD](https://github.com/open-gsd/gsd-core)：区分存在与行为验证，派生状态与人工内容分离。
+| 参考 | 采用或用于验证的做法 | 不直接照搬的部分 |
+|---|---|---|
+| [Spec Kit](https://github.com/github/spec-kit) | 规格、计划与任务的职责区分 | 不要求每次修改生成全套文件 |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec/blob/0a99f410457271aa773d8b106f03f637f7c6b3c0/schemas/spec-driven/schema.yaml) | 产物依赖、长期规格与变更分离 | 不把局部编号作为跨项目 ID |
+| [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) | 按复杂度选择紧凑或完整流程 | 不强制所有角色和审批阶段 |
+| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | 统一计划、就绪判断、定向读取 | 不增加另一份重复的任务真相 |
+| [Trellis](https://github.com/mindfold-ai/trellis) | 按任务注入上下文、平台适配 | 不预设单一客户端 |
+| [GSD](https://github.com/open-gsd/gsd-core) | 行为验证区别于文件存在、状态恢复 | 不把派生进度当作有效证据 |
+| [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | `writing-plans` 的可验证任务；`verification-before-completion` 的新鲜证据 | 不按固定分钟数切任务，不强制重复审批或给每项计划预写完整实现 |
+| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件或逐阶段人工批准；不要求每段代码都添加来源注释 |
+| [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
+| [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
+| [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
+| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
 
 外部依据：[UUID 标准](https://www.rfc-editor.org/rfc/rfc9562.html)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
 
