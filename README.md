@@ -21,7 +21,7 @@
 
 [流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。`tao` CLI 仍未实现，命令专篇是实现契约；当前不能按其中的命令示意直接运行，也不能声称自动校验已经完成。
 
-拟议日常入口是 `tao new`、`tao verify` 和 `tao status`。中断或交接时用 `tao handoff` 保存恢复摘要。用户表达目标，agent 选择检查类型与范围；交付前的完整验证同时汇总收尾条件，不再要求额外的完成命令。
+开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。实际斜杠语法待双客户端验收，当前没有 tao CLI 或专用 new 命令。检查范围由 agent 选择，完整验证同时汇总收尾条件。
 
 [独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
 
