@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # Markdown 文档契约
 
-本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，源文件 AST 校验器及回归测试已提供，工作流 CLI 与出版集成待实现。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
+本文是 tao-dev 的内部文档格式设计，供维护者实现解析器、schema、诊断和模板时使用；不属于分发给第三方项目的 skill 文档。面向使用方的统一格式、机器可读注册表与模板已经随 skill 提供，源文件 AST 校验器、回归测试、核心工作流 CLI 与本地 HTML 出版集成已提供；实际支持范围见 [工具规程](../../../plugins/tao-dev/skills/tao-dev/references/tools.md)。目标是兼顾 Markdown 的可读性与结构、标识符、关系的可检查性。
 
 <!-- tao:section overview -->
 ## 适用范围
