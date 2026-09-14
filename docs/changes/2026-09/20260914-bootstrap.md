@@ -57,6 +57,18 @@ change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
 
 固定版本 `10c9ab7` 提供核心命令。`tmp/tao/venv/bin/python -m pytest -q` 的 92 项测试通过，涵盖无 VCS 项目的文档子集、能力列表、JSON 错误、partial／完整能力缺失、ID 编码与三次碰撞上限、同名并发创建保护。依赖版本同前；检查不调用 rg，原始日志未长期保存。记录时间：2026-09-14T13:47:54+08:00。
 
+固定版本 `72746fd` 的 101 项测试通过，Sphinx 9.1.0、MyST 5.1.0 与 sphinx-book-theme 1.4.0 将 16 份开发文档及 53 个定义构建为 HTML；浏览器确认标题固定入口、侧栏锚点与正文跳转。改名、退役和删除保护由回归测试覆盖；不包含 PDF 或跨 DOC 章节别名。
+
+2026-09-14 的实际客户端试验使用 Claude Code 2.1.268、Codex CLI 0.154.0、macOS 及相同的合成导出样例，重跑方法见 [客户端试验](../../../tests/acceptance/README.md)。运行资源来自 `72746fd` 加本次插件根定位修正；不含维护文档。结果分别为：
+
+- Claude 的调用级插件在带空格路径加载，发现四个操作与 reviewer；status 实际执行 doctor/status。reviewer 当前会话角色正确读取展开后的插件根资源；Write 自动触发 PostToolUse，返回无 frontmatter 的确定性诊断，未由模型手工调用 hook。项目外对照无 tao-dev。
+- Codex 的项目内原生 skill 正确读取共享规程、执行 doctor/status；项目外对照无 tao-dev。未执行可能向全局缓存安装的完整插件路径，不能据此批准插件 manifest、原生 hook 或 Claude command 兼容。
+- 独立审查分别使用 Claude 事件记录的 `claude-opus-5[1m]`（firstParty）与 Codex 配置的 `gpt-6-astra`／openai；后者是调用配置依据，事件未另外回报服务端模型标识。两者都用实际实验复现覆盖已有字节，均提出排他创建；这是一个确定性反例，不代表全面审查能力或两个模型不会共同遗漏。受检实现与需求保持不变。
+- 两次 Codex 初始运行监测到全局 config.toml 字节变化，原因未确认；后续独立审查及一次对照重试未变化，未自动回滚配置。Claude 各已完成运行的监测文件未变化。没有注册或安装测试插件到全局；监测范围及原始记录的限制见试验说明。
+- 独立审查实际耗时为 Codex 50.565 秒、Claude 45.656 秒；Claude CLI 按标价报告约 0.203600 USD，真实账单未知。Codex 返回 token 使用量，不提供账单金额。原始事件留在忽略目录，简要结论保存在此处。
+
+组合验收仍未完成：Codex 完整插件与 hook、客户端更新／禁用路径以及贯穿变更的恢复仍需实际验证，相关任务保持未勾选。不能用组件文件存在或缩减验收范围代替这些结果。
+
 <!-- tao:section questions -->
 ## 未决项
 

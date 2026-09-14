@@ -1,0 +1,21 @@
+# 实际客户端试验
+
+这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不设置认证、不安装客户端、不注册市场、不修改全局配置。
+
+```sh
+python tests/acceptance/clients.py --client claude --case inside --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client claude --case outside --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client claude --case write --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client claude --case review --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client codex --case inside --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client codex --case outside --workspace /tmp/tao-cli-experiment
+python tests/acceptance/clients.py --client codex --case review --workspace /tmp/tao-cli-experiment
+```
+
+Claude 使用调用级 --plugin-dir；Codex 当前仅验证项目内 .agents/skills/ 的原生 skill，不据此宣称完整插件、命令或 hook 加载通过。未验证能够满足无全局安装约束的 Codex 插件加载路径前，不运行 marketplace add 或 plugin add。
+
+inside 核对实际发现、引用定位、doctor/status；outside 不带加载参数、不使用工具，只查询初始可用能力。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
+
+原始事件、错误流、运行时间及全局配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
+
+模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留未知；不要以两个 CLI 的名称断言两个供应商。每例默认 180 秒，到期终止该试验进程组。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
