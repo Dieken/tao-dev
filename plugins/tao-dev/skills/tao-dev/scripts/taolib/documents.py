@@ -16,6 +16,7 @@ from markdown_it import MarkdownIt
 
 from .model import Definition, Diagnostic, Document, Reference, Result
 from . import relationships
+from tao_messages import diagnostic, Message
 
 
 ASSETS = Path(__file__).resolve().parents[2] / "assets"
@@ -96,7 +97,7 @@ class Validator:
         if valid and prefix:
             valid = value.startswith(prefix + "_")
         if not valid:
-            self.error("TAO-ID-001", path, line, f"Invalid {prefix or 'entity'} ID: {value!r}.")
+            self.error("TAO-ID-001", path, line, Message('Invalid {arg0} ID: {arg1}.', prefix or 'entity', repr(value)))
         return bool(valid)
 
     def define(self, value, path, line, status, title=""):
@@ -104,7 +105,7 @@ class Validator:
             return
         if value in self.result.definitions:
             old = self.result.definitions[value]
-            self.error("TAO-ID-002", path, line, f"Duplicate definition: {value}.",
+            self.error("TAO-ID-002", path, line, Message('Duplicate definition: {arg0}.', value),
                        related_locations=[{"path": old.path, "line": old.line}], entity_id=value)
         else:
             self.result.definitions[value] = Definition(value, path, line, status, title)
@@ -113,7 +114,7 @@ class Validator:
         if not self.identifier(target, None, path, line):
             return
         if types and target.split("_")[0] not in types:
-            self.error("TAO-REF-002", path, line, f"{relation} requires {types}, received {target}.")
+            self.error("TAO-REF-002", path, line, Message('{arg0} requires {arg1}, received {arg2}.', relation, types, target))
         self.result.references.append(Reference(target, path, line, relation, source))
 
     def metadata(self, source, path):
@@ -146,41 +147,41 @@ class Validator:
                 self.error("TAO-DOC-001", path, line, "Metadata keys must be strings.")
                 continue
             if key.value in values:
-                self.error("TAO-DOC-001", path, line, f"Duplicate metadata: {key.value}.")
+                self.error("TAO-DOC-001", path, line, Message('Duplicate metadata: {arg0}.', key.value))
             if not isinstance(value, yaml.ScalarNode) or value.tag != "tag:yaml.org,2002:str":
-                self.error("TAO-DOC-001", path, line, f"{key.value} must be a string; quote dates.")
+                self.error("TAO-DOC-001", path, line, Message('{arg0} must be a string; quote dates.', key.value))
                 values[key.value] = None
             else:
                 values[key.value] = value.value
             locations[key.value] = line
         profile = self.registry["profiles"].get(values.get("schema"))
         if profile is None:
-            self.error("TAO-DOC-001", path, locations.get("schema", 2), f"Unsupported schema: {values.get('schema')!r}.")
+            self.error("TAO-DOC-001", path, locations.get("schema", 2), Message('Unsupported schema: {arg0}.', repr(values.get('schema'))))
             return None
         fields = self.registry["base_metadata"] | profile["metadata"]
         for key in values.keys() - fields.keys():
-            self.error("TAO-DOC-001", path, locations[key], f"Unknown metadata: {key}.")
+            self.error("TAO-DOC-001", path, locations[key], Message('Unknown metadata: {arg0}.', key))
         for key, rule in fields.items():
             value, line = values.get(key), locations.get(key, 2)
             if key not in values and not rule.get("required"):
                 continue
             if not isinstance(value, str) or not value.strip():
-                self.error("TAO-DOC-001", path, line, f"{key} requires a nonempty string.")
+                self.error("TAO-DOC-001", path, line, Message('{arg0} requires a nonempty string.', key))
                 continue
             if rule.get("enum") and value not in rule["enum"]:
-                self.error("TAO-DOC-001", path, line, f"{key} must be one of {rule['enum']}.")
+                self.error("TAO-DOC-001", path, line, Message('{arg0} must be one of {arg1}.', key, rule['enum']))
             fmt = rule.get("format")
             if fmt == "date" and not valid_date(value):
-                self.error("TAO-DOC-001", path, line, f"Invalid calendar date: {value}.")
+                self.error("TAO-DOC-001", path, line, Message('Invalid calendar date: {arg0}.', value))
             if fmt == "bcp47" and not LOCALE.fullmatch(value):
-                self.error("TAO-DOC-001", path, line, f"Invalid locale tag: {value}.")
+                self.error("TAO-DOC-001", path, line, Message('Invalid locale tag: {arg0}.', value))
             if fmt == "rfc3339":
                 try:
                     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", value):
                         raise ValueError()
                     datetime.fromisoformat(value)
                 except ValueError:
-                    self.error("TAO-DOC-001", path, line, f"Invalid RFC 3339 timestamp: {value}.")
+                    self.error("TAO-DOC-001", path, line, Message('Invalid RFC 3339 timestamp: {arg0}.', value))
             if rule["type"] == "id" and self.identifier(value, rule["prefix"], path, line):
                 if rule["role"] == "definition":
                     self.define(value, path, line, values.get("status", "draft"), values.get("title", ""))
@@ -201,12 +202,12 @@ class Validator:
             found.append(match[1])
             following = tokens[index + 1:] or [None]
             if following[0] is None or following[0].type != "paragraph_open":
-                self.error("TAO-ENTITY-001", path, offset + token.map[0] + 1, f"Field {match[1]} requires a nonempty paragraph.")
+                self.error("TAO-ENTITY-001", path, offset + token.map[0] + 1, Message('Field {arg0} requires a nonempty paragraph.', match[1]))
             elif label_style == "strong" and (len(following) < 2 or not labelled_paragraph(following[1])):
                 self.error("TAO-ENTITY-001", path, offset + token.map[0] + 1,
-                           f"Field {match[1]} requires a bold display label with ':' or '：', followed by a nonempty description.")
+                           Message("Field {arg0} requires a bold display label with ':' or '：', followed by a nonempty description.", match[1]))
         if found != expected:
-            self.error("TAO-ENTITY-001", path, offset + 1, f"Expected fields {expected}; found {found}.")
+            self.error("TAO-ENTITY-001", path, offset + 1, Message('Expected fields {arg0}; found {arg1}.', expected, found))
 
     def inline(self, tokens, path, offset):
         for token in tokens:
@@ -232,7 +233,7 @@ class Validator:
         if token.markup != "```":
             self.error("TAO-ENTITY-001", path, line, "Formal blocks require three backticks.")
         if section not in self.registry["entity_sections"][kind]:
-            self.error("TAO-ENTITY-001", path, line, f"{kind} is not allowed in section {section}.")
+            self.error("TAO-ENTITY-001", path, line, Message('{arg0} is not allowed in section {arg1}.', kind, section))
         lines = token.content.splitlines(keepends=True)
         options, positions = {}, {}
         pos = 0
@@ -247,9 +248,9 @@ class Validator:
             self.error("TAO-ENTITY-001", path, line + pos + 1, "Separate directive options and body with an empty line.")
         allowed = rule["required_options"] + rule["optional_options"]
         if set(options) - set(allowed) or set(rule["required_options"]) - set(options):
-            self.error("TAO-ENTITY-001", path, line, f"Required options: {rule['required_options']}; allowed: {allowed}.")
+            self.error("TAO-ENTITY-001", path, line, Message('Required options: {arg0}; allowed: {arg1}.', rule['required_options'], allowed))
         if options.get("status") not in rule["statuses"]:
-            self.error("TAO-ENTITY-001", path, line, f"Invalid {kind} status.")
+            self.error("TAO-ENTITY-001", path, line, Message('Invalid {arg0} status.', kind))
         identity = options.get("id")
         if self.identifier(identity, kind, path, positions.get("id", line)):
             self.define(identity, path, positions["id"], options.get("status", "proposed"), title)
@@ -257,7 +258,7 @@ class Validator:
             if key in options:
                 members = [part.strip() for part in options[key].split(",")]
                 if not all(members) or len(members) != len(set(members)):
-                    self.error("TAO-ENTITY-001", path, positions[key], f"{key} requires distinct nonempty IDs.")
+                    self.error("TAO-ENTITY-001", path, positions[key], Message('{arg0} requires distinct nonempty IDs.', key))
                 for member in members:
                     self.reference(member, types, path, positions[key], key, identity)
         body_offset = line + pos
@@ -316,21 +317,21 @@ class Validator:
         if h1 != [metadata.get("title")]:
             self.error("TAO-DOC-002", path, offset + 1, "Exactly one H1 matching metadata.title is required.")
         if sections != profile["sections"]:
-            self.error("TAO-DOC-002", path, offset + 1, f"Expected sections {profile['sections']}; found {sections}.")
+            self.error("TAO-DOC-002", path, offset + 1, Message('Expected sections {arg0}; found {arg1}.', profile['sections'], sections))
         for section_key in doc.sections:
             content_tokens = self.section_tokens(tokens, doc, section_key, offset)
             if not any(t.type in ("inline", "fence", "code_block") for t in content_tokens):
-                self.error("TAO-DOC-002", path, doc.sections[section_key], f"Section {section_key} requires content or an explanation of non-applicability.")
+                self.error("TAO-DOC-002", path, doc.sections[section_key], Message('Section {arg0} requires content or an explanation of non-applicability.', section_key))
         for section_key, required in profile.get("section_fields", {}).items():
             self.fields(self.section_tokens(tokens, doc, section_key, offset), required, path, offset)
         self.inline(tokens, path, offset)
         counts = Counter(d.kind for d in self.result.definitions.values() if d.path == path)
         for kind, count in profile.get("minimum_entities", {}).items():
             if counts[kind] < count:
-                self.error("TAO-ENTITY-001", path, offset + 1, f"At least {count} {kind} required.")
+                self.error("TAO-ENTITY-001", path, offset + 1, Message('At least {arg0} {arg1} required.', count, kind))
         for kind, count in profile.get("maximum_entities", {}).items():
             if counts[kind] > count:
-                self.error("TAO-ENTITY-001", path, offset + 1, f"At most {count} {kind} allowed.")
+                self.error("TAO-ENTITY-001", path, offset + 1, Message('At most {arg0} {arg1} allowed.', count, kind))
 
     def section_tokens(self, tokens, doc, section, offset):
         start = doc.sections.get(section, 0)
@@ -342,14 +343,14 @@ class Validator:
         for ref in self.result.references:
             target = definitions.get(ref.target)
             if target is None:
-                self.error("TAO-REF-001", ref.path, ref.line, f"Unresolved ID: {ref.target}.")
+                self.error("TAO-REF-001", ref.path, ref.line, Message('Unresolved ID: {arg0}.', ref.target))
             elif target.status in ("retired", "superseded"):
                 self.result.diagnostics.append(Diagnostic("TAO-REF-003", "warning", ref.path, ref.line,
-                    f"Reference to {target.status} ID: {target.id}.", "Review the replacement or explain the historical use."))
+                    Message('Reference to {arg0} ID: {arg1}.', target.status, target.id), "Review the replacement or explain the historical use."))
         replaced = {r.target for r in self.result.references if r.relation == "supersedes"}
         for entity in definitions.values():
             if entity.status == "superseded" and entity.id not in replaced:
-                self.error("TAO-REF-002", entity.path, entity.line, f"Superseded ID has no replacement: {entity.id}.")
+                self.error("TAO-REF-002", entity.path, entity.line, Message('Superseded ID has no replacement: {arg0}.', entity.id))
         for relation in ("supersedes", "depends_on", "replaced_by"):
             graph = {}
             for ref in self.result.references:
@@ -366,9 +367,9 @@ class Validator:
                 continue
             destination, fragment = target
             if destination in self.deleted_paths or (destination not in self.result.documents and not (self.root / destination).is_file()):
-                self.error("TAO-REF-001", path, line, f"Missing file: {url}.")
+                self.error("TAO-REF-001", path, line, Message('Missing file: {arg0}.', url))
             elif fragment and destination in anchors and fragment not in anchors[destination]:
-                self.error("TAO-LINK-001", path, line, f"Unknown stable anchor: {fragment}.")
+                self.error("TAO-LINK-001", path, line, Message('Unknown stable anchor: {arg0}.', fragment))
 
     def file_target(self, path, line, url):
         try:
@@ -382,7 +383,7 @@ class Validator:
             relative = target.resolve().relative_to(self.root).as_posix()
             return relative, unquote(parts.fragment)
         except (ValueError, OSError, RuntimeError):
-            self.error("TAO-REF-004", path, line, f"File link is outside the project or uses a forbidden scheme: {url}.")
+            self.error("TAO-REF-004", path, line, Message('File link is outside the project or uses a forbidden scheme: {arg0}.', url))
             return None
 
     def cycles(self, graph, relation):
@@ -399,7 +400,7 @@ class Validator:
                 elif node in active:
                     entity = self.result.definitions.get(node)
                     if entity:
-                        self.error("TAO-REF-002", entity.path, entity.line, f"{relation} cycle: {' -> '.join(trail + [node])}.")
+                        self.error("TAO-REF-002", entity.path, entity.line, Message('{arg0} cycle: {arg1}.', relation, ' -> '.join(trail + [node])))
                 elif node not in finished:
                     active.add(node)
                     trail.append(node)
@@ -407,7 +408,7 @@ class Validator:
                     stack.extend((target, False) for target in reversed(graph.get(node, [])))
 
 
-def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired", overrides=None, section_redirects=None):
+def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired", overrides=None, section_redirects=None, diagnostic_locale=None):
     """Validate explicit managed sources. Historical deletion needs a baseline."""
     validator = Validator(root)
     overrides = overrides or {}
@@ -422,7 +423,7 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
         try:
             source = overrides[relative] if relative in overrides else full.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
-            validator.error("TAO-DOC-001", relative, 1, f"Cannot read UTF-8 document: {type(exc).__name__}.")
+            validator.error("TAO-DOC-001", relative, 1, Message('Cannot read UTF-8 document: {arg0}.', type(exc).__name__))
             continue
         if source is None:
             continue
@@ -435,5 +436,10 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
     if baseline_ids is not None:
         validator.result.deletion_checked = True
         for identity in sorted(set(baseline_ids) - validator.result.definitions.keys()):
-            validator.error("TAO-ID-003", ".", 1, f"Baseline ID removed without retirement: {identity}.")
+            validator.error("TAO-ID-003", ".", 1, Message('Baseline ID removed without retirement: {arg0}.', identity))
+    for item in validator.result.diagnostics:
+        document = validator.result.documents.get(item.path)
+        locale = diagnostic_locale or (document.metadata.get('locale') if document else None)
+        for key, value in diagnostic(item.message, locale, item.suggestion).items():
+            setattr(item, key, value)
     return validator.result

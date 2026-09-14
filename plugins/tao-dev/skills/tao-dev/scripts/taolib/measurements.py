@@ -3,6 +3,7 @@
 import json
 import math
 from .project import ConfigurationError, contained
+from tao_messages import Message
 
 
 def counters(value, input_key, output_key, cache_keys=()):
@@ -49,13 +50,13 @@ def usage(project, paths):
                 models = [counters(m, 'inputTokens', 'outputTokens', ('cacheReadInputTokens', 'cacheCreationInputTokens')) for m in event['modelUsage'].values()]
                 inputs, output = sum(m[0] for m in models), sum(m[1] for m in models)
             if type(inputs) is not int or inputs < 0 or type(output) is not int or output < 0:
-                raise ConfigurationError(f'Invalid token counters in {name}.')
+                raise ConfigurationError(Message('Invalid token counters in {arg0}.', name))
             totals['input_tokens'] += inputs
             totals['output_tokens'] += output
             if cost is None:
                 cost_known = False
             elif type(cost) not in (int, float) or not math.isfinite(cost) or cost < 0:
-                raise ConfigurationError(f'Invalid cost counter in {name}.')
+                raise ConfigurationError(Message('Invalid cost counter in {arg0}.', name))
             else:
                 totals['estimated_usd'] += cost
         if not cost_known:

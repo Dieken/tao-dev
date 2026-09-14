@@ -16,6 +16,7 @@ import sys
 import time
 
 from .project import ConfigurationError, contained, mutation_lock, create_file
+from tao_messages import Message
 
 
 def policy(project):
@@ -53,10 +54,10 @@ def policy(project):
             raise ConfigurationError('Check timeout must be a positive integer.')
     for key, default in [('budget_seconds', 300), ('reuse_seconds', 3600)]:
         if type(value.get(key, default)) is not int or value.get(key, default) < 0:
-            raise ConfigurationError(f'{key} must be a nonnegative integer.')
+            raise ConfigurationError(Message('{arg0} must be a nonnegative integer.', key))
     for key in ('required_reviews', 'environment', 'usage_reports'):
         if not isinstance(value.get(key, []), list) or any(not isinstance(s, str) or not s for s in value.get(key, [])):
-            raise ConfigurationError(f'{key} must be a string array.')
+            raise ConfigurationError(Message('{arg0} must be a string array.', key))
     reviews = value.get('required_reviews', [])
     if len(set(reviews)) != len(reviews) or any(not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name) for name in reviews):
         raise ConfigurationError('Review IDs must be unique lowercase words separated by hyphens.')
@@ -69,7 +70,7 @@ def policy(project):
         contained(project.root, name)
     for key in ('max_model_tokens', 'max_estimated_usd'):
         if key in value and (type(value[key]) not in (int, float) or not math.isfinite(value[key]) or value[key] < 0):
-            raise ConfigurationError(f'{key} must be a finite nonnegative number.')
+            raise ConfigurationError(Message('{arg0} must be a finite nonnegative number.', key))
     if type(value.get('require_logs', False)) is not bool:
         raise ConfigurationError('require_logs must be boolean.')
     return value

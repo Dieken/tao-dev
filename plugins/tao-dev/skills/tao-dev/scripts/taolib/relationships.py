@@ -3,6 +3,7 @@
 import json
 import re
 from pathlib import Path
+from tao_messages import Message
 
 
 def task(validator, token, section, doc, body_lines, offset):
@@ -32,7 +33,7 @@ def task(validator, token, section, doc, body_lines, offset):
     required = rule["required_fields"] + (rule["completed_requires"] if completed == "x" else [])
     expected = [key for key in rule["field_order"] if key in fields]
     if set(required) - fields.keys() or list(fields) != expected:
-        validator.error("TAO-TASK-001", doc.path, line, f"Required fields: {required}; order: {rule['field_order']}.")
+        validator.error("TAO-TASK-001", doc.path, line, Message('Required fields: {arg0}; order: {arg1}.', required, rule['field_order']))
     if not fields.get("verify", "").strip():
         validator.error("TAO-TASK-001", doc.path, line, "verify must describe a nonempty check.")
     for key, types in (("relates", rule["relates_types"]), ("depends_on", rule["depends_on_types"])):
@@ -43,7 +44,7 @@ def task(validator, token, section, doc, body_lines, offset):
             if len(set(members)) != len(members) or (key == "relates" and not members):
                 raise ValueError()
         except (ValueError, TypeError):
-            validator.error("TAO-TASK-001", doc.path, positions.get(key, line), f"{key} requires a unique JSON string array.")
+            validator.error("TAO-TASK-001", doc.path, positions.get(key, line), Message('{arg0} requires a unique JSON string array.', key))
             continue
         for member in members:
             validator.reference(member, types, doc.path, positions[key], key, identity)
@@ -64,14 +65,14 @@ def navigation(validator, token, section, doc, offset):
     lines = token.content.splitlines()
     expected = [f":{key}: {value}".rstrip() for key, value in rule["options"].items()]
     if lines[:len(expected)] != expected or len(lines) <= len(expected) or lines[len(expected)].strip():
-        validator.error("TAO-DOC-002", doc.path, line, f"toctree requires options {expected} and an empty separator line.")
+        validator.error("TAO-DOC-002", doc.path, line, Message('toctree requires options {arg0} and an empty separator line.', expected))
         return
     entries = [value for value in lines[len(expected) + 1:] if value.strip()]
     if len(entries) < rule["minimum_entries"] or len(entries) != len(set(entries)):
         validator.error("TAO-DOC-002", doc.path, line, "toctree requires distinct, nonempty entries.")
     for value in entries:
         if not value.endswith(".md") or re.search(r"[#*?<>]|://", value) or value != value.strip():
-            validator.error("TAO-DOC-002", doc.path, line, f"Invalid navigation entry: {value}.")
+            validator.error("TAO-DOC-002", doc.path, line, Message('Invalid navigation entry: {arg0}.', value))
             continue
         resolved = validator.file_target(doc.path, line, value)
         if resolved:
@@ -96,7 +97,7 @@ def attachments(validator):
             if target is None:
                 continue  # The reference resolver reports this root error.
             if target.metadata["schema"] != rule["profile"] or target.metadata.get("change") != doc.metadata.get("change"):
-                validator.error("TAO-REF-002", doc.path, 1, f"{key} must select the matching profile and change back-reference.")
+                validator.error("TAO-REF-002", doc.path, 1, Message('{arg0} must select the matching profile and change back-reference.', key))
             if key == "tasks_doc":
                 total_tasks += len(target.tasks)
                 if doc.tasks:
@@ -118,9 +119,9 @@ def book(validator, book_root):
     for doc in documents.values():
         for target in doc.navigation:
             if target not in documents:
-                validator.error("TAO-DOC-002", doc.path, 1, f"Navigation target is outside the declared sources: {target}.")
+                validator.error("TAO-DOC-002", doc.path, 1, Message('Navigation target is outside the declared sources: {arg0}.', target))
             if target in parents:
-                validator.error("TAO-DOC-002", doc.path, 1, f"Navigation target has multiple parents: {target}.")
+                validator.error("TAO-DOC-002", doc.path, 1, Message('Navigation target has multiple parents: {arg0}.', target))
             parents[target] = doc.path
             graph.setdefault(doc.path, []).append(target)
     # Detect cycles even when no book root is supplied.
@@ -156,7 +157,7 @@ def unique_object(pairs):
     value = {}
     for key, item in pairs:
         if key in value:
-            raise ValueError(f"Duplicate key: {key}")
+            raise ValueError(Message('Duplicate key: {arg0}', key))
         value[key] = item
     return value
 
@@ -176,11 +177,11 @@ def section_redirects(validator, redirects):
             continue
         (old_doc, _), (new_doc, section) = parsed
         if old_doc not in validator.result.definitions:
-            validator.error('TAO-LINK-001', location, 1, f'Redirect source document is unknown: {old_doc}.')
+            validator.error('TAO-LINK-001', location, 1, Message('Redirect source document is unknown: {arg0}.', old_doc))
         elif target in redirects:
             validator.error('TAO-LINK-001', location, 1, 'Section redirects must point directly to a current section, without redirect chains.')
         elif new_doc not in documents or section not in documents[new_doc].sections:
-            validator.error('TAO-LINK-001', location, 1, f'Redirect destination section is unknown: {target}.')
+            validator.error('TAO-LINK-001', location, 1, Message('Redirect destination section is unknown: {arg0}.', target))
         else:
             validator.result.section_redirects[source] = target
 
@@ -210,7 +211,7 @@ def retirements(validator, directory, overrides=None):
                 continue
             lines = content.splitlines()
         except (ValueError, OSError, UnicodeError) as exc:
-            validator.error("TAO-DOC-001", relative, 1, f"Cannot read retirement file: {type(exc).__name__}.")
+            validator.error("TAO-DOC-001", relative, 1, Message('Cannot read retirement file: {arg0}.', type(exc).__name__))
             continue
         for number, line in enumerate(lines, 1):
             try:

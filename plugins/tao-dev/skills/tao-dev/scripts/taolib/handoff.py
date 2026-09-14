@@ -6,6 +6,7 @@ import re
 
 from .documents import Validator, validate
 from .project import ConfigurationError, ConflictError, contained, create_file, mutation_lock, replace_file
+from tao_messages import Message
 
 
 def save(project, source_path, change, result):
@@ -43,10 +44,10 @@ def save(project, source_path, change, result):
     content = re.sub(r"^CLI observation \([^\n]+\): [^\n]*\n\n", "", content, flags=re.M)
     content = content.replace("<!-- tao:section decisions -->", stamp + "<!-- tao:section decisions -->")
     checked = validate(project.root, sources, retirement_directory=project.paths["retired"], overrides={relative: content},
-                       section_redirects=project.section_redirects)
+                       section_redirects=project.section_redirects, diagnostic_locale=project.diagnostic_locale)
     if not checked.valid:
         errors = "; ".join(f"{d.path}:{d.line} {d.rule_id}" for d in checked.diagnostics if d.severity == "error")
-        raise ConfigurationError(f"Handoff would create invalid documents: {errors}")
+        raise ConfigurationError(Message('Handoff would create invalid documents: {arg0}', errors))
     before = target.read_bytes() if target.exists() else None
     with mutation_lock(project):
         if before is None:

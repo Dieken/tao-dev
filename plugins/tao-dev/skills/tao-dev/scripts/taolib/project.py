@@ -5,6 +5,7 @@ from pathlib import Path, PurePosixPath
 import tempfile
 import tomllib
 from contextlib import contextmanager
+from tao_messages import valid_locale, Message
 
 
 class ConfigurationError(ValueError):
@@ -20,7 +21,7 @@ def contained(root, relative):
     try:
         path.resolve().relative_to(root.resolve())
     except (ValueError, RuntimeError) as exc:
-        raise ConfigurationError(f"Path escapes the project: {relative}") from exc
+        raise ConfigurationError(Message('Path escapes the project: {arg0}', relative)) from exc
     return path
 
 
@@ -38,8 +39,12 @@ class Project:
         self.config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
         if self.config and self.config.get("version") != 1:
             raise ConfigurationError("Unsupported configuration version; expected 1.")
-        if self.config.keys() - {"version", "locale", "documents", "paths", "hooks", "verification"}:
+        if self.config.keys() - {"version", "locale", "ui", "documents", "paths", "hooks", "verification"}:
             raise ConfigurationError("Unknown configuration keys.")
+        ui = self.config.get('ui', {})
+        if not isinstance(ui, dict) or ui.keys() - {'locale'} or ('locale' in ui and not valid_locale(ui['locale'])):
+            raise ConfigurationError('ui.locale must be a language tag; no other ui keys are supported.')
+        self.diagnostic_locale = ui.get('locale')
         documents = self.config.get("documents", {})
         paths = self.config.get("paths", {})
         if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root", "section_redirects"}:
@@ -95,7 +100,7 @@ def create_file(root, path, text):
     """Publish a complete file exclusively; never overwrite a concurrent writer."""
     contained(root, path)
     if path.exists() or path.is_symlink():
-        raise ConflictError(f"File already exists: {path.relative_to(root)}")
+        raise ConflictError(Message('File already exists: {arg0}', path.relative_to(root)))
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(prefix=".tao-new-", dir=path.parent)
     try:
@@ -106,7 +111,7 @@ def create_file(root, path, text):
         try:
             os.link(temporary, path)
         except FileExistsError as exc:
-            raise ConflictError(f"Concurrent file creation: {path.relative_to(root)}") from exc
+            raise ConflictError(Message('Concurrent file creation: {arg0}', path.relative_to(root))) from exc
     finally:
         Path(temporary).unlink(missing_ok=True)
 
