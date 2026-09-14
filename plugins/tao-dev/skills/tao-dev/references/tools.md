@@ -2,7 +2,7 @@
 
 通过已信任的 Python 环境调用本 skill 的 [scripts/tao.py](../scripts/tao.py)。Python 需要 3.11 或以上版本及 [运行依赖](../scripts/requirements.txt)。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
 
-先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、verify.docs。尚不包含行为检查、证据复用、交接、退役写入、出版及 hook；这些操作不应被假装执行。
+先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、verify.docs。尚不包含行为检查、证据复用、退役写入和出版；这些操作不应被假装执行。
 
 | 操作 | 已实现行为 |
 |---|---|
@@ -12,6 +12,7 @@
 | `tao id new REQ` | 用本地日期及安全随机源生成 ID；读取现有定义和退役记录查重，不写编号台账 |
 | `tao show <ID>` | 显示定义、引用和源位置；站点未构建时 url 为空 |
 | `tao new --slug <slug> --locale en` | 排他创建本地日期的变更骨架；同名计划或附件存在时报错，不覆盖。agent 必须继续填写目标、范围和可确定内容，清除占位符 |
+| `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的 handoff 文档，保存到计划附件；更新保留 DOC ID，附只读状态观察；不停止会话或提交 |
 | `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，证据复用状态为未评估 |
 
 通用 `--project` 与 `--format text|json` 可以放在操作前后。没有可靠影响基线时，changed 范围回退到 all 并说明原因。未提供历史基线时，源校验结果 deletion_checked 为 false；不能声称已检测所有历史删除。错误元数据、重复定义或越界路径会阻止分配新 ID，避免基于不完整索引生成文件。
@@ -39,3 +40,19 @@ temporary = "tmp/tao"
 配置只描述工具行为。路径和文件模式限定在项目内，解析符号链接后不得越界；未知键或配置版本报错。语言先取显式 --locale，再取配置，再取已有管理文档的唯一 locale；无法确定时报告缺口，由 agent 依据项目约定解决，不取聊天语言或机器时区作为文档语言。
 
 配置中的目录仅在实际写入时创建。源文件校验器也可单独调用，见 [诊断规程](document-diagnostics.md)；它与 CLI 共用同一实现，不是另一套文档格式。原始输出默认留在临时目录或 CI，简短结果按 [保存规则](document-layout.md) 记录。
+
+## 客户端入口与短检查
+
+Claude 插件提供 new、verify、status、handoff 斜杠命令及 reviewer 角色；它们引用共享运行规程。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。组件定义与实际加载、触发、模型行为分别验收；完整跨供应商审查不能由角色文件存在推断。
+
+两端 PostToolUse 配置调用同一个 [hook 脚本](../scripts/hook.py)。客户端启动环境可用 TAO_PYTHON 指向已准备的 Python 解释器；默认使用 python3，不自动安装依赖。脚本仅在当前项目已有 .tao/config.toml 时运行，只做 docs 子集反馈，不运行项目命令或模型。可配置：
+
+```toml
+[hooks]
+docs_enabled = true
+timeout_seconds = 5
+```
+
+默认预算 5 秒，允许 1–30 秒，外层客户端 handler 超时为 35 秒。相同源文件、运行代码、契约、配置及依赖版本只复用短反馈；改动后重新检查。缓存仅保存合并输入指纹和有限诊断，位于 tmp/tao/cache/，不是持久输入清单或交付证据。超时、依赖缺失、锁冲突和格式错误如实提示；不阻止已发生的写入，也不声称完整验证通过。进程中断遗留锁时先确认没有运行中的写入，再清理临时锁。
+
+hook 只覆盖其匹配的文件工具；由终端命令产生的修改仍依靠 skill 显式验证。禁用 hook 后显式 CLI 仍可用。项目内定义文件通过静态检查不等于客户端已触发，验收记录须区分这两层。

@@ -159,3 +159,42 @@ def test_id_collision_limit_and_full_random_alphabet():
     assert calls == [10, 10, 10]
     assert new_id("REQ", registry, set(), today=date(2026, 9, 14), random_bytes=zeros) == identity
     assert new_id("REQ", registry, set(), today=date(2026, 9, 14), random_bytes=lambda n: b"\xff" * n) == "REQ_20260914_ZZZZZZZZZZZZZZZZ"
+
+
+def test_handoff_saves_valid_summary_without_stopping_or_committing(tmp_path):
+    from test_relationships import change, check_change, CHG
+
+    check_change(tmp_path, change())
+    # Include the requirement source at the default managed location.
+    (tmp_path / "spec.md").rename(tmp_path / "docs/spec.md")
+    draft = tmp_path / "draft.md"
+    identity = "DOC_20260914_0000000000000008"
+    text = f'''---
+schema: tao.project.handoff/v0.1
+id: {identity}
+title: Export handoff
+locale: en
+status: draft
+created: "2026-09-14"
+change: {CHG}
+---
+
+# Export handoff
+'''
+    for key in ("scope", "state", "decisions", "evidence", "next"):
+        text += f'\n<!-- tao:section {key} -->\n## {key.title()}\n\nConcrete recovery context.\n'
+    draft.write_text(text)
+    completed = run(tmp_path, "handoff", CHG, "--from", "draft.md")
+    assert completed.returncode == 0, completed.stdout
+    target = tmp_path / json.loads(completed.stdout)["outputs"]["path"]
+    assert target == tmp_path / "docs/changes/2026-09/20260914-export/handoff.md"
+    assert "Concrete recovery context." in target.read_text()
+    assert "CLI observation" in target.read_text()
+    assert not (tmp_path / ".git").exists()
+    draft.write_text(text.replace("Concrete recovery context.", "Updated recovery context."))
+    assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 0
+    assert "Updated recovery context." in target.read_text()
+    previous = target.read_bytes()
+    draft.write_text(text.replace(identity, "DOC_20260914_0000000000000009"))
+    assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 1
+    assert target.read_bytes() == previous

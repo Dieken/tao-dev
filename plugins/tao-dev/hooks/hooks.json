@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${TAO_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py\"",
+            "timeout": 35
+          }
+        ]
+      }
+    ]
+  }
+}
