@@ -23,34 +23,34 @@ coverage: partial
 ## 输入与环境
 
 <!-- tao:field fingerprint -->
-**受检输入:** 本仓库 Git 提交 `1a22ec3beb311be6d3abba49c28167419be654c5`；范围为该版本的计划、长期开发文档、入口、分配记录及完整插件源码，共 39 个受检文件，排除证据目录。后续逐项核对原清单确认这 39 个文件的内容全部与该版本一致，故使用版本引用替代独立清单；这不表示原检查执行时工作区已经提交，也不表示该结果适用于当前版本。证据自身的结构另经静态检查。
+**受检输入:** 本仓库版本 `1a22ec3beb311be6d3abba49c28167419be654c5` 的文档、入口及插件源码，排除证据目录；原清单 39 个文件均已核对与该版本相同，不表示执行时已提交。
 
 <!-- tao:field environment -->
-**环境:** Darwin 24.6.0，Python 3.14.7、PyYAML 6.0.3，当前工作副本；使用既有依赖，未进行全局安装。
+**环境:** Darwin 24.6.0、Python 3.14.7、PyYAML 6.0.3。
 
 <!-- tao:section checks -->
 ## 检查记录
 
 <!-- tao:field command -->
-**命令或观察步骤:** 执行临时文档结构检查、模板夹具检查、自举与独立包检查、skill-creator 的 quick_validate.py 和 git diff --check。实际命令名称、脚本摘要、环境、开始／结束时刻与退出结果保存在报告中；本机绝对路径不进入项目文档。
+**命令:** `python3 tao-doc-review-check.py`、`python3 tao-runtime-contract-check.py`、`python3 tao-shared-package-check.py`、`python3 quick_validate.py plugins/tao-dev/skills/tao-dev`、`git diff --check`。
 
 <!-- tao:field expected -->
-**预期:** 原有 ID 不变，新增文档遵循共享格式，模板正反例符合预期；包内链接不依赖开发仓库，未执行的能力不宣称通过。
+**预期:** ID 稳定、文档与模板格式正确、包内引用完整，错误夹具被拒绝。
 
 <!-- tao:field observed -->
-**实际观察:** 所列检查均返回 0。原有 37 个正式 ID 保留，新建 5 个 ID 唯一；两份新文档采用共享 profile，10 种模板在两种语言下检查通过，16 个损坏夹具被拒绝。独立包的 36 个文件引用解析成功，故意注入的包外依赖被拒绝。
+**结果:** 均退出 0；37 个原有及 5 个新增 ID 唯一；10 种模板、2 种语言、16 个错误夹具符合预期；36 个包内引用可解析，包外依赖被拒绝。
 
 <!-- tao:field reports -->
-**报告:** [执行输出](validation.txt) 的 SHA-256 为 `222fa99bce0fe8198d7014b4499d19fdb72c96aa44373b898bf8c0e8c6a89b16`；受检内容由上述固定版本定位。
+**报告:** 结果保存在本摘要，详细输出不在当前目录保留。
 
 <!-- tao:section findings -->
 ## 发现与限制
 
 <!-- tao:field limits -->
-**限制:** 临时检查不是产品校验器；已有六篇长期文档按内部格式单独检查，不能计入共享格式通过。未运行真实 CLI 加载、跨模型审查或 HTML 构建。临时检查脚本未作为维护工具交付，报告保存其摘要与输出，不宣称仅凭本记录即可重放整套临时工具；后续应以正式校验器重验。
+**限制:** 临时检查脚本未作为维护工具交付，不能仅凭本记录重放。开发文档与共享 profile 分别检查；未验证完整 AST、真实 CLI、跨模型审查或 HTML 构建；历史结果不证明当前版本通过。
 
 <!-- tao:section retention -->
 ## 证据保存
 
 <!-- tao:field retention -->
-**保存位置与期限:** 该证据和必要小型报告随本项目 VCS 保留，不随 skill 分发；不依赖临时目录作为唯一记录。
+**保存:** 保留本摘要及其 DOC／EVD 标识符，随项目 VCS 保存，不随 skill 发布。

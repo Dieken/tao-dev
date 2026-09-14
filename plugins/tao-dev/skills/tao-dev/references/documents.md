@@ -27,7 +27,7 @@
 | 用户操作 `docs/user/<operation>.md` | `tao.project.user-guide/v0.1` | [user-guide](../assets/templates/user-guide.md) |
 | 运维操作 `docs/operations/<operation>.md` | `tao.project.runbook/v0.1` | [runbook](../assets/templates/runbook.md) |
 | 项目术语 `docs/glossary.md` | `tao.project.glossary/v0.1` | [glossary](../assets/templates/glossary.md) |
-| 实际检查摘要 `<plan-stem>/evidence/<slug>.md` | `tao.project.evidence/v0.1` | [evidence](../assets/templates/evidence.md) |
+| 按需独立检查摘要 `<plan-stem>/evidence/<slug>.md` | `tao.project.evidence/v0.1` | [evidence](../assets/templates/evidence.md) |
 | 恢复摘要 `<plan-stem>/handoff.md` | `tao.project.handoff/v0.1` | [handoff](../assets/templates/handoff.md) |
 
 一次检查或交接没有关联变更时，分别放在 `docs/evidence/` 或 `docs/handoffs/`。规格定义承诺，计划引用这些定义并说明本次差异。内容归属、文件命名及拆分阈值的权威规则见 [文档组织](document-layout.md)；目录、章节含义与注册表保持一致。
@@ -114,11 +114,13 @@ verification 说明检查什么、输入与环境、比较基线、执行办法�
 
 checkbox 只接受 `[ ]` 或 `[x]`。字段行缩进两个空格，按 relates、depends_on、verify、evidence 排序；前三项必需。数组为单行 JSON 字符串数组，不允许重复成员；relates 至少一个 REQ 或 CHG，depends_on 仅引用其他 TASK 且无环。verify 是非空单行文本，任务说明修改范围与可验证结果，不能仅写“完成某模块”。
 
-evidence 可选，但勾选完成时必需，为指向可复查报告的单个 Markdown 链接；有证据不自动代表完成，checkbox 也不代表已合并或发布。原始报告可先直接链接；使用 tao.project.evidence 摘要时，其中列出报告、输入、结果与限制。依赖图、执行批次、反向引用和覆盖表由字段生成，不另手工维护 JSON waves 或重复状态。
+evidence 可选，但勾选完成时必需，为指向验证记录的单个 Markdown 链接，默认指向本计划的 verification 章节，也可指向独立 evidence 摘要或实际报告；不要求另建文件或 EVD。章节链接使用出版规程定义的稳定锚点。链接存在不自动代表完成，checkbox 也不代表已合并或发布。依赖图、执行批次、反向引用和覆盖表由字段生成，不另手工维护 JSON waves 或重复状态。
+
+change 模板的 VERIFICATION 先填写检查办法，执行后在同一章节补充受检输入、时间、命令与环境、结果、范围及保存情况；不用另一份文档重复这些内容。独立 evidence 模板仅在保存规则要求拆分时使用，其中 reports 字段可写“原始输出未长期保存”及原因，无需伪造报告链接。
 
 evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 的 fingerprint 字段记录受检输入引用，优先使用固定 VCS 版本、范围及版本一致性结论；有未提交输入时按保存规则补充，environment 记录必要环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法还原输入或取得报告时如实说明限制，不虚构哈希、版本对应关系或 passed。
 
-报告目录、持久保存、VCS 归属与受检输入的排除边界统一见 [文档组织规程](document-layout.md)。报告不可读取、已过期或输入变化时，不能继续把旧证据当作当前通过依据。
+报告目录、持久保存、VCS 归属与受检输入的排除边界统一见 [文档组织规程](document-layout.md)。日志未保存或过期不自动否定历史结果；当前复用须满足输入一致性、摘要充分性和项目要求的材料保存条件。
 
 ## 使用模板与检查
 
