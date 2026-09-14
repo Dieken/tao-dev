@@ -42,12 +42,16 @@ class Project:
             raise ConfigurationError("Unknown configuration keys.")
         documents = self.config.get("documents", {})
         paths = self.config.get("paths", {})
-        if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root"}:
+        if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root", "section_redirects"}:
             raise ConfigurationError("Invalid documents configuration.")
         if not isinstance(paths, dict) or paths.keys() - {"changes", "retired", "temporary"}:
             raise ConfigurationError("Invalid paths configuration.")
         self.includes = documents.get("include", ["docs/**/*.md"])
         self.excludes = documents.get("exclude", [])
+        self.section_redirects = documents.get('section_redirects', {})
+        if not isinstance(self.section_redirects, dict) or any(not isinstance(key, str) or not isinstance(value, str)
+                                                             for key, value in self.section_redirects.items()):
+            raise ConfigurationError('documents.section_redirects must map section references to section references.')
         for patterns in (self.includes, self.excludes):
             if not isinstance(patterns, list) or any(not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts for p in patterns):
                 raise ConfigurationError("Document patterns must be project-relative string arrays.")

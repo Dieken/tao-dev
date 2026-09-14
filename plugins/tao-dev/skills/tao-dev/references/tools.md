@@ -41,6 +41,8 @@ retired = "docs/retired"
 temporary = "tmp/tao"
 ```
 
+跨文档章节的旧入口按 [出版规程](publication.md) 配置 documents.section_redirects；值必须指向当前章节，普通文档校验及退役操作同时核对这些关系。
+
 配置只描述工具行为。路径和文件模式限定在项目内，解析符号链接后不得越界；未知键或配置版本报错。语言先取显式 --locale，再取配置，再取已有管理文档的唯一 locale；无法确定时报告缺口，由 agent 依据项目约定解决，不取聊天语言或机器时区作为文档语言。
 
 配置中的目录仅在实际写入时创建。源文件校验器也可单独调用，见 [诊断规程](document-diagnostics.md)；它与 CLI 共用同一实现，不是另一套文档格式。原始输出默认留在临时目录或 CI，简短结果按 [保存规则](document-layout.md) 记录。

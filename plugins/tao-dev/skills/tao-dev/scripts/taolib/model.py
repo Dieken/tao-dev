@@ -44,6 +44,7 @@ class Document:
     path: str
     metadata: dict
     sections: dict[str, int] = field(default_factory=dict)
+    section_titles: dict[str, str] = field(default_factory=dict)
     tasks: list[str] = field(default_factory=list)
     navigation: list[str] = field(default_factory=list)
 
@@ -55,6 +56,7 @@ class Result:
     references: list[Reference] = field(default_factory=list)
     documents: dict[str, Document] = field(default_factory=dict)
     deletion_checked: bool = False
+    section_redirects: dict[str, str] = field(default_factory=dict)
 
     @property
     def valid(self):

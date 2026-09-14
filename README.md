@@ -107,4 +107,4 @@ uv run --no-config --locked --extra publication python plugins/tao-dev/skills/ta
 
 本项目的 .tao/config.toml 配置实际 Python 回归、子进程分支覆盖率与 Ruff 错误检查；运行 `tao.py verify --only code` 可执行或复用它们，`tao.py status` 只读比较证据。度量结果、原始日志和缓存都在 tmp/tao/；配置与规则见 [验证规程](plugins/tao-dev/skills/tao-dev/references/verification.md)。覆盖率是观察值，当前没有随意设定一个通过百分比。
 
-完整 `tao.py verify <CHG-ID>` 仍会报告尚未完成的任务及缺失或过期的必需审查，不能把局部检查通过当成交付。实际客户端和恢复试验需显式运行，方法见 [试验说明](tests/acceptance/README.md)，普通 pytest 不调用模型。
+完整 `tao.py verify <CHG-ID>` 仍会报告尚未完成的任务及缺失或过期的必需审查，不能把局部检查通过当成交付。实际客户端和恢复试验需显式运行，方法见 [试验说明](tests/acceptance/README.md)，普通 pytest 不调用模型。维护环境还需 Node.js，用于实际执行出版页的重定向脚本；项目检查将其程序摘要纳入证据指纹。它不属于分发插件或消费项目的运行依赖。
