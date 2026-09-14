@@ -116,9 +116,9 @@ checkbox 只接受 `[ ]` 或 `[x]`。字段行缩进两个空格，按 relates�
 
 evidence 可选，但勾选完成时必需，为指向可复查报告的单个 Markdown 链接；有证据不自动代表完成，checkbox 也不代表已合并或发布。原始报告可先直接链接；使用 tao.project.evidence 摘要时，其中列出报告、输入、结果与限制。依赖图、执行批次、反向引用和覆盖表由字段生成，不另手工维护 JSON waves 或重复状态。
 
-evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 记录实际输入指纹与环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法取得指纹或报告时如实说明缺失，不虚构哈希或 passed。
+evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 的 fingerprint 字段记录受检输入引用，优先使用固定 VCS 版本、范围及版本一致性结论；有未提交输入时按保存规则补充，environment 记录必要环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法还原输入或取得报告时如实说明限制，不虚构哈希、版本对应关系或 passed。
 
-报告目录、持久保存、VCS 归属与输入指纹的排除边界统一见 [文档组织规程](document-layout.md)。报告不可读取、已过期或输入变化时，不能继续把旧证据当作当前通过依据。
+报告目录、持久保存、VCS 归属与受检输入的排除边界统一见 [文档组织规程](document-layout.md)。报告不可读取、已过期或输入变化时，不能继续把旧证据当作当前通过依据。
 
 ## 使用模板与检查
 

@@ -34,7 +34,7 @@
   "label.context": "Context and alternatives",
   "label.decision": "Decision",
   "label.consequences": "Consequences",
-  "label.fingerprint": "Input fingerprint",
+  "label.fingerprint": "Input reference",
   "label.environment": "Environment",
   "label.command": "Command or observation procedure",
   "label.expected": "Expected",
