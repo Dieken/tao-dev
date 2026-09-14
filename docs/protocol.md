@@ -317,13 +317,13 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 :links: REQ_8D96CE7C86D6463194942315CB61B62B, REQ_AD6954B59E45455287DB1A499FB7232F
 
 <!-- tao:field context -->
-**背景与备选：** 全靠提示容易遗漏检查；每次事件启动完整流程会增加延迟和失控循环。
+**背景与备选：** 全靠提示容易遗漏检查；每次事件启动完整流程会增加延迟和失控循环。将文档检查、行为验证和收尾条件各设一个命令，会把工具内部分类变成用户必须选择的步骤。
 
 <!-- tao:field decision -->
-**选择：** 将 clarify、design、plan、work、debug、review、resume 等定义为 skill 流程操作；确定性的工具原语另以 `tao` CLI 提供，详见命令专篇。先实现 doctor、id new、check、resolve，再接模板、证据、交接与出版。skill 明确何时调用及如何处理不可用；斜杠命令包装同一操作，hook 仅做上下文提示、快速校验和证据失效标记。
+**选择：** 流程使用 specify、plan、implement、review、verify，澄清、设计及任务划分融入相关阶段，不强制逐步调用。工具以 `tao verify` 统一文档检查、行为验证和收尾判定，agent 按时机选择局部反馈，交付前完整验证；创建用 new change，展示用 show，交接用 context save。先实现 doctor、id new、show 和 verify 的文档子集。接口与默认选择见命令专篇；hook 仅做有预算的短检查。
 
 <!-- tao:field consequences -->
-**代价：** 适配器需检测能力、配置版本和失败行为；hook 须有超时、幂等性及并发保护。CI 复核必要检查，运行环境落实权限。上述名称是拟议接口，目前没有可执行命令。
+**代价：** 工具需报告能力、选择原因和完整／局部覆盖，不能把局部通过冒充交付通过。无可靠基线时扩大检查；缺少必要能力时明确未完成。hook 须有超时、幂等性及并发保护，CI 复核完整条件。上述名称是拟议接口，目前没有可执行命令。
 ```
 
 ```{adr} 中文规范、英文机器标识，显示语言独立选择
@@ -479,7 +479,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 - [ ] `TASK_D141FDDCA82341ACA6A8C465CF1FBFB7` 建立最小校验器、核心命令与独立反例集
   - relates: ["REQ_879A3065136F4F1993721F8840A0121D", "REQ_176AF58FB0F14E4292E8F89AEA0B789E", "REQ_71288FB94E7E4DFBACCD15BF936D0290"]
   - depends_on: ["TASK_CD97931014A54A7A954E90AEC5536887"]
-  - verify: 正常、重复 ID、悬空引用、非法章节、非法任务及未知版本样例得到预期诊断；中英文显示标签不影响结构解析；代码围栏中的示例不会误入正式索引；doctor、id new、check、resolve 的能力报告、退出码和无 VCS／无 rg 场景可验证。
+  - verify: 正常、重复 ID、悬空引用、非法章节、非法任务及未知版本样例得到预期诊断；中英文显示标签不影响结构解析；代码围栏中的示例不会误入正式索引；doctor、id new、show 和 verify 文档子集的能力、退出码、partial 标记及无 VCS／无 rg 场景可验证。
 
 - [ ] `TASK_B870F5217D8641569128F6EE84498610` 打通单个变更的实现、证据与恢复
   - relates: ["REQ_7CAD959EA86F4868A056C7D1C8A2A916", "REQ_B5412B888E844FD8AA6F76B9B59C4806", "REQ_AD6954B59E45455287DB1A499FB7232F", "REQ_44CE9AC254C5455F85181CE524D31EC6", "REQ_54CB0F04B5AF421F8FC3449A14449779", "REQ_A2D91BFB201543658A97160E64C394AC"]
