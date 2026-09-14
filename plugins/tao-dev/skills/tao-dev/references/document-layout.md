@@ -11,7 +11,7 @@
 | 产品规格 | `docs/product/<capability>.md`，每个用户可命名的能力一份；含目标、范围、REQ／UC、约束 | 本次施工步骤、执行日志 |
 | 系统与模块设计 | `docs/engineering/<system-or-module>.md`，每个已有系统或模块一份；含边界、状态、接口与依赖 | 复制规格全文、日常任务 |
 | 跨变更的技术决定 | `docs/engineering/decisions/<slug>.md`，每个 ADR 一份；含背景、备选、决定、后果 | 临时实现过程；只影响本次变更的选择留在计划 |
-| 变更计划 | `docs/changes/<year>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
+| 变更计划 | `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
 | 用户说明 | `docs/user/<user-task>.md`，每个读者操作目标一份 | 内部研发任务 |
 | 运维说明 | `docs/operations/<operation>.md`，每个部署、诊断或恢复操作一份 | 暂时实验记录 |
 | 术语 | `docs/glossary.md`，项目共用；首次定义和同义词关系集中维护 | 复制各模块的全部接口定义 |
@@ -59,7 +59,7 @@ docs/
       recover-access.md            # user-guide
   changes/
     index.md                       # 变更记录，与长期主题阅读分开
-    2026/
+    2026-09/
       index.md
       20260914-stable-links.md
       20260914-stable-links/
@@ -68,7 +68,7 @@ docs/
 
 目录名表达主题，不使用 part-01、chapter-03 等阅读序号；顺序与显示编号由目录及出版层决定。默认在篇下最多增加两层主题目录；已有子系统边界需要更深层时在项目约定中说明。单目录直属正文超过 20 份时检查是否可按已有能力、子系统或操作主题分组，每组至少两份正文；没有自然分组则保留目录并记录理由，不用 misc、other 或机械编号分桶。这些是组织默认值，不是 Sphinx 限制，也不以数量代替内容判断。
 
-变更记录增长按创建年份分组，新建位置默认 docs/changes/YYYY/；计划与同名附件目录一起放入该年份。现有扁平目录可作为已声明映射保留，重组时整体迁移相关文件及入口，保留正式 ID；年份目录不改变文件名中的创建日期。
+变更计划按创建月份分组，默认路径为 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`。月份目录取计划 created 的年和月，月份固定两位，并与文件名日期一致；例如 `docs/changes/2026-09/20260914-stable-links.md`。计划与同名附件目录放在同一月份下，按需创建目录；编辑或归档不按当前月份重新分组。调整位置时一起更新文件引用，保留正式 ID。项目可映射变更根目录，其下仍按年月和日期文件名组织。
 
 ## 阅读顺序与导航格式
 
@@ -130,7 +130,7 @@ docs/
   user/
   operations/
   changes/
-    2026/
+    2026-09/
       20260914-stable-links.md      # 计划正文
       20260914-stable-links/        # 按需附件
         evidence/                  # 经挑选的持久证据及摘要
