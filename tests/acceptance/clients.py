@@ -57,10 +57,19 @@ def main():
     directory = args.workspace.resolve() / args.client / ('outside' if args.case == 'outside' else 'recovery-' + str(time.time_ns()) if args.case == 'recover' else 'inside')
     directory.mkdir(parents=True, exist_ok=True)
     plugin = None if args.case == 'outside' else prepare(directory, args.client)
+    env = os.environ.copy()
+    env['TAO_PYTHON'] = sys.executable
+    env['TAO_RUNTIME_DIR'] = str(args.workspace.resolve() / 'runtime')
+    if plugin:
+        setup = subprocess.run([sys.executable, str(plugin / 'skills/tao-dev/scripts/tao.py'),
+                                'setup', '--wheelhouse', str(ROOT / 'tmp/tao/wheels'), '--format', 'json'],
+                               env=env, capture_output=True, text=True, timeout=180)
+        if setup.returncode:
+            raise RuntimeError('Isolated offline runtime preparation failed: ' + setup.stdout + setup.stderr)
     recovery = None
     if args.case == 'recover':
         from recovery import prepare as prepare_recovery
-        recovery = prepare_recovery(directory, plugin)
+        recovery = prepare_recovery(directory, plugin, env=env)
     boundary = ('This is an isolated CLI acceptance experiment. Do not install, register, or change any global skill, plugin, marketplace, hook or client configuration. '
                 'Use scratch paths only inside this experiment directory. Do not search outside this experiment directory or read authentication files. Do not use network tools or delegate. ')
     if args.case in ('inside', 'outside'):
@@ -71,8 +80,6 @@ def main():
         prompt = boundary + 'Use the available tao-dev review guidance to independently review example.py against requirements.txt. Do not change either file. Identify a concrete trigger, evidence and minimal fix; do not invent findings. This is your first review: no other reviewer conclusions are provided. Keep the response concise.'
     else:
         prompt = boundary + 'Use a native file Write/Edit/apply_patch tool to create docs/probe.md containing exactly "# Probe\n". This deliberately invalid document tests hook feedback. Do not fix it, run checks manually, or invoke the hook yourself. Report any hook feedback actually observed.'
-    env = os.environ.copy()
-    env['TAO_PYTHON'] = sys.executable
     if args.client == 'claude':
         command = ['claude', '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
         if plugin:
