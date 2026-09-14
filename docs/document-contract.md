@@ -64,6 +64,7 @@ bootstrap: manual
 | `tao.plugin-design/v0.2` | `scope` → `package` → `components` → `acceptance` → `sources` |
 | `tao.glossary/v0.2` | `terms` → `prefixes` → `abbreviations` → `usage` |
 | `tao.document-layout/v0.2` | `ownership` → `splitting` → `naming` → `artifacts` → `bootstrap` |
+| `tao.cli-design/v0.2` | `scope` → `commands` → `contract` → `integration` → `acceptance` |
 
 一级标题与第一处二级标题之间允许导语。章节匹配依据 AST 位置和键，不依据中文标题、行号或全文正则搜索。
 
@@ -169,7 +170,7 @@ ID 在创建时用 UUID 库生成一次，禁止按标题、路径、内容哈�
 
 构建顺序为：解析全部纳入文档 → 注册定义 → 解析引用 → 检查类型与关系 → 输出诊断和索引。AST 必须区分顶层正式条目与代码示例；正文里提到一个 ID 不是新的定义。
 
-当前自举索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`、`glossary.md`、`document-layout.md`。外部参考资料不纳入正式条目索引。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的标识符索引，离线无索引时报告 unresolved，不能视为存在。
+当前自举索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`、`glossary.md`、`document-layout.md`、`cli-design.md`。外部参考资料不纳入正式条目索引。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的标识符索引，离线无索引时报告 unresolved，不能视为存在。
 
 一条关系只维护其发出方：反向引用、需求覆盖表和汇总由索引生成，生成文件不得成为另一份人工维护的真相。检查目标存在、关系类型、任务依赖无环和替代关系无环。标为 superseded 的对象必须能找到至少一个替代者；引用 retired／superseded 对象给出复查提示，合法的历史解释不必全部阻断。
 

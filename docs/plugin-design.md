@@ -10,7 +10,7 @@ bootstrap: manual
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_E2248E3FC6374DE8800B2540B94BE420`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已实现两个 manifest、skill 入口及工程规程，其余组件按需实现，运行验收尚未完成。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_E2248E3FC6374DE8800B2540B94BE420`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已实现两个 manifest、skill 入口、工程规程及流程操作规程，其余组件按需实现，运行验收尚未完成。
 
 <!-- tao:section scope -->
 ## 一、标准基线与目标环境
@@ -83,6 +83,8 @@ Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼�
 | hook | 共享可确定的检查逻辑；事件绑定与输入输出由平台适配 | 使用 Codex hook JSON、受支持事件与执行类型 | 使用 Claude hook JSON、受支持事件与执行类型 |
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 `SKILL.md`、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。
+
+客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
 
 角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。插件根 `agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 对 Claude agent／command 的兼容处理不能等同原生发现；未实现的注册能力应明确报告。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
 
