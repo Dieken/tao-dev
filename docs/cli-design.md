@@ -10,9 +10,9 @@ bootstrap: manual
 
 # tao 命令与流程接入
 
-本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** 随包的 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
+本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
 
-使用方格式由随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
+使用方格式由 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
 
 <!-- tao:section scope -->
 ## 一、用户操作与命名依据
@@ -112,7 +112,7 @@ new 的 agent 入口交付目标、范围、已有依据、可确定的验收及
 
 不增加 fast／strict 等通用等级开关，也不要求每次选 `--profile`。快速反馈通过局部分类及有效证据复用获得；高风险需要的额外检查由既定策略和明确的风险判断决定。预算不足或能力缺失时记录 not_run，不偷偷降级。后续修订策略应有明确理由与版本，不能为本次通过临时降低要求。
 
-输入识别采用随包保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。原始报告和摘要按 [产物保存约定](document-layout.md) 归档。
+输入识别采用 skill 中的保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。原始报告和摘要按 [产物保存约定](document-layout.md) 归档。
 
 ### 结果与完成语义
 
@@ -132,12 +132,12 @@ Python 枚举、Markdown AST、日历解析与 `secrets` 安全随机源是正�
 
 写入限制在项目内明确目录，路径和符号链接解析后不得越界，不修改插件缓存或全局配置。生成器、退役和交接使用锁与原子操作，验证不自动修复语义问题。配置中新增执行命令仍需符合已有授权，不能因来自仓库就扩大权限。
 
-.tao/ 仅保存控制 CLI 和 skill 行为的配置；项目资产在 docs/ 或其显式映射位置，派生索引、缓存与短期锁默认在 tmp/tao/cache/。退役读取器遍历全部日期 JSONL 并与正文统一查重；写入时保护当日文件，正文移除与记录落盘作为一致修改处理，失败不能遗失唯一的追溯记录。具体字段与合并约束使用随包契约，不在工具实现中另造规则。
+.tao/ 仅保存控制 CLI 和 skill 行为的配置；项目资产在 docs/ 或其显式映射位置，派生索引、缓存与短期锁默认在 tmp/tao/cache/。退役读取器遍历全部日期 JSONL 并与正文统一查重；写入时保护当日文件，正文移除与记录落盘作为一致修改处理，失败不能遗失唯一的追溯记录。具体字段与合并约束使用 skill 的文档契约，不在工具实现中另造规则。
 
 <!-- tao:section integration -->
 ## 四、skill、hook 与自动收尾
 
-skill 对照随包 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+skill 对照 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
 
 doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。当前没有 CLI 时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
 
