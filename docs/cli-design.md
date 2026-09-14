@@ -1,11 +1,10 @@
 ---
-schema: tao.cli-design/v0.2
+schema: tao.project.design/v0.1
 id: DOC_20260914_0VF190409FQCN197
 title: tao 命令与流程接入
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
-bootstrap: manual
+created: '2026-09-14'
 ---
 
 # tao 命令与流程接入
@@ -14,8 +13,8 @@ bootstrap: manual
 
 使用方格式由 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
 
-<!-- tao:section scope -->
-## 一、用户操作与命名依据
+<!-- tao:section overview -->
+## 用户操作与命名依据
 
 用户通常只需表达“整理需求、制定计划、实现、审查、验证”的意图，由 skill 推进。流程名称统一为 `specify → plan → implement → review → verify`：specify 包含必要澄清，plan 包含必要设计与任务拆分；调试、恢复和交接按需进入。它们不是每次都需用户手动调用的五个命令，也不要求每个节点生成一份文件。
 
@@ -69,8 +68,21 @@ new 的 agent 入口交付目标、范围、已有依据、可确定的验收及
 
 验证统一使用 verify；文档检查、行为验证及只读收尾判断是其内部分类。验收后的归档、集成和发布按实际授权处理，不从命名自动派生额外步骤。未发布的草案名称不保留兼容别名。
 
-<!-- tao:section commands -->
-## 二、命令、输入与副作用
+<!-- tao:section architecture -->
+## 流程接入
+
+skill 对照 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+
+doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。当前没有 CLI 时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
+
+hook 仅在已验证的平台事件上触发预算内的短检查，例如 `verify --only docs --scope changed`；它不启动完整跨模型评审、全量长测试或生成／退役操作。相同输入的重复事件合并，避免验证报告写入后再次触发自身。完整交付验证由 skill 在收尾时发起，CI 按项目配置复核；未来自动化不能绕过既有授权或未解决阻断。
+
+两端试验只在隔离项目或单次调用内生效，直接使用已配置的 `codex`、`claude`。当前只有未发布的接口设计；斜杠命令包装、安装配置和可执行程序按实际需求与验证结果逐步提供。
+
+<!-- tao:section contracts -->
+## 命令与执行契约
+
+### 命令、输入与副作用
 
 表中的 `tao` 代表受信任的项目局部入口。发布实现拟随 skill 提供 `scripts/tao.py`，由已确认的 Python 环境通过文件路径调用；可由项目任务运行器提供 `tao` 别名，不要求全局安装。不能因为 PATH 中存在同名程序就认定它属于 tao-dev。
 
@@ -90,10 +102,9 @@ new 的 agent 入口交付目标、范围、已有依据、可确定的验收及
 
 第一批发布 doctor、id new、show 与 verify 的文档子集。能力列表区分 `verify.docs`、`verify.code`、`verify.evidence`；只实现文档子集时不能声称支持完整交付验证。没有实现的命令或子能力不列为可用，也不用返回成功的空实现占位。
 
-<!-- tao:section contract -->
-## 三、自动选择与公共执行契约
+### 自动选择与公共执行契约
 
-### 默认选择，特殊情况才覆盖
+#### 默认选择，特殊情况才覆盖
 
 `tao verify` 默认检查当前目标的全部必需条件，而非只检查语法。目标优先来自显式 CHG ID，其次是当前变更目录或当前任务已有绑定；只有一个活动变更时可以自动选中。存在多个候选且上下文不能区分时才要求指定，不以“最近修改”猜测。项目级调用按明确的项目验证配置执行，不凭文件扩展名推断项目只有文档。
 
@@ -114,7 +125,7 @@ new 的 agent 入口交付目标、范围、已有依据、可确定的验收及
 
 输入识别采用 skill 中的保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。摘要默认写入计划 verification；原始输出只在生成目录或 CI 保存，确有持久需求才按 [产物保存约定](document-layout.md) 归档。日志不可用与输入不匹配分别报告，不因前者改写历史 passed 或任务状态。
 
-### 结果与完成语义
+#### 结果与完成语义
 
 所有命令支持 `--format text|json`。JSON 公共结果包含 `tool: "tao-dev"`、`protocol_version`、`tool_version`、`command`、`status`、`diagnostics` 和 `outputs`；doctor 额外返回支持的 schema 和 `capabilities`。verify 额外记录目标、检查清单及选择原因、未覆盖条件、`coverage`（complete／partial／unknown）和 `readiness`（checks-satisfied／blocked／not-evaluated）。子工具原始输出进入报告，进度写 stderr，不混入 JSON。
 
@@ -124,7 +135,7 @@ new 的 agent 入口交付目标、范围、已有依据、可确定的验收及
 
 逐项结果区分 passed、failed、not_run、not_applicable、stale；不适用必须有条件依据。文档子集或尚无 CHG／EVD 支持的版本，不能把缺失的完整验证能力自动标为不适用。人工观察可登记为证据，但不伪造工具退出码，也不从两份模型报告的存在推导独立审查完成。
 
-### 环境与写入边界
+#### 环境与写入边界
 
 项目根由显式 `--project <path>` 或当前目录向上最近的 `.tao/config.toml` 确定。无配置时 doctor、id new、show 和 `verify --only docs` 可以在显式给定的项目根工作；完整验证缺少策略或目标时说明需补齐的信息，不擅自创建全局配置。
 
@@ -134,19 +145,18 @@ Python 枚举、Markdown AST、日历解析与 `secrets` 安全随机源是正�
 
 .tao/ 仅保存控制 CLI 和 skill 行为的配置；项目资产在 docs/ 或其显式映射位置，派生索引、缓存与短期锁默认在 tmp/tao/cache/。退役读取器遍历全部日期 JSONL 并与正文统一查重；写入时保护当日文件，正文移除与记录落盘作为一致修改处理，失败不能遗失唯一的追溯记录。具体字段与合并约束使用 skill 的文档契约，不在工具实现中另造规则。
 
-<!-- tao:section integration -->
-## 四、skill、hook 与自动收尾
+<!-- tao:section invariants -->
+## 检查结果与写入约束
 
-skill 对照 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+局部检查不构成整体完成；能力缺失不自动成为不适用。验证不得修改受检源文档或扩大授权，生成与退役操作保护已有内容及稳定 ID。完整契约由上一节定义。
 
-doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。当前没有 CLI 时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
+<!-- tao:section errors -->
+## 故障与恢复
 
-hook 仅在已验证的平台事件上触发预算内的短检查，例如 `verify --only docs --scope changed`；它不启动完整跨模型评审、全量长测试或生成／退役操作。相同输入的重复事件合并，避免验证报告写入后再次触发自身。完整交付验证由 skill 在收尾时发起，CI 按项目配置复核；未来自动化不能绕过既有授权或未解决阻断。
+参数、配置、工具不可用与条件不满足按公共退出码区分。写入失败不得遗失源内容或追溯记录；中断后恢复同一变更，不能通过重建 ID 掩盖部分完成。
 
-两端试验只在隔离项目或单次调用内生效，直接使用已配置的 `codex`、`claude`。当前只有未发布的接口设计；斜杠命令包装、安装配置和可执行程序按实际需求与验证结果逐步提供。
-
-<!-- tao:section acceptance -->
-## 五、验证与实现顺序
+<!-- tao:section verification -->
+## 验收与实施顺序
 
 每个命令以真实结果和独立反例验收，不能只检查帮助文字。首批文档能力到完整验证逐步实施，至少覆盖：
 

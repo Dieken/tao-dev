@@ -1,19 +1,18 @@
 ---
-schema: tao.plugin-design/v0.2
+schema: tao.project.design/v0.1
 id: DOC_20260914_7RJ1YVEC0CP478BY
 title: 插件打包与运行环境
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
-bootstrap: manual
+created: '2026-09-14'
 ---
 
 # 插件打包与运行环境
 
 本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已实现两个 manifest、skill 入口、工程规程及流程操作规程，其余组件按需实现，运行验收尚未完成。
 
-<!-- tao:section scope -->
-## 一、标准基线与目标环境
+<!-- tao:section overview -->
+## 标准基线与目标环境
 
 以 **Agent Plugins 1.0.0** 作为公共包装基线，skill 内容遵循其引用的 Agent Skills 规范。**Codex CLI 和 Claude Code CLI 均为首批必需验收环境**；不以其中一个通过代替另一个，也不以桌面应用运行代替 CLI 验收。其他客户端暂不承诺兼容。
 
@@ -21,8 +20,8 @@ bootstrap: manual
 
 标准版本、产品版本和客户端版本分别记录。首次运行验收时固定具体 CLI 版本、操作系统、模型与必要配置；通过这些组合后再声明支持范围。仅检查版本号或读取官方文档不能证明运行兼容。
 
-<!-- tao:section package -->
-## 二、源码与发布包
+<!-- tao:section architecture -->
+## 源码与发布包
 
 开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 `AGENTS.md` 管理本项目开发，旁置 `CLAUDE.md` 仅含一行 `@AGENTS.md` 供 Claude 导入；二者均不作为产品 agent 定义或分发内容。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
 
@@ -74,8 +73,8 @@ Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼�
 
 发布按文件清单取用插件根的实际组件；包含必要的运行引用、脚本、模板及许可证信息，不包含内部 `docs/`、开发指导、研究材料、缓存和验收凭据。包内文件路径和符号链接解析后必须留在插件根；安装目录改变后仍能运行。组件注册、市场发布及用户全局配置的修改是独立操作，不随文档构建自动执行。
 
-<!-- tao:section components -->
-## 三、组件职责与平台映射
+<!-- tao:section contracts -->
+## 组件职责与平台映射
 
 | 组件 | 公共定义与格式 | Codex CLI | Claude Code CLI |
 |---|---|---|---|
@@ -96,8 +95,18 @@ new 包装接收自然语言描述并保留会话上下文，调用共享流程�
 
 同名事件不直接推导语义等价，prompt／agent 类型 hook 也不视为两端共有能力。hook 未获信任、被禁用或执行失败时，说明哪些动作未运行，并提供显式检查路径。不能绕过客户端权限，也不能将缺失检查算作通过。[Codex hooks](https://learn.chatgpt.com/docs/hooks)、[Claude hooks](https://code.claude.com/docs/en/hooks)
 
-<!-- tao:section acceptance -->
-## 四、双 CLI 验收
+<!-- tao:section invariants -->
+## 分发与兼容边界
+
+运行组件不依赖开发文档；平台专用行为分别验收。公共元数据与兼容 manifest 一致；声明的能力必须对应实际实现。
+
+<!-- tao:section errors -->
+## 隔离失败与能力缺失
+
+无法在项目或调用范围内隔离时，该项验收受阻；不回退全局安装。组件不可用或执行失败时报告真实缺口，不把串行回退标为原生子代理通过。
+
+<!-- tao:section verification -->
+## 双 CLI 验收与维护依据
 
 验收在隔离的使用方项目及测试配置中进行，使用同一发布版本和等价输入。两端分别记录证据，包含实际加载位置、CLI 版本、模型、系统环境、权限／hook 信任状态、命令、退出状态及观察结果。开发者日常环境已有的插件或配置不得掩盖缺失依赖。
 
@@ -119,8 +128,7 @@ new 包装接收自然语言描述并保留会话上下文，调用共享流程�
 
 Claude 可使用 `claude plugin validate` 做静态检查；Codex 的检查入口按所选版本的 CLI 能力确定。静态验证均不能代替实际加载和流程运行。没有可执行组件前，只记录设计与检查计划，不给出运行兼容结论。
 
-<!-- tao:section sources -->
-## 五、维护依据
+### 维护依据
 
 以 Agent Plugins 的版本化规范约束公共定义，以两端官方文档及选定 CLI 的实际行为约束适配。客户端升级后，重新运行受影响的验收；超出已测组合的支持范围需有新证据。
 

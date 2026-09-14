@@ -1,23 +1,18 @@
 ---
-schema: tao.protocol/v0.2
+schema: tao.project.spec/v0.1
 id: DOC_20260914_4C7N0XHQSP7CY69P
 title: 协作开发协议
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
-bootstrap: manual
+created: '2026-09-14'
 ---
 
 # 协作开发协议
 
-**项目：tao-dev（协作开发之道）。**
+本文是 tao-dev 自身的需求规格，供开发与维护使用。实现与验收状态由对应记录说明；不作为第三方项目的运行 prompt 分发。
 
-本文是 tao-dev 自身的需求与设计文档，供开发者和维护者评审、实现及验收。流程、模板和工具约定描述拟实现的产品行为；本文不属于向第三方项目分发的 skill 内容，也不是运行时指令入口。文档状态为草案，条目按各自状态评审。
-
-阅读顺序：先看目标和流程，再看文档、证据及自举安排。术语见 [术语与缩写](glossary.md)，文档检查范围与解析器设计见 [Markdown 文档契约](document-contract.md)，内容归属与拆分阈值见 [文档组织与产物保存](document-layout.md)。
-
-<!-- tao:section purpose -->
-## 一、目标与边界
+<!-- tao:section scope -->
+## 目标与边界
 
 **目标：让人和 AI 能以明确的契约、小步反馈和可复核证据完成开发；换人、换会话或更换 agent 后仍能接手。** 文档应是工程工作的直接材料，维护成本计入流程成本。
 
@@ -27,10 +22,42 @@ bootstrap: manual
 
 当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。首批运行验收环境固定为 Codex CLI 和 Claude Code CLI。
 
-本稿兼有两种职责：下节定义项目必须实现的结果，后续章节提出实现这些结果的协议设计。设计取舍用 ADR 表达并引用需求。出现独立维护或评审需要时再拆文档，移动时保留条目 ID。
+本协议定义必须实现的结果和验收场景。协作流程与长期决定见 [流程设计](protocol-design.md)，既有研发任务见 [实施计划](changes/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
+
+<!-- tao:section terms -->
+## 术语与来源
+
+概念与缩写见 [术语表](glossary.md)。
+
+### 公共来源与采用边界
+
+工程原则的执行文本维护在分发包的工程规程中，以降低维护成本、控制复杂度和形成可靠证据为目的。内部文档只维护其需求及验收关系。公开参考项目用于比较实现方式；其审批规则和技术选择不自动成为本项目要求。
+
+公开参考及实际取舍如下。设计先行、小步验证、证据与上下文恢复在多个项目中反复出现，属于这些参考中的广泛共识；编号格式、拆分阈值和工具接口是本项目自己的选择。下表覆盖已评估的来源，不把来源数量当作质量保证。
+
+| 参考 | 采用或用于验证的做法 | 不直接照搬的部分 |
+|---|---|---|
+| [Spec Kit](https://github.com/github/spec-kit) | 规格、计划与任务的职责区分 | 不要求每次修改生成全套文件 |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec/blob/0a99f410457271aa773d8b106f03f637f7c6b3c0/schemas/spec-driven/schema.yaml) | 产物依赖、长期规格与变更分离 | 不把局部编号作为跨项目 ID |
+| [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) | 按复杂度选择紧凑或完整流程 | 不强制所有角色和审批阶段 |
+| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | 统一计划、就绪判断、定向读取 | 不增加另一份重复的任务真相 |
+| [Trellis](https://github.com/mindfold-ai/trellis) | 按任务注入上下文、平台适配 | 不预设单一客户端 |
+| [GSD](https://github.com/open-gsd/gsd-core) | 行为验证区别于文件存在、状态恢复 | 不把派生进度当作有效证据 |
+| [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | `writing-plans` 的可验证任务；`verification-before-completion` 的新鲜证据 | 不按固定分钟数切任务，不强制重复审批或给每项计划预写完整实现 |
+| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件或逐阶段人工批准；不要求每段代码都添加来源注释 |
+| [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
+| [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
+| [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
+| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
+
+外部依据：[Kiro 规格结构](https://kiro.dev/docs/specs/)、[EARS 需求表达](https://alistairmavin.com/ears/)、[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
+
+外部引用采用上游公开地址；具体格式或行为依赖某一版本时应注明版本。文档格式与 ID 细节属于本项目设计。
+
+独立审查的研究依据：[迎合性研究](https://arxiv.org/abs/2310.13548) 说明模型可能迎合用户观点；[多代理讨论研究](https://arxiv.org/abs/2305.14325) 在其推理与事实任务中观察到收益；[讨论机制与多样性研究](https://arxiv.org/abs/2601.19921) 表明收益依赖讨论机制和初始观点等条件。它们不证明跨供应商代码审查必然有效或错误相互独立。本项目据此采用有界、可复核的审查，并以真实缺陷、误报和成本检验效果，不以模型数量背书。
 
 <!-- tao:section requirements -->
-## 二、项目需求
+## 项目需求
 
 以下条目是待评审的可验收需求。广泛共识仅指多个参考项目强调相同方向，不代表执行细节已成行业标准。
 
@@ -216,160 +243,8 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 **来源：** 用户对独立判断与审查多样性的要求，以及文末关于迎合性和多代理讨论的公开研究。跨供应商优先、审查输入与预算规则是本项目的工程选择，效果需在实际产物审查中验证。
 ```
 
-<!-- tao:section workflow -->
-## 三、协作流程与决定权
-
-每次变更先选择三个级别之一：**简化**（目标明确、影响局部、容易撤销）、**常规**（需要需求与实施判断）、**加强**（跨系统、难恢复或高后果）。小改动不因模板齐全而升级；发现新风险时补齐相应工作。
-
-| 阶段 | 应做的工作 | 可以继续的条件 |
-|---|---|---|
-| 收集与澄清 | 先查现状和已有决定；确定使用者、问题、收益、边界；每轮只询问会改变决策的问题 | 关键目标与权限明确；未决问题分为阻断与可延后 |
-| 需求分析 | 沿用户路径写正常、边界和失败例子；明确数据、权限及必要性能约束；删减非必要范围 | 关键需求可观察、有验证办法，事实与假设可区分 |
-| 产品与技术设计 | 定义交互、状态、接口和数据归属；比较有实质差别的方案；限时验证高风险假设 | 最小方案满足底线；额外复杂度有需求依据；重要决定可追溯 |
-| 规划 | 按纵向结果切任务，列依赖、修改边界与验证方法；优先暴露可能推翻方案的风险 | 当前任务能开始；阻断未被伪装为假设 |
-| 实现与测试 | 完成小增量；维护相关规格和测试；执行适合当前影响的检查 | 改动与契约一致；失败及未覆盖部分明确 |
-| 评审与集成 | 分别审需求符合性和工程质量；意见写明场景、后果与解除条件；集成后验证 | 阻断解决，证据适用，剩余风险有处理决定 |
-| 发布与反馈 | 在授权范围内发布，按风险验证观察与恢复；核实实际用户结果 | 已发布与已合入分开记录；反馈进入后续取舍 |
-
-调试可从任何阶段进入：现场证据或复现 → 可证伪假设 → 最小实验 → 修复 → 原问题和相关回归验证。事故可先可逆止损；连续尝试无新证据时改变调查方法或寻求帮助。
-
-阶段与工具的接入见 [tao 命令设计](cli-design.md)：进入项目查能力，编辑文档后检查格式和关系，行为变更后验证，恢复时检查状态，完成声明前核对证据。运行 skill 按流程规程执行这些动作；尚无 CLI 时使用已有项目工具并如实说明缺失的自动保障。
-
-用户负责目标、优先级、预算和需承担的风险，AI 在已授权边界内作常规实现决定。变更目标或扩大权限时取得相应决定；不因切换阶段重复询问。决策来源须区分用户选择、已有项目规则和 AI 建议，AI 不能给自己的建议标记人工批准。
-
-用户的目标、硬性约束与实现建议分别处理：前两者约束方案，后者需分析收益、必要性及维护代价。允许提出不采用、缩小或延期的建议；用户明确权衡后尊重其决定，不重复争论，也不以已有投入为继续扩张的理由。执行文本见 [独立判断与对抗式审查](../plugins/tao-dev/skills/tao-dev/references/review.md)。
-
-审查按影响覆盖所有相关产物，不只检查源代码。高后果或争议难以收敛时加强独立审查，优先跨供应商，例如 Anthropic 与 OpenAI；先形成独立初判，再比较作者与其他审查者的理由。实际模型／供应商、范围、受检输入引用、发现及处置可核查；换 CLI、换角色或新会话不自动等于跨模型。普通修改不因此新增硬性双供应商门槛。
-
-评审按开始时约定的轮次或时间预算收敛。预算耗尽仍有阻断时，报告证据、争议和可选处置，由有权决定的人裁决；不能自动通过或无限扩展需求。
-
-**文档就绪、工作进度、证据有效性是三件事。** 就绪表示所需判断已经充分；任务完成表示交付单元满足自身验收；证据有效表示结果适用于当前输入。发现变化时只重开受影响的判断与检查。无法准确判断影响时采用保守重验，不复用不明范围的旧结果。
-
-<!-- tao:section artifacts -->
-## 四、文档职责与内容组织
-
-| 信息类型 | 正式维护的内容 | 最小结构 |
-|---|---|---|
-| 产品规格 | 系统承诺、使用路径、约束和验收场景 | 目标与边界、需求／用例、未决问题 |
-| 设计 | 状态、契约、边界、依赖及实现理由 | 上下文、方案与决定、风险、验证安排 |
-| 变更计划 | 本次为什么改、影响哪些条目、如何完成 | 意图、目标引用、必要设计、任务、验证、未决问题 |
-| 决策 | 有长期价值的选择及理由 | 背景、备选、决定、后果、状态 |
-| 证据 | 对某个输入实际进行了什么检查 | 对象、命令与环境、结果、报告、有效性 |
-| 用户／运维说明 | 当前使用与操作方式 | 按读者任务组织，必要时区分教程、指南、参考与解释 |
-
-按职责确定唯一维护位置，按明确阈值拆分文件，规则集中在 [文档组织与产物保存](document-layout.md)。普通功能默认一份变更计划，规格留在能力文档；任务超过 20 个、设计超过 120 个非空源文件行或已确定存在并行写入冲突时，按约定抽取对应附件。局部文案／格式修改可用简化路径，不能让文档数量决定风险级别。
-
-长期文档使用语义文件名，变更文件使用 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`；永久引用仍用完整 ID。`tmp/tao/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。普通变更的简短验证结论写入计划 verification 并随计划保留；不默认创建独立 evidence 或归档原始日志。需独立引用或持久保存原始数据时再按文档规程处理。
-
-使用方的具体 profile、模板和字段由文档规程维护；内部文档保留需求、理由和验收。行为需求默认采用 EARS，场景沿用 Given／When／Then，决策沿用 ADR；公共依据与 tao 扩展的边界见 [写法规程](../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。设计明确不变量与失败处理，测试性质通过 UC 关联 REQ，任务通过关系字段生成依赖图；不依赖局部编号、手工同步 waves 或统一将测试标成可选。
-
-本项目内部文档也按职责分开：协议维护需求与设计决定，专题文档维护精确契约，README 组织阅读入口。产品目录不会作为一组空目录提前创建。
-
-<!-- tao:section design -->
-## 五、关键设计选择
-
-```{adr} 正文保持 Markdown，机器读取明确结构
-:id: ADR_20260914_HHVX7YB5AG7J3TMT
-:status: proposed
-:links: REQ_20260914_42AXMZ2KH2RAZ8M3, REQ_20260914_NN0AEQ2E1GTVSMTV
-
-<!-- tao:field context -->
-**背景与备选：** 纯自由文本难稳定校验；全部改为 YAML 对人阅读不友好；维护并行 JSON 与正文会产生双份事实。
-
-<!-- tao:field decision -->
-**选择：** 采用受约束 Markdown：YAML 元数据、稳定章节键、MyST 风格条目块及固定任务列表。正文继续自然表达；机器数据从同一源文件提取。
-
-<!-- tao:field consequences -->
-**代价：** 需要 AST 级结构检查和少量扩展约定。JSON Schema 只负责提取后的数据，不声称能独自验证 Markdown 章节。具体字段见文档契约。
-```
-
-```{adr} 日期与随机串组成的标识符保持稳定
-:id: ADR_20260914_5R9RWAZTTBX9X86G
-:status: proposed
-:links: REQ_20260914_5Y6CWDE3MFMKJXSB
-
-<!-- tao:field context -->
-**背景与备选：** UUIDv4 不直观表达日期；ULID 更紧凑，但其时间需要解码。日期＋三位流水号便于阅读，却需要协调跨分支和离线分配。条目需要兼顾时间识别度、独立生成与稳定引用。
-
-<!-- tao:field decision -->
-**选择：** 正式 ID 使用 `类型_YYYYMMDD_16位随机串`，日期为分配时的本地日期，随机部分为 80 位安全随机数据的 Crockford Base32 编码。生成后完整 ID 固定；日期纠正、改名和移动不重新编号。标题用于显示，代码与跨文档引用保存完整 ID。
-
-<!-- tao:field consequences -->
-**代价：** 这是项目自定义格式，需要日期与编码校验；概率唯一仍须查重，正式删除保留小型退役记录。内嵌日期是分配日线索，不代替精确时间戳或内容版本。变更文件名的日期与 slug 可读，正式 ID 独立生成，不依赖文件名。
-```
-
-```{adr} 出版层优先验证 Sphinx 组合，执行核心保持独立
-:id: ADR_20260914_ZJWEM2FQCMF5G4KJ
-:status: proposed
-:links: REQ_20260914_3JQXRKWXKAZSNJ5R, REQ_20260914_95193C19C90NRXV4
-
-<!-- tao:field context -->
-**背景与备选：** mdBook 简洁，但语义追踪需补充；Antora 适合多仓库版本聚合，当前负担偏大。
-
-<!-- tao:field decision -->
-**选择：** 首选对 MyST、Sphinx 和 Sphinx-Needs 做最小出版验证，复用显式 ID、关系索引与永久链接；文档检查和普通开发命令可独立运行。
-
-<!-- tao:field consequences -->
-**代价：** 需要 Python 构建依赖和自定义条目配置。任务列表、文档元数据及稳定章节键不是 Sphinx-Needs 原生契约，须验证适配，不能宣称开箱即用。若适配代价超过收益，再调整出版层。
-```
-
-```{adr} 显式操作推进流程，hook 执行短小的辅助动作
-:id: ADR_20260914_V3NMPG25YZT8WQJA
-:status: proposed
-:links: REQ_20260914_95193C19C90NRXV4, REQ_20260914_6YZ1XE1GC369655H
-
-<!-- tao:field context -->
-**背景与备选：** 全靠提示容易遗漏检查；每次事件启动完整流程会增加延迟和失控循环。将文档检查、行为验证和收尾条件各设一个命令，会把工具内部分类变成用户必须选择的步骤。
-
-<!-- tao:field decision -->
-**选择：** 流程使用 specify、plan、implement、review、verify，澄清、设计及任务划分融入相关阶段，不强制逐步调用。工具以 `tao verify` 统一文档检查、行为验证和收尾判定，agent 按时机选择局部反馈，交付前完整验证；创建用 new，展示用 show，交接用 handoff。先实现 doctor、id new、show 和 verify 的文档子集。接口与默认选择见命令专篇；hook 仅做有预算的短检查。
-
-<!-- tao:field consequences -->
-**代价：** 工具需报告能力、选择原因和完整／局部覆盖，不能把局部通过冒充交付通过。无可靠基线时扩大检查；缺少必要能力时明确未完成。hook 须有超时、幂等性及并发保护，CI 复核完整条件。上述名称是拟议接口，目前没有可执行命令。
-```
-
-```{adr} 中文规范、英文机器标识，显示语言独立选择
-:id: ADR_20260914_WX7BFBRXENPN4CT7
-:status: proposed
-:links: REQ_20260914_GDY8F3KPE6XBGWGD, REQ_20260914_42AXMZ2KH2RAZ8M3
-
-<!-- tao:field context -->
-**背景与备选：** 项目主要维护者阅读中文更方便；全英文便于更广泛协作，但会增加当前审阅负担；同步维护两套全文容易发生语义漂移。不同模型和任务的语言表现需要实测，通用知识问答成绩不能直接证明 skill 的执行效果。
-
-<!-- tao:field decision -->
-**选择：** tao-dev 的需求、设计及维护说明以简体中文为权威正文；代码标识、注释、文件名和机器协议使用英文，必要术语保留英文原名。后续 skill 入口初期沿用中文，保持单一规范来源；若目标模型的配对评测显示英文入口有明确收益，再形成可追溯的英文执行版本。模板本地化只替换人读文字，稳定键和 ID 不变；使用方的语言独立选择。
-
-<!-- tao:field consequences -->
-**代价：** 要把显示标签从解析逻辑中移出，并测试中英文及 Unicode 边界。初版验证简体中文与英文，不宣称完整支持所有语言。未来译文记录源版本及审校状态，过期译文不能成为新的权威规则。
-```
-
-```{adr} 公共插件结构与客户端适配分层
-:id: ADR_20260914_J5N1H8WPZZ4MNR04
-:status: proposed
-:links: REQ_20260914_BWAY1ZF6HNPM855Y, REQ_20260914_95193C19C90NRXV4
-
-<!-- tao:field context -->
-**背景与备选：** 各自维护两套流程会漂移；把某个客户端的 agent、command 和 hook 当作公共标准则会产生虚假兼容。
-
-<!-- tao:field decision -->
-**选择：** 使用标准公共 manifest 和共享 skills，平台专用配置遵循官方扩展；首批同时验收 Codex CLI 与 Claude Code CLI。目录、定义边界和验收矩阵集中维护于 [插件打包与运行环境](plugin-design.md)。
-
-<!-- tao:field consequences -->
-**代价：** 需要维护少量适配配置并运行两套客户端验收；兼容元数据采用派生与一致性检查，运行材料保持独立于内部开发文档。
-```
-
-<!-- tao:section verification -->
-## 六、检查、度量与完成证据
-
-项目先发现已有构建、测试、lint、类型检查与报告工具，缺少时再提出最小补充。不要先安装工具全集。对格式错误提供确定性诊断；对复杂度、模糊词和覆盖缺口提供复查信号；对需求正确性、设计代价和用户体验保留有证据的语义审查。
-
-每份证据关联需求或任务，并记录：受检输入引用（默认固定 VCS 版本、范围及一致性结论；必要时补充差异或快照）、相关契约版本、命令、工具及配置版本、必要环境、时间、退出码、结果摘要及原始输出的保存情况。人工验证也记录操作、环境、观察结果与执行者，不虚构退出码。报告保存期限与发布重要性匹配；原始输出过期须如实标注，不自动否定历史结果或取消任务完成状态；当前复用另核对摘要充分性、输入一致性及必需材料。
-
-区分通过、失败、未执行、不适用和已过期；工具故障归入未执行并说明原因。有效性由当前输入与证据引用的版本、范围和必要环境核对派生，不默认持久保存逐文件哈希。只存在代码、连接、测试或引用均不足以证明行为已验证。
-
-质量检查分为明确底线的硬门槛、约束本次新增问题的增量门槛，以及辅助调查的趋势指标。性能比较必须带负载、环境和基线。AI 用量、CI 时间、实际账单、人工介入与返工分别记录，预测须标注假设；不用单一“质量分”或代码量估算取代这些信息。
-
-以下用例兼作未来校验器和流程的验收起点：
+<!-- tao:section cases -->
+## 验收场景
 
 ```{uc} 移动章节不改变需求标识符
 :id: UC_20260914_A98H5M8ZF9ZXHV6S
@@ -462,75 +337,13 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 **则：** 建议随事实与约束而非赞同压力变化；不机械拒绝有依据的复杂度，也不为正确产物编造缺陷；局部修改不启动不必要的多模型流程。真实缺陷得到验证和处理，未执行的审查如实记录，意见数量或多数赞同不构成通过。按实际发现、误报与成本评估收益，不能以复述规程判定通过。
 ```
 
-<!-- tao:section bootstrap -->
-## 七、渐进自举与项目任务
-
-采用三步自举：
-
-1. **文档自举。** 本协议和契约先使用明确元数据、章节键、全局 ID 与引用。允许人工及临时检查；公开说明检查范围。这里的约定仍是草案，不要求既有项目未经评估追溯迁移。
-2. **工具自举。** 以正向与故意损坏的样例实现最小解析、ID／引用检查和诊断；将结构化数据 schema 与 AST 规则逐项对应，再用它检查本项目。仅文档可解析不构成工具充分验证。
-3. **流程自举。** 通过本协议实现一个真实增量，测试恢复、规格变化及工具缺失；再接出版与平台适配。记录维护时间、误报、漏报、无效追问和实际发现的问题，按证据删改规则。
-
-以下任务构成项目实施路线；完成状态依据各任务的验收条件记录。
-
-- [ ] `TASK_20260914_067XEKJC4WFF87HQ` 评审并确定最小文档契约
-  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_5Y6CWDE3MFMKJXSB", "REQ_20260914_GDY8F3KPE6XBGWGD"]
-  - depends_on: []
-  - verify: 文档规程、格式注册表与模板一致；关键语法、索引边界、诊断级别与语言解耦有决定；不存在阻断校验器实现的问题。
-
-- [ ] `TASK_20260914_1PBCZHJT2VM7EWNW` 建立最小校验器、核心命令与独立反例集
-  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_MG6TN8H5GBTAZZR3", "REQ_20260914_GDY8F3KPE6XBGWGD"]
-  - depends_on: ["TASK_20260914_067XEKJC4WFF87HQ"]
-  - verify: 正常、重复 ID、悬空引用、非法章节、非法任务及未知版本样例得到预期诊断；中英文显示标签不影响结构解析；代码围栏中的示例不会误入正式索引；doctor、id new、show 和 verify 文档子集的能力、退出码、partial 标记及无 VCS／无 rg 场景可验证。
-
-- [ ] `TASK_20260914_0ZR8RND5PZ6136WX` 打通单个变更的实现、证据与恢复
-  - relates: ["REQ_20260914_BFNMKT34JF1BSGW2", "REQ_20260914_0J68SDKV86ENKER2", "REQ_20260914_6YZ1XE1GC369655H", "REQ_20260914_4GKT5JRVBJNCQ05X", "REQ_20260914_4CS6P421MGW68PME", "REQ_20260914_M05MAGDARWBY5D44"]
-  - depends_on: ["TASK_20260914_1PBCZHJT2VM7EWNW"]
-  - verify: 一个真实变更可被新会话接手，代码变化令旧证据过期，工具不可用不会产生通过声明，并记录流程成本。
-
-- [ ] `TASK_20260914_VCY68YN0NM3ZSD6B` 验证出版组合与双 CLI 插件适配
-  - relates: ["REQ_20260914_3JQXRKWXKAZSNJ5R", "REQ_20260914_95193C19C90NRXV4", "REQ_20260914_NN0AEQ2E1GTVSMTV", "REQ_20260914_GDY8F3KPE6XBGWGD", "REQ_20260914_BWAY1ZF6HNPM855Y"]
-  - depends_on: ["TASK_20260914_0ZR8RND5PZ6136WX"]
-  - verify: 同源文档形成可导航书籍与可解析 ID；模板遵循使用方语言；分发包不含开发资料且无此类运行依赖；Codex CLI 与 Claude Code CLI 分别通过插件加载、已声明组件和功能路径验收，禁用 hook 后显式检查仍可运行。
-
-首次批准规则时记录其适用版本。后续以既定版本审查变更，再验证新版规则；不能为了让本次检查通过而无记录地同步改变规则和预期结果。
-
-<!-- tao:section open-questions -->
-## 八、待定事项与已知限制
+<!-- tao:section questions -->
+## 待定事项与已知限制
 
 | 事项 | 当前建议 | 何时必须决定 |
 |---|---|---|
-| 解析器与实现语言 | 出版候选需要 Python，可先验证能否复用其 Markdown AST；不先自写 Markdown 解析器 | 开始校验器实现前 |
 | MyST／Sphinx-Needs 的具体适配 | 需求块优先复用；任务和章节检查独立完成 | 出版技术实验时 |
 | CLI 版本与入口加载方式 | 操作接口见命令专篇；两端固定实际测试版本与项目局部加载方式 | 双 CLI 验收前 |
 | 质量预算和默认检查集 | 发现项目现状，由项目配置确定；不设通用覆盖率或复杂度达标分 | 每个项目接入时 |
 
-首版 skill 入口与工程规程已形成独立运行材料，统一格式注册表、可填写模板及通用文档规则已随 skill 提供，见 [插件设计](plugin-design.md)。正式校验器、模板生成器、出版与自动恢复能力尚待实现；双 CLI 加载及行为验收仍须提供实际证据，流程效率须由使用数据评估。
-
-<!-- tao:section sources -->
-## 九、来源与使用边界
-
-工程原则的执行文本维护在分发包的工程规程中，以降低维护成本、控制复杂度和形成可靠证据为目的。内部文档只维护其需求及验收关系。公开参考项目用于比较实现方式；其审批规则和技术选择不自动成为本项目要求。
-
-公开参考及实际取舍如下。设计先行、小步验证、证据与上下文恢复在多个项目中反复出现，属于这些参考中的广泛共识；编号格式、拆分阈值和工具接口是本项目自己的选择。下表覆盖已评估的来源，不把来源数量当作质量保证。
-
-| 参考 | 采用或用于验证的做法 | 不直接照搬的部分 |
-|---|---|---|
-| [Spec Kit](https://github.com/github/spec-kit) | 规格、计划与任务的职责区分 | 不要求每次修改生成全套文件 |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec/blob/0a99f410457271aa773d8b106f03f637f7c6b3c0/schemas/spec-driven/schema.yaml) | 产物依赖、长期规格与变更分离 | 不把局部编号作为跨项目 ID |
-| [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) | 按复杂度选择紧凑或完整流程 | 不强制所有角色和审批阶段 |
-| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | 统一计划、就绪判断、定向读取 | 不增加另一份重复的任务真相 |
-| [Trellis](https://github.com/mindfold-ai/trellis) | 按任务注入上下文、平台适配 | 不预设单一客户端 |
-| [GSD](https://github.com/open-gsd/gsd-core) | 行为验证区别于文件存在、状态恢复 | 不把派生进度当作有效证据 |
-| [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | `writing-plans` 的可验证任务；`verification-before-completion` 的新鲜证据 | 不按固定分钟数切任务，不强制重复审批或给每项计划预写完整实现 |
-| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件或逐阶段人工批准；不要求每段代码都添加来源注释 |
-| [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
-| [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
-| [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
-| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
-
-外部依据：[Kiro 规格结构](https://kiro.dev/docs/specs/)、[EARS 需求表达](https://alistairmavin.com/ears/)、[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
-
-外部引用采用上游公开地址；具体格式或行为依赖某一版本时应注明版本。文档格式与 ID 细节属于本项目设计。
-
-独立审查的研究依据：[迎合性研究](https://arxiv.org/abs/2310.13548) 说明模型可能迎合用户观点；[多代理讨论研究](https://arxiv.org/abs/2305.14325) 在其推理与事实任务中观察到收益；[讨论机制与多样性研究](https://arxiv.org/abs/2601.19921) 表明收益依赖讨论机制和初始观点等条件。它们不证明跨供应商代码审查必然有效或错误相互独立。本项目据此采用有界、可复核的审查，并以真实缺陷、误报和成本检验效果，不以模型数量背书。
+首版 skill 入口与工程规程已形成独立运行材料，统一格式注册表、可填写模板及通用文档规则已随 skill 提供，见 [插件设计](plugin-design.md)。源文件校验器和独立回归测试已提供；模板生成器、出版与自动恢复能力尚待实现；双 CLI 加载及行为验收仍须提供实际证据，流程效率须由使用数据评估。

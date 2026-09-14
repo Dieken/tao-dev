@@ -6,7 +6,7 @@
 
 ## 阅读入口
 
-1. [协作开发协议](docs/protocol.md)：项目目标、需求、流程、文档职责、设计取舍、验收用例和自举路线。
+1. [协作开发协议](docs/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/protocol-design.md) 维护协作方式及架构决定，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
 2. [术语与缩写](docs/glossary.md)：统一概念、ID 类型前缀及常用缩写。
 3. [Markdown 文档契约](docs/document-contract.md)：解析器设计、文档检查范围及 skill 规范入口。
 4. [文档组织与产物保存](docs/document-layout.md)：本项目文档组织的设计依据及规则入口。
@@ -25,7 +25,7 @@
 
 [独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
 
-主协议目前同时承载需求与设计，二者通过条目类型和稳定 ID 区分；格式契约独立维护精确语法。暂不再创建内容重复的 spec、design 和 plan。
+开发文档与第三方采用相同的共享 profile：协议承载需求与用例，流程设计承载 ADR，实施计划承载研发任务；专题设计引用各自权威规则，同一事实不抄写多份。
 
 首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未安装、发布或声明双 CLI 运行兼容。
 
@@ -82,4 +82,4 @@ tmp/tao/venv/bin/python -m pytest
 tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py --project . --format json docs/protocol.md
 ```
 
-上述示例目前会报告主协议的内部 schema 不受支持；这是实际接入缺口，不能按共享格式算通过。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
+单独检查一个文件可能报告范围外的引用；跨文档关系需要一起传入相关文件。仓库回归测试会纳入 docs/ 下的全部 Markdown。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
