@@ -88,6 +88,8 @@ Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](h
 
 客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
 
+new 包装接收自然语言描述并保留会话上下文，调用共享流程规程，由 agent 整理输入并填写草稿；不能仅转发到终端生成器就宣称完成。CLI 使用显式 --slug，不能把描述当作 slug 或 shell 命令；两层契约见 [CLI 设计](cli-design.md)。
+
 角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。插件根 `agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 对 Claude agent／command 的兼容处理不能等同原生发现；未实现的注册能力应明确报告。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
 
 初版 hook 优先使用确定性的 command handler，并分别验证两端事件载荷、输出、退出状态、超时和信任流程。平台提供的插件根变量由适配层处理：Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT`；脚本调用正确处理带空格的安装路径。使用方的文档资产写入 docs/ 或其配置映射位置，派生索引与缓存默认放 tmp/tao/cache/；.tao/ 仅放配置。客户端自身的数据按其支持的目录管理，不能写入假定可修改的插件缓存。
