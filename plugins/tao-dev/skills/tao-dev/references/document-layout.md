@@ -11,12 +11,83 @@
 | 产品规格 | `docs/product/<capability>.md`，每个用户可命名的能力一份；含目标、范围、REQ／UC、约束 | 本次施工步骤、执行日志 |
 | 系统与模块设计 | `docs/engineering/<system-or-module>.md`，每个已有系统或模块一份；含边界、状态、接口与依赖 | 复制规格全文、日常任务 |
 | 跨变更的技术决定 | `docs/engineering/decisions/<slug>.md`，每个 ADR 一份；含背景、备选、决定、后果 | 临时实现过程；只影响本次变更的选择留在计划 |
-| 变更计划 | `docs/changes/<yyyymmdd>-<seq>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
+| 变更计划 | `docs/changes/<year>/<yyyymmdd>-<seq>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
 | 用户说明 | `docs/user/<user-task>.md`，每个读者操作目标一份 | 内部研发任务 |
 | 运维说明 | `docs/operations/<operation>.md`，每个部署、诊断或恢复操作一份 | 暂时实验记录 |
 | 术语 | `docs/glossary.md`，项目共用；首次定义和同义词关系集中维护 | 复制各模块的全部接口定义 |
 
 同一事实只在权威位置修改。变更分支或等价工作副本直接更新受影响的长期规格，计划引用 REQ／UC／ADR ID，任务说明本次差异及验证办法。用 VCS 差异评审代码与文档并共同集成；发布书籍绑定发布版本。不使用 VCS 的项目至少保留可还原的版本快照和输入清单。
+
+## 篇、章与目录页
+
+书籍按“书 → 篇（part）→ 章（chapter）→ 内容页”组织阅读。篇按读者和职责分组，章按能力、子系统或操作主题分组；这两者是组织角色，不增加 PART／CHAPTER 标识符或实体类型。目录和正文文档都使用 DOC ID；页内章节继续遵循所选 profile，不能为了书籍编号改动结构键。
+
+| 阅读层级 | 默认组织 | 编写规则 |
+|---|---|---|
+| 书 | docs/index.md | 概述读者与阅读路线，列出实际存在的篇及共用参考 |
+| 篇 | product/、engineering/、user/、operations/ 的 index.md | 按职责分组，标题使用读者语言，目录名保持稳定 |
+| 章 | 如 engineering/identity.md，或 engineering/identity/index.md | 单页足够时保留文件；需要两份及以上独立维护的主题文档时形成子目录 |
+| 内容页 | 如 engineering/identity/data-model.md | 承载具体规格、设计或操作说明，使用相应 profile，不复制章摘要中的事实 |
+
+只创建已有内容所需的层级，不预建空目录；不为一份正文额外包装仅重复其名称和简介的目录页。多页章的 index.md 只维护导读和有序入口；实质设计保留在设计页，避免概述与正文各维护一套承诺。只有一篇的小书可以由书入口直接列章。
+
+```text
+docs/
+  index.md                         # 书入口：navigation
+  glossary.md
+  product/
+    index.md                       # 篇：产品规格
+    accounts.md                    # 单页章：spec
+  engineering/
+    index.md                       # 篇：工程设计
+    identity/
+      index.md                     # 多页章：navigation
+      architecture.md              # 设计页：design
+      data-model.md                # 设计页：design
+    decisions/
+      index.md                     # 长期决定索引
+      storage-engine.md            # decision
+  user/
+    index.md
+    accounts/
+      index.md
+      create-account.md            # user-guide
+      recover-access.md            # user-guide
+  changes/
+    index.md                       # 变更记录，与长期主题阅读分开
+    2026/
+      index.md
+      20260914-001-stable-links.md
+      20260914-001-stable-links/
+        evidence/
+```
+
+目录名表达主题，不使用 part-01、chapter-03 等阅读序号；顺序与显示编号由目录及出版层决定。默认在篇下最多增加两层主题目录；已有子系统边界需要更深层时在项目约定中说明。单目录直属正文超过 20 份时检查是否可按已有能力、子系统或操作主题分组，每组至少两份正文；没有自然分组则保留目录并记录理由，不用 misc、other 或机械编号分桶。这些是组织默认值，不是 Sphinx 限制，也不以数量代替内容判断。
+
+变更记录增长按创建年份分组，新建位置默认 docs/changes/YYYY/；计划与同名附件目录一起放入该年份。现有扁平目录可作为已声明映射保留，下一次重组时整体迁移相关文件及入口，不自动重编号。日期序号仍是项目全局的当天序号，分配时递归扫描全部映射的变更目录，不能按年份目录或子系统重新从 001 开始。
+
+## 阅读顺序与导航格式
+
+需要目录页时采用 [navigation 模板](../assets/templates/navigation.md)，使用 tao.project.navigation/v0.1：共同元数据及 DOC ID，固定 overview、contents 两节。overview 说明本组读者与范围，contents 恰有一个顶层 MyST toctree 块。精确约束由 [格式注册表](../assets/document-profiles.json) 的 navigation 定义；模板和语法目前供人工或 agent 使用，完整导航检查器尚未实现。
+
+````markdown
+<!-- tao:section contents -->
+## 阅读目录
+
+```{toctree}
+:maxdepth: 2
+:titlesonly:
+
+architecture.md
+data-model.md
+```
+````
+
+上例外层用于展示，实际目录页只保留一个三反引号 toctree 块。条目按阅读顺序逐行列出相对当前目录页的 Markdown 源文件路径，包含 .md 后缀；不写外链、片段、glob、self 或另一份显示标题。显示标题来自目标文件，目录页可本地化。导航路径负责定位文件，正式条目引用仍使用全局 ID。
+
+每份纳入本书的内容页只在一处目录中拥有主位置；其他主题用普通链接或 ID 交叉引用，不复制正文或重复挂入主目录。主导航必须从书入口可达、无环、无重复目标；排除的草稿、模板、生成报告与未出版资料明确列出，不能用全局 orphan 隐藏遗漏。目录树检查纳入旧格式文件时应保留其“未按共享格式校验”状态。
+
+toctree 是父子关系与顺序的唯一维护位置，不另在正文元数据增加 part、chapter、parent、order，也不再手工维护 SUMMARY.md 或平行目录清单。只有顺序改变时编辑目录，不重命名文件；移动文件时更新目录路径与普通文件链接，保留 DOC 及条目 ID。物理目录通常与阅读层级接近，因复用或已有目录映射不一致时，以显式导航为准。
 
 ## 固定拆分规则
 
@@ -57,9 +128,10 @@ docs/
   user/
   operations/
   changes/
-    20260914-001-stable-links.md    # 计划正文
-    20260914-001-stable-links/     # 按需附件
-      evidence/                    # 经挑选的持久证据及摘要
+    2026/
+      20260914-001-stable-links.md  # 计划正文
+      20260914-001-stable-links/    # 按需附件
+        evidence/                  # 经挑选的持久证据及摘要
 .tao/
   config.toml                      # 项目约定，纳入 VCS
   name-sequences.json              # 日期序号分配上限，纳入 VCS

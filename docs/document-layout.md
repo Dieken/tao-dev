@@ -17,6 +17,14 @@ bootstrap: manual
 
 内容归属的权威规则见随包 [文档组织规程](../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
 
+### 篇章导航的实现取舍
+
+采用有语义的子目录与统一 navigation profile，允许单页章和多页章，目录页只维护导读与阅读顺序。父子关系以 MyST toctree 为唯一来源，不在元数据中再存 parent／order，避免移动或重排需要同步多个索引；新的目录页仍使用 DOC，不引入另一套篇章编号系统。
+
+Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航；物理目录不是阅读顺序的唯一决定因素。MyST 可直接用 Markdown 围栏表达该指令，适合让 agent 和人工编辑同一份源目录。[Sphinx toctree](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-toctree)、[MyST 内容组织](https://myst-parser.readthedocs.io/en/latest/syntax/organising_content.html#using-toctree-to-include-other-documents-as-children)
+
+未来出版实现从源目录提取图并检查闭环、重复主位置、漏挂、越界和指向排除文件等问题；不能只检查文件夹是否存在。运行规程定义可观察结果，具体 Sphinx 主题、HTML 侧栏与 PDF 篇章映射留在出版实现阶段验证；新增模板与静态夹具不构成真实书籍构建验收。本项目既有文档待单独迁移，不为展示层级提前创建空篇章。
+
 <!-- tao:section splitting -->
 ## 二、变更文件的固定拆分规则
 

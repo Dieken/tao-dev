@@ -41,5 +41,6 @@
   "label.observed": "实际观察",
   "label.reports": "报告",
   "label.limits": "限制",
-  "label.retention": "保存位置与期限"
+  "label.retention": "保存位置与期限",
+  "heading.contents": "阅读目录"
 }

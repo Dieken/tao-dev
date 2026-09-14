@@ -442,6 +442,35 @@
           "required": false
         }
       }
+    },
+    "tao.project.navigation/v0.1": {
+      "template": "templates/navigation.md",
+      "sections": [
+        "overview",
+        "contents"
+      ],
+      "metadata": {},
+      "navigation": {
+        "section": "contents",
+        "directive": "toctree",
+        "block_count": 1,
+        "options": {
+          "maxdepth": "2",
+          "titlesonly": ""
+        },
+        "entry_format": "relative-markdown-source-path",
+        "minimum_entries": 1,
+        "source_suffix": ".md",
+        "target_scope": "declared-book-sources",
+        "external_entries": false,
+        "fragments": false,
+        "glob": false,
+        "self": false,
+        "explicit_titles": false,
+        "unique_parent": true,
+        "acyclic": true,
+        "root_reachability": true
+      }
     }
   }
 }

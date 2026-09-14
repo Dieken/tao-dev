@@ -17,6 +17,8 @@
 
 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，随包提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；未来 CLI 读取同一份格式注册表。
 
+[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式和模板已提供，完整目录检查及 Sphinx 书籍构建尚未实现。
+
 [流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。`tao` CLI 仍未实现，命令专篇是实现契约；当前不能按其中的命令示意直接运行，也不能声称自动校验已经完成。
 
 拟议日常入口是 `tao new`、`tao verify` 和 `tao status`。中断或交接时用 `tao handoff` 保存恢复摘要。用户表达目标，agent 选择检查类型与范围；交付前的完整验证同时汇总收尾条件，不再要求额外的完成命令。
