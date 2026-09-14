@@ -102,6 +102,14 @@ def test_book_numbers_sections_without_putting_numbers_in_permalinks(tmp_path):
     assert first.section_numbers[:2] == ["1.1. ", "1.1.1. "]
     assert second_page.section_numbers[:2] == ["1.2. ", "1.2.1. "]
     assert stable_href in [link["href"] for link in first.links]
+    local_toc = [link for link in first.links
+                 if link.get("href") == f"#{DOC}--requirements"
+                 and "nav-link" in link.get("class", "").split()]
+    book_toc = [link for link in first.links
+                if link.get("href") == "second.html"
+                and {"reference", "internal"} <= set(link.get("class", "").split())]
+    assert local_toc and all(link["text"].startswith("1.1.3. ") for link in local_toc)
+    assert book_toc and all(link["text"].startswith("1.2. ") for link in book_toc)
     overview = re.search(fr'<section id="{part_doc}--overview">.*?<h2>(.*?)</h2>',
                          part_html, re.S)
     assert overview and "section-number" not in overview.group(1)
