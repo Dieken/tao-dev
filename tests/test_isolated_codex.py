@@ -101,3 +101,16 @@ def test_unexpected_hooks_cannot_be_trusted(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match='exactly one known hook'):
         adapter.trust_test_hook(tmp_path, inside, tmp_path / 'plugin')
     assert not (tmp_path / 'client-state/config.toml').exists()
+
+
+@pytest.mark.parametrize('symlink', [False, True])
+def test_private_logs_never_overwrite_existing_files(tmp_path, symlink):
+    from acceptance.isolated_codex import private_log
+    target = tmp_path / 'existing'
+    target.write_text('keep these bytes')
+    log = tmp_path / 'log' if symlink else target
+    if symlink:
+        log.symlink_to(target)
+    with pytest.raises(FileExistsError):
+        private_log(log)
+    assert target.read_text() == 'keep these bytes'

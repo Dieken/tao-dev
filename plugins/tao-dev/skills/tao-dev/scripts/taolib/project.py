@@ -1,7 +1,7 @@
 """Project-scoped configuration and filesystem operations."""
 
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import tempfile
 import tomllib
 from contextlib import contextmanager
@@ -85,10 +85,10 @@ class Project:
 
     def sources(self):
         selected = set()
+        excluded = {path for pattern in self.excludes for path in self.root.glob(pattern)}
         for pattern in self.includes:
             for path in self.root.glob(pattern):
-                relative = path.relative_to(self.root).as_posix()
-                if path.is_file() and not any(PurePosixPath(relative).match(p) for p in self.excludes):
+                if path.is_file() and path not in excluded:
                     selected.add(path)
         return sorted(selected)
 

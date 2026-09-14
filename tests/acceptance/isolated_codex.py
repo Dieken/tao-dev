@@ -212,6 +212,12 @@ def access_snapshot(workspace, timeout):
         (state / 'config.toml').write_text(current)
 
 
+def private_log(path):
+    """Create a log readable only by its owner, before any child can write."""
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    return os.fdopen(descriptor, 'w', encoding='utf-8')
+
+
 def redact(paths, values):
     for path in paths:
         text = path.read_text()
