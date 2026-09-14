@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Project-local entry point for tao-dev."""
 
-from taolib.cli import main
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from runtime import main
 
 
 if __name__ == "__main__":
