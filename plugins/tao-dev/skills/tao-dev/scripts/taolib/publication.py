@@ -14,6 +14,7 @@ from urllib.parse import unquote, urlsplit
 
 from .documents import parser, validate
 from .project import ConfigurationError, ConflictError, contained, mutation_lock
+from tao_messages import Message
 
 
 class Page(HTMLParser):
@@ -144,12 +145,12 @@ def stable_links(result, output):
         required = {d.id for d in result.definitions.values() if d.path == path}
         required.update(doc.metadata["id"] + "--" + key for key in doc.sections)
         if not required <= set(parsed.ids) or len(parsed.ids) != len(set(parsed.ids)):
-            raise ConfigurationError(f"Generated page has missing or duplicate stable IDs: {path}; missing {required - set(parsed.ids)}")
+            raise ConfigurationError(Message('Generated page has missing or duplicate stable IDs: {arg0}; missing {arg1}', path, required - set(parsed.ids)))
         permalinks = {a["href"] for a in parsed.links if "headerlink" in a.get("class", "")}
         for section in doc.sections:
             expected = f"{prefix}/{doc.metadata['id']}.html#{doc.metadata['id']}--{section}"
             if expected not in permalinks:
-                raise ConfigurationError(f"Heading permalink is not stable: {path} section {section}")
+                raise ConfigurationError(Message('Heading permalink is not stable: {arg0} section {arg1}', path, section))
 
 
 def build(project):
@@ -162,10 +163,10 @@ def build(project):
                 if re.fullmatch(r"(?:DOC|REQ|UC|ADR|TASK|CHG|EVD)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}", p.stem)}
     result = validate(project.root, project.sources(), baseline_ids=baseline or None,
                       book_root=project.book_root, retirement_directory=project.paths["retired"],
-                      section_redirects=project.section_redirects)
+                      section_redirects=project.section_redirects, diagnostic_locale=project.diagnostic_locale)
     if not result.valid:
         details = "; ".join(f"{d.path}:{d.line} {d.rule_id}: {d.message}" for d in result.diagnostics if d.severity == "error")
-        raise ConfigurationError("Book sources are invalid: " + details)
+        raise ConfigurationError(Message('Book sources are invalid: {arg0}', details))
     temporary_root = project.output("temporary")
     temporary_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="book-", dir=temporary_root) as working:
@@ -190,7 +191,7 @@ def build(project):
         if completed.returncode:
             log = project.output("temporary", "book-build.log")
             log.write_text(completed.stdout + completed.stderr, encoding="utf-8")
-            raise ConfigurationError(f"Sphinx build failed; inspect {log.relative_to(project.root)}: {completed.stderr[-1500:]}")
+            raise ConfigurationError(Message('Sphinx build failed; inspect {arg0}: {arg1}', log.relative_to(project.root), completed.stderr[-1500:]))
         for relative in raw_files:
             target = output / relative
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from tao_messages import configured_locale, diagnostic, Message
 
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -63,10 +64,10 @@ def inspect_python(python):
         info = json.loads(completed.stdout)
         policy = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))
         if not policy["python_min"] <= info["version"][:2] < policy["python_max"]:
-            raise ValueError(f"Supported Python versions: {policy['python_min']} to below {policy['python_max']}")
+            raise ValueError(Message('Supported Python versions: {arg0} to below {arg1}', policy['python_min'], policy['python_max']))
         return info
     except (OSError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeFailure(f"Python is unavailable or unsupported: {exc}") from exc
+        raise RuntimeFailure(Message('Python is unavailable or unsupported: {arg0}', exc)) from exc
 
 
 def context(mode):
@@ -115,7 +116,7 @@ def selected(ctx):
             raise ValueError("Runtime environment changed since preparation")
         return directory
     except (OSError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeFailure(f"Prepared environment is invalid: {exc}", "TAO-RUNTIME-003", "broken") from exc
+        raise RuntimeFailure(Message('Prepared environment is invalid: {arg0}', exc), "TAO-RUNTIME-003", "broken") from exc
 
 
 def description(ctx, directory=None, state="missing"):
@@ -179,9 +180,9 @@ def setup(ctx, wheelhouse=None):
                     completed = subprocess.run(argv, env=environment(), stdin=subprocess.DEVNULL,
                                                stdout=output, stderr=subprocess.STDOUT, timeout=120)
                 except subprocess.TimeoutExpired as exc:
-                    raise RuntimeFailure(f"Preparation timed out; inspect {log}", "TAO-RUNTIME-005") from exc
+                    raise RuntimeFailure(Message('Preparation timed out; inspect {arg0}', log), "TAO-RUNTIME-005") from exc
                 if completed.returncode:
-                    raise RuntimeFailure(f"Preparation failed; inspect {log}. Python must include venv and ensurepip; dependency installation must match the locked inventory.", "TAO-RUNTIME-005")
+                    raise RuntimeFailure(Message('Preparation failed; inspect {arg0}. Python must include venv and ensurepip; dependency installation must match the locked inventory.', log), "TAO-RUNTIME-005")
         actual = probe(python_in(directory), ctx["mode"])
         atomic_json(directory / "ready.json", {"key": ctx["key"], "probe": actual})
         atomic_json(slot / "active.json", {"generation": directory.name})
@@ -190,7 +191,7 @@ def setup(ctx, wheelhouse=None):
         lock.rmdir()
 
 
-def emit(command, outputs, error=None, json_output=True):
+def emit(command, outputs, error=None, json_output=True, locale=None):
     try:
         version = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))["version"]
     except (OSError, ValueError, KeyError):
@@ -199,7 +200,7 @@ def emit(command, outputs, error=None, json_output=True):
               "tool_version": version,
               "status": "not_run" if error else "passed", "outputs": outputs,
               "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
-                                                       "message": str(error), "message_locale": "en"}]}
+                                                       **diagnostic(error, locale)}]}
     if command == "doctor":
         result["capabilities"] = ["doctor", "setup"]
     if command == "verify":
@@ -208,7 +209,7 @@ def emit(command, outputs, error=None, json_output=True):
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(f"tao {command}: {result['status']}")
-        print(str(error) if error else json.dumps(outputs, ensure_ascii=False, indent=2))
+        print(result['diagnostics'][0]['message'] if error else json.dumps(outputs, ensure_ascii=False, indent=2))
     return 2 if error else 0
 
 
@@ -216,9 +217,9 @@ def operation(argv):
     # Global options can precede the command; their values are not commands.
     index = 0
     while index < len(argv):
-        if argv[index] in ("--project", "--format"):
+        if argv[index] in ("--project", "--format", "--diagnostic-locale"):
             index += 2
-        elif argv[index].startswith("--project=") or argv[index].startswith("--format="):
+        elif argv[index].startswith(("--project=", "--format=", "--diagnostic-locale=")):
             index += 1
         else:
             return argv[index], index
@@ -241,13 +242,14 @@ def main(argv=None, entry="tao.py"):
             parser.add_argument("--publication", action="store_true")
             parser.add_argument("--wheelhouse", type=Path)
             parser.add_argument("--format", choices=("text", "json"), default="text")
+            parser.add_argument("--diagnostic-locale")
             args = parser.parse_args(argv[position + 1:])
             directory = setup(ctx, args.wheelhouse)
             return emit(command, {"runtime": description(ctx, directory)}, json_output=json_output)
         directory = selected(ctx)
         if directory is None:
             suffix = " --publication" if mode == "publication" else ""
-            raise RuntimeFailure(f"The {mode} runtime is not prepared. Run tao setup{suffix}; ordinary commands do not install dependencies.", "TAO-RUNTIME-002", "missing")
+            raise RuntimeFailure(Message('The {arg0} runtime is not prepared. Run tao setup{arg1}; ordinary commands do not install dependencies.', mode, suffix), "TAO-RUNTIME-002", "missing")
         if Path(sys.prefix).resolve() != directory.resolve():
             child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
             return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / entry), *argv], env=child_env).returncode
@@ -268,7 +270,7 @@ def main(argv=None, entry="tao.py"):
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
         error = exc if isinstance(exc, RuntimeFailure) else RuntimeFailure(str(exc))
         outputs = {"runtime": description(ctx, state=error.state)} if ctx else {}
-        return emit(command, outputs, error, json_output)
+        return emit(command, outputs, error, json_output, configured_locale(argv))
 
 
 def hook_main():
@@ -317,6 +319,6 @@ def hook_main():
             response = json.loads(completed.stdout)
     except (OSError, ValueError, ImportError, subprocess.TimeoutExpired) as exc:
         response = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                    "additionalContext": f"tao docs not_run: {exc}"}}
+                    "additionalContext": 'tao docs not_run: ' + diagnostic(exc, configured_locale())['message']}}
     print(json.dumps(response, ensure_ascii=False))
     return 0

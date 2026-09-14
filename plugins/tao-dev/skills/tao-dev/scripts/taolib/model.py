@@ -15,6 +15,10 @@ class Diagnostic:
     column: int = 1
     entity_id: str | None = None
     related_locations: list[dict] = field(default_factory=list)
+    requested_locale: str = "en"
+    locale_fallback: bool = False
+    suggestion_locale: str = "en"
+    parameters: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

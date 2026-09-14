@@ -10,6 +10,7 @@ import sys
 import time
 
 from taolib.project import ConfigurationError, Project, contained, mutation_lock, create_file, replace_file
+from tao_messages import Message, configured_locale, diagnostic
 
 
 def feedback(message):
@@ -29,13 +30,17 @@ def run(payload):
         raise
     if not project.hook_enabled:
         return {}
+    locale = project.diagnostic_locale or project.locale
+
+    def display(message):
+        return diagnostic(message, locale)['message']
     deadline = time.monotonic() + project.hook_timeout
     scripts = Path(__file__).resolve().parents[1]
     inputs = project.sources() + list(project.output("retired").glob("*.jsonl"))
     inputs += [project.root / ".tao/config.toml"]
     for path in inputs:
         contained(project.root, path)
-    inputs += list(scripts.rglob("*.py")) + [scripts.parent / "assets/document-profiles.json"]
+    inputs += list(scripts.rglob("*.py")) + list((scripts.parent / "assets").rglob("*.json"))
     digest = hashlib.sha256()
     digest.update(sys.version.encode())
     for dependency in ("markdown-it-py", "PyYAML"):
@@ -48,7 +53,7 @@ def run(payload):
         with path.open("rb") as stream:
             while chunk := stream.read(131072):
                 if time.monotonic() >= deadline:
-                    return feedback("tao docs not_run: input scan exceeded the hook budget; run explicit verification.")
+                    return feedback(display("tao docs not_run: input scan exceeded the hook budget; run explicit verification."))
                 digest.update(chunk)
         digest.update(b"\0")
     fingerprint = digest.hexdigest()
@@ -60,23 +65,23 @@ def run(payload):
         except (ValueError, TypeError):
             previous = {}
         if isinstance(previous, dict) and previous.get("fingerprint") == fingerprint and isinstance(previous.get("message"), str):
-            return feedback("tao docs feedback (unchanged inputs): " + previous["message"])
+            return feedback(display(Message('tao docs feedback (unchanged inputs): {arg0}', previous['message'])))
         command = [sys.executable, str(scripts / "tao.py"), "--project", str(project.root), "verify", "--only", "docs", "--format", "json"]
         try:
             completed = subprocess.run(command, capture_output=True, text=True, timeout=max(0.001, deadline - time.monotonic()))
             report = json.loads(completed.stdout)
             details = "; ".join(f"{d.get('path', '')}:{d.get('line', 1)} {d['rule_id']}: {d['message']}" for d in report["diagnostics"][:8])
-            message = f"{report['status']} (docs only, partial; not delivery acceptance). {details}"[:3000]
+            message = display(Message('{arg0} (docs only, partial; not delivery acceptance). {arg1}', report['status'], details))[:3000]
         except subprocess.TimeoutExpired:
-            return feedback("tao docs not_run: hook time budget exceeded; run explicit verification with an appropriate budget.")
+            return feedback(display("tao docs not_run: hook time budget exceeded; run explicit verification with an appropriate budget."))
         except (ValueError, KeyError):
-            return feedback("tao docs not_run: validator could not return a report; check its Python dependencies with the trusted entry point.")
+            return feedback(display("tao docs not_run: validator could not return a report; check its Python dependencies with the trusted entry point."))
         text = json.dumps({"fingerprint": fingerprint, "message": message}, ensure_ascii=False) + "\n"
         if before is None:
             create_file(project.root, cache, text)
         else:
             replace_file(project.root, cache, text, before)
-        return feedback("tao docs feedback: " + message)
+        return feedback(display(Message('tao docs feedback: {arg0}', message)))
 
 
 def main():
@@ -86,7 +91,7 @@ def main():
             raise ValueError("Expected a hook event object.")
         response = run(payload)
     except (OSError, ValueError) as exc:
-        response = feedback(f"tao docs not_run: {exc}")
+        response = feedback('tao docs not_run: ' + diagnostic(exc, configured_locale())['message'])
     print(json.dumps(response, ensure_ascii=False))
     return 0
 

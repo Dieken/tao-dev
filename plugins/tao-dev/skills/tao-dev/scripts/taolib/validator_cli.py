@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 from taolib.documents import validate
+from tao_messages import configured_locale
 
 
 def main(argv=None):
@@ -14,12 +15,14 @@ def main(argv=None):
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--format", choices=("text", "json"), default="text")
     parser.add_argument("--book-root", type=Path)
+    parser.add_argument("--diagnostic-locale")
     parser.add_argument("paths", nargs="+", help="Explicit managed Markdown paths relative to the project.")
     args = parser.parse_args(argv)
     if not args.project.is_dir():
         parser.error("--project must be an existing directory")
     try:
-        result = validate(args.project, args.paths, book_root=args.book_root)
+        result = validate(args.project, args.paths, book_root=args.book_root,
+                          diagnostic_locale=configured_locale(sys.argv[1:] if argv is None else argv))
     except (OSError, ValueError) as exc:
         print(f"Cannot load validator resources: {exc}", file=sys.stderr)
         return 2

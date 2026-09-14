@@ -18,6 +18,7 @@ from .documents import ASSETS, validate
 from .identifiers import new_id
 from .handoff import save as save_handoff
 from .project import ConfigurationError, ConflictError, Project, create_file
+from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
 CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs"]
@@ -34,6 +35,7 @@ def arguments(argv):
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", type=Path, default=argparse.SUPPRESS)
     common.add_argument("--format", choices=("text", "json"), default=argparse.SUPPRESS)
+    common.add_argument("--diagnostic-locale", default=argparse.SUPPRESS)
     parser = ArgumentParser(prog="tao", parents=[common])
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("doctor", parents=[common])
@@ -68,12 +70,16 @@ def arguments(argv):
     args = parser.parse_args(argv)
     args.project = getattr(args, "project", None)
     args.format = getattr(args, "format", "text")
+    args.diagnostic_locale = getattr(args, "diagnostic_locale", None)
+    if args.diagnostic_locale is not None and not valid_locale(args.diagnostic_locale):
+        raise ConfigurationError('--diagnostic-locale must be a language tag.')
     return args
 
 
 def index(project):
     return validate(project.root, project.sources(), book_root=project.book_root,
-                    retirement_directory=project.paths["retired"], section_redirects=project.section_redirects)
+                    retirement_directory=project.paths["retired"], section_redirects=project.section_redirects,
+                    diagnostic_locale=project.diagnostic_locale)
 
 
 def skeleton(project, args, registry, result):
@@ -88,7 +94,7 @@ def skeleton(project, args, registry, result):
     day = date.today()
     path = project.output("changes", day.strftime("%Y-%m/%Y%m%d-") + args.slug + ".md")
     if path.exists() or path.with_suffix("").exists():
-        raise ConflictError(f"Change or attachment path already exists: {path.relative_to(project.root)}")
+        raise ConflictError(Message('Change or attachment path already exists: {arg0}', path.relative_to(project.root)))
     existing = set(result.definitions)
     ids = {}
     for kind in ("DOC", "CHG", "TASK"):
@@ -203,6 +209,7 @@ def dispatch(args):
         report.update(capabilities=CAPABILITIES + ["setup"], schemas=list(registry["profiles"]))
         return report, 0
     project = Project(args.project)
+    project.diagnostic_locale = args.diagnostic_locale or project.diagnostic_locale
     if args.command == "doctor":
         report.update(capabilities=CAPABILITIES + (["verify.code", "verify.evidence"] if policy(project) else []), schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
@@ -277,7 +284,7 @@ def main(argv=None, runtime_context=None):
     except (OSError, ValueError) as exc:
         code = 1 if isinstance(exc, ConflictError) else 2
         report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
-                      status="failed" if code == 1 else "not_run", diagnostics=[{"rule_id": "TAO-CLI-001", "severity": "error", "message": str(exc), "message_locale": "en"}], outputs={})
+                      status="failed" if code == 1 else "not_run", diagnostics=[{"rule_id": "TAO-CLI-001", "severity": "error", **diagnostic(exc, configured_locale(argv))}], outputs={})
     report["duration_seconds"] = round(time.monotonic() - started, 6)
     if args.command == "doctor" and runtime_context:
         report["outputs"]["runtime"] = runtime_context
@@ -291,8 +298,8 @@ def main(argv=None, runtime_context=None):
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
         print(f"tao {args.command}: {report['status']}")
-        for diagnostic in report["diagnostics"]:
-            print(f"{diagnostic['rule_id']}: {diagnostic['message']}")
+        for item in report["diagnostics"]:
+            print(f"{item['rule_id']}: {item['message']}")
         print(json.dumps(report["outputs"], ensure_ascii=False, indent=2))
         if "coverage" in report:
             print(f"coverage={report['coverage']} readiness={report['readiness']}")

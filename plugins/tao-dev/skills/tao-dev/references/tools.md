@@ -19,7 +19,7 @@
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
 | `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，有项目检查策略时比较证据是否可复用；没有策略时为未评估 |
 
-通用 `--project` 与 `--format text|json` 可以放在操作前后。没有可靠影响基线时，changed 范围回退到 all 并说明原因。未提供历史基线时，源校验结果 deletion_checked 为 false；不能声称已检测所有历史删除。错误元数据、重复定义或越界路径会阻止分配新 ID，避免基于不完整索引生成文件。
+通用 `--project`、`--format text|json` 与 `--diagnostic-locale <语言>` 可以放在操作前后。诊断默认语言及回退见 [本地化规程](localization.md)，不改变生成文档的语言。没有可靠影响基线时，changed 范围回退到 all 并说明原因。未提供历史基线时，源校验结果 deletion_checked 为 false；不能声称已检测所有历史删除。错误元数据、重复定义或越界路径会阻止分配新 ID，避免基于不完整索引生成文件。
 
 ## 一次配置，日常复用
 
@@ -27,6 +27,9 @@
 
 ```toml
 version = 1
+locale = "en"
+
+[ui]
 locale = "en"
 
 [documents]
@@ -43,7 +46,7 @@ temporary = "tmp/tao"
 
 跨文档章节的旧入口按 [出版规程](publication.md) 配置 documents.section_redirects；值必须指向当前章节，普通文档校验及退役操作同时核对这些关系。
 
-配置只描述工具行为。路径和文件模式限定在项目内，解析符号链接后不得越界；未知键或配置版本报错。语言先取显式 --locale，再取配置，再取已有管理文档的唯一 locale；无法确定时报告缺口，由 agent 依据项目约定解决，不取聊天语言或机器时区作为文档语言。
+配置只描述工具行为。路径和文件模式限定在项目内，解析符号链接后不得越界；未知键或配置版本报错。新文档语言先取显式 --locale，再取顶层 locale 配置，再取已有管理文档的唯一 locale；无法确定时报告缺口，由 agent 依据项目约定解决，不取聊天语言或机器时区作为文档语言。可省略 ui.locale，让文档诊断按各自源文档语言显示。
 
 配置中的目录仅在实际写入时创建。源文件校验器也可单独调用，见 [诊断规程](document-diagnostics.md)；它与 CLI 共用同一实现，不是另一套文档格式。原始输出默认留在临时目录或 CI，简短结果按 [保存规则](document-layout.md) 记录。
 
