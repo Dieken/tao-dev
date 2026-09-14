@@ -46,10 +46,11 @@ CLI 启动范围不替代客户端插件 scope。先验证运行核心，再用�
   - verify: 无 uv、缺依赖、准备失败、并发、版本隔离、只读安装和离线执行的行为测试通过。
   - evidence: [本计划验证](20260914-portable-runtime.md#DOC_20260914_3541E3H7SN5V7MS5--verification)
 
-- [ ] `TASK_20260914_YT79BXFY4CDDM2K3` 统一 CLI、skill 与客户端 hook 入口
+- [x] `TASK_20260914_YT79BXFY4CDDM2K3` 统一 CLI、skill 与客户端 hook 入口
   - relates: ["REQ_20260914_WAHF2CDHEJFSBGDC", "CHG_20260914_3RC5QW89C26B69MA"]
   - depends_on: ["TASK_20260914_XGJCX0D6XA3PV3SP"]
   - verify: 所有入口共享定位规则；项目外无操作、缺环境不误报成功、核心无需 Sphinx。
+  - evidence: [本计划验证](20260914-portable-runtime.md#DOC_20260914_3541E3H7SN5V7MS5--verification)
 
 - [ ] `TASK_20260914_35YA18HM8H3TFVAA` 完成独立包及客户端作用域验收
   - relates: ["REQ_20260914_5PFGD8NJKSAVG2NT", "CHG_20260914_3RC5QW89C26B69MA"]
@@ -64,6 +65,8 @@ CLI 启动范围不替代客户端插件 scope。先验证运行核心，再用�
 依赖增量：基于 `8d17e36` 后的依赖、导出脚本和 README 差异，在本机 Python 3.12.13 执行锁定环境测试，126 项通过；两份发布清单导出一致，实际 Sphinx 构建通过。原始输出仅保存在临时目录，不代表其它平台已验证。
 
 运行环境增量：在 `37faf4e` 后的启动层与测试差异上执行 9 项真实环境测试，覆盖无 uv、空 PATH、只读插件、失败恢复、并发准备和目录越界；均通过。原有 CLI 与 hook 回归 22 项通过。环境安装使用发布清单匹配的离线 wheel；仅验证本机 macOS / Python 3.12。
+
+入口增量：在 ae3e20f 后的 CLI、启动器、校验器和 hook 差异上执行 32 项回归，全部通过；包括无 Python 时项目外无操作、项目内明确未执行，以及 doctor 发现独立出版环境。Ruff 错误检查通过；PowerShell 文件已提供，但未在 Windows 执行。
 
 <!-- tao:section questions -->
 ## 未决问题

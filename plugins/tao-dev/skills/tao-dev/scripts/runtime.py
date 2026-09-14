@@ -220,9 +220,11 @@ def operation(argv):
     return "unknown", len(argv)
 
 
-def main(argv=None):
+def main(argv=None, entry="tao.py"):
     argv = list(sys.argv[1:] if argv is None else argv)
     command, position = operation(argv)
+    if entry == "validate_documents.py":
+        command = "validate"
     mode = "publication" if command == "docs" or command in ("setup", "doctor") and "--publication" in argv else "core"
     ctx = None
     json_output = "json" in argv
@@ -242,11 +244,73 @@ def main(argv=None):
             raise RuntimeFailure(f"The {mode} runtime is not prepared. Run tao setup{suffix}; ordinary commands do not install dependencies.", "TAO-RUNTIME-002", "missing")
         if Path(sys.prefix).resolve() != directory.resolve():
             child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
-            return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / "tao.py"), *argv], env=child_env).returncode
+            return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / entry), *argv], env=child_env).returncode
         sys.dont_write_bytecode = True
+        if entry == "validate_documents.py":
+            from taolib.validator_cli import main as validate_main
+            return validate_main(argv)
         from taolib.cli import main as cli_main
-        return cli_main([a for a in argv if a != "--publication"], runtime_context=description(ctx, directory))
+        runtime_context = description(ctx, directory)
+        if command == "doctor" and mode == "core":
+            publication = context("publication")
+            try:
+                prepared = selected(publication)
+                runtime_context["publication"] = description(publication, prepared, state="ready" if prepared else "missing")
+            except RuntimeFailure as exc:
+                runtime_context["publication"] = description(publication, state=exc.state)
+        return cli_main([a for a in argv if a != "--publication"], runtime_context=runtime_context)
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
         error = exc if isinstance(exc, RuntimeFailure) else RuntimeFailure(str(exc))
         outputs = {"runtime": description(ctx, state=error.state)} if ctx else {}
         return emit(command, outputs, error, json_output)
+
+
+def hook_main():
+    """Check project activation before inspecting or creating any tool data."""
+    started = time.monotonic()
+    try:
+        payload = json.loads(sys.stdin.read(1_000_001))
+        if not isinstance(payload, dict):
+            raise ValueError("Expected a hook event object.")
+        project = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                        if (p / ".tao/config.toml").is_file()), None)
+        if payload.get("hook_event_name") != "PostToolUse" or project is None:
+            print("{}")
+            return 0
+        import tomllib
+        config_path = project / ".tao/config.toml"
+        if not config_path.resolve().is_relative_to(project.resolve()):
+            raise ValueError("Project configuration escapes its root.")
+        config = tomllib.loads(config_path.read_text())
+        hooks = config.get("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("Invalid hooks configuration.")
+        if hooks.get("docs_enabled", True) is False:
+            print("{}")
+            return 0
+        budget = hooks.get("timeout_seconds", 5)
+        if type(budget) is not int or not 1 <= budget <= 30:
+            raise ValueError("Invalid hook time budget.")
+        ctx = context("core")
+        directory = selected(ctx)
+        if directory is None:
+            raise RuntimeFailure("Core runtime missing; run tao setup explicitly.", "TAO-RUNTIME-002")
+        if Path(sys.prefix).resolve() == directory.resolve():
+            from taolib.hook import run
+            response = run(payload)
+        else:
+            child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
+            remaining = budget - (time.monotonic() - started)
+            if remaining <= 0:
+                raise ValueError("Hook time budget exceeded during runtime inspection.")
+            completed = subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / "hook.py")],
+                                       env=child_env, input=json.dumps(payload), capture_output=True,
+                                       text=True, timeout=remaining)
+            if completed.returncode:
+                raise ValueError("Hook process could not complete.")
+            response = json.loads(completed.stdout)
+    except (OSError, ValueError, ImportError, subprocess.TimeoutExpired) as exc:
+        response = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                    "additionalContext": f"tao docs not_run: {exc}"}}
+    print(json.dumps(response, ensure_ascii=False))
+    return 0

@@ -22,7 +22,7 @@ addopts = "-ra"
 branch = true
 parallel = true
 patch = ["subprocess"]
-source = ["${TAO_COVERAGE_SOURCE-plugins/tao-dev/skills/tao-dev/scripts/taolib}"]
+source = ["${TAO_COVERAGE_SOURCE-plugins/tao-dev/skills/tao-dev/scripts}"]
 data_file = "${TAO_COVERAGE_DATA-tmp/tao/coverage/.coverage}"
 
 [tool.coverage.report]

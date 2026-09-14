@@ -68,3 +68,42 @@ def test_hook_refuses_an_escaping_managed_source(tmp_path):
     outside.write_text(spec())
     (tmp_path / "docs/escape.md").symlink_to(outside)
     assert "not_run" in json.loads(invoke(tmp_path).stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_hook_without_python_packages_is_quiet_outside_and_diagnostic_inside(tmp_path):
+    import os
+    python = tmp_path / "bare" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    subprocess.run([sys.executable, "-m", "venv", str(python.parent.parent)], check=True)
+    data = tmp_path / "unprepared-data"
+    env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(python)}
+    def call():
+        return subprocess.run([str(python), str(HOOK)], cwd=tmp_path, env=env,
+                              input='{"hook_event_name":"PostToolUse"}', capture_output=True, text=True)
+    outside = call()
+    assert outside.returncode == 0, outside.stderr
+    assert json.loads(outside.stdout) == {}
+    project(tmp_path)
+    inside = call()
+    assert inside.returncode == 0, inside.stderr
+    assert "not_run" in json.loads(inside.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert not data.exists()
+    assert not (tmp_path / "tmp").exists()
+
+
+def test_shell_hook_without_python_is_quiet_outside_and_explains_inside(tmp_path):
+    import os
+    import shutil
+    shell = shutil.which("sh")
+    if shell is None:
+        import pytest
+        pytest.skip("POSIX shell unavailable; this test does not validate PowerShell.")
+    env = os.environ | {"PATH": "", "TAO_PYTHON": str(tmp_path / "absent")}
+    argv = [shell, str(HOOK.parent / "tao-launch.sh"), "hook"]
+    outside = subprocess.run(argv, cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert outside.returncode == 0, outside.stderr
+    assert json.loads(outside.stdout) == {}
+    project(tmp_path)
+    inside = subprocess.run(argv, cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert inside.returncode == 0, inside.stderr
+    assert "Python" in json.loads(inside.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert not (tmp_path / "tmp").exists()

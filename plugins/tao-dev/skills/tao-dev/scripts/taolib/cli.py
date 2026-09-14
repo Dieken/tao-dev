@@ -252,6 +252,8 @@ def main(argv=None, runtime_context=None):
         report["outputs"]["runtime"] = runtime_context
         if "setup" not in report.get("capabilities", []):
             report.setdefault("capabilities", []).append("setup")
+        if runtime_context.get("publication", {}).get("state") == "ready" and "docs.build" not in report["capabilities"]:
+            report["capabilities"].append("docs.build")
     if args.command == "verify" and "coverage" not in report:
         report.update(coverage="unknown", readiness="not-evaluated" if getattr(args, "only", None) else "blocked")
     if args.format == "json":
