@@ -77,13 +77,15 @@ retired 表示条目已退出当前有效集合；deprecation 表示不建议继
 
 ## 需求、用例与决策
 
+编写或审查这些条目前，读取 [公共依据与写法](document-standards.md)：行为需求默认采用 EARS，场景沿用 Given／When／Then，决策沿用 ADR。该规程定义模板变量的内容职责、中英文表达及标准与自定义规则的边界。
+
 正式条目是文档顶层的三反引号 MyST 风格块，仅支持 req、uc、adr。读取 [REQ 片段](../assets/templates/req-block.md)、[UC 片段](../assets/templates/uc-block.md) 或 [ADR 片段](../assets/templates/adr-block.md) 获取精确写法。围栏内先列选项，空一行再写正文；不得嵌套到列表、引用或其他正式条目中。展示示例时使用四反引号外层围栏，不把示例注册为对象。
 
 共同选项为必需的 id、status，以及可选 links、supersedes；UC 还必须提供 verifies。关系值为逗号分隔的完整 ID，不允许空成员或重复成员；verifies 只指向 REQ，supersedes 只指向同类型。status 使用 proposed、accepted、retired、superseded。superseded 对象应能通过另一条目的 supersedes 找到替代者。
 
 正文用 `<!-- tao:field key -->` 标明字段，后接一个非空 Markdown 段落；字段顺序与注册表一致。显示标签可翻译、改标点或取消加粗，解析只认结构键。字段键仅在正文顶层生效，代码和引用中的同名文本不生效。字段需要多项独立承诺时拆条目，不用嵌套列表暗中引入局部编号体系。
 
-- **REQ：** 一个可独立验收的承诺；交代谁受益、需要什么及原因，用户故事句式可选。acceptance 写清条件／触发、系统主体、可观察结果与验证方式；source 记录需求依据。普通行为、持续状态、异常输入和可选功能按实际涉及情况覆盖。可借鉴 EARS 的条件句式，但不强制中文夹写 WHEN／SHALL，也不靠关键词存在判断需求正确。
+- **REQ：** 正文用 EARS 表达一个可独立验收的行为承诺；acceptance 补充验证输入、方法和判据或引用 UC，不重复正文或新增承诺；source 记录依据与必要动机。非行为约束可用更明确的公式、表格或约束表达，保留可判定性；用户故事不能替代系统承诺。
 - **UC：** given 定义前置条件、输入域与约束，when 定义事件或操作序列，then 定义预期结果。表达性质时写清“对任意满足条件的输入”及可判定谓词，例如往返恒等、拒绝操作后状态恢复、增量与基线等价；通过 verifies 关联需求。测试数量和随机试验通过不是形式化证明。
 - **ADR：** context 说明问题、约束与实际备选；decision 说明选择及理由；consequences 写代价、限制及后续责任。临时设计选择可留在计划，长期约束使用单独决定文档。
 

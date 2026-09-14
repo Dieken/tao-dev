@@ -17,6 +17,8 @@ bootstrap: manual
 
 本契约记录下表中尚待迁移的内部开发文档 profile，不用于新建文档；术语含义见 [术语与缩写](glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](document-layout.md)。使用方采用随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目只映射目录、选择语言及配置允许的阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用内部 profile。
 
+格式设计优先复用公共语法与成熟惯例，具体映射维护在随包 [公共依据与写法](../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。EARS 约束 REQ 正文，验收方法留在 acceptance；保留现有模板变量与稳定结构键，不另建同义字段。格式解析与自然语言质量判断分别验收，不宣称符合完整 EARS、Gherkin 或 arc42 工具链。
+
 检查分层、结论边界和修正规则统一见随包 [文档诊断规程](../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)，本篇只维护实现设计。
 
 <!-- tao:section metadata -->
