@@ -2,7 +2,7 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。工作流 CLI、模板生成器、hook、出版站点和双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；完整交付验证、hook、出版站点和双 CLI 行为验收尚未完成。
 
 ## 阅读入口
 
@@ -15,13 +15,13 @@
 
 运行材料从 [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md) 进入，入口要求读取 [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)。规程直接指导使用方项目的设计、编码、验证、评审和演进。
 
-[文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，skill 提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；未来 CLI 读取同一份格式注册表。
+[文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，skill 提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；CLI 读取同一份格式注册表。
 
 [文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式和模板已提供，完整目录检查及 Sphinx 书籍构建尚未实现。
 
-[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。`tao` CLI 仍未实现，命令专篇是实现契约；当前不能按其中的命令示意直接运行，也不能声称自动校验已经完成。
+[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已实现 doctor、id new、show、new、status 和 verify 文档子集；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
 
-开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。实际斜杠语法待双客户端验收，当前没有 tao CLI 或专用 new 命令。检查范围由 agent 选择，完整验证同时汇总收尾条件。
+开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。客户端斜杠入口仍待双端验收。检查范围由 agent 选择，完整验证同时汇总收尾条件。
 
 [独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
 
@@ -37,7 +37,7 @@
 |---|---|---|
 | 工程、流程、审查、文档编写与组织规则 | skill 的 references/ | 是，按任务读取 |
 | 术语、诊断、本地化、出版链接规则 | skill 的 references/ | 是，按需读取 |
-| 格式注册表、模板、显示资源 | skill 的 assets/ | 是，skill 与未来 CLI 共用 |
+| 格式注册表、模板、显示资源 | skill 的 assets/ | 是，skill 与 CLI 共用 |
 | 本项目需求、实现理由、研发任务和证据 | 项目 docs/ | 否，仅供开发维护 |
 
 共享规则由 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 导航。开发文档引用包内权威源，运行材料不反向引用开发文档；将来出版书籍复用同一源文件，不另复制一套规范。
@@ -79,7 +79,8 @@ tmp/tao/venv/bin/python -m pytest
 [源文件校验入口](plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py) 随 skill 分发，读取同包格式注册表；[测试](tests/) 留在开发仓库。校验器显式接收项目目录和纳入管理的文件，支持 `--format json`，不执行项目代码或写入文档。第三方只需安装脚本目录中的 requirements.txt，无需 pytest。
 
 ```sh
-tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py --project . --format json docs/protocol.md
+tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py doctor --format json
+tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
 ```
 
 单独检查一个文件可能报告范围外的引用；跨文档关系需要一起传入相关文件。仓库回归测试会纳入 docs/ 下的全部 Markdown。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
