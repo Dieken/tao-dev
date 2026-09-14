@@ -1,9 +1,12 @@
 """Export locked runtime dependencies; this script is not distributed."""
 
 import argparse
+import json
 import os
 from pathlib import Path
+import re
 import subprocess
+import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +20,19 @@ def main():
     environment = os.environ | {"UV_CACHE_DIR": str(ROOT / "tmp/tao/uv-cache"),
                                 "UV_PYTHON_DOWNLOADS": "never"}
     stale = []
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    bounds = re.fullmatch(r">=(\d+)\.(\d+),<(\d+)\.(\d+)", project["requires-python"])
+    if bounds is None:
+        raise ValueError("Update the runtime policy exporter for the new Python constraint.")
+    policy = {"version": project["version"], "python_min": [int(x) for x in bounds.groups()[:2]],
+              "python_max": [int(x) for x in bounds.groups()[2:]]}
+    policy_path = SCRIPTS / "runtime.json"
+    policy_text = json.dumps(policy, indent=2) + "\n"
+    if args.check:
+        if not policy_path.exists() or policy_path.read_text() != policy_text:
+            stale.append("runtime.json")
+    else:
+        policy_path.write_text(policy_text, encoding="utf-8")
     for name, extras in (("requirements.txt", []),
                          ("requirements-publication.txt", ["--extra", "publication"])):
         command = ["uv", "export", "--no-config", "--locked", "--offline", "--no-dev",

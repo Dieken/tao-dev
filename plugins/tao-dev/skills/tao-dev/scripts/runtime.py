@@ -1,0 +1,252 @@
+"""Standard-library bootstrap; never install from a normal command or hook."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import time
+
+
+SCRIPTS = Path(__file__).resolve().parent
+IMPORTS = {"core": ["markdown_it", "yaml"],
+           "publication": ["markdown_it", "yaml", "sphinx", "myst_parser", "sphinx_book_theme"]}
+
+
+class RuntimeFailure(ValueError):
+    def __init__(self, message, rule="TAO-RUNTIME-001", state="unavailable"):
+        super().__init__(message)
+        self.rule = rule
+        self.state = state
+
+
+def environment():
+    # Do not let inherited pip configuration redirect writes out of our venv.
+    result = {key: value for key, value in os.environ.items()
+              if not key.startswith("PIP_") and key not in ("PYTHONPATH", "PYTHONHOME")}
+    result.update(PIP_CONFIG_FILE=os.devnull, PYTHONDONTWRITEBYTECODE="1")
+    return result
+
+
+def data_root():
+    explicit = os.environ.get("TAO_RUNTIME_DIR") or os.environ.get("CLAUDE_PLUGIN_DATA")
+    if explicit:
+        path = Path(explicit)
+        if not path.is_absolute():
+            raise RuntimeFailure("Runtime data directory must be absolute.")
+        return path.resolve()
+    if sys.platform == "win32":
+        parent = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
+    elif sys.platform == "darwin":
+        parent = Path.home() / "Library/Application Support"
+    else:
+        parent = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
+    if not parent.is_absolute():
+        raise RuntimeFailure("User data directory must be absolute.")
+    return parent / "tao-dev"
+
+
+def inspect_python(python):
+    code = ("import json,os,platform,sys; print(json.dumps(dict("
+            "version=list(sys.version_info[:3]), implementation=sys.implementation.name,"
+            "platform=sys.platform, machine=platform.machine(),"
+            "executable=os.path.realpath(sys.executable))))")
+    try:
+        completed = subprocess.run([str(python), "-I", "-c", code],
+                                   capture_output=True, text=True, timeout=10, env=environment())
+        info = json.loads(completed.stdout)
+        if completed.returncode:
+            raise ValueError("Interpreter probe failed")
+        policy = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))
+        if not policy["python_min"] <= info["version"][:2] < policy["python_max"]:
+            raise ValueError(f"Supported Python versions: {policy['python_min']} to below {policy['python_max']}")
+        return info
+    except (OSError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeFailure(f"Python is unavailable or unsupported: {exc}") from exc
+
+
+def context(mode):
+    python = os.environ.get("TAO_PYTHON") or sys.executable
+    info = inspect_python(python)
+    inventory = SCRIPTS / ("requirements-publication.txt" if mode == "publication" else "requirements.txt")
+    digest = hashlib.sha256(inventory.read_bytes()).hexdigest()
+    key = hashlib.sha256(json.dumps([info, mode, digest], sort_keys=True).encode()).hexdigest()[:32]
+    root = data_root()
+    return {"mode": mode, "base_python": str(python), "base": info,
+            "inventory": str(inventory), "digest": digest,
+            "key": key, "root": root, "slot": root / "runtimes" / key}
+
+
+def python_in(directory):
+    return directory / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def probe(python, mode):
+    code = ("import importlib,importlib.metadata as m,json,sys; "
+            f"[importlib.import_module(n) for n in {IMPORTS[mode]!r}]; "
+            "print(json.dumps({'prefix':sys.prefix,'packages':"
+            "sorted((d.metadata['Name'].lower(),d.version) for d in m.distributions())}))")
+    completed = subprocess.run([str(python), "-I", "-c", code], env=environment(),
+                               capture_output=True, text=True, timeout=10)
+    if completed.returncode:
+        raise RuntimeFailure("Runtime imports failed; run setup to prepare a new environment.",
+                             "TAO-RUNTIME-003", "broken")
+    return json.loads(completed.stdout)
+
+
+def selected(ctx):
+    pointer = ctx["slot"] / "active.json"
+    if not pointer.exists():
+        return None
+    try:
+        name = json.loads(pointer.read_text())["generation"]
+        if not isinstance(name, str) or not re.fullmatch(r"env-[a-z0-9_]+", name):
+            raise ValueError("Invalid runtime generation")
+        directory = ctx["slot"] / name
+        if directory.is_symlink() or not directory.resolve().is_relative_to(ctx["root"].resolve()):
+            raise ValueError("Runtime generation escapes data directory")
+        ready = json.loads((directory / "ready.json").read_text())
+        actual = probe(python_in(directory), ctx["mode"])
+        if ready["key"] != ctx["key"] or ready["probe"] != actual or Path(actual["prefix"]).resolve() != directory.resolve():
+            raise ValueError("Runtime environment changed since preparation")
+        return directory
+    except (OSError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeFailure(f"Prepared environment is invalid: {exc}", "TAO-RUNTIME-003", "broken") from exc
+
+
+def description(ctx, directory=None, state="missing"):
+    return {"state": "ready" if directory else state, "mode": ctx["mode"],
+            "data_directory": str(ctx["root"]), "dependency_digest": ctx["digest"],
+            "base_python": ctx["base_python"],
+            "python": str(python_in(directory)) if directory else None}
+
+
+def atomic_json(path, value):
+    descriptor, temporary = tempfile.mkstemp(prefix=".write-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def setup(ctx, wheelhouse=None):
+    if wheelhouse is not None and not wheelhouse.is_dir():
+        raise RuntimeFailure("Offline wheelhouse must be an existing directory.")
+    slot = ctx["slot"]
+    if not slot.resolve().is_relative_to(ctx["root"].resolve()):
+        raise RuntimeFailure("Runtime slot escapes data directory.")
+    slot.mkdir(parents=True, exist_ok=True)
+    lock = slot / "prepare.lock"
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            lock.mkdir()
+            break
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                raise RuntimeFailure("Another preparation owns the lock; retry after it finishes. Inspect interrupted operations before removing a stale lock.", "TAO-RUNTIME-004", "busy")
+            time.sleep(0.1)
+    try:
+        try:
+            directory = selected(ctx)
+        except RuntimeFailure:
+            directory = None
+        if directory:
+            return directory
+        # A venv contains absolute paths. Create it at its permanent location.
+        directory = Path(tempfile.mkdtemp(prefix="env-", dir=slot))
+        log = directory / "setup.log"
+        command = [ctx["base_python"], "-I", "-m", "venv", str(directory)]
+        pip = [str(python_in(directory)), "-I", "-m", "pip"]
+        install = pip + ["install", "--disable-pip-version-check", "--no-input", "--require-hashes",
+                         "--only-binary=:all:", "--no-cache-dir", "-r", ctx["inventory"]]
+        if wheelhouse:
+            install += ["--no-index", "--find-links", str(wheelhouse.resolve())]
+        else:
+            install += ["--index-url", "https://pypi.org/simple"]
+        with log.open("w", encoding="utf-8") as output:
+            for argv in (command, install, pip + ["check"]):
+                try:
+                    completed = subprocess.run(argv, env=environment(), stdin=subprocess.DEVNULL,
+                                               stdout=output, stderr=subprocess.STDOUT, timeout=120)
+                except subprocess.TimeoutExpired as exc:
+                    raise RuntimeFailure(f"Preparation timed out; inspect {log}", "TAO-RUNTIME-005") from exc
+                if completed.returncode:
+                    raise RuntimeFailure(f"Preparation failed; inspect {log}. Python must include venv and ensurepip; dependency installation must match the locked inventory.", "TAO-RUNTIME-005")
+        actual = probe(python_in(directory), ctx["mode"])
+        atomic_json(directory / "ready.json", {"key": ctx["key"], "probe": actual})
+        atomic_json(slot / "active.json", {"generation": directory.name})
+        return directory
+    finally:
+        lock.rmdir()
+
+
+def emit(command, outputs, error=None, json_output=True):
+    result = {"tool": "tao-dev", "protocol_version": "0.1", "command": command,
+              "status": "not_run" if error else "passed", "outputs": outputs,
+              "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
+                                                       "message": str(error), "message_locale": "en"}]}
+    if command == "doctor":
+        result["capabilities"] = ["doctor", "setup"]
+    if command == "verify":
+        result.update(coverage="unknown", readiness="blocked")
+    if json_output:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"tao {command}: {result['status']}")
+        print(str(error) if error else json.dumps(outputs, ensure_ascii=False, indent=2))
+    return 2 if error else 0
+
+
+def operation(argv):
+    # Global options can precede the command; their values are not commands.
+    index = 0
+    while index < len(argv):
+        if argv[index] in ("--project", "--format"):
+            index += 2
+        elif argv[index].startswith("--project=") or argv[index].startswith("--format="):
+            index += 1
+        else:
+            return argv[index], index
+    return "unknown", len(argv)
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    command, position = operation(argv)
+    mode = "publication" if command == "docs" or command in ("setup", "doctor") and "--publication" in argv else "core"
+    ctx = None
+    json_output = "json" in argv
+    try:
+        ctx = context(mode)
+        if command == "setup":
+            parser = argparse.ArgumentParser(prog="tao setup")
+            parser.add_argument("--publication", action="store_true")
+            parser.add_argument("--wheelhouse", type=Path)
+            parser.add_argument("--format", choices=("text", "json"), default="text")
+            args = parser.parse_args(argv[position + 1:])
+            directory = setup(ctx, args.wheelhouse)
+            return emit(command, {"runtime": description(ctx, directory)}, json_output=json_output)
+        directory = selected(ctx)
+        if directory is None:
+            suffix = " --publication" if mode == "publication" else ""
+            raise RuntimeFailure(f"The {mode} runtime is not prepared. Run tao setup{suffix}; ordinary commands do not install dependencies.", "TAO-RUNTIME-002", "missing")
+        if Path(sys.prefix).resolve() != directory.resolve():
+            child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
+            return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / "tao.py"), *argv], env=child_env).returncode
+        sys.dont_write_bytecode = True
+        from taolib.cli import main as cli_main
+        return cli_main([a for a in argv if a != "--publication"], runtime_context=description(ctx, directory))
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        error = exc if isinstance(exc, RuntimeFailure) else RuntimeFailure(str(exc))
+        outputs = {"runtime": description(ctx, state=error.state)} if ctx else {}
+        return emit(command, outputs, error, json_output)

@@ -1,6 +1,6 @@
 # 确定性工具与项目配置
 
-通过已信任的 Python 环境调用本 skill 的 [scripts/tao.py](../scripts/tao.py)。Python 需要 3.11 或以上版本及 [运行依赖](../scripts/requirements.txt)。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
+通过本 skill 的 [scripts/tao.py](../scripts/tao.py) 调用工具。首次准备或环境不可用时读取 [运行环境规程](runtime.md)：标准库入口提供 setup 和 doctor，运行不依赖 uv，普通命令只使用已准备的独立环境。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
 
 先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、verify.docs；安装可选出版依赖后还包含 docs.build。配置项目检查策略后包含 verify.code 与 verify.evidence；退役写入尚未提供。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
 

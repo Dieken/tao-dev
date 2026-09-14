@@ -1,0 +1,151 @@
+"""Exercise preparation with real locked wheels and an empty Python environment."""
+
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "plugins/tao-dev/skills/tao-dev/scripts"
+WHEELS = Path(os.environ.get("TAO_TEST_WHEELHOUSE", ROOT / "tmp/tao/wheels"))
+
+
+@pytest.fixture(scope="module")
+def bare_python(tmp_path_factory):
+    root = tmp_path_factory.mktemp("bare python 中文")
+    subprocess.run([sys.executable, "-m", "venv", str(root)], check=True)
+    return root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def invoke(python, data, *args, scripts=SCRIPTS, cwd=None, extra=None):
+    env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(python)}
+    if extra:
+        env.update(extra)
+    return subprocess.run([str(python), str(scripts / "tao.py"), *args, "--format", "json"],
+                          cwd=cwd or data.parent, env=env, capture_output=True, text=True)
+
+
+def prepare(python, data, *args, scripts=SCRIPTS):
+    assert WHEELS.is_dir(), "Prepare locked wheels using tests/acceptance/runtime.py --download."
+    completed = invoke(python, data, "setup", "--wheelhouse", str(WHEELS), *args, scripts=scripts)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    return json.loads(completed.stdout)["outputs"]["runtime"]
+
+
+def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tmp_path):
+    data = tmp_path / "data"
+    completed = invoke(bare_python, data, "doctor")
+    assert completed.returncode == 2
+    report = json.loads(completed.stdout)
+    assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-002"
+    assert report["outputs"]["runtime"]["state"] == "missing"
+    assert not data.exists()
+
+
+def test_offline_preparation_runs_without_uv_and_does_not_modify_base(bare_python, tmp_path):
+    before = subprocess.check_output([str(bare_python), "-m", "pip", "list", "--format", "json"])
+    data = tmp_path / "runtime data"
+    info = prepare(bare_python, data)
+    assert info["mode"] == "core"
+    assert Path(info["python"]).is_file()
+    report = invoke(bare_python, data, "id", "new", "REQ", "--project", str(tmp_path), extra={"PATH": ""})
+    assert report.returncode == 0, report.stdout + report.stderr
+    assert json.loads(report.stdout)["outputs"]["id"].startswith("REQ_")
+    assert invoke(bare_python, data, "doctor", extra={"PATH": ""}).returncode == 0
+    after = subprocess.check_output([str(bare_python), "-m", "pip", "list", "--format", "json"])
+    assert before == after
+    assert prepare(bare_python, data)["python"] == info["python"]
+
+
+def test_failed_publication_install_keeps_core_and_does_not_implicitly_install(bare_python, tmp_path):
+    data = tmp_path / "data"
+    info = prepare(bare_python, data)
+    empty = tmp_path / "empty-wheels"
+    empty.mkdir()
+    failed = invoke(bare_python, data, "setup", "--publication", "--wheelhouse", str(empty))
+    assert failed.returncode == 2
+    assert json.loads(failed.stdout)["status"] == "not_run"
+    assert Path(info["python"]).is_file()
+    assert invoke(bare_python, data, "doctor").returncode == 0
+    before = sorted(str(p.relative_to(data)) for p in data.rglob("*"))
+    missing = invoke(bare_python, data, "docs", "build", "--project", str(tmp_path))
+    assert missing.returncode == 2
+    assert "publication" in missing.stdout
+    assert sorted(str(p.relative_to(data)) for p in data.rglob("*")) == before
+
+
+def test_changed_dependencies_use_another_environment_and_preserve_old(bare_python, tmp_path):
+    scripts = tmp_path / "plugin/scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
+    data = tmp_path / "data"
+    first = prepare(bare_python, data, scripts=scripts)
+    requirements = scripts / "requirements.txt"
+    requirements.write_text(requirements.read_text() + "\n# New release inventory\n")
+    second = prepare(bare_python, data, scripts=scripts)
+    assert first["python"] != second["python"]
+    assert Path(first["python"]).is_file()
+
+
+def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
+    plugin = tmp_path / "readonly plugin"
+    shutil.copytree(SCRIPTS, plugin, ignore=shutil.ignore_patterns("__pycache__"))
+    for path in plugin.rglob("*"):
+        path.chmod(0o555 if path.is_dir() else 0o444)
+    data = tmp_path / "claude data"
+    env = os.environ | {"CLAUDE_PLUGIN_DATA": str(data), "TAO_PYTHON": str(bare_python)}
+    env.pop("TAO_RUNTIME_DIR", None)
+    completed = subprocess.run([str(bare_python), str(plugin / "tao.py"), "setup", "--wheelhouse", str(WHEELS), "--format", "json"],
+                               env=env, capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    selected = Path(json.loads(completed.stdout)["outputs"]["runtime"]["python"])
+    assert selected.is_relative_to(data)
+    assert not list(plugin.rglob("__pycache__"))
+
+
+def test_concurrent_preparation_publishes_one_complete_environment(bare_python, tmp_path):
+    data = tmp_path / "data"
+    env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)}
+    argv = [str(bare_python), str(SCRIPTS / "tao.py"), "setup", "--wheelhouse", str(WHEELS), "--format", "json"]
+    processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+    outputs = [process.communicate(timeout=60) for process in processes]
+    assert all(p.returncode == 0 for p in processes), outputs
+    selected = [json.loads(stdout)["outputs"]["runtime"]["python"] for stdout, _ in outputs]
+    assert selected[0] == selected[1]
+    assert len(list(data.rglob("ready.json"))) == 1
+    assert not list(data.rglob("prepare.lock"))
+
+
+def test_corrupt_environment_requires_explicit_repair(bare_python, tmp_path):
+    data = tmp_path / "data"
+    first = prepare(bare_python, data)
+    marker = next(data.rglob("ready.json"))
+    marker.write_text("{}")
+    broken = invoke(bare_python, data, "doctor")
+    assert broken.returncode == 2
+    assert json.loads(broken.stdout)["outputs"]["runtime"]["state"] == "broken"
+    second = prepare(bare_python, data)
+    assert first["python"] != second["python"]
+    assert Path(first["python"]).is_file()
+
+
+def test_explicit_missing_interpreter_never_falls_back(bare_python, tmp_path):
+    data = tmp_path / "data"
+    completed = invoke(bare_python, data, "setup", extra={"TAO_PYTHON": str(tmp_path / "absent")})
+    assert completed.returncode == 2
+    assert json.loads(completed.stdout)["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-001"
+    assert not data.exists()
+
+
+def test_symlinked_runtime_slot_never_writes_outside_data(bare_python, tmp_path):
+    data, outside = tmp_path / "data", tmp_path / "outside"
+    data.mkdir()
+    outside.mkdir()
+    (data / "runtimes").symlink_to(outside, target_is_directory=True)
+    failed = invoke(bare_python, data, "setup", "--wheelhouse", str(WHEELS))
+    assert failed.returncode == 2
+    assert list(outside.iterdir()) == []

@@ -185,10 +185,13 @@ def verify(project, args, report):
 
 
 def dispatch(args):
-    project = Project(args.project)
     registry = json.loads((ASSETS / "document-profiles.json").read_text())
     report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                   status="passed", diagnostics=[], outputs={})
+    if args.command == "doctor" and args.project is None and not any((p / ".tao/config.toml").is_file() for p in [Path.cwd(), *Path.cwd().parents]):
+        report.update(capabilities=CAPABILITIES + ["setup"], schemas=list(registry["profiles"]))
+        return report, 0
+    project = Project(args.project)
     if args.command == "doctor":
         report.update(capabilities=CAPABILITIES + (["verify.code", "verify.evidence"] if policy(project) else []), schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
@@ -232,7 +235,7 @@ def dispatch(args):
     return report, 0
 
 
-def main(argv=None):
+def main(argv=None, runtime_context=None):
     started = time.monotonic()
     argv = sys.argv[1:] if argv is None else argv
     output_format = "json" if any(argv[i:i + 2] == ["--format", "json"] for i in range(len(argv))) else "text"
@@ -245,6 +248,10 @@ def main(argv=None):
         report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                       status="failed" if code == 1 else "not_run", diagnostics=[{"rule_id": "TAO-CLI-001", "severity": "error", "message": str(exc), "message_locale": "en"}], outputs={})
     report["duration_seconds"] = round(time.monotonic() - started, 6)
+    if args.command == "doctor" and runtime_context:
+        report["outputs"]["runtime"] = runtime_context
+        if "setup" not in report.get("capabilities", []):
+            report.setdefault("capabilities", []).append("setup")
     if args.command == "verify" and "coverage" not in report:
         report.update(coverage="unknown", readiness="not-evaluated" if getattr(args, "only", None) else "blocked")
     if args.format == "json":
