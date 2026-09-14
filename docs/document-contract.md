@@ -70,6 +70,8 @@ REQ／UC／ADR 的选项、字段键、状态、关系及片段模板采用随�
 
 Sphinx-Needs 是候选索引与渲染工具，需配置自定义类型和关系字段；本协议额外的 frontmatter、章节和任务校验由独立检查层负责。书籍构建、PDF 和第三方编辑器表现仍需实际验证。
 
+出版适配拟将源文的章节键与条目定义转换为 MyST 显式目标或等价 AST 节点；已有显式标签须校验一致，避免重复注入。仅设置 html_permalinks 不足以保证复制稳定链接，需要实际检查主题行为。实现依据见 [MyST 显式目标](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html#creating-explicit-targets) 与 [Sphinx 永久链接](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_permalinks)。这些实现选择供 tao-dev 开发维护使用；使用方只需读取随包的链接与出版结果规程。
+
 <!-- tao:section tasks -->
 ## 六、任务列表与完成语义
 
@@ -88,6 +90,8 @@ Sphinx-Needs 是候选索引与渲染工具，需配置自定义类型和关系�
 ### 本地化与使用方语言
 
 项目自身的语言取舍见 {need}`ADR_20260914_WX7BFBRXENPN4CT7`。使用方的语言选择、稳定键、显示资源、诊断回退和翻译源一致性统一见随包 [本地化规程](../plugins/tao-dev/skills/tao-dev/references/localization.md)。实现需使用同一套结构和按 locale 选择的资源，不能要求使用方复制本项目的中文正文。
+
+翻译资源的出版适配优先验证 Sphinx gettext 目录或等价机制；源版本、审校状态与过期检测是需验证的实现能力。该技术选型留在本项目设计中，不作为使用方 agent 的操作指令。
 
 ### 校验与升级
 
