@@ -32,7 +32,8 @@ def need_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     # Permanent entry points also work for retired definitions.
     target = "refs/" + text
     uri = env.app.builder.get_relative_uri(env.docname, target) + "#" + text
-    return [nodes.reference(rawtext, text, refuri=uri)], []
+    label = definition.get("title") or text
+    return [nodes.reference(rawtext, label, refuri=uri)], []
 
 
 def targets(app, doctree):

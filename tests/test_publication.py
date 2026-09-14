@@ -16,6 +16,7 @@ class Page(HTMLParser):
         super().__init__()
         self.ids = []
         self.links = []
+        self.current_link = None
         self.feed(text)
 
     def handle_starttag(self, tag, attrs):
@@ -23,7 +24,17 @@ class Page(HTMLParser):
         if "id" in attrs:
             self.ids.append(attrs["id"])
         if tag == "a":
+            attrs["text"] = ""
             self.links.append(attrs)
+            self.current_link = attrs
+
+    def handle_data(self, data):
+        if self.current_link is not None:
+            self.current_link["text"] += data
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self.current_link = None
 
 
 def project(root):
@@ -69,6 +80,25 @@ def test_retired_id_keeps_a_resolvable_explanation(tmp_path):
     assert "Merged into export protection." in page
     assert REQ in page
     assert old in Page(page).ids
+    replacement = next(a for a in Page(page).links
+                       if a.get("href") == f"{REQ}.html#{REQ}")
+    assert replacement["text"] == "拒绝覆盖"
+
+
+def test_id_references_show_current_titles_without_changing_links(tmp_path):
+    configured = project(tmp_path)
+    source = tmp_path / "docs/spec.md"
+    source.write_text(source.read_text() + f'\n参见 {{need}}`{DOC}`、{{need}}`{REQ}`。\n')
+    for requirement_title in ("拒绝覆盖", "Protect <existing> & new files"):
+        source.write_text(source.read_text().replace("拒绝覆盖", requirement_title))
+        result = build(configured)
+        page = Page((tmp_path / result["directory"] / "docs/spec.html").read_text())
+        for identity, title in ((DOC, "文件导出"), (REQ, requirement_title)):
+            references = [a for a in page.links
+                          if a.get("href") == f"../refs/{identity}.html#{identity}"
+                          and "headerlink" not in a.get("class", "")]
+            assert references and all(a["text"] == title for a in references)
+        assert any(a["text"] == "Requirement section" for a in page.links)
 
 
 def test_removed_published_id_requires_retirement_and_keeps_previous_book(tmp_path):

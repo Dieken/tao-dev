@@ -90,7 +90,10 @@ def resolver_pages(result, output):
     for identity, definition in result.definitions.items():
         if definition.path.endswith(".jsonl"):
             targets = [r.target for r in result.references if r.source == identity and r.relation == "replaced_by"]
-            links = " ".join(f'<a href="{target}.html#{target}">{target}</a>' for target in targets)
+            links = " ".join(
+                f'<a href="{target}.html#{target}">'
+                f'{html.escape(result.definitions[target].title or target)}</a>'
+                for target in targets)
             body = f'<h1 id="{identity}">{identity}</h1><p>Retired: {html.escape(definition.title)}</p>{links}'
         else:
             target = "../" + str(Path(definition.path).with_suffix(".html")) + "#" + identity
