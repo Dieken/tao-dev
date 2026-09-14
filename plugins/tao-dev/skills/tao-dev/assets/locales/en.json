@@ -41,5 +41,6 @@
   "label.observed": "Observed",
   "label.reports": "Reports",
   "label.limits": "Limits",
-  "label.retention": "Location and retention"
+  "label.retention": "Location and retention",
+  "heading.contents": "Reading order"
 }
