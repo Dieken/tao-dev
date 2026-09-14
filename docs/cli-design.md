@@ -19,17 +19,36 @@ bootstrap: manual
 
 **tao CLI 只承接确定性操作。** 解析、生成、验证、查询和保存记录可以在普通终端或 CI 执行；需求判断、设计、对抗式审查仍由 skill、可用客户端或人工完成。初版不提供会隐式调用多个模型的 `tao review`，不从报告数量或客户端名称推导审查通过。
 
-斜杠命令是客户端对这些意图的入口，CLI 是执行工具，二者不要求逐个同名。优先使用自然语言加 skill；只在实际需要时增加原生斜杠命令包装，不要求用户记住工具内部分类。
+### 参考项目的实际入口
 
-| 参考的命名与语义 | tao-dev 的取舍 |
-|---|---|
-| [Spec Kit](https://github.com/github/spec-kit) 的 specify、plan、tasks、implement | 流程使用 specify、plan、implement；任务列表属于 plan，不新增强制 tasks 步骤 |
-| [OpenSpec CLI](https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md) 的 new change、show、status、validate | 创建、展示与状态查询采用这些直观名称；验证还执行代码检查，统一命名 verify，不只表示规格格式合法 |
-| [OpenSpec 工作流](https://github.com/Fission-AI/OpenSpec/blob/main/docs/opsx.md) 的 verify、archive | 保留验证意图；archive 有归档／规格同步语义，本项目目前不需要相同的独立动作 |
-| [Superpowers 分支收尾](https://github.com/obra/superpowers/blob/d884ae04edebef577e82ff7c4e143debd0bbec99/skills/finishing-a-development-branch/SKILL.md) | 收尾包含测试、集成选择和清理；本项目保留必要检查，不引入固定菜单或默认合并行为 |
-| [gstack context-save](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 使用 context save 表达交接保存，避免 checkpoint 被理解为 VCS 提交或客户端回退点 |
+以下为所审阅版本中的代表性入口，不是完整目录或流行度排名；链接固定到该版本。名称省略重复的斜杠命名空间时保留操作部分，并区分 CLI、command 与 skill。共同倾向是核心动作简短、必要时加对象或用途；不存在统一的行业命令标准。
 
-这些项目没有统一的命令标准。命名依据真实动作，不照搬命令数量；未发布的旧草案名称不保留兼容别名。原 check 与 verify 的区别仍作为内部检查分类存在，入口合并；原 finish 的只读收尾判断也进入 verify。原 start 改为 new change，resolve 改为 show，checkpoint 改为 context save。
+| 项目 | 代表名称 | 对 tao-dev 的启示 |
+|---|---|---|
+| [Spec Kit](https://github.com/github/spec-kit/tree/ad601e5d52251f9131220c621d1cbbb7d61bebee/templates/commands) | specify、plan、tasks、implement、clarify | 按流程动作命名；保留 specify／plan 等语义，不强制每步一个入口 |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec/tree/0a99f410457271aa773d8b106f03f637f7c6b3c0/src/core/templates/workflows) | CLI new change；斜杠 new、propose、apply、verify、archive；skill openspec-new-change | 同一动作可以有短入口和描述性 skill 名；new 适合创建，propose 还包含内容生成 |
+| [Trellis](https://github.com/mindfold-ai/trellis/tree/e7c5ead4d0dfd717d11a40b6bc0c80d8af94c49a/packages/cli/src/templates/codex/skills) | start、brainstorm、check、finish-work、record-session | start 表示建立或恢复会话上下文，record-session 偏进度日志，均不等于创建变更 |
+| [GSD](https://github.com/open-gsd/gsd-core/tree/a68f1be10e8338128065691d5ea777a14eaca51a/commands/gsd) | new-project、plan-phase、execute-phase、pause-work、resume-work、verify-work | 对象或阶段确有区分需要时才加后缀；保存交接不应暗示已暂停执行 |
+| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin/tree/0a2957852e2034d04eb01120fd7da6ed5307dc56/skills) | ce-brainstorm、ce-plan、ce-work、ce-handoff | handoff 用于生成或读取交接摘要；前缀用于命名空间 |
+| [Matt Pocock Skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | handoff；工程 skill 另有 to-spec、implement、tdd | handoff 明确产出给后续 agent 阅读的摘要；不照搬其保存位置或 issue 依赖 |
+| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/packages/omo-opencode/src/features/builtin-commands/commands.ts) | start-work、handoff、refactor | start-work 进入计划执行；handoff 生成会话摘要，含义与本项目交接吻合 |
+| [gstack](https://github.com/garrytan/gstack/tree/a3259400a366593e0c909dd9ac3e59752efd2488) | spec、review、ship、context-save、context-restore | 短核心动词与必要复合词并存；保存摘要不等于 ship 或恢复客户端内部上下文 |
+| [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/tree/ed387446052dfbc6b52de149406b70efa65edc59/commands) | plan、code-review、save-session、resume-session、checkpoint | save-session 表意明确；checkpoint 还创建 stash／commit，不适合仅保存摘要 |
+| [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | brainstorming、writing-plans、executing-plans、verification-before-completion | 长名称用于能力发现与自动触发，不作为要求用户记住长命令的依据 |
+| [Addy Osmani Agent Skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | idea-refine、interview-me、planning-and-task-breakdown、context-engineering | 描述性 skill 名说明能力范围，不必映射成同长的 CLI 或斜杠命令 |
+| [BMAD](https://github.com/bmad-code-org/BMAD-METHOD/tree/1cd4a7f5c06421727d779cbb3f3b5953b4c7282d/src/core-skills) | bmad-spec、bmad-brainstorming、bmad-review-adversarial-general | 命名空间与审查类型各有作用；不为简短而丢失必要区分 |
+
+### 本项目的命名规则
+
+常用入口优先使用一个完整、常见的词：`new`、`verify`、`status`、`handoff`。`new` 唯一表示创建变更计划，因此无需再输入 change；不表示初始化项目、启动实现或恢复会话。`handoff` 表示保存供后续工作读取的交接摘要，不创建可回滚快照、不停止会话、不转交执行权，也不把机器保存过程称为内容分析。摘要由 agent 整理，CLI 负责校验、附加状态索引与落盘。
+
+使用完整词而非 n／v／ctx 等缩写，不增加同义别名或让用户在 start／new／propose 之间选择。`start` 在参考项目中并不少见，但涵盖会话初始化或计划执行，不能准确描述这里只创建计划的操作。`save` 缺少保存对象，`pause` 暗示暂停执行，均不如 handoff 明确。低频且需要对象限定的 `id new`、`docs build` 保留分组；直接叫 build 容易与使用方项目的代码构建混淆。
+
+斜杠命令采用同一操作词，并由客户端提供必要命名空间；例如 `new`、`handoff` 可呈现为 `/tao:new`、`/tao:handoff`，不再展开为 new-change 或 context-save。**这是操作名示意，不是已经可用或保证两端相同的调用语法。** 实际前缀与 skill 调用方式随客户端适配验收，遵循 [插件设计](plugin-design.md)，不另造跨客户端通用语法。
+
+CLI 和 agent 入口共享操作意图，但职责不同：new 的 agent 入口理解描述、整理必要输入，再调用 `tao new <slug>`；handoff 的 agent 入口整理摘要，再调用 `tao handoff --from <file>`。用户无需自行准备 slug 或中间文件。优先使用自然语言加已有 skill，只为真实使用需要提供入口包装，不为每个辅助子命令创建一个 skill。
+
+验证统一使用 verify；文档检查、行为验证及只读收尾判断是其内部分类。验收后的归档、集成和发布按实际授权处理，不从命名自动派生额外步骤。未发布的草案名称不保留兼容别名。
 
 <!-- tao:section commands -->
 ## 二、命令、输入与副作用
@@ -38,11 +57,11 @@ bootstrap: manual
 
 | 拟议接口 | 输入与结果 | 副作用及实施顺序 |
 |---|---|---|
-| `tao new change <slug>` | 创建一个变更计划，生成 DOC／CHG 标识符；语言与日期规则从项目约定取得，必要时用 `--locale` 覆盖 | 模板阶段；更新项目内日期序号登记，排他创建，不覆盖已有内容 |
+| `tao new <slug>` | 创建一个变更计划，不启动实现；生成 DOC／CHG 标识符；语言与日期规则从项目约定取得，必要时用 `--locale` 覆盖 | 模板阶段；更新项目内日期序号登记，排他创建，不覆盖已有内容 |
 | `tao verify [CHG-ID]` | 自动选择必要检查，执行后汇总文档、项目行为、证据及收尾条件 | 首批先实现文档子集，随后补足行为与证据；执行已授权子进程并写报告，不修改受检源文件或批准交付 |
 | `tao status [CHG-ID]` | 查询任务、依赖、未决项和证据时效；不运行检查，不刷新旧证据 | 证据阶段；只读，无目标时可展示项目摘要，不能因查询而勾选任务 |
 | `tao show <ID>` | 展示正式条目、定义位置、退役信息及可用的发布入口 | 首批；只读，类型从 ID 得到，不要求用户另选；未构建站点时 URL 可为空 |
-| `tao context save [CHG-ID] --from <file>` | 保存 agent 提供的目标、决定、阻碍和下一步，并附实际状态与证据索引 | 恢复阶段；原子更新变更附件中的 `handoff.md`，不自动提交或推送 |
+| `tao handoff [CHG-ID] --from <file>` | 保存 agent 提供的目标、决定、阻碍和下一步，并附实际状态与证据索引；不总结整段原始会话 | 恢复阶段；原子更新变更附件中的 `handoff.md`，不停止会话、创建快照或自动移交执行，不提交或推送 |
 | `tao doctor` | 检测项目根、配置、工具、schema 与命令能力 | 首批；只读，不安装依赖、不修复配置、不主动试跑构建 |
 | `tao id new <TYPE>` | 为已支持的条目类型生成 UUIDv4，检查当前索引与退役记录是否重复 | 首批辅助命令；只输出 ID；正常生成文档由生成器自动分配，用户不逐项选号 |
 | `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记退役 | 模板阶段；默认预览，显式 `--apply` 才写入；不把退役叫作 archive，以免混淆删除承诺与归档已完成工作 |
@@ -111,6 +130,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 每个命令以真实结果和独立反例验收，不能只检查帮助文字。首批文档能力到完整验证逐步实施，至少覆盖：
 
 - 文档错误、重复 ID、错误日期、悬空引用与任务依赖环可定位；围栏示例不注册定义，移动文件不破坏引用。
+- new 只创建计划；handoff 只保存交接，不能创建 VCS 快照、停止会话或移交执行。agent 入口准备 slug／摘要输入，用户无需选择对象类型或编写中间文件。
 - 常规用户只表达意图，agent 在编辑时选文档子集、交付时选完整验证；局部通过和 dry-run 均不能产生整体完成结论。
 - 改动范围或依赖未知时扩大选择；未跟踪输入不遗漏；不能因为全部文件是 Markdown 就跳过 prompt 行为验收。
 - 无 VCS、Sphinx、rg 时文档子集仍工作；多个候选变更仅在无法确定目标时要求指定，不反复询问已绑定目标。
