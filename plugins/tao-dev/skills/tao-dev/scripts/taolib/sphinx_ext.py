@@ -1,4 +1,4 @@
-"""Render tao entities and attach exact, case-preserving stable targets."""
+"""Render tao entities, stable targets, and book section numbers."""
 
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -98,6 +98,13 @@ def section_numbers(app, env):
     visit(root, ())
     previous = env.toc_secnumbers
     env.toc_secnumbers = desired
+    for toc in env.tocs.values():
+        for reference in toc.findall(nodes.reference):
+            reference.attributes.pop("secnumber", None)
+            numbers = desired.get(reference.get("refuri", ""), {})
+            number = numbers.get(reference.get("anchorname", ""))
+            if number:
+                reference["secnumber"] = number
     for title in env.titles.values():
         title.attributes.pop("secnumber", None)
     for docname, numbers in desired.items():
@@ -113,6 +120,9 @@ def targets(app, doctree):
     doc = index["documents"].get(docname + ".md")
     if doc is None:
         return
+    if docname == app.config.root_doc:
+        for tree in doctree.findall(addnodes.toctree):
+            tree["numbered"] = 999
     identity = doc["metadata"]["id"]
     sections = list(doctree.findall(nodes.section))
     if sections:
