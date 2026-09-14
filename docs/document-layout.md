@@ -42,7 +42,7 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 <!-- tao:section artifacts -->
 ## 四、报告与证据保存
 
-目录示意、报告类型、VCS 归属、持久保存与输入指纹边界见 [随包组织规程](../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。artifacts/ 是可重建执行产物，不能作为长期完成声明的唯一依据；产品实现需验证清理与证据引用的关系。
+目录示意、报告类型、VCS 归属、持久保存与输入指纹边界见 [随包组织规程](../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保持只放配置。生成产物不能作为长期完成声明的唯一依据；产品实现需验证清理与证据引用的关系。
 
 <!-- tao:section bootstrap -->
 ## 五、本项目自举边界
