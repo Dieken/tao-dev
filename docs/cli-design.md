@@ -12,7 +12,7 @@ bootstrap: manual
 
 本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** 随包的 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
 
-使用方格式由随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。内部开发 profile 单独用于自举，不随产品分发。
+使用方格式由随包 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目新建交付文档也使用这些 profile；现有内部 profile 属于待迁移范围，不随产品分发，不计作共享格式通过。
 
 <!-- tao:section scope -->
 ## 一、用户操作与命名依据
