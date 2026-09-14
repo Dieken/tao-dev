@@ -1,5 +1,0 @@
--r plugins/tao-dev/skills/tao-dev/scripts/requirements.txt
--r plugins/tao-dev/skills/tao-dev/scripts/requirements-publication.txt
-pytest>=8,<10
-coverage>=7.10.6,<8
-ruff>=0.15,<1
