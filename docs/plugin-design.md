@@ -90,7 +90,7 @@ Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](h
 
 角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。插件根 `agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 对 Claude agent／command 的兼容处理不能等同原生发现；未实现的注册能力应明确报告。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
 
-初版 hook 优先使用确定性的 command handler，并分别验证两端事件载荷、输出、退出状态、超时和信任流程。平台提供的插件根变量由适配层处理：Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT`；脚本调用正确处理带空格的安装路径。可写状态使用客户端支持的数据目录或使用方项目状态目录，不能写入假定可修改的插件缓存。
+初版 hook 优先使用确定性的 command handler，并分别验证两端事件载荷、输出、退出状态、超时和信任流程。平台提供的插件根变量由适配层处理：Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT`；脚本调用正确处理带空格的安装路径。使用方的文档资产写入 docs/ 或其配置映射位置，派生索引与缓存默认放 artifacts/cache/tao/；.tao/ 仅放配置。客户端自身的数据按其支持的目录管理，不能写入假定可修改的插件缓存。
 
 同名事件不直接推导语义等价，prompt／agent 类型 hook 也不视为两端共有能力。hook 未获信任、被禁用或执行失败时，说明哪些动作未运行，并提供显式检查路径。不能绕过客户端权限，也不能将缺失检查算作通过。[Codex hooks](https://learn.chatgpt.com/docs/hooks)、[Claude hooks](https://code.claude.com/docs/en/hooks)
 

@@ -66,6 +66,8 @@ REQ／UC／ADR 的选项、字段键、状态、关系及片段模板采用随�
 
 现有内部 profile 的索引包括同目录的 `protocol.md`、`document-contract.md`、`plugin-design.md`、`glossary.md`、`document-layout.md`、`cli-design.md`。外部参考资料不纳入正式条目索引。新增的 docs/changes/ 文档采用随包 profile，并与上述范围共同检查 ID 唯一性和引用；共享格式与内部格式的检查结果分开报告。以后由项目配置明确 include／exclude 范围，外部项目引用使用显式导入的标识符索引，离线无索引时报告 unresolved，不能视为存在。
 
+退役数据由独立 JSONL 读取层按随包 retirement_records 契约提取，再与 Markdown 定义合并检查；docs/retired/ 的全部日期文件都参与索引，不以 Sphinx 导航或当前修改日期决定范围。该目录只在产生实际退役记录时建立，不预写示例作为正式数据；注册表定义格式不等于读取器已经实现。
+
 一条关系只维护其发出方：反向引用、需求覆盖表和汇总由索引生成，生成文件不得成为另一份人工维护的真相。检查目标存在、关系类型、任务依赖无环和替代关系无环。标为 superseded 的对象必须能找到至少一个替代者；引用 retired／superseded 对象给出复查提示，合法的历史解释不必全部阻断。
 
 Sphinx-Needs 是候选索引与渲染工具，需配置自定义类型和关系字段；本协议额外的 frontmatter、章节和任务校验由独立检查层负责。书籍构建、PDF 和第三方编辑器表现仍需实际验证。
