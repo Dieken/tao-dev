@@ -12,9 +12,15 @@ entry point; it does not install or register a plugin. `CLAUDE.md` imports
 this guidance for the other target client.
 
 Use the bundled document profiles and templates for new delivery
-documents. Keep reusable rules in the skill and project-specific
-requirements, implementation design, and tasks in `docs/`. Existing
-internal document profiles remain a separately reported migration scope;
+documents. Bundle a resource only when a consuming project's LLM reads
+it as instructions or a runtime component loads, executes, renders, or
+validates with it. Reusability and self-hosting alone do not justify
+distribution. Keep documentation used only to develop or maintain
+tao-dev in top-level `docs/`, including CLI implementation design and
+project requirements, tasks, and test reports. Split mixed-purpose
+documents and identify each bundled resource's reader or runtime caller.
+Existing internal document profiles remain a separately reported
+migration scope;
 do not use them as templates for new documents or claim they already
 pass the shared format. Preserve existing IDs and content when migrating.
 
