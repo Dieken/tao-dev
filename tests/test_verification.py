@@ -226,3 +226,27 @@ def test_committing_identical_inputs_does_not_rerun_checks(tmp_path):
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-m', 'Metadata only')
     assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'reusable'
+
+
+def test_empty_only_is_rejected_without_running_project_checks(tmp_path):
+    configured(tmp_path, 'from pathlib import Path\nPath("ran").touch()')
+    code, result = report(tmp_path, 'verify', CHG, '--only', '')
+    assert code == 2, result
+    assert not (tmp_path / 'ran').exists()
+
+
+def test_git_probe_timeout_is_reported_as_unavailable_vcs(tmp_path, monkeypatch):
+    import subprocess
+    from taolib.project import Project
+    from taolib.verification import policy, snapshot
+    configured(tmp_path)
+    original = subprocess.run
+    def timeout_git(argv, **kwargs):
+        if argv[0] == 'git':
+            raise subprocess.TimeoutExpired(argv, 5)
+        return original(argv, **kwargs)
+    monkeypatch.setattr(subprocess, 'run', timeout_git)
+    project = Project(tmp_path)
+    observed = snapshot(project, policy(project))
+    assert observed['vcs_consistency'] == 'unavailable'
+    assert observed['input_ref'] is None

@@ -57,6 +57,9 @@ def policy(project):
     for key in ('required_reviews', 'environment', 'usage_reports'):
         if not isinstance(value.get(key, []), list) or any(not isinstance(s, str) or not s for s in value.get(key, [])):
             raise ConfigurationError(f'{key} must be a string array.')
+    reviews = value.get('required_reviews', [])
+    if len(set(reviews)) != len(reviews) or any(not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name) for name in reviews):
+        raise ConfigurationError('Review IDs must be unique lowercase words separated by hyphens.')
     reports = value.get('usage_reports', [])
     if len(reports) != len({str(contained(project.root, name).resolve()) for name in reports}):
         raise ConfigurationError('Usage report paths must be unique.')
@@ -117,13 +120,16 @@ def snapshot(project, config):
               'input_ref': None, 'vcs_consistency': 'unavailable'}
     if shutil.which('git'):
         def git(*args):
-            p = subprocess.run(['git', '-C', str(project.root), *args], capture_output=True, text=True, timeout=5)
+            try:
+                p = subprocess.run(['git', '-C', str(project.root), *args], capture_output=True, text=True, timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                return None
             return p.stdout.strip() if p.returncode == 0 else None
         if git('rev-parse', '--show-toplevel') == str(project.root):
             revision = git('rev-parse', 'HEAD')
             state = git('status', '--porcelain', '--untracked-files=all')
             result['input_ref'] = 'git:' + revision if revision else None
-            result['vcs_consistency'] = 'clean' if state == '' and revision else 'dirty'
+            result['vcs_consistency'] = 'unavailable' if state is None or not revision else 'clean' if state == '' else 'dirty'
     result['fingerprint'] = digest_json({key: result[key] for key in ('source_digest', 'policy_digest', 'environment_digest')})
     return result
 

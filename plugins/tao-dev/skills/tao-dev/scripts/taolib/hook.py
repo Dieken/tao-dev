@@ -59,7 +59,7 @@ def run(payload):
             previous = json.loads(before) if before else {}
         except (ValueError, TypeError):
             previous = {}
-        if previous.get("fingerprint") == fingerprint:
+        if isinstance(previous, dict) and previous.get("fingerprint") == fingerprint and isinstance(previous.get("message"), str):
             return feedback("tao docs feedback (unchanged inputs): " + previous["message"])
         command = [sys.executable, str(scripts / "tao.py"), "--project", str(project.root), "verify", "--only", "docs", "--format", "json"]
         try:

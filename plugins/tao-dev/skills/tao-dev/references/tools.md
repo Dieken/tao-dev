@@ -2,18 +2,19 @@
 
 通过本 skill 的 [scripts/tao.py](../scripts/tao.py) 调用工具。首次准备或环境不可用时读取 [运行环境规程](runtime.md)：标准库入口提供 setup 和 doctor，运行不依赖 uv，普通命令只使用已准备的独立环境。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
 
-先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、verify.docs；安装可选出版依赖后还包含 docs.build。配置项目检查策略后包含 verify.code 与 verify.evidence；退役写入尚未提供。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
+先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、review、verify.docs；安装可选出版依赖后还包含 docs.build。配置项目检查策略后包含 verify.code 与 verify.evidence；退役写入尚未提供。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
 
 | 操作 | 已实现行为 |
 |---|---|
 | `tao verify --only docs` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；0 表示本子集通过，coverage 始终 partial，readiness 为 not-evaluated |
-| `tao verify` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／审查适配时返回 2 与 blocked |
+| `tao verify` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／有效审查记录时返回 2 与 blocked |
 | `tao verify --only code` | 按项目既有检查策略实际运行或复用有效结果，返回 partial；`--only evidence` 只检查当前证据 |
 | `tao verify --only docs --dry-run` | 只显示选择方案，不执行检查，不生成通过证据 |
 | `tao id new REQ` | 用本地日期及安全随机源生成 ID；读取现有定义和退役记录查重，不写编号台账 |
 | `tao show <ID>` | 显示定义、引用和源位置；站点未构建时 url 为空 |
 | `tao new --slug <slug> --locale en` | 排他创建本地日期的变更骨架；同名计划或附件存在时报错，不覆盖。agent 必须继续填写目标、范围和可确定内容，清除占位符 |
 | `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的、change 元数据与目标 CHG 一致的 handoff 文档，保存到计划附件；更新保留 DOC ID，附只读状态观察；不停止会话或提交 |
+| `tao review <CHG-ID> [--from <文件>]` | 无 --from 时只读返回审查输入绑定；有 --from 时校验并导入实际审查记录，不启动模型；格式及信任边界见 [审查记录](review-receipts.md) |
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
 | `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，有项目检查策略时比较证据是否可复用；没有策略时为未评估 |
 

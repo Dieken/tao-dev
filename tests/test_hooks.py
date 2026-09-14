@@ -107,3 +107,16 @@ def test_shell_hook_without_python_is_quiet_outside_and_explains_inside(tmp_path
     assert inside.returncode == 0, inside.stderr
     assert "Python" in json.loads(inside.stdout)["hookSpecificOutput"]["additionalContext"]
     assert not (tmp_path / "tmp").exists()
+
+
+def test_incomplete_hook_cache_is_rebuilt(tmp_path):
+    project(tmp_path)
+    assert invoke(tmp_path).returncode == 0
+    cache = tmp_path / 'tmp/tao/cache/hook.json'
+    saved = json.loads(cache.read_text())
+    saved.pop('message')
+    cache.write_text(json.dumps(saved))
+    observed = invoke(tmp_path)
+    assert observed.returncode == 0, observed.stderr
+    assert 'passed' in json.loads(observed.stdout)['hookSpecificOutput']['additionalContext']
+    assert 'message' in json.loads(cache.read_text())

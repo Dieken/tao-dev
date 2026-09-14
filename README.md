@@ -2,7 +2,7 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；独立审查凭据适配和完整双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；已支持带来源校验的独立审查记录导入；完整双 CLI 行为验收尚未完成。
 
 插件运行不需要 uv：标准库入口支持显式 setup 与只读 doctor，核心和文档出版分别准备。使用方式见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)，实际结果与剩余验收边界见 [运行环境变更计划](docs/changes/2026-09/20260914-portable-runtime.md)。
 
@@ -107,4 +107,4 @@ uv run --no-config --locked --extra publication python plugins/tao-dev/skills/ta
 
 本项目的 .tao/config.toml 配置实际 Python 回归、子进程分支覆盖率与 Ruff 错误检查；运行 `tao.py verify --only code` 可执行或复用它们，`tao.py status` 只读比较证据。度量结果、原始日志和缓存都在 tmp/tao/；配置与规则见 [验证规程](plugins/tao-dev/skills/tao-dev/references/verification.md)。覆盖率是观察值，当前没有随意设定一个通过百分比。
 
-完整 `tao.py verify <CHG-ID>` 仍会报告尚未完成的任务及必需审查适配缺口，不能把局部检查通过当成交付。实际客户端和恢复试验需显式运行，方法见 [试验说明](tests/acceptance/README.md)，普通 pytest 不调用模型。
+完整 `tao.py verify <CHG-ID>` 仍会报告尚未完成的任务及缺失或过期的必需审查，不能把局部检查通过当成交付。实际客户端和恢复试验需显式运行，方法见 [试验说明](tests/acceptance/README.md)，普通 pytest 不调用模型。

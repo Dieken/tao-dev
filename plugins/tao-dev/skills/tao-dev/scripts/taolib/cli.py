@@ -13,13 +13,14 @@ import time
 from . import __version__
 from .verification import policy, execute, evidence, file_digest, digest_json
 from .measurements import usage
+from . import reviews
 from .documents import ASSETS, validate
 from .identifiers import new_id
 from .handoff import save as save_handoff
 from .project import ConfigurationError, ConflictError, Project, create_file
 
 
-CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "verify.docs"]
+CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "review", "verify.docs"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 
@@ -46,6 +47,9 @@ def arguments(argv):
     new.add_argument("--locale")
     status = commands.add_parser("status", parents=[common])
     status.add_argument("change", nargs="?")
+    review = commands.add_parser("review", parents=[common])
+    review.add_argument("change")
+    review.add_argument("--from", dest="source")
     handoff = commands.add_parser("handoff", parents=[common])
     handoff.add_argument("change", nargs="?")
     handoff.add_argument("--from", dest="source", required=True)
@@ -102,6 +106,8 @@ def document_snapshot(project):
 
 
 def verify(project, args, report):
+    if args.only == "":
+        raise ConfigurationError("--only must name at least one supported check category.")
     selected = args.only.split(",") if args.only else ["docs", "code", "evidence"]
     if not selected or len(set(selected)) != len(selected) or set(selected) - {"docs", "code", "evidence"}:
         raise ConfigurationError("--only accepts docs, code, evidence or a comma-separated combination.")
@@ -174,9 +180,9 @@ def verify(project, args, report):
             if not tasks or open_tasks:
                 codes.append(1)
         if config.get("required_reviews"):
-            report["outputs"]["missing_reviews"] = config["required_reviews"]
-            report["outputs"]["review_limitation"] = "Required independent-review receipts need an adapter; document presence alone cannot satisfy this gate."
-            codes.append(2)
+            rows = reviews.status(project, config, args.change)
+            report["outputs"]["reviews"] = rows
+            codes.extend(0 if row['state'] == 'satisfied' else 1 if row['state'] in ('stale', 'changes-requested') else 2 for row in rows)
     code = max(codes, default=0)
     report["status"] = "passed" if code == 0 else "not_run" if code == 2 else "failed"
     if not args.only and code == 0:
@@ -205,6 +211,17 @@ def dispatch(args):
     if args.command == "verify":
         return verify(project, args, report)
     result = index(project)
+    if args.command == "review":
+        config = policy(project)
+        if not config or args.change not in result.definitions or not args.change.startswith('CHG_') or not result.valid:
+            raise ConfigurationError('Review requires configured verification and a valid indexed change.')
+        if args.source:
+            report['outputs'] = reviews.import_review(project, config, args.change, args.source)
+        else:
+            report['outputs']['request'] = {'schema': 'tao.review/v0.1', 'binding': reviews.binding(project, config, args.change),
+                                           'required_reviews': config.get('required_reviews', []),
+                                           'instruction': 'Review fixed inputs independently; import the actual conclusion with its source. This request is not a review result.'}
+        return report, 0
     if args.command in ("id", "new") and any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004") for d in result.diagnostics):
         raise ConfigurationError("Cannot allocate IDs while the managed index has unreadable metadata, duplicate definitions or escaping paths.")
     if args.command == "show":
@@ -228,6 +245,10 @@ def dispatch(args):
         current = evidence(project, policy(project)) if policy(project) else {"state": "not-evaluated"}
         report["outputs"] = {"tasks": tasks, "evidence_reusability": current["state"], "evidence": current,
                              "validation": "source diagnostics and receipt freshness only; no checks rerun"}
+        target = args.change or (documents[0].metadata.get('change') if len(documents) == 1 else None)
+        if target and (target not in result.definitions or not target.startswith('CHG_')):
+            raise ConfigurationError('Requested change is not in the managed index.')
+        report['outputs']['reviews'] = reviews.status(project, policy(project), target)
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     if args.command in ("show", "status") and not result.valid:
         report["status"] = "failed"
@@ -238,7 +259,7 @@ def dispatch(args):
 def main(argv=None, runtime_context=None):
     started = time.monotonic()
     argv = sys.argv[1:] if argv is None else argv
-    output_format = "json" if any(argv[i:i + 2] == ["--format", "json"] for i in range(len(argv))) else "text"
+    output_format = "json" if "--format=json" in argv or any(argv[i:i + 2] == ["--format", "json"] for i in range(len(argv))) else "text"
     args = argparse.Namespace(command="unknown", format=output_format)
     try:
         args = arguments(argv)
