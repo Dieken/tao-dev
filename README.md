@@ -2,7 +2,7 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；已支持带来源校验的独立审查记录导入；完整双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；已支持带来源校验的独立审查记录导入；macOS 上的限定版本与包格式已完成双 CLI 行为验收；原生 Windows 和当前源码的独立审查仍待完成。
 
 插件运行不需要 uv：标准库入口支持显式 setup 与只读 doctor，核心和文档出版分别准备。使用方式见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)，实际结果与剩余验收边界见 [运行环境变更计划](docs/changes/2026-09/20260914-portable-runtime.md)。
 
@@ -23,7 +23,7 @@
 
 [流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已提供核心文档操作、配置驱动的验证、审查记录接入和本地出版；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
 
-开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。客户端斜杠入口仍待双端验收。检查范围由 agent 选择，完整验证同时汇总收尾条件。
+开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。Claude 的四个原生操作入口已在 macOS 实测；Codex 使用已发现的核心 skill，不假定两端斜杠语法相同。检查范围由 agent 选择，完整验证同时汇总收尾条件。
 
 [独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
 
