@@ -341,7 +341,7 @@ class Validator:
             if target is None:
                 continue
             destination, fragment = target
-            if not (self.root / destination).is_file():
+            if destination not in self.result.documents and not (self.root / destination).is_file():
                 self.error("TAO-REF-001", path, line, f"Missing file: {url}.")
             elif fragment and destination in anchors and fragment not in anchors[destination]:
                 self.error("TAO-LINK-001", path, line, f"Unknown stable anchor: {fragment}.")
@@ -383,9 +383,10 @@ class Validator:
                     stack.extend((target, False) for target in reversed(graph.get(node, [])))
 
 
-def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired"):
+def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired", overrides=None):
     """Validate explicit managed sources. Historical deletion needs a baseline."""
     validator = Validator(root)
+    overrides = overrides or {}
     for path in sorted(set(Path(p) for p in paths)):
         full = path if path.is_absolute() else validator.root / path
         try:
@@ -394,7 +395,7 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
             validator.error("TAO-REF-004", str(path), 1, "Input document is outside the project.")
             continue
         try:
-            source = full.read_text(encoding="utf-8")
+            source = overrides[relative] if relative in overrides else full.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
             validator.error("TAO-DOC-001", relative, 1, f"Cannot read UTF-8 document: {type(exc).__name__}.")
             continue

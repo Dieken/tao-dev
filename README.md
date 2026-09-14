@@ -2,7 +2,7 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；完整交付验证、hook、出版站点和双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；完整交付验证、出版站点和双 CLI 行为验收尚未完成。
 
 ## 阅读入口
 
@@ -17,9 +17,9 @@
 
 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，skill 提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；CLI 读取同一份格式注册表。
 
-[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式和模板已提供，完整目录检查及 Sphinx 书籍构建尚未实现。
+[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式、模板和源图检查已提供，Sphinx 书籍构建尚未实现。
 
-[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已实现 doctor、id new、show、new、status 和 verify 文档子集；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
+[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已实现 doctor、id new、show、new、status、handoff 和 verify 文档子集；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
 
 开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。客户端斜杠入口仍待双端验收。检查范围由 agent 选择，完整验证同时汇总收尾条件。
 

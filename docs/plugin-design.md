@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已实现两个 manifest、skill 入口、工程规程及流程操作规程，其余组件按需实现，运行验收尚未完成。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](protocol.md)。目录图展示目标布局；当前已提供公共及 Claude manifest、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；真实加载和行为验收尚未完成。
 
 <!-- tao:section overview -->
 ## 标准基线与目标环境
@@ -65,7 +65,7 @@ tao-dev/
 
 `$schema` 标识标准版本，`version` 标识产品版本。顶层只使用规范允许的字段，不自行加入 `agents`、`commands` 或 `hooks`。平台信息放在正式支持的扩展或兼容 manifest 中；元数据校验采用固定版本 schema，不在插件加载时从网络取回执行规则。[Manifest 约定](https://agent-plugins.org/plugin-authors/manifest)
 
-Codex 专用 hook 在根 manifest 的 `extensions.com.openai.hooks` 显式指向 `./com.openai/hooks/hooks.json`，避免同时误载 Claude 默认 hook。该字段及目标文件只在实现相应 hook 时加入。新包优先使用公共 manifest；`.codex-plugin/plugin.json` 仅作为有实际版本兼容需求时的回退，不再维护一份重复的默认定义。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
+Codex 专用 hook 在根 manifest 的 `extensions.com.openai.hooks` 显式指向 `./com.openai/hooks/hooks.json`，避免同时误载 Claude 默认 hook。该字段与对应短文档 hook 配置已提供，触发行为按双端验收记录判断。新包优先使用公共 manifest；`.codex-plugin/plugin.json` 仅作为有实际版本兼容需求时的回退，不再维护一份重复的默认定义。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
 
 Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼容 manifest 的名称、版本和描述从公共元数据派生并检查一致性。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 

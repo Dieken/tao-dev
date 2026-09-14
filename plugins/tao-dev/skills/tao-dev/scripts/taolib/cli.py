@@ -11,10 +11,11 @@ import sys
 from . import __version__
 from .documents import ASSETS, validate
 from .identifiers import new_id
+from .handoff import save as save_handoff
 from .project import ConfigurationError, ConflictError, Project, create_file
 
 
-CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "verify.docs"]
+CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "verify.docs"]
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -39,6 +40,9 @@ def arguments(argv):
     new.add_argument("--locale")
     status = commands.add_parser("status", parents=[common])
     status.add_argument("change", nargs="?")
+    handoff = commands.add_parser("handoff", parents=[common])
+    handoff.add_argument("change", nargs="?")
+    handoff.add_argument("--from", dest="source", required=True)
     verify = commands.add_parser("verify", parents=[common])
     verify.add_argument("change", nargs="?")
     verify.add_argument("--only")
@@ -130,6 +134,8 @@ def dispatch(args):
         report["outputs"]["id"] = new_id(args.type, registry, result.definitions)
     elif args.command == "new":
         report["outputs"] = skeleton(project, args, registry, result)
+    elif args.command == "handoff":
+        report["outputs"] = save_handoff(project, args.source, args.change, result)
     elif args.command == "status":
         if args.change and (args.change not in result.definitions or not args.change.startswith("CHG_")):
             raise ConflictError("Change not found.")

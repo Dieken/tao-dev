@@ -4,6 +4,7 @@ import os
 from pathlib import Path, PurePosixPath
 import tempfile
 import tomllib
+from contextlib import contextmanager
 
 
 class ConfigurationError(ValueError):
@@ -37,7 +38,7 @@ class Project:
         self.config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
         if self.config and self.config.get("version") != 1:
             raise ConfigurationError("Unsupported configuration version; expected 1.")
-        if self.config.keys() - {"version", "locale", "documents", "paths"}:
+        if self.config.keys() - {"version", "locale", "documents", "paths", "hooks"}:
             raise ConfigurationError("Unknown configuration keys.")
         documents = self.config.get("documents", {})
         paths = self.config.get("paths", {})
@@ -63,6 +64,15 @@ class Project:
         self.locale = self.config.get("locale")
         if self.locale is not None and not isinstance(self.locale, str):
             raise ConfigurationError("locale must be a language tag string.")
+        hooks = self.config.get("hooks", {})
+        if not isinstance(hooks, dict) or hooks.keys() - {"docs_enabled", "timeout_seconds"}:
+            raise ConfigurationError("Invalid hooks configuration.")
+        if type(hooks.get("docs_enabled", True)) is not bool or type(hooks.get("timeout_seconds", 5)) is not int:
+            raise ConfigurationError("hooks requires a boolean docs_enabled and integer timeout_seconds.")
+        self.hook_enabled = hooks.get("docs_enabled", True)
+        self.hook_timeout = hooks.get("timeout_seconds", 5)
+        if not 1 <= self.hook_timeout <= 30:
+            raise ConfigurationError("Hook timeout must be between 1 and 30 seconds.")
 
     def sources(self):
         selected = set()
@@ -93,5 +103,34 @@ def create_file(root, path, text):
             os.link(temporary, path)
         except FileExistsError as exc:
             raise ConflictError(f"Concurrent file creation: {path.relative_to(root)}") from exc
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+@contextmanager
+def mutation_lock(project):
+    path = project.output("temporary", "cache/mutation.lock")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.mkdir()
+    except FileExistsError as exc:
+        raise ConflictError("Another mutation owns the lock; inspect an interrupted operation before removing its stale lock.") from exc
+    try:
+        yield
+    finally:
+        path.rmdir()
+
+
+def replace_file(root, path, text, expected):
+    contained(root, path)
+    if path.read_bytes() != expected:
+        raise ConflictError("The destination changed during preparation; reload it before retrying.")
+    descriptor, temporary = tempfile.mkstemp(prefix=".tao-update-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
     finally:
         Path(temporary).unlink(missing_ok=True)
