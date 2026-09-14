@@ -22,7 +22,7 @@ created: '2026-09-14'
 
 当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。首批运行验收环境固定为 Codex CLI 和 Claude Code CLI。
 
-本协议定义必须实现的结果和验收场景。协作流程与长期决定见 [流程设计](../engineering/protocol-design.md)，既有研发任务见 [实施计划](../changes/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
+本协议定义必须实现的结果和验收场景。协作方式见 [流程设计](../engineering/protocol-design.md)，长期技术取舍见 [架构决定](../engineering/decisions/index.md)，既有研发任务见 [实施计划](../changes/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
 
 <!-- tao:section terms -->
 ## 术语与来源

@@ -22,8 +22,8 @@ created: "2026-09-14"
 :titlesonly:
 
 protocol-design.md
-document-contract.md
-document-layout.md
+documentation/index.md
 cli-design.md
 plugin-design.md
+decisions/index.md
 ```

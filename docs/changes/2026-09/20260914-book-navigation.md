@@ -18,7 +18,7 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
 <!-- tao:section references -->
 ## 规格引用
 
-需求依据见 [协作开发协议](../../product/protocol.md) 中的信息单一来源、统一文档格式及持续成书要求；实现取舍见 [组织设计](../../engineering/document-layout.md)。
+需求依据见 [协作开发协议](../../product/protocol.md) 中的信息单一来源、统一文档格式及持续成书要求；实现取舍见 [组织设计](../../engineering/documentation/layout.md)。
 
 <!-- tao:section design -->
 ## 设计

@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # 文档组织与产物保存
 
-本文规定产品模板与出版实现的目标规则，落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。[文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和格式注册表维护使用方的统一格式与模板；本篇解释内容组织的设计理由。生成器与完整校验器尚未实现，既有目录可映射，未接入格式不得宣称通过。
+本文规定产品模板与出版实现的目标规则，落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。[文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和格式注册表维护使用方的统一格式与模板；本篇解释内容组织的设计理由。生成器与完整校验器尚未实现，既有目录可映射，未接入格式不得宣称通过。
 
 <!-- tao:section overview -->
 ## 目标与边界
@@ -19,7 +19,7 @@ created: '2026-09-14'
 <!-- tao:section architecture -->
 ## 内容组织
 
-内容归属的权威规则见 [文档组织规程](../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
+内容归属的权威规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
 
 退役记录是项目自身的追溯数据，默认按退役日期存入 docs/retired/，随源文档保留；.tao/ 仅用于工具及 skill 配置。可重建状态使用生成产物目录，避免项目文档生命周期依赖某个工具的私有状态。日期分组控制文件增长，并不提供跨分支互斥；读取全部日期文件后仍需统一检查 ID 和替代关系。
 
@@ -38,20 +38,20 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 
 ### 拆分规则
 
-任务数量、设计长度、并行写入与计划总长的阈值只在 [文档组织规程](../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 维护。这些是控制维护负担的操作约定，不是行业质量标准；本项目不维护另一组自举阈值。
+任务数量、设计长度、并行写入与计划总长的阈值只在 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 维护。这些是控制维护负担的操作约定，不是行业质量标准；本项目不维护另一组自举阈值。
 
 ### 命名规则
 
-变更计划按创建月份分组，默认路径为 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织规程](../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
+变更计划按创建月份分组，默认路径为 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
 
 <!-- tao:section invariants -->
 ## 自举与唯一来源
 
-现有长期开发资料包括协议、格式契约、术语、文档组织、插件设计和 [命令设计](cli-design.md)。协议维护 REQ／UC，流程设计维护 ADR，实施计划维护既有研发任务，专题文档维护实现设计并引用 skill 中的规则，README 只负责导航。它们是长期文档，保留语义文件名。
+现有长期开发资料包括协议、格式契约、术语、文档组织、插件设计和 [命令设计](../cli-design.md)。协议维护 REQ／UC，decisions/ 中的独立文档维护长期 ADR，实施计划维护既有研发任务，专题文档维护实现设计并引用 skill 中的规则，README 只负责导航。它们是长期文档，保留语义文件名。
 
 使用方模板及中英文显示资源已随 skill 提供，当前可手工填写；源文件校验器可运行，生成与出版能力仍需验收。后续以真实文件验证拆分前后 ID、退役记录、并发分配、证据保存和书籍构建；不能以模板存在宣称自动生成或校验已实现。
 
-项目交付文档采用 skill 定义的 tao.project.* profile；本仓库的文档检查范围由 [文档契约](document-contract.md) 维护。格式检查与工具行为验收分别报告。
+项目交付文档采用 skill 定义的 tao.project.* profile；本仓库的文档检查范围由 [文档契约](contract.md) 维护。格式检查与工具行为验收分别报告。
 
 <!-- tao:section errors -->
 ## 重名与数据保护
@@ -61,6 +61,6 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 <!-- tao:section verification -->
 ## 报告与验证
 
-目录示意、报告类型、VCS 归属、持久保存与输入识别边界见 [文档组织规程](../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保持只放配置。普通验证结论随计划保存，原始日志默认不进 VCS；独立摘要与必要报告按需保留。产品实现需分别表示历史结果、原始材料可用性和当前复用资格，不能因日志过期取消历史任务完成状态。
+目录示意、报告类型、VCS 归属、持久保存与输入识别边界见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保持只放配置。普通验证结论随计划保存，原始日志默认不进 VCS；独立摘要与必要报告按需保留。产品实现需分别表示历史结果、原始材料可用性和当前复用资格，不能因日志过期取消历史任务完成状态。
 
 拆分和移动后重新校验全局 ID、引用及导航关系；出版后另检查稳定入口。

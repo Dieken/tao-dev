@@ -14,16 +14,16 @@ created: '2026-09-14'
 <!-- tao:section overview -->
 ## 适用范围
 
-本文定义共享 profile 在本仓库的应用与解析器实现边界；术语含义见 [术语与缩写](../glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](document-layout.md)。本项目的交付文档与第三方使用方均采用 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目只映射目录、选择语言及配置允许的阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用正文 profile。
+本文定义共享 profile 在本仓库的应用与解析器实现边界；术语含义见 [术语与缩写](../../glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](layout.md)。本项目的交付文档与第三方使用方均采用 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目只映射目录、选择语言及配置允许的阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用正文 profile。
 
-格式设计优先复用公共语法与成熟惯例，具体映射维护在 [公共依据与写法](../../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。EARS 约束 REQ 正文，验收方法留在 acceptance；保留现有模板变量与稳定结构键，不另建同义字段。格式解析与自然语言质量判断分别验收，不宣称符合完整 EARS、Gherkin 或 arc42 工具链。
+格式设计优先复用公共语法与成熟惯例，具体映射维护在 [公共依据与写法](../../../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。EARS 约束 REQ 正文，验收方法留在 acceptance；保留现有模板变量与稳定结构键，不另建同义字段。格式解析与自然语言质量判断分别验收，不宣称符合完整 EARS、Gherkin 或 arc42 工具链。
 
-检查分层、结论边界和修正规则统一见 [文档诊断规程](../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)，本篇只维护实现设计。
+检查分层、结论边界和修正规则统一见 [文档诊断规程](../../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)，本篇只维护实现设计。
 
 <!-- tao:section architecture -->
 ## 解析与索引
 
-正式引用语法由文档规程定义。DOC、条目与章节的锚点、固定入口、移动和退役规则、实际 HTML 验收统一见 [出版规程](../../plugins/tao-dev/skills/tao-dev/references/publication.md)。本项目的 Sphinx 适配实现须满足该契约，不能从源文件含有 ID 推导发布链接已经可用。
+正式引用语法由文档规程定义。DOC、条目与章节的锚点、固定入口、移动和退役规则、实际 HTML 验收统一见 [出版规程](../../../plugins/tao-dev/skills/tao-dev/references/publication.md)。本项目的 Sphinx 适配实现须满足该契约，不能从源文件含有 ID 推导发布链接已经可用。
 
 本项目开发文档的文件链接使用项目内相对路径，解析后须位于 tao-dev 项目范围内；不使用本机绝对路径、`file://` 地址或指向项目外文件的相对路径。外部资料使用公开上游链接；非公开材料不记录其标题、路径或条款编号，采用的原则应独立表述。文档应能随项目独立迁移，无须读者具备作者的研究目录。
 
@@ -68,14 +68,14 @@ CHG、EVD 由相应 profile 的 frontmatter 字段定义；DOC 与正文条目�
 <!-- tao:section errors -->
 ## 诊断与修正
 
-诊断 JSON 字段、规则号、严重级别、退出码和修正边界统一见 [文档诊断规程](../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。CLI 的公共结果封装见 [命令设计](cli-design.md)。实现按规则号与参数消费结果，界面文字可本地化；源文件校验器已输出稳定规则号；CLI 封装与出版验收另行实现。
+诊断 JSON 字段、规则号、严重级别、退出码和修正边界统一见 [文档诊断规程](../../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。CLI 的公共结果封装见 [命令设计](../cli-design.md)。实现按规则号与参数消费结果，界面文字可本地化；源文件校验器已输出稳定规则号；CLI 封装与出版验收另行实现。
 
 <!-- tao:section verification -->
 ## 验证与演进
 
 ### 本地化与使用方语言
 
-项目自身的语言取舍见 {need}`ADR_20260914_WX7BFBRXENPN4CT7`。使用方的语言选择、稳定键、显示资源、诊断回退和翻译源一致性统一见 [本地化规程](../../plugins/tao-dev/skills/tao-dev/references/localization.md)。实现需使用同一套结构和按 locale 选择的资源，不能要求使用方复制本项目的中文正文。
+项目自身的语言取舍见 {need}`ADR_20260914_WX7BFBRXENPN4CT7`。使用方的语言选择、稳定键、显示资源、诊断回退和翻译源一致性统一见 [本地化规程](../../../plugins/tao-dev/skills/tao-dev/references/localization.md)。实现需使用同一套结构和按 locale 选择的资源，不能要求使用方复制本项目的中文正文。
 
 翻译资源的出版适配优先验证 Sphinx gettext 目录或等价机制；源版本、审校状态与过期检测是需验证的实现能力。该技术选型留在本项目设计中，不作为使用方 agent 的操作指令。
 
