@@ -54,10 +54,11 @@ change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
   - verify: 一个真实变更可被新会话接手，代码变化令旧证据过期，工具不可用不会产生通过声明，并记录流程成本。
   - evidence: [执行、恢复与计量验收](#DOC_20260914_8MPMXBCGKMRS74T4--verification)
 
-- [ ] `TASK_20260914_VCY68YN0NM3ZSD6B` 验证出版组合与双 CLI 插件适配
+- [x] `TASK_20260914_VCY68YN0NM3ZSD6B` 验证出版组合与双 CLI 插件适配
   - relates: ["REQ_20260914_3JQXRKWXKAZSNJ5R", "REQ_20260914_95193C19C90NRXV4", "REQ_20260914_NN0AEQ2E1GTVSMTV", "REQ_20260914_GDY8F3KPE6XBGWGD", "REQ_20260914_BWAY1ZF6HNPM855Y"]
   - depends_on: ["TASK_20260914_0ZR8RND5PZ6136WX"]
   - verify: 同源文档形成可导航书籍与可解析 ID；模板遵循使用方语言；分发包不含开发资料且无此类运行依赖；Codex CLI 与 Claude Code CLI 分别通过插件加载、已声明组件和功能路径验收，禁用 hook 后显式检查仍可运行。
+  - evidence: [出版及限定版本客户端验收](20260914-portable-runtime.md#DOC_20260914_3541E3H7SN5V7MS5--verification)
 
 <!-- tao:section verification -->
 ## 验证记录
@@ -76,7 +77,7 @@ change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
 - 两次 Codex 初始运行监测到全局 config.toml 字节变化，原因未确认；后续独立审查及一次对照重试未变化，未自动回滚配置。Claude 各已完成运行的监测文件未变化。没有注册或安装测试插件到全局；监测范围及原始记录的限制见试验说明。
 - 独立审查实际耗时为 Codex 50.565 秒、Claude 45.656 秒；Claude CLI 按标价报告约 0.203600 USD，真实账单未知。Codex 返回 token 使用量，不提供账单金额。原始事件留在忽略目录，简要结论保存在此处。
 
-组合验收仍未完成；Codex 的隔离、兼容包 hook 与生命周期补充结果见 [运行环境验收](20260914-portable-runtime.md#DOC_20260914_3541E3H7SN5V7MS5--verification)。Claude 各 scope 的恢复与生命周期已补充实测，完整计划／交接会话仍有配置隔离待确认；本项目必需独立审查记录仍缺失，出版与双端组合任务保持未勾选。不能用组件文件存在或缩减验收范围代替这些结果。
+出版与 macOS 双 CLI 组合验收已完成；Codex 的隔离、兼容包 hook 与生命周期以及 Claude 三种 scope 的补充结果见 [运行环境验收](20260914-portable-runtime.md#DOC_20260914_3541E3H7SN5V7MS5--verification)。Claude 最终 status 和 new／handoff 案例确认了必读规程加载及配置隔离。上述组合任务按已测版本完成；运行环境计划保留 Windows 验收缺口，本项目必需独立审查记录仍缺失，不能据此宣称完整交付。不能用组件文件存在或缩减验收范围代替这些结果。
 
 本次执行与计量实现的验收记录（输入以本记录所在提交的运行源码、测试和配置为准）：项目检查实际生成 JSON 度量，缓存保留合并指纹、检查集合、工具／环境与原始修订引用；缺工具、预算不足、输入变化及损坏凭据均有独立反例。质量命令、覆盖率采集范围和日志位置由 .tao/config.toml 与 [维护检查入口](../../../tests/acceptance/quality.py) 固定，普通回归不调用模型。覆盖率不等同需求满足，也没有凭空设置一个通过百分比。
 
