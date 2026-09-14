@@ -2,6 +2,7 @@
 
 from docutils import nodes
 from docutils.parsers.rst import directives
+from sphinx import addnodes
 from sphinx.util.docutils import SphinxDirective
 
 
@@ -34,6 +35,76 @@ def need_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     uri = env.app.builder.get_relative_uri(env.docname, target) + "#" + text
     label = definition.get("title") or text
     return [nodes.reference(rawtext, label, refuri=uri)], []
+
+
+def _number_entries(node, prefix, numbers):
+    position = 0
+    for item in node.children:
+        if not isinstance(item, nodes.list_item):
+            continue
+        paragraph = next((child for child in item.children
+                          if isinstance(child, addnodes.compact_paragraph)), None)
+        if paragraph is None or not paragraph.children:
+            continue
+        reference = paragraph.children[0]
+        if not isinstance(reference, nodes.reference):
+            continue
+        anchor = reference.get("anchorname")
+        if not anchor:
+            continue
+        position += 1
+        number = prefix + (position,)
+        numbers[anchor] = number
+        for child in item.children:
+            if isinstance(child, nodes.bullet_list):
+                _number_entries(child, number, numbers)
+
+
+def _document_numbers(env, docname, prefix):
+    numbers = {"": prefix}
+    toc = env.tocs.get(docname)
+    if toc is None:
+        return numbers
+    for root in toc.children:
+        if not isinstance(root, nodes.list_item):
+            continue
+        for child in root.children:
+            if isinstance(child, nodes.bullet_list):
+                _number_entries(child, prefix, numbers)
+    return numbers
+
+
+def section_numbers(app, env):
+    index = app.config.tao_index
+    documents = index.get("documents", {})
+    root = app.config.root_doc + ".md"
+    desired = {}
+
+    def visit(parent, prefix):
+        for position, target in enumerate(documents[parent].get("navigation", []), 1):
+            number = prefix + (position,)
+            document = documents[target]
+            docname = target.removesuffix(".md")
+            if document["metadata"]["schema"] == "tao.project.navigation/v0.1":
+                identity = document["metadata"]["id"]
+                desired[docname] = {
+                    "": number,
+                    **{f"#{identity}--{key}": () for key in document["sections"]},
+                }
+            else:
+                desired[docname] = _document_numbers(env, docname, number)
+            visit(target, number)
+
+    visit(root, ())
+    previous = env.toc_secnumbers
+    env.toc_secnumbers = desired
+    for title in env.titles.values():
+        title.attributes.pop("secnumber", None)
+    for docname, numbers in desired.items():
+        if docname in env.titles:
+            env.titles[docname]["secnumber"] = numbers[""]
+    return sorted(docname for docname in set(previous) | set(desired)
+                  if previous.get(docname) != desired.get(docname))
 
 
 def targets(app, doctree):
@@ -87,5 +158,6 @@ def setup(app):
         app.add_directive(kind, Entity)
     app.add_role("need", need_role)
     app.connect("doctree-read", targets, priority=400)
+    app.connect("env-get-updated", section_numbers, priority=600)
     app.connect("missing-reference", missing_reference)
     return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}
