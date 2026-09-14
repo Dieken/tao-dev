@@ -1,0 +1,97 @@
+"""Project-scoped configuration and filesystem operations."""
+
+import os
+from pathlib import Path, PurePosixPath
+import tempfile
+import tomllib
+
+
+class ConfigurationError(ValueError):
+    pass
+
+
+class ConflictError(ValueError):
+    pass
+
+
+def contained(root, relative):
+    path = root / relative
+    try:
+        path.resolve().relative_to(root.resolve())
+    except (ValueError, RuntimeError) as exc:
+        raise ConfigurationError(f"Path escapes the project: {relative}") from exc
+    return path
+
+
+class Project:
+    def __init__(self, explicit=None):
+        if explicit is None:
+            cwd = Path.cwd()
+            explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file()), None)
+            if explicit is None:
+                raise ConfigurationError("Specify --project or provide project-local .tao/config.toml.")
+        self.root = Path(explicit).resolve()
+        if not self.root.is_dir():
+            raise ConfigurationError("Project root must exist.")
+        config_path = contained(self.root, ".tao/config.toml")
+        self.config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
+        if self.config and self.config.get("version") != 1:
+            raise ConfigurationError("Unsupported configuration version; expected 1.")
+        if self.config.keys() - {"version", "locale", "documents", "paths"}:
+            raise ConfigurationError("Unknown configuration keys.")
+        documents = self.config.get("documents", {})
+        paths = self.config.get("paths", {})
+        if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root"}:
+            raise ConfigurationError("Invalid documents configuration.")
+        if not isinstance(paths, dict) or paths.keys() - {"changes", "retired", "temporary"}:
+            raise ConfigurationError("Invalid paths configuration.")
+        self.includes = documents.get("include", ["docs/**/*.md"])
+        self.excludes = documents.get("exclude", [])
+        for patterns in (self.includes, self.excludes):
+            if not isinstance(patterns, list) or any(not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts for p in patterns):
+                raise ConfigurationError("Document patterns must be project-relative string arrays.")
+        self.paths = {"changes": "docs/changes", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
+        for value in self.paths.values():
+            if not isinstance(value, str) or not value or Path(value).is_absolute():
+                raise ConfigurationError("Configured paths must be nonempty project-relative strings.")
+            contained(self.root, value)
+        self.book_root = documents.get("book_root")
+        if self.book_root is not None:
+            if not isinstance(self.book_root, str):
+                raise ConfigurationError("documents.book_root must be a relative path.")
+            contained(self.root, self.book_root)
+        self.locale = self.config.get("locale")
+        if self.locale is not None and not isinstance(self.locale, str):
+            raise ConfigurationError("locale must be a language tag string.")
+
+    def sources(self):
+        selected = set()
+        for pattern in self.includes:
+            for path in self.root.glob(pattern):
+                relative = path.relative_to(self.root).as_posix()
+                if path.is_file() and not any(PurePosixPath(relative).match(p) for p in self.excludes):
+                    selected.add(path)
+        return sorted(selected)
+
+    def output(self, key, suffix=""):
+        return contained(self.root, Path(self.paths[key]) / suffix)
+
+
+def create_file(root, path, text):
+    """Publish a complete file exclusively; never overwrite a concurrent writer."""
+    contained(root, path)
+    if path.exists() or path.is_symlink():
+        raise ConflictError(f"File already exists: {path.relative_to(root)}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=".tao-new-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path)
+        except FileExistsError as exc:
+            raise ConflictError(f"Concurrent file creation: {path.relative_to(root)}") from exc
+    finally:
+        Path(temporary).unlink(missing_ok=True)

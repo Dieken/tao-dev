@@ -37,8 +37,9 @@ expiry alone does not reverse historical results or task completion.
 The bundled source validator and maintained regression tests are available.
 Run the repository tests with the project-local Python environment and
 validate only explicitly managed sources against supported profiles.
-The workflow CLI, publication and dual-client behavioral acceptance are
-not implemented. Source validation does not establish those guarantees.
+Use the bundled tao.py doctor output to identify available CLI commands.
+Full delivery verification, publication and dual-client behavioral
+acceptance remain incomplete; source checks do not establish them.
 
 # CLI experiments
 

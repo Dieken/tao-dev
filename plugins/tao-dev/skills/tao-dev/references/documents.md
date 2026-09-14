@@ -53,7 +53,7 @@ change profile 的 `change` 定义一个 CHG ID；evidence profile 的 `evidence
 
 模板中的 `{{TOKEN}}` 是待替换变量。heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余由 agent 填入实际内容、已有引用或工具生成的 ID。替换元数据时使用合法 YAML 字符串转义，不把用户文本直接拼进 YAML。新增语言沿用同一变量键集，只翻译显示文字，不改变结构键、schema、ID 或关系。
 
-模板输出不得残留变量。需求／用例／决策扩展为多项时，每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。当前模板供 agent 或人工填写，尚无自动模板引擎。
+模板输出不得残留变量。需求／用例／决策扩展为多项时，每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。变更骨架可由 new 生成，其余模板由 agent 或人工填写；生成骨架后仍需消除占位符并检查真实内容。
 
 ## 标识符与引用
 
