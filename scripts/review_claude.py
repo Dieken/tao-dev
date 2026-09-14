@@ -8,6 +8,8 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -18,10 +20,57 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests/acceptance'))
 from clients import global_configuration  # noqa: E402
+from isolated_claude import access_environment  # noqa: E402
+from isolated_codex import redact  # noqa: E402
 sys.path.insert(0, str(ROOT / 'plugins/tao-dev/skills/tao-dev/scripts'))
 from taolib.reviews import binding, observed_provider  # noqa: E402
 from taolib.project import Project  # noqa: E402
 from taolib.verification import policy  # noqa: E402
+
+
+def run_review(command, prompt, output, timeout):
+    """Bound the child process and preserve isolation failures as failures."""
+    (output / 'client-config').mkdir(mode=0o700)
+    logs = [output / 'events.jsonl', output / 'stderr.txt']
+    before = global_configuration()
+    started = time.monotonic()
+    process = None
+    secrets = []
+    timed_out = credentials_unchanged = False
+    error = None
+    try:
+        with access_environment(output, timeout) as (env, secrets):
+            with logs[0].open('w') as stdout, logs[1].open('w') as stderr:
+                process = subprocess.Popen(command, cwd=output, env=env, stdin=subprocess.PIPE,
+                                           stdout=stdout, stderr=stderr, text=True, start_new_session=True)
+                try:
+                    process.communicate(prompt, timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                finally:
+                    if process.poll() is None:
+                        os.killpg(process.pid, signal.SIGTERM)
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            os.killpg(process.pid, signal.SIGKILL)
+                            process.wait()
+        credentials_unchanged = True
+    except (OSError, RuntimeError, ValueError) as exc:
+        error = type(exc).__name__
+    finally:
+        redact([path for path in logs if path.exists()], secrets)
+    after = global_configuration()
+    return {'exit_code': process.returncode if process else None, 'timed_out': timed_out,
+            'elapsed_seconds': round(time.monotonic() - started, 3),
+            'personal_configuration_unchanged': before == after,
+            'changed_files': [key for key in before if before[key] != after[key]],
+            'credentials_unchanged': credentials_unchanged, 'error': error}
+
+
+def review_succeeded(result):
+    return (result['exit_code'] == 0 and not result['timed_out'] and result['error'] is None
+            and result['personal_configuration_unchanged'] and result['credentials_unchanged'])
 
 
 def main():
@@ -32,7 +81,13 @@ def main():
     parser.add_argument('--requirement', default='independent-implementation-review')
     parser.add_argument('--timeout', type=int, default=240)
     parser.add_argument('--budget-usd', type=float, default=2)
+    parser.add_argument('--reuse-claude-auth', action='store_true',
+                        help='Explicitly reuse existing access in isolated child state; never refresh.')
     args = parser.parse_args()
+    if not args.reuse_claude_auth:
+        parser.error('Review execution requires explicit isolated access reuse; personal-state mode is disabled.')
+    if args.timeout <= 0 or not math.isfinite(args.budget_usd) or args.budget_usd <= 0:
+        parser.error('timeout and budget-usd must be positive, finite bounds.')
     request = json.loads(args.request.read_text())['outputs']['request']
     if args.requirement not in request['required_reviews']:
         parser.error('The requirement must be present in the input request.')
@@ -78,30 +133,9 @@ def main():
     command = ['claude', '-p', '--safe-mode', '--effort', 'low', '--no-session-persistence',
                '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--tools', '',
                '--max-turns', '3', '--max-budget-usd', str(args.budget_usd), '--json-schema', json.dumps(conclusion_schema)]
-    before = global_configuration()
-    started = time.monotonic()
-    timed_out = False
-    with events_path.open('w') as stdout, (output / 'stderr.txt').open('w') as stderr:
-        process = subprocess.Popen(command, cwd=output, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
-                                   text=True, start_new_session=True)
-        try:
-            process.communicate(prompt, timeout=args.timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            signal_target = process.pid
-            import os
-            os.killpg(signal_target, signal.SIGTERM)
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                os.killpg(signal_target, signal.SIGKILL)
-                process.wait()
-    after = global_configuration()
-    result = {'tree': tree, 'exit_code': process.returncode, 'timed_out': timed_out,
-              'elapsed_seconds': round(time.monotonic() - started, 3), 'personal_configuration_unchanged': before == after,
-              'changed_files': [key for key in before if before[key] != after[key]],
-              'output': output.relative_to(ROOT).as_posix(), 'billed_usd': None}
-    if process.returncode == 0 and not timed_out and before == after:
+    result = run_review(command, prompt, output, args.timeout)
+    result.update(tree=tree, output=output.relative_to(ROOT).as_posix(), billed_usd=None)
+    if review_succeeded(result):
         events = [json.loads(line) for line in events_path.read_text().splitlines() if line.strip()]
         initial = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']
         completed = [event for event in events if event.get('type') == 'result']

@@ -37,7 +37,7 @@ scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次�
 
 运行环境测试验证 Python 隔离启动，覆盖率只能统计实际接受 Coverage.py 注入的进程。发布环境不安装开发用 coverage，也不为提高数字关闭 Python 隔离模式；报告中的未观测行不能解释为行为测试未执行。
 
-独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录调用既有 Claude 认证。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。只在请求出站已有授权时执行；这不是消费项目必须安装的工具。调用形态为 `.venv/bin/python scripts/review_claude.py --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
+独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录与客户端配置中调用既有 Claude 访问令牌。必须显式传 --reuse-claude-auth；复用上述认证适配，不携带刷新令牌、写认证文件或回退个人状态。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。超时或异常时终止子进程组并清理令牌环境，日志脱敏；凭据或监测配置变化时不生成可导入记录，不猜测回滚个人文件。只在实际固定树及材料的请求出站已有授权时执行；这不是消费项目必须安装的工具。调用形态为 `.venv/bin/python scripts/review_claude.py --reuse-claude-auth --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
 
 脚本保留实际模型事件和运行摘要；只有调用完成、结论绑定一致且监测的个人配置未变时才生成待导入记录。监测变化、超时或未完成不能作为隔离验收通过；不要猜测原配置后回滚。真实客户端审查不进入普通 pytest，完整 verify 也不自动启动模型。
 
