@@ -38,7 +38,7 @@ class Project:
         self.config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
         if self.config and self.config.get("version") != 1:
             raise ConfigurationError("Unsupported configuration version; expected 1.")
-        if self.config.keys() - {"version", "locale", "documents", "paths", "hooks"}:
+        if self.config.keys() - {"version", "locale", "documents", "paths", "hooks", "verification"}:
             raise ConfigurationError("Unknown configuration keys.")
         documents = self.config.get("documents", {})
         paths = self.config.get("paths", {})

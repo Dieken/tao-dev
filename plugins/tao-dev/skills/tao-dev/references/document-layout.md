@@ -72,7 +72,7 @@ docs/
 
 ## 阅读顺序与导航格式
 
-需要目录页时采用 [navigation 模板](../assets/templates/navigation.md)，使用 tao.project.navigation/v0.1：共同元数据及 DOC ID，固定 overview、contents 两节。overview 说明本组读者与范围，contents 恰有一个顶层 MyST toctree 块。精确约束由 [格式注册表](../assets/document-profiles.json) 的 navigation 定义；模板和语法目前供人工或 agent 使用，完整导航检查器尚未实现。
+需要目录页时采用 [navigation 模板](../assets/templates/navigation.md)，使用 tao.project.navigation/v0.1：共同元数据及 DOC ID，固定 overview、contents 两节。overview 说明本组读者与范围，contents 恰有一个顶层 MyST toctree 块。精确约束由 [格式注册表](../assets/document-profiles.json) 的 navigation 定义；模板供人工或 agent 使用，源校验器检查导航图，`tao docs build` 检查整本书的可达性及生成锚点。
 
 ````markdown
 <!-- tao:section contents -->

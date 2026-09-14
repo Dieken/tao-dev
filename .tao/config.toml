@@ -4,3 +4,21 @@ locale = "zh-Hans"
 [documents]
 include = ["docs/**/*.md"]
 book_root = "docs/index.md"
+
+[verification]
+inputs = ["plugins/**/*", "tests/**/*", "docs/**/*.md", "pyproject.toml", "requirements-dev.txt", "AGENTS.md", "CLAUDE.md", "README.md"]
+budget_seconds = 180
+reuse_seconds = 3600
+required_reviews = ["independent-implementation-review"]
+
+[[verification.checks]]
+id = "python-tests"
+argv = ["tmp/tao/venv/bin/python", "tests/acceptance/quality.py"]
+timeout_seconds = 150
+metrics = {format = "coverage-json", path = "tmp/tao/coverage/coverage.json"}
+
+[[verification.checks]]
+id = "python-lint"
+argv = ["tmp/tao/venv/bin/python", "-m", "ruff", "check", "--select", "E9,F63,F7,F82", "--output-format", "json", "--output-file", "tmp/tao/ruff.json", "plugins/tao-dev/skills/tao-dev/scripts", "tests"]
+timeout_seconds = 15
+metrics = {format = "ruff-json", path = "tmp/tao/ruff.json"}

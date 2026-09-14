@@ -38,8 +38,10 @@ The bundled source validator and maintained regression tests are available.
 Run the repository tests with the project-local Python environment and
 validate only explicitly managed sources against supported profiles.
 Use the bundled tao.py doctor output to identify available CLI commands.
-Local HTML publication is available. Full delivery verification and
-dual-client behavioral acceptance remain incomplete; source checks do not establish them.
+Local HTML publication, configured code checks and evidence freshness
+checks are available. Independent-review receipt integration and full
+dual-client acceptance remain incomplete; partial checks do not establish
+delivery readiness.
 
 # CLI experiments
 
