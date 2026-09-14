@@ -58,9 +58,9 @@ def inspect_python(python):
     try:
         completed = subprocess.run([str(python), "-I", "-c", code],
                                    capture_output=True, text=True, timeout=10, env=environment())
-        info = json.loads(completed.stdout)
         if completed.returncode:
             raise ValueError("Interpreter probe failed")
+        info = json.loads(completed.stdout)
         policy = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))
         if not policy["python_min"] <= info["version"][:2] < policy["python_max"]:
             raise ValueError(f"Supported Python versions: {policy['python_min']} to below {policy['python_max']}")

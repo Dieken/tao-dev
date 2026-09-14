@@ -204,3 +204,10 @@ change: {CHG}
     draft.write_text(text.replace(identity, "DOC_20260914_0000000000000009"))
     assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 1
     assert target.read_bytes() == previous
+
+
+def test_equals_json_format_is_preserved_on_parser_failure(tmp_path):
+    completed = subprocess.run([sys.executable, str(ENTRY), '--project', str(tmp_path), '--format=json', 'unknown-operation'], capture_output=True, text=True)
+    assert completed.returncode == 2
+    result = json.loads(completed.stdout)
+    assert result['status'] == 'not_run'

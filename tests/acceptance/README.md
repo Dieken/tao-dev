@@ -28,3 +28,7 @@ recover 创建新的隔离项目，用实际 CLI 生成计划、执行失败基�
 scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次传入新的 --workspace 和 --scope；脚本将 CLAUDE_CONFIG_DIR、XDG_CONFIG_HOME、GIT_CONFIG_GLOBAL 与运行目录限定在 workspace，再调用真实市场和插件安装命令。这里的 user 仅属于隔离客户端配置，不修改个人安装。加 --probe 读取项目内外初始化事件；scope_loading_verified 表示加载边界正确，model_execution_verified 单独表示模型执行成功。隔离配置没有认证时，加载成功不能代替命令或 hook 的模型行为验收。项目外应无项目级插件；user 范围则在隔离配置的两个目录中都可见。
 
 运行环境测试验证 Python 隔离启动，覆盖率只能统计实际接受 Coverage.py 注入的进程。发布环境不安装开发用 coverage，也不为提高数字关闭 Python 隔离模式；报告中的未观测行不能解释为行为测试未执行。
+
+独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录调用既有 Claude 认证。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。只在请求出站已有授权时执行；这不是消费项目必须安装的工具。调用形态为 `.venv/bin/python scripts/review_claude.py --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
+
+脚本保留实际模型事件和运行摘要；只有调用完成、结论绑定一致且监测的个人配置未变时才生成待导入记录。监测变化、超时或未完成不能作为隔离验收通过；不要猜测原配置后回滚。真实客户端审查不进入普通 pytest，完整 verify 也不自动启动模型。

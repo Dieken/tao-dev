@@ -39,9 +39,8 @@ Run the repository tests with the project-local Python environment and
 validate only explicitly managed sources against supported profiles.
 Use the bundled tao.py doctor output to identify available CLI commands.
 Local HTML publication, configured code checks and evidence freshness
-checks are available. Independent-review receipt integration and full
-dual-client acceptance remain incomplete; partial checks do not establish
-delivery readiness.
+checks are available. Input-bound review imports are available. Full dual-client acceptance
+remains incomplete; partial checks do not establish delivery readiness.
 
 # CLI experiments
 

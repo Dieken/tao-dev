@@ -171,3 +171,13 @@ def test_readonly_release_copy_builds_book_without_uv(tmp_path, tool_runtime):
     report = json.loads(result.stdout)
     assert (root / report["outputs"]["directory"] / "docs/spec.html").is_file()
     assert not list(plugin.rglob("__pycache__"))
+
+
+def test_failed_interpreter_probe_reports_exit_failure_before_decoding(monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('runtime_probe_test', SCRIPTS / 'runtime.py')
+    runtime = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runtime)
+    monkeypatch.setattr(runtime.subprocess, 'run', lambda *a, **kw: subprocess.CompletedProcess(a[0], 1, '', ''))
+    with pytest.raises(runtime.RuntimeFailure, match='Interpreter probe failed'):
+        runtime.inspect_python('/unavailable/python')
