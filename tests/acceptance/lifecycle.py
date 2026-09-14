@@ -1,4 +1,4 @@
-"""Exercise real Codex install, disable, update and removal without a model."""
+"""Exercise native client install, disable, update and removal without a model."""
 
 import argparse
 import json
@@ -75,11 +75,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--codex-legacy', action='store_true')
+    parser.add_argument('--client', choices=['codex', 'claude'], default='codex')
+    parser.add_argument('--claude-scope', choices=['user', 'project', 'local'])
     args = parser.parse_args()
+    if (args.client == 'claude') != bool(args.claude_scope) or args.client == 'claude' and args.codex_legacy:
+        parser.error('Claude lifecycle probes require --claude-scope and cannot use --codex-legacy.')
     before = global_configuration()
     result = {}
     try:
-        result = run(args.workspace.resolve(), codex_legacy=args.codex_legacy)
+        if args.client == 'claude':
+            from isolated_claude import lifecycle
+            result = lifecycle(args.workspace.resolve(), args.claude_scope)
+        else:
+            result = run(args.workspace.resolve(), codex_legacy=args.codex_legacy)
     finally:
         after = global_configuration()
         result['global_configuration_unchanged'] = before == after

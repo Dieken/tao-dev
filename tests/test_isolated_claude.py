@@ -1,0 +1,72 @@
+"""Existing Claude access is scoped to a child and never refreshed by probes."""
+
+import json
+import os
+from pathlib import Path
+import time
+
+import pytest
+
+from acceptance import isolated_claude as adapter
+
+
+def credentials(tmp_path, monkeypatch, *, seconds=600):
+    monkeypatch.setattr(Path, 'home', lambda: tmp_path)
+    for key in ('ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL',
+                'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY'):
+        monkeypatch.delenv(key, raising=False)
+    raw = json.dumps({'claudeAiOauth': {'accessToken': 'access-test', 'refreshToken': 'refresh-test',
+                                      'expiresAt': (time.time() + seconds) * 1000}})
+    monkeypatch.setattr(adapter, 'read_credentials', lambda: raw)
+    return raw
+
+
+def test_access_is_child_only_and_refresh_is_not_forwarded(tmp_path, monkeypatch):
+    credentials(tmp_path, monkeypatch)
+    monkeypatch.setenv('CLAUDE_CODE_OAUTH_REFRESH_TOKEN', 'parent-refresh')
+    before = dict(os.environ)
+    with adapter.access_environment(tmp_path / 'experiment', 90) as (env, secrets):
+        assert env['CLAUDE_CODE_OAUTH_TOKEN'] == 'access-test'
+        assert 'CLAUDE_CODE_OAUTH_REFRESH_TOKEN' not in env
+        assert env['CLAUDE_CONFIG_DIR'] == str(tmp_path / 'experiment/client-config')
+        assert 'refresh-test' in secrets
+        assert dict(os.environ) == before
+    assert 'CLAUDE_CODE_OAUTH_TOKEN' not in env
+    assert dict(os.environ) == before
+    assert not list(tmp_path.iterdir())
+
+
+def test_expired_access_never_starts_a_probe(tmp_path, monkeypatch):
+    credentials(tmp_path, monkeypatch, seconds=150)
+    with pytest.raises(RuntimeError, match='no refresh'):
+        with adapter.access_environment(tmp_path, 90):
+            pytest.fail('Access would expire during this probe.')
+
+
+def test_personal_credential_change_invalidates_probe_without_rollback(tmp_path, monkeypatch):
+    raw = credentials(tmp_path, monkeypatch)
+    values = iter([raw, raw + ' '])
+    monkeypatch.setattr(adapter, 'read_credentials', lambda: next(values))
+    with pytest.raises(RuntimeError, match='no restoration'):
+        with adapter.access_environment(tmp_path, 90) as (env, _):
+            pass
+    assert 'CLAUDE_CODE_OAUTH_TOKEN' not in env
+
+
+def test_custom_route_is_not_silently_replaced(tmp_path, monkeypatch):
+    credentials(tmp_path, monkeypatch)
+    monkeypatch.setenv('ANTHROPIC_BASE_URL', 'https://example.invalid')
+    with pytest.raises(RuntimeError, match='provider routing'):
+        with adapter.access_environment(tmp_path, 90):
+            pytest.fail('Configured routing must not be replaced.')
+
+
+@pytest.mark.parametrize('client', ['claude', 'codex'])
+def test_personal_state_probe_is_rejected_before_starting_client(tmp_path, monkeypatch, client):
+    import sys
+    from acceptance import clients
+    monkeypatch.setattr(sys, 'argv', ['clients.py', '--client', client, '--case', 'inside',
+                                     '--workspace', str(tmp_path / 'experiment')])
+    monkeypatch.setattr(clients.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('Client must not start.'))
+    assert clients.main() == 2
+    assert not (tmp_path / 'experiment').exists()
