@@ -69,14 +69,25 @@ Coverage.py 观察值为 54.91%，覆盖范围包含启动脚本；隔离 Python
 | Claude Code 2.1.268 user／project／local | 三种原生安装均使用独立配置目录，初始化事件验证了项目内外加载边界，监测的个人配置未变；隔离配置无认证，模型执行未通过 |
 | Claude 调用级插件 | 既有认证下，实际发现并调用 status 操作，doctor 正确区分核心可用／出版未准备；原生 Write 触发文档错误反馈，项目外不发现 tao-dev；三例监测的个人配置未变 |
 | Codex CLI 0.154.0 | 既有版本会持久化全局项目信任；隔离守卫返回 blocked，未启动新的模型实验或注册插件 |
-| 原生 Windows／其他 Python 版本 | 未实际验收；PowerShell 入口存在不代表客户端 hook 已兼容 |
+| 原生 Windows | 未实际验收；PowerShell 入口存在不代表客户端 hook 已兼容 |
 
 Claude 三个完成的调用级案例返回模型 claude-opus-5、供应方 firstParty，CLI 标价合计 0.475711 美元；真实账单未知，不含未完成审查。两次独立只读审查基于固定实现快照，分别在 180 秒与 120 秒内未返回结论，不能算通过。首次审查期间，客户端自动刷新了既有官方市场的元数据时间戳；未发现 tao-dev 被全局注册，但该次监测不能声明完全无变化。后一次使用禁用自定义组件的安全模式，监测文件未变；不自动回滚无法还原的既有元数据，不再追加审查调用。
 
 上述固定树验收的代码检查通过；当时总体为 not_run／readiness=blocked，原因包括最后一项验收未完成和必需审查缺失。审查记录接入已实现，后续执行与当前隔离限制见 [交付记录](20260914-bootstrap.md#DOC_20260914_8MPMXBCGKMRS74T4--verification)。最后一项任务继续保持未勾选，不以局部结果降低门槛。原始报告、模型事件及临时运行目录不纳入 VCS；本节只保存摘要。
 
+同一受检提交 `b59329d` 的补充平台验收如下。每组执行 test_runtime.py、test_cli.py、test_hooks.py、test_diagnostics_locale.py，覆盖真实离线准备、无 uv、只读发布副本、失败恢复、出版、CLI 与短检查及本地化；不是原生客户端模型行为验收。
+
+| 环境 | 实测结果 |
+|---|---|
+| macOS x86_64／CPython 3.11.15 | 49 项通过，192.76 秒；按锁文件使用 Sphinx 9.0.4 |
+| macOS x86_64／CPython 3.13.15 | 49 项通过，160.91 秒；解释器及测试依赖仅置于项目临时目录，无全局可执行链接 |
+| macOS x86_64／CPython 3.14.7 | 49 项通过，186.69 秒 |
+| Linux x86_64 容器／CPython 3.12.14 | 49 项通过，129.22 秒；固定源码副本与官方 Python 镜像，包含无需 uv 的离线准备和出版 |
+| Windows | 无真实测试环境，未执行；不以 POSIX 或路径模拟结果替代 |
+
+Python 3.12.13 的维护环境已对同一提交完成全部 198 项回归，结果见 [核心能力验收](20260914-bootstrap.md#DOC_20260914_8MPMXBCGKMRS74T4--verification)。各环境安装发布依赖时校验锁定哈希；测试依赖与基础 Python 分离。Linux 镜像为 `docker.io/library/python@sha256:2fe5997d249a808b8eeea52c58a1dbffbba28754dc11699ef5c029f2d818ce79`；容器已删除，复用的虚拟机恢复停止状态，未安装系统 helper 或修改个人 CLI 配置。此矩阵说明已执行的组合，不宣称所有操作系统与 Python 版本组合均已验证。
+
 <!-- tao:section questions -->
 ## 未决问题
 
 后续验收需要可保持局部配置的 Codex 运行方式、原生 Windows 环境，以及可保持个人配置不变的独立审查执行方式。Claude 三种 scope 的加载结果不能替代各 scope 下完整流程的模型行为验收。
-
