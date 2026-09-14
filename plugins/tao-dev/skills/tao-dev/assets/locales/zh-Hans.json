@@ -34,7 +34,7 @@
   "label.context": "背景与备选",
   "label.decision": "选择",
   "label.consequences": "后果",
-  "label.fingerprint": "输入指纹",
+  "label.fingerprint": "受检输入",
   "label.environment": "环境",
   "label.command": "命令或观察步骤",
   "label.expected": "预期",
