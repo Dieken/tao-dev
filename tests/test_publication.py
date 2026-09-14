@@ -7,7 +7,7 @@ import pytest
 from taolib.project import Project
 from taolib.project import ConfigurationError
 from taolib.publication import build
-from test_documents import DOC, REQ, spec
+from test_documents import DOC, REQ, UC, spec
 from test_relationships import CHANGE_DOC, navigation
 
 
@@ -16,7 +16,9 @@ class Page(HTMLParser):
         super().__init__()
         self.ids = []
         self.links = []
+        self.section_numbers = []
         self.current_link = None
+        self.current_section_number = None
         self.feed(text)
 
     def handle_starttag(self, tag, attrs):
@@ -27,14 +29,21 @@ class Page(HTMLParser):
             attrs["text"] = ""
             self.links.append(attrs)
             self.current_link = attrs
+        if tag == "span" and "section-number" in attrs.get("class", "").split():
+            self.current_section_number = ""
 
     def handle_data(self, data):
         if self.current_link is not None:
             self.current_link["text"] += data
+        if self.current_section_number is not None:
+            self.current_section_number += data
 
     def handle_endtag(self, tag):
         if tag == "a":
             self.current_link = None
+        if tag == "span" and self.current_section_number is not None:
+            self.section_numbers.append(self.current_section_number)
+            self.current_section_number = None
 
 
 def project(root):
@@ -67,6 +76,43 @@ def test_book_has_stable_heading_and_entity_links_that_survive_moves(tmp_path):
     build(configured)
     assert "../docs/renamed.html#" + REQ in resolver.read_text()
     assert not (directory / "docs/spec.html").exists()
+
+
+def test_book_numbers_sections_without_putting_numbers_in_permalinks(tmp_path):
+    configured = project(tmp_path)
+    second_doc = "DOC_20260914_0000000000000010"
+    second_req = "REQ_20260914_0000000000000011"
+    second_uc = "UC_20260914_0000000000000012"
+    part_doc = "DOC_20260914_0000000000000013"
+    second = spec().replace(DOC, second_doc).replace(REQ, second_req)
+    second = second.replace(UC, second_uc)
+    second = second.replace("文件导出", "文件导入")
+    (tmp_path / "docs/second.md").write_text(second)
+    part = navigation("spec.md\nsecond.md").replace(CHANGE_DOC, part_doc)
+    (tmp_path / "docs/part.md").write_text(part)
+    index = tmp_path / "docs/index.md"
+    index.write_text(navigation("part.md"))
+
+    first_result = build(configured)
+    directory = tmp_path / first_result["directory"]
+    first = Page((directory / "docs/spec.html").read_text())
+    second_page = Page((directory / "docs/second.html").read_text())
+    part_html = (directory / "docs/part.html").read_text()
+    stable_href = f"../refs/{DOC}.html#{DOC}--requirements"
+    assert first.section_numbers[:2] == ["1.1. ", "1.1.1. "]
+    assert second_page.section_numbers[:2] == ["1.2. ", "1.2.1. "]
+    assert stable_href in [link["href"] for link in first.links]
+    overview = re.search(fr'<section id="{part_doc}--overview">.*?<h2>(.*?)</h2>',
+                         part_html, re.S)
+    assert overview and "section-number" not in overview.group(1)
+
+    (tmp_path / "docs/part.md").write_text(
+        navigation("second.md\nspec.md").replace(CHANGE_DOC, part_doc)
+    )
+    second_result = build(configured)
+    reordered = Page((tmp_path / second_result["directory"] / "docs/spec.html").read_text())
+    assert reordered.section_numbers[:2] == ["1.2. ", "1.2.1. "]
+    assert stable_href in [link["href"] for link in reordered.links]
 
 
 def test_retired_id_keeps_a_resolvable_explanation(tmp_path):
