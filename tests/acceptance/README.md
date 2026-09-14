@@ -7,9 +7,11 @@
 ```sh
 .venv/bin/python tests/acceptance/clients.py --client claude --case recover --claude-scope project --reuse-claude-auth --disable-hooks --workspace /tmp/tao-claude-recover
 .venv/bin/python tests/acceptance/clients.py --client claude --case plan --claude-scope local --reuse-claude-auth --workspace /tmp/tao-claude-plan
+.venv/bin/python tests/acceptance/clients.py --client claude --case routing --claude-scope local --reuse-claude-auth --workspace /tmp/tao-claude-routing
 .venv/bin/python tests/acceptance/lifecycle.py --client claude --claude-scope user --workspace /tmp/tao-claude-lifecycle
 .venv/bin/python tests/acceptance/clients.py --client codex --case write --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --workspace /tmp/tao-codex-write
 .venv/bin/python tests/acceptance/clients.py --client codex --case recover --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --disable-hooks --workspace /tmp/tao-codex-recover
+.venv/bin/python tests/acceptance/clients.py --client codex --case routing --isolated-codex --reuse-codex-auth --codex-legacy --workspace /tmp/tao-codex-routing
 .venv/bin/python tests/acceptance/lifecycle.py --codex-legacy --workspace /tmp/tao-codex-lifecycle
 ```
 
@@ -26,6 +28,8 @@ Claude 选择 --claude-scope user|project|local 和 --reuse-claude-auth，在全
 inside 核对实际发现、引用定位、doctor/status；outside 不使用工具，只查询初始可用能力，同时核对初始化清单。Claude user 范围在同一试验配置的项目外也应可见，project／local 则不可见。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
 
 plan 从自然语言目标调用 new，再调用 handoff；产出完整计划及相同 CHG 的交接，校验实际文档，保留未实现任务。该微型场景的 Claude 调用明确使用低推理强度与简短文档指导，避免把大篇幅写作混入加载验收；不是对默认推理强度的耗时保证。verify 使用真实失败基线，只运行原生验证入口，预期如实报告失败而不修复代码或勾选任务。Claude 要核对真实 Skill 工具调用，不能仅凭命令出现在初始化列表就算验收。lifecycle.py 的 --client claude 与 --claude-scope 组合检查原生启停、版本更新及卸载；这些不调用模型的检查仍不能替代流程行为。
+
+routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev 并只读取工程与流程规程，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不相信模型自报；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有 prompt 都会采用相同读取路径，也不能充当修改前后的因果基线。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
