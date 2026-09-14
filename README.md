@@ -4,6 +4,8 @@
 
 当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；独立审查凭据适配和完整双 CLI 行为验收尚未完成。
 
+插件运行不需要 uv：标准库入口支持显式 setup 与只读 doctor，核心和文档出版分别准备。使用方式见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)，实际结果与剩余验收边界见 [运行环境变更计划](docs/changes/2026-09/20260914-portable-runtime.md)。
+
 ## 阅读入口
 
 1. [协作开发协议](docs/product/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/engineering/protocol-design.md) 维护协作方式，[长期架构决定](docs/engineering/decisions/index.md) 独立维护技术取舍，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
@@ -27,7 +29,7 @@
 
 开发文档与第三方采用相同的共享 profile：协议承载需求与用例，独立决策文档承载长期 ADR，实施计划承载研发任务；专题设计引用各自权威规则，同一事实不抄写多份。
 
-首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未安装、发布或声明双 CLI 运行兼容。
+首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未公开发布或声明双 CLI 运行兼容。
 
 ## 开发文档与分发边界
 
