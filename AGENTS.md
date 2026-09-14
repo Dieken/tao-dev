@@ -4,6 +4,24 @@ This directory is an independent Git repository. Run Git commands from
 this repository. Do not track it in the enclosing repository or register
 it as a submodule.
 
+# Develop with tao-dev
+
+Read `plugins/tao-dev/skills/tao-dev/SKILL.md` and its relevant bundled
+references when developing this project. This is a project-local source
+entry point; it does not install or register a plugin. `CLAUDE.md` imports
+this guidance for the other target client.
+
+Use the bundled document profiles and templates for new delivery
+documents. Keep reusable rules in the skill and project-specific
+requirements, implementation design, and tasks in `docs/`. Existing
+internal document profiles remain a separately reported migration scope;
+do not use them as templates for new documents or claim they already
+pass the shared format. Preserve existing IDs and content when migrating.
+
+The product CLI and complete AST validator are not implemented. Report
+the actual scope of manual or temporary checks without claiming product
+CLI, publication, or dual-client behavioral acceptance.
+
 # CLI experiments
 
 Use the existing `claude` and `codex` commands and their configured
