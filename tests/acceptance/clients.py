@@ -174,8 +174,10 @@ def main():
         credentials = isolated_claude.access_environment(args.workspace.resolve(), args.timeout)
     secrets = []
     process = None
+    execution_error = None
     try:
-        with credentials as values, logs[0].open('w') as stdout, logs[1].open('w') as stderr:
+        from isolated_codex import private_log
+        with credentials as values, private_log(logs[0]) as stdout, private_log(logs[1]) as stderr:
             if args.claude_scope:
                 scoped, secrets = values
                 env = scoped | {key: env[key] for key in ('TAO_RUNTIME_DIR', 'TAO_PYTHON')}
@@ -194,13 +196,17 @@ def main():
                     except subprocess.TimeoutExpired:
                         os.killpg(process.pid, signal.SIGKILL)
                         process.wait()
+    except RuntimeError as exc:
+        execution_error = str(exc)
+        for secret in secrets:
+            execution_error = execution_error.replace(secret, '[REDACTED]')
     finally:
         if args.isolated_codex or args.claude_scope:
             from isolated_codex import redact
             redact([p for p in logs if p.exists()], secrets)
     after = global_configuration()
     codex_after = tomllib.loads(config_file.read_text()) if config_file.exists() else {}
-    report = {'log_prefix': name, 'client': args.client, 'case': args.case, 'exit_code': process.returncode,
+    report = {'log_prefix': name, 'client': args.client, 'case': args.case, 'exit_code': process.returncode if process else None,
               'timed_out': timed_out, 'elapsed_seconds': round(time.monotonic() - start, 3),
               'global_configuration_unchanged': before == after,
               'changed_global_files': [p for p in before if before[p] != after[p]],
@@ -211,8 +217,12 @@ def main():
               'package_format': 'codex-legacy' if args.codex_legacy else 'public',
               'hook_trust': args.trust_test_hook, 'hooks_disabled': args.disable_hooks,
               'codex_model_configuration': {'model': codex_before.get('model'), 'provider': codex_before.get('model_provider', 'openai')} if args.client == 'codex' else None}
+    if execution_error:
+        report.update(status='blocked', reason=execution_error)
     (logdir / (name + '.summary.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
+    if execution_error:
+        return 2
     return 1 if timed_out or process.returncode or not report['global_configuration_unchanged'] else 0
 
 

@@ -70,3 +70,35 @@ def test_personal_state_probe_is_rejected_before_starting_client(tmp_path, monke
     monkeypatch.setattr(clients.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('Client must not start.'))
     assert clients.main() == 2
     assert not (tmp_path / 'experiment').exists()
+
+
+def test_expiring_credentials_produce_a_structured_runner_failure(tmp_path, monkeypatch, capsys):
+    import importlib
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from acceptance import clients
+    monkeypatch.syspath_prepend(str(Path(__file__).parent / 'acceptance'))
+    native = importlib.import_module('isolated_claude')
+    monkeypatch.setattr(clients, 'ROOT', tmp_path / 'source')
+    monkeypatch.setattr(Path, 'home', lambda: tmp_path / 'home')
+    monkeypatch.setattr(clients, 'global_configuration', lambda: {})
+    monkeypatch.setattr(clients, 'prepare', lambda *args, **kwargs: tmp_path / 'plugin')
+    monkeypatch.setattr(native, 'configure', lambda *args: None)
+    monkeypatch.setattr(clients.subprocess, 'run', lambda *args, **kwargs:
+                        SimpleNamespace(returncode=0, stdout='', stderr=''))
+    monkeypatch.setattr(clients.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('No model may start.'))
+
+    @contextmanager
+    def expired(*args):
+        raise RuntimeError('Existing access cannot cover the probe; no refresh attempted.')
+        yield
+
+    monkeypatch.setattr(native, 'access_environment', expired)
+    monkeypatch.setattr(clients.sys, 'argv', ['clients.py', '--client', 'claude', '--case', 'inside',
+                        '--claude-scope', 'project', '--reuse-claude-auth', '--workspace', str(tmp_path / 'experiment')])
+    assert clients.main() == 2
+    result = json.loads(capsys.readouterr().out)
+    assert result['status'] == 'blocked' and result['exit_code'] is None
+    assert 'no refresh' in result['reason']
+    saved = next((tmp_path / 'source/tmp/tao/client-acceptance').glob('*.summary.json'))
+    assert json.loads(saved.read_text()) == result

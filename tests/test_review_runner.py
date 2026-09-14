@@ -40,6 +40,9 @@ def fixture_runner(tmp_path, monkeypatch, *, changed=False, expired=False, timeo
             assert kwargs['env']['CLAUDE_CODE_OAUTH_TOKEN'] == 'secret-test'
             assert kwargs['env']['CLAUDE_CONFIG_DIR'] == str(tmp_path / 'client-config')
             assert kwargs['cwd'] == tmp_path and kwargs['start_new_session']
+            assert tmp_path.stat().st_mode & 0o777 == 0o700
+            for stream in (kwargs['stdout'], kwargs['stderr']):
+                assert runner.os.fstat(stream.fileno()).st_mode & 0o777 == 0o600
             kwargs['stdout'].write('secret-test\n')
 
         def communicate(self, prompt, timeout):
@@ -64,6 +67,7 @@ def fixture_runner(tmp_path, monkeypatch, *, changed=False, expired=False, timeo
 
 def test_review_uses_child_access_and_redacts_logs(tmp_path, monkeypatch):
     observed = fixture_runner(tmp_path, monkeypatch)
+    tmp_path.chmod(0o755)
     result = runner.run_review(['fake-review'], 'synthetic fixture only', tmp_path, 30)
     assert result['exit_code'] == 0 and result['personal_configuration_unchanged']
     assert result['credentials_unchanged'] and result['error'] is None
@@ -95,3 +99,47 @@ def test_invalid_review_invocation_stops_before_reading_inputs(monkeypatch, opti
     with pytest.raises(SystemExit) as result:
         runner.main()
     assert result.value.code == 2
+
+
+@pytest.mark.parametrize('invalid', [False, 'severity', 'empty-summary', 'extra-field', 'duplicate-id'])
+def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch, invalid):
+    import json
+    from types import SimpleNamespace
+    bound = {'source_digest': 'a' * 64, 'policy_digest': 'b' * 64, 'change': 'CHG_fixture'}
+    request = tmp_path / 'request.json'
+    request.write_text(json.dumps({'outputs': {'request': {'binding': bound,
+                       'required_reviews': ['independent-implementation-review']}}}))
+    monkeypatch.setattr(runner, 'ROOT', tmp_path)
+    monkeypatch.setattr(runner, 'Project', lambda root: object())
+    monkeypatch.setattr(runner, 'policy', lambda project: {})
+    monkeypatch.setattr(runner, 'binding', lambda *args: bound)
+    monkeypatch.setattr(runner.subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(returncode=0))
+    monkeypatch.setattr(runner.subprocess, 'check_output', lambda args, **kwargs:
+                        'c' * 40 if 'rev-parse' in args else b'' if 'ls-files' in args else 'synthetic source')
+    monkeypatch.setattr(runner.sys, 'argv', ['review_claude.py', '--request', str(request), '--tree', 'HEAD',
+                                          '--reuse-claude-auth', '--files', 'example.py'])
+
+    def fake_review(command, prompt, output, timeout):
+        finding = dict(id='F1', severity='suggestion', location='example.py:1', problem='Example issue.',
+                       disposition='open', rationale='Example evidence.')
+        conclusion = dict(binding=bound, summary='Synthetic review.', findings=[finding], limitations=[])
+        if invalid == 'severity':
+            finding['severity'] = 'critical'
+        elif invalid == 'empty-summary':
+            conclusion['summary'] = ''
+        elif invalid == 'extra-field':
+            finding['rationale_note'] = ''
+        elif invalid == 'duplicate-id':
+            conclusion['findings'].append(dict(finding))
+        events = [dict(type='system', subtype='init', session_id='reviewer-context', apiProvider='test-provider'),
+                  dict(type='assistant', message={'model': 'test-model'}),
+                  dict(type='result', subtype='success', is_error=False, session_id='reviewer-context',
+                       structured_output=conclusion, total_cost_usd=0)]
+        (output / 'events.jsonl').write_text('\n'.join(json.dumps(e) for e in events))
+        return dict(exit_code=0, timed_out=False, error=None, personal_configuration_unchanged=True,
+                    credentials_unchanged=True)
+
+    monkeypatch.setattr(runner, 'run_review', fake_review)
+    assert runner.main() == (2 if invalid else 0)
+    reports = list((tmp_path / 'tmp/tao/review-runs').glob('*/review.json'))
+    assert len(reports) == (0 if invalid else 1)
