@@ -151,6 +151,8 @@ def import_review(project, config, change, source):
     before = binding(project, config, change)
     if value['binding'] != before:
         raise ConflictError('Review inputs are stale or belong to another change.')
+    path = path_for(project, change, value['requirement'])
+    expected = path.read_bytes() if path.exists() else None
     try:
         confirm_source(project, value)
     except (KeyError, TypeError, AttributeError) as exc:
@@ -158,10 +160,9 @@ def import_review(project, config, change, source):
     with mutation_lock(project):
         if binding(project, config, change) != before:
             raise ConflictError('Review inputs changed during import.')
-        path = path_for(project, change, value['requirement'])
         encoded = json.dumps(value, ensure_ascii=False, indent=2) + '\n'
-        if path.exists():
-            replace_file(project.root, path, encoded, path.read_bytes())
+        if expected is not None:
+            replace_file(project.root, path, encoded, expected)
         else:
             create_file(project.root, path, encoded)
     return {'receipt': path.relative_to(project.root).as_posix(), 'requirement': value['requirement']}

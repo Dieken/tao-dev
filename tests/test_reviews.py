@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 
 import pytest
 
+from taolib import reviews
+from taolib.project import ConflictError, Project
+from taolib.verification import policy
 from test_verification import configured, report
 from test_relationships import CHG
 
@@ -129,6 +132,26 @@ def test_review_receipt_corruption_fails_closed(tmp_path):
     path = next((tmp_path / "tmp/tao/reviews").rglob("*.json"))
     path.write_text('{"status":"passed"}')
     assert report(tmp_path, "verify", CHG)[0] == 2
+
+
+def test_review_import_preserves_receipt_changed_during_preparation(tmp_path, monkeypatch):
+    setup_review(tmp_path)
+    value = attestation(tmp_path)
+    assert submit(tmp_path, value)[0] == 0
+    receipt = next((tmp_path / 'tmp/tao/reviews').rglob('*.json'))
+    source = tmp_path / 'tmp/tao/reimport.json'
+    source.write_text(json.dumps(value))
+    project = Project(tmp_path)
+    confirm_source = reviews.confirm_source
+
+    def concurrent_change(current_project, current_value):
+        confirm_source(current_project, current_value)
+        receipt.write_text('concurrent receipt')
+
+    monkeypatch.setattr(reviews, 'confirm_source', concurrent_change)
+    with pytest.raises(ConflictError):
+        reviews.import_review(project, policy(project), CHG, source.relative_to(tmp_path))
+    assert receipt.read_text() == 'concurrent receipt'
 
 
 def test_old_source_cannot_be_rewrapped_with_a_new_input_binding(tmp_path):
