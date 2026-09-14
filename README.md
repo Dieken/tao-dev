@@ -2,22 +2,22 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；完整交付验证、出版站点和双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；完整交付验证和双 CLI 行为验收尚未完成。
 
 ## 阅读入口
 
-1. [协作开发协议](docs/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/protocol-design.md) 维护协作方式及架构决定，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
+1. [协作开发协议](docs/product/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/engineering/protocol-design.md) 维护协作方式及架构决定，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
 2. [术语与缩写](docs/glossary.md)：统一概念、ID 类型前缀及常用缩写。
-3. [Markdown 文档契约](docs/document-contract.md)：解析器设计、文档检查范围及 skill 规范入口。
-4. [文档组织与产物保存](docs/document-layout.md)：本项目文档组织的设计依据及规则入口。
-5. [插件打包与运行环境](docs/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
-6. [tao 命令与流程接入](docs/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
+3. [Markdown 文档契约](docs/engineering/document-contract.md)：解析器设计、文档检查范围及 skill 规范入口。
+4. [文档组织与产物保存](docs/engineering/document-layout.md)：本项目文档组织的设计依据及规则入口。
+5. [插件打包与运行环境](docs/engineering/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
+6. [tao 命令与流程接入](docs/engineering/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
 
 运行材料从 [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md) 进入，入口要求读取 [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)。规程直接指导使用方项目的设计、编码、验证、评审和演进。
 
 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，skill 提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；CLI 读取同一份格式注册表。
 
-[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式、模板和源图检查已提供，Sphinx 书籍构建尚未实现。
+[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式、模板和源图检查已提供，Sphinx 书籍构建和稳定入口检查已实现。
 
 [流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已实现 doctor、id new、show、new、status、handoff 和 verify 文档子集；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
 
@@ -40,7 +40,7 @@
 | 格式注册表、模板、显示资源 | skill 的 assets/ | 是，skill 与 CLI 共用 |
 | 本项目需求、实现理由、研发任务和证据 | 项目 docs/ | 否，仅供开发维护 |
 
-共享规则由 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 导航。开发文档引用包内权威源，运行材料不反向引用开发文档；将来出版书籍复用同一源文件，不另复制一套规范。
+共享规则由 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 导航。开发文档引用包内权威源，运行材料不反向引用开发文档；出版书籍复用同一源文件，不另复制一套规范。
 
 每份随 skill 发布的资源应有明确的 prompt 读取入口或运行调用方；只有 CLI 使用的资源无需读入 LLM 上下文。描述“如何实现 tao CLI”的设计文档不等于“tao CLI 运行时使用的资源”；尚未实现的调用方要标明计划用途，不能声称已经调用。混合两类内容的文件按段落职责拆分，不因其中一部分需要分发就把整份研发文档加入包。
 
@@ -62,7 +62,7 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 
 维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用 skill 提供的 profile 与模板，变更计划按 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` 保存，简短验证结论直接写入计划，独立摘要与附件按需放在同月的同名目录内；原始日志默认不纳入 VCS。
 
-自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
+自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/engineering/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
 
 本 README 是阅读导航，不纳入正文 profile 的结构校验。新增文档类型与正式工具时，再扩展 schema 和检查范围；不预建空目录或自动安装 skill。
 
@@ -84,3 +84,11 @@ tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --o
 ```
 
 单独检查一个文件可能报告范围外的引用；跨文档关系需要一起传入相关文件。仓库回归测试会纳入 docs/ 下的全部 Markdown。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
+
+## 构建开发手册
+
+开发依赖已包含可选出版组件。运行以下命令，按输出的 index 打开 HTML；也可用本地 HTTP 服务器预览 tmp/tao/book/。构建不会发布外部站点，生成文件默认不纳入 VCS。
+
+```sh
+tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
+```

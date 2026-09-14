@@ -9,9 +9,9 @@ created: '2026-09-14'
 
 # tao 命令与流程接入
 
-本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
+本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
 
-使用方格式由 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
+使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
 
 <!-- tao:section overview -->
 ## 用户操作与命名依据
@@ -64,14 +64,14 @@ agent 入口的描述不是 slug 参数，也不按 shell 参数拆分。只输�
 
 new 的 agent 入口交付目标、范围、已有依据、可确定的验收及下一步规划入口；不足以决定的设计与任务如实标为未决，不虚构方案。草稿不等于评审通过或完整 plan 阶段完成，new 本身不隐含开始编码；同一请求已明确授权继续设计或实现时，按原请求推进，不额外要求用户输入下一条命令。
 
-优先复用已有 skill；按需增加入口包装，不为每个辅助 CLI 子命令创建一个 skill。核心 CLI 与变更骨架生成已实现，客户端入口待验收；操作能力和配置以 [工具规程](../plugins/tao-dev/skills/tao-dev/references/tools.md) 及 doctor 输出为准。
+优先复用已有 skill；按需增加入口包装，不为每个辅助 CLI 子命令创建一个 skill。核心 CLI 与变更骨架生成已实现，客户端入口待验收；操作能力和配置以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 及 doctor 输出为准。
 
 验证统一使用 verify；文档检查、行为验证及只读收尾判断是其内部分类。验收后的归档、集成和发布按实际授权处理，不从命名自动派生额外步骤。未发布的草案名称不保留兼容别名。
 
 <!-- tao:section architecture -->
 ## 流程接入
 
-skill 对照 [流程操作规程](../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+skill 对照 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
 
 doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。某项 CLI 能力缺失时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
 

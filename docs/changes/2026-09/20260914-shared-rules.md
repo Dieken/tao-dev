@@ -18,7 +18,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section references -->
 ## 规格引用
 
-项目依据见 [协作开发协议](../../protocol.md) 的文档统一格式、信息单一来源及自举需求。运行规则由 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与同包注册表定义。
+项目依据见 [协作开发协议](../../product/protocol.md) 的文档统一格式、信息单一来源及自举需求。运行规则由 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与同包注册表定义。
 
 <!-- tao:section design -->
 ## 设计

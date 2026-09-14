@@ -20,7 +20,7 @@ tao-dev in top-level `docs/`, including CLI implementation design and
 project requirements, tasks, and test reports. Split mixed-purpose
 documents and identify each bundled resource's reader or runtime caller.
 Development documents use the same shared profiles as consuming projects;
-their scope and implementation rationale are in `docs/document-contract.md`.
+their scope and implementation rationale are in `docs/engineering/document-contract.md`.
 Check each document against its declared schema and report the actual
 validation scope. Preserve existing IDs and references when editing.
 
@@ -38,8 +38,8 @@ The bundled source validator and maintained regression tests are available.
 Run the repository tests with the project-local Python environment and
 validate only explicitly managed sources against supported profiles.
 Use the bundled tao.py doctor output to identify available CLI commands.
-Full delivery verification, publication and dual-client behavioral
-acceptance remain incomplete; source checks do not establish them.
+Local HTML publication is available. Full delivery verification and
+dual-client behavioral acceptance remain incomplete; source checks do not establish them.
 
 # CLI experiments
 

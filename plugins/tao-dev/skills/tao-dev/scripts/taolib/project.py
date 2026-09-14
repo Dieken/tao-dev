@@ -58,9 +58,9 @@ class Project:
             contained(self.root, value)
         self.book_root = documents.get("book_root")
         if self.book_root is not None:
-            if not isinstance(self.book_root, str):
+            if not isinstance(self.book_root, str) or not self.book_root or Path(self.book_root).is_absolute():
                 raise ConfigurationError("documents.book_root must be a relative path.")
-            contained(self.root, self.book_root)
+            self.book_root = contained(self.root, self.book_root).resolve().relative_to(self.root).as_posix()
         self.locale = self.config.get("locale")
         if self.locale is not None and not isinstance(self.locale, str):
             raise ConfigurationError("locale must be a language tag string.")
