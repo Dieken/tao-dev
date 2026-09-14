@@ -21,7 +21,7 @@
 
 [文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式、模板和源图检查已提供，Sphinx 书籍构建和稳定入口检查已实现。
 
-[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已实现 doctor、id new、show、new、status、handoff 和 verify 文档子集；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
+[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已提供核心文档操作、配置驱动的验证、审查记录接入和本地出版；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
 
 开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。客户端斜杠入口仍待双端验收。检查范围由 agent 选择，完整验证同时汇总收尾条件。
 

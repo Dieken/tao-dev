@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # tao 命令与流程接入
 
-本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
+本文定义工具接口及实现边界，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。已实现操作及精确调用方式以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 和 doctor 返回的能力为准；本文保留尚待实现接口的边界说明。 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
 
 使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](documentation/contract.md)。
 
@@ -134,7 +134,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 
 退出码 `0` 表示本次所选检查通过，`1` 表示发现不满足条件的结果，`2` 表示配置／工具故障、能力缺失或检查未完成。带 `--only` 的通过可以返回 0，但 coverage 固定为 partial、readiness 为 not-evaluated。完整调用只有必需检查及收尾条件满足才返回 0，并报告 complete／checks-satisfied；开放任务或未解决阻断返回 1，必需工具不可用返回 2。CI 的交付门槛必须核实完整报告，不能把局部调用的 0 当作整体通过。dry-run 的 0 仅表示选择计划有效，coverage 为 unknown、readiness 为 not-evaluated，不是执行证据。
 
-逐项结果区分 passed、failed、not_run、not_applicable、stale；不适用必须有条件依据。文档子集或尚无 CHG／EVD 支持的版本，不能把缺失的完整验证能力自动标为不适用。人工观察可登记为证据，但不伪造工具退出码，也不从两份模型报告的存在推导独立审查完成。
+逐项结果区分 passed、failed、not_run、not_applicable、stale；不适用必须有条件依据。不能把缺失的完整验证能力自动标为不适用。人工观察可登记为证据，但不伪造工具退出码，也不从两份模型报告的存在推导独立审查完成。
 
 #### 环境与写入边界
 

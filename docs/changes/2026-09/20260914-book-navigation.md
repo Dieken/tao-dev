@@ -53,4 +53,4 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
 <!-- tao:section questions -->
 ## 未决问题
 
-Sphinx 主题、PDF 篇章映射和正式导航检查器尚待实现。
+Sphinx 书籍主题、源目录导航及稳定链接检查已有实现；PDF 篇章映射尚未实现，不能从 HTML 构建通过推断 PDF 支持。当前验收见 [交付记录](20260914-bootstrap.md)。

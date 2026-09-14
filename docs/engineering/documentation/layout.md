@@ -9,7 +9,7 @@ created: '2026-09-14'
 
 # 文档组织与产物保存
 
-本文规定产品模板与出版实现的目标规则，落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。[文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和格式注册表维护使用方的统一格式与模板；本篇解释内容组织的设计理由。生成器与完整校验器尚未实现，既有目录可映射，未接入格式不得宣称通过。
+本文规定产品模板与出版实现的目标规则，落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。[文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和格式注册表维护使用方的统一格式与模板；本篇解释内容组织的设计理由。变更骨架生成、源文件格式与关系校验、本地书籍导航已实现。既有目录可映射；未接入格式不得宣称通过，结构校验也不代替内容语义审查。
 
 <!-- tao:section overview -->
 ## 目标与边界
