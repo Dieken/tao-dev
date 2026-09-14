@@ -20,7 +20,7 @@ tao-dev in top-level `docs/`, including CLI implementation design and
 project requirements, tasks, and test reports. Split mixed-purpose
 documents and identify each bundled resource's reader or runtime caller.
 Development documents use the same shared profiles as consuming projects;
-their scope and implementation rationale are in `docs/engineering/document-contract.md`.
+their scope and implementation rationale are in `docs/engineering/documentation/contract.md`.
 Check each document against its declared schema and report the actual
 validation scope. Preserve existing IDs and references when editing.
 

@@ -11,7 +11,7 @@ created: '2026-09-14'
 
 本文定义拟实现的工具接口，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。**当前尚无 tao 可执行程序，下述命令均为接口设计，不是可直接运行的使用说明。** [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
 
-使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](document-contract.md)。
+使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](documentation/contract.md)。
 
 <!-- tao:section overview -->
 ## 用户操作与命名依据
@@ -123,7 +123,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 
 不增加 fast／strict 等通用等级开关，也不要求每次选 `--profile`。快速反馈通过局部分类及有效证据复用获得；高风险需要的额外检查由既定策略和明确的风险判断决定。预算不足或能力缺失时记录 not_run，不偷偷降级。后续修订策略应有明确理由与版本，不能为本次通过临时降低要求。
 
-输入识别采用 skill 中的保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。摘要默认写入计划 verification；原始输出只在生成目录或 CI 保存，确有持久需求才按 [产物保存约定](document-layout.md) 归档。日志不可用与输入不匹配分别报告，不因前者改写历史 passed 或任务状态。
+输入识别采用 skill 中的保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。摘要默认写入计划 verification；原始输出只在生成目录或 CI 保存，确有持久需求才按 [产物保存约定](documentation/layout.md) 归档。日志不可用与输入不匹配分别报告，不因前者改写历史 passed 或任务状态。
 
 #### 结果与完成语义
 

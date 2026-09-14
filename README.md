@@ -6,10 +6,10 @@
 
 ## 阅读入口
 
-1. [协作开发协议](docs/product/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/engineering/protocol-design.md) 维护协作方式及架构决定，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
+1. [协作开发协议](docs/product/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/engineering/protocol-design.md) 维护协作方式，[长期架构决定](docs/engineering/decisions/index.md) 独立维护技术取舍，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
 2. [术语与缩写](docs/glossary.md)：统一概念、ID 类型前缀及常用缩写。
-3. [Markdown 文档契约](docs/engineering/document-contract.md)：解析器设计、文档检查范围及 skill 规范入口。
-4. [文档组织与产物保存](docs/engineering/document-layout.md)：本项目文档组织的设计依据及规则入口。
+3. [Markdown 文档契约](docs/engineering/documentation/contract.md)：解析器设计、文档检查范围及 skill 规范入口。
+4. [文档组织与产物保存](docs/engineering/documentation/layout.md)：本项目文档组织的设计依据及规则入口。
 5. [插件打包与运行环境](docs/engineering/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
 6. [tao 命令与流程接入](docs/engineering/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
 
@@ -25,7 +25,7 @@
 
 [独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
 
-开发文档与第三方采用相同的共享 profile：协议承载需求与用例，流程设计承载 ADR，实施计划承载研发任务；专题设计引用各自权威规则，同一事实不抄写多份。
+开发文档与第三方采用相同的共享 profile：协议承载需求与用例，独立决策文档承载长期 ADR，实施计划承载研发任务；专题设计引用各自权威规则，同一事实不抄写多份。
 
 首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未安装、发布或声明双 CLI 运行兼容。
 
@@ -62,7 +62,7 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 
 维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用 skill 提供的 profile 与模板，变更计划按 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` 保存，简短验证结论直接写入计划，独立摘要与附件按需放在同月的同名目录内；原始日志默认不纳入 VCS。
 
-自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/engineering/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
+自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/engineering/documentation/contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
 
 本 README 是阅读导航，不纳入正文 profile 的结构校验。新增文档类型与正式工具时，再扩展 schema 和检查范围；不预建空目录或自动安装 skill。
 
