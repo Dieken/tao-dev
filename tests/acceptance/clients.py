@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -15,6 +16,89 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / 'plugins/tao-dev'
+RESOURCE_PATH = re.compile(
+    r'skills/tao-dev/(?P<resource>SKILL\.md|references/[A-Za-z0-9_.-]+\.md|'
+    r'assets/[A-Za-z0-9_./-]+)')
+DOCUMENT_RESOURCES = {
+    'references/documents.md',
+    'references/document-layout.md',
+    'references/document-standards.md',
+    'references/document-diagnostics.md',
+    'references/evidence-retention.md',
+    'references/glossary.md',
+    'references/localization.md',
+    'references/publication.md',
+}
+
+
+def reference_reads(path, client):
+    """Return tao-dev resources named by actual client tool invocations."""
+    invocations = []
+    skill_invoked = False
+    seen = set()
+    if not path.is_file():
+        return {'skill_invoked': False, 'resources': [], 'broad_scans': []}
+    for line in path.read_text(errors='replace').splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if client == 'claude' and event.get('type') == 'assistant':
+            for block in event.get('message', {}).get('content', []):
+                if block.get('type') != 'tool_use':
+                    continue
+                inputs = block.get('input', {})
+                if block.get('name') == 'Skill' and inputs.get('skill', '').startswith('tao-dev:'):
+                    skill_invoked = True
+                if block.get('name') == 'Read' and isinstance(inputs.get('file_path'), str):
+                    invocations.append(inputs['file_path'])
+                elif block.get('name') == 'Bash' and isinstance(inputs.get('command'), str):
+                    invocations.append(inputs['command'])
+                elif block.get('name') in ('Glob', 'Grep') and isinstance(inputs.get('path'), str):
+                    invocations.append(json.dumps(inputs, sort_keys=True))
+        elif client == 'codex':
+            item = event.get('item', {})
+            command = item.get('command')
+            if item.get('type') == 'command_execution' and isinstance(command, str) and command not in seen:
+                seen.add(command)
+                invocations.append(command)
+
+    resources = set()
+    broad_scans = []
+    for invocation in invocations:
+        matches = list(RESOURCE_PATH.finditer(invocation))
+        for match in matches:
+            resource = match.group('resource')
+            if resource == 'SKILL.md':
+                skill_invoked = True
+            else:
+                resources.add(resource)
+        if (re.search(r'skills/tao-dev/references(?!/[A-Za-z0-9_.-]+\.md)', invocation)
+                and invocation not in broad_scans):
+            broad_scans.append(invocation)
+    return {
+        'skill_invoked': skill_invoked,
+        'resources': sorted(resources),
+        'broad_scans': broad_scans,
+    }
+
+
+def assess_routing(reads):
+    required = {'references/engineering.md', 'references/workflow.md'}
+    resources = set(reads['resources'])
+    unexpected = sorted(resource for resource in resources
+                        if resource in DOCUMENT_RESOURCES or resource.startswith('assets/'))
+    unnecessary = sorted(resources - required)
+    missing = sorted(required - resources)
+    passed = (reads['skill_invoked'] and not missing and not unnecessary
+              and not reads['broad_scans'])
+    return {
+        'status': 'passed' if passed else 'failed',
+        'missing_required_reads': missing,
+        'unexpected_document_reads': unexpected,
+        'unexpected_resource_reads': unnecessary,
+        'broad_scans': reads['broad_scans'],
+    }
 
 
 def global_configuration():
@@ -53,7 +137,7 @@ def prepare(directory, client, *, native_plugin=False, codex_legacy=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--client', choices=['claude', 'codex'], required=True)
-    parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write', 'recover', 'plan', 'verify'], required=True)
+    parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write', 'recover', 'plan', 'verify', 'routing'], required=True)
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=180)
     parser.add_argument('--isolated-codex', action='store_true', help='Use fresh experiment-only native plugin state.')
@@ -84,6 +168,12 @@ def main():
     directory = args.workspace.resolve() / args.client / ('outside' if args.case == 'outside' else 'recovery-' + str(time.time_ns()) if args.case == 'recover' else 'inside')
     directory.mkdir(parents=True, exist_ok=True)
     plugin = None if args.case == 'outside' else prepare(directory, args.client, native_plugin=args.isolated_codex, codex_legacy=args.codex_legacy)
+    if args.case == 'routing':
+        (directory / 'example.py').write_text(
+            'from pathlib import Path\n\ndef export(path, value)\n    Path(path).write_text(value)\n')
+    routing_before = ({name: (directory / name).read_bytes()
+                       for name in ('requirements.txt', '.tao/config.toml')}
+                      if args.case == 'routing' else None)
     env = os.environ.copy()
     native_boundary = None
     if args.isolated_codex:
@@ -151,13 +241,23 @@ def main():
                              'Use the actual Skill entry on Claude. Do not repair code, edit requirements or configuration, or check off tasks. '
                              'Run full verification and report its measured result and why readiness is or is not satisfied. '
                              'An honestly reported failed verification is the expected outcome of this acceptance experiment.')
+    elif args.case == 'routing':
+        prompt = boundary + (
+            'Use the advertised tao-dev skill to fix only the syntax error in example.py. '
+            'This is a local implementation correction with no requirement, design, or documentation change. '
+            'Follow the skill references required for implementation, but do not read document-format, '
+            'publication, localization, glossary, evidence-retention, or template resources because this task '
+            'has no documentation responsibility. Do not scan plugin resource directories. Do not create files '
+            'under docs or change requirements.txt, .tao, or plugin resources. Check the repaired source by '
+            'compiling it without writing bytecode, then report the measured result concisely. Python interpreter: '
+            + sys.executable)
     else:
         prompt = boundary + 'Use a native file Write/Edit/apply_patch tool to create docs/probe.md containing exactly "# Probe\n". This deliberately invalid document tests hook feedback. Do not fix it, run checks manually, or invoke the hook yourself. Report any hook feedback actually observed.'
     if args.client == 'claude':
         command = ['claude', '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--max-budget-usd', '2', '--tools', 'Read,Glob,Grep,Skill,Bash,Write,Edit', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
         if args.case == 'review':
             command += ['--agent', 'tao-dev:reviewer']
-        if args.case == 'plan':
+        if args.case in ('plan', 'routing'):
             command += ['--effort', 'low']
     else:
         command = ['codex', '-c', 'projects.' + json.dumps(str(directory)) + '.trust_level="trusted"', '-a', 'never', 'exec', '--ephemeral', '--json', '--skip-git-repo-check', '--sandbox', 'workspace-write']
@@ -217,13 +317,37 @@ def main():
               'package_format': 'codex-legacy' if args.codex_legacy else 'public',
               'hook_trust': args.trust_test_hook, 'hooks_disabled': args.disable_hooks,
               'codex_model_configuration': {'model': codex_before.get('model'), 'provider': codex_before.get('model_provider', 'openai')} if args.client == 'codex' else None}
+    if args.case == 'routing':
+        reads = reference_reads(logs[0], args.client)
+        routing = assess_routing(reads)
+        try:
+            compile((directory / 'example.py').read_text(), 'example.py', 'exec')
+            syntax_valid = True
+        except (OSError, SyntaxError, UnicodeError):
+            syntax_valid = False
+        routing['reads'] = reads
+        routing['syntax_valid'] = syntax_valid
+        routing['unexpected_documents'] = sorted(
+            path.relative_to(directory).as_posix()
+            for path in (directory / 'docs').rglob('*') if path.is_file())
+        routing['protected_inputs_unchanged'] = all(
+            (directory / path).is_file()
+            and (directory / path).read_bytes() == content
+            for path, content in routing_before.items())
+        if (not syntax_valid or routing['unexpected_documents']
+                or not routing['protected_inputs_unchanged']):
+            routing['status'] = 'failed'
+        report['reference_routing'] = routing
     if execution_error:
         report.update(status='blocked', reason=execution_error)
     (logdir / (name + '.summary.json')).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
     if execution_error:
         return 2
-    return 1 if timed_out or process.returncode or not report['global_configuration_unchanged'] else 0
+    routing_failed = (args.case == 'routing'
+                      and report.get('reference_routing', {}).get('status') != 'passed')
+    return 1 if (timed_out or process.returncode or not report['global_configuration_unchanged']
+                 or routing_failed) else 0
 
 
 if __name__ == '__main__':
