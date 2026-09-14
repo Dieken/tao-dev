@@ -472,5 +472,45 @@
         "root_reachability": true
       }
     }
+  },
+  "retirement_records": {
+    "default_directory": "docs/retired",
+    "filename_pattern": "^[0-9]{8}\\.jsonl$",
+    "filename_date_field": "retired_on",
+    "encoding": "UTF-8",
+    "record_format": "one JSON object per line",
+    "blank_lines": "error",
+    "duplicate_keys": "error",
+    "unknown_fields": "error",
+    "fields": {
+      "id": {
+        "type": "id",
+        "required": true
+      },
+      "retired_on": {
+        "type": "string",
+        "format": "date",
+        "required": true
+      },
+      "reason": {
+        "type": "string",
+        "nonblank": true,
+        "required": true
+      },
+      "replaced_by": {
+        "type": "array",
+        "items": "id",
+        "same_type_as": "id",
+        "unique": true,
+        "required": true
+      }
+    },
+    "id_rules": "id",
+    "unique_id_scope": "all source definitions and retirement files",
+    "source_definition_coexistence": false,
+    "replacement_targets_resolve": true,
+    "replacement_cycles": false,
+    "ordering": "not significant",
+    "publication": "index data, not Markdown navigation"
   }
 }

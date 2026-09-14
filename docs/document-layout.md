@@ -17,6 +17,10 @@ bootstrap: manual
 
 内容归属的权威规则见随包 [文档组织规程](../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
 
+退役记录是项目自身的追溯数据，默认按退役日期存入 docs/retired/，随源文档保留；.tao/ 仅用于工具及 skill 配置。可重建状态使用生成产物目录，避免项目文档生命周期依赖某个工具的私有状态。日期分组控制文件增长，并不提供跨分支互斥；读取全部日期文件后仍需统一检查 ID 和替代关系。
+
+保留 retired 命名，因为本记录描述已移除条目的追溯占位；deprecations 容易被理解为仍可使用的功能弃用通知。HTTP 领域的 [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html#section-5) 明确说明弃用本身不改变资源行为，[RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html#section-1) 另行处理停止服务的时间；这里只借鉴语义区别，不将 HTTP 标准当作文档目录命名规范。
+
 ### 篇章导航的实现取舍
 
 采用有语义的子目录与统一 navigation profile，允许单页章和多页章，目录页只维护导读与阅读顺序。父子关系以 MyST toctree 为唯一来源，不在元数据中再存 parent／order，避免移动或重排需要同步多个索引；新的目录页仍使用 DOC，不引入另一套篇章编号系统。
