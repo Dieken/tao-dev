@@ -140,6 +140,7 @@
     },
     "ADR": {
       "directive": "adr",
+      "field_label_style": "strong",
       "statuses": [
         "proposed",
         "accepted",

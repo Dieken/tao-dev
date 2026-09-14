@@ -83,11 +83,13 @@ retired 表示条目已退出当前有效集合；deprecation 表示不建议继
 
 共同选项为必需的 id、status，以及可选 links、supersedes；UC 还必须提供 verifies。关系值为逗号分隔的完整 ID，不允许空成员或重复成员；verifies 只指向 REQ，supersedes 只指向同类型。status 使用 proposed、accepted、retired、superseded。superseded 对象应能通过另一条目的 supersedes 找到替代者。
 
-正文用 `<!-- tao:field key -->` 标明字段，后接一个非空 Markdown 段落；字段顺序与注册表一致。显示标签可翻译、改标点或取消加粗，解析只认结构键。字段键仅在正文顶层生效，代码和引用中的同名文本不生效。字段需要多项独立承诺时拆条目，不用嵌套列表暗中引入局部编号体系。
+正文用 `<!-- tao:field key -->` 标明字段，后接一个非空 Markdown 段落；字段顺序与注册表一致。字段以结构键标识，显示文字可本地化；显示结构另按条目规则检查。未规定标签样式的条目可调整加粗和标点。字段键仅在正文顶层生效，代码和引用中的同名文本不生效。字段需要多项独立承诺时拆条目，不用嵌套列表暗中引入局部编号体系。
 
 - **REQ：** 正文用 EARS 表达一个可独立验收的行为承诺；acceptance 补充验证输入、方法和判据或引用 UC，不重复正文或新增承诺；source 记录依据与必要动机。非行为约束可用更明确的公式、表格或约束表达，保留可判定性；用户故事不能替代系统承诺。
 - **UC：** given 定义前置条件、输入域与约束，when 定义事件或操作序列，then 定义预期结果。表达性质时写清“对任意满足条件的输入”及可判定谓词，例如往返恒等、拒绝操作后状态恢复、增量与基线等价；通过 verifies 关联需求。测试数量和随机试验通过不是形式化证明。
 - **ADR：** context 说明问题、约束与实际备选；decision 说明选择及理由；consequences 写代价、限制及后续责任。临时设计选择可留在计划，长期约束使用单独决定文档。
+
+ADR 三个字段都必须以“加粗的纯文本标签＋冒号＋非空说明”开始，注册表以 `field_label_style: strong` 声明这一显示约束。中文模板使用“背景与备选／选择／代价”，英文使用“Context and alternatives／Decision／Consequences”。允许翻译标签，冒号可为半角或全角、位于加粗范围内或紧随其后，例如 `**选择：** 采用独立环境。` 或 `**Decision**: Use an isolated environment.`。标签不能省略，也不能只有标签而没有说明；行内代码不能冒充加粗标签，HTML 注释不能充当说明。这是 tao-dev 的阅读格式约束，不把特定中文词语用作机器键。内容是否充分比较备选、解释选择和评估影响仍须语义审查。
 
 每个规格至少一个 REQ；有用例或性质时使用 UC。REQ 仅定义在 requirements，UC 在 cases 或 invariants（紧凑计划可在 design），ADR 在 decisions、design 或 architecture；类型位置也由注册表校验。同一条件在需求、设计、任务间通过 ID 引用，不抄写多份验收标准。
 

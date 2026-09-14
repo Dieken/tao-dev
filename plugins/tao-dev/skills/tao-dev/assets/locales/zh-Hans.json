@@ -33,7 +33,7 @@
   "label.then": "则",
   "label.context": "背景与备选",
   "label.decision": "选择",
-  "label.consequences": "后果",
+  "label.consequences": "代价",
   "label.fingerprint": "受检输入",
   "label.environment": "环境",
   "label.command": "命令或观察步骤",

@@ -56,6 +56,24 @@ def valid_date(value):
         return False
 
 
+def labelled_paragraph(token):
+    children = [child for child in token.children or []
+                if child.type != "text" or child.content.strip()]
+    if [child.type for child in children[:3]] != ["strong_open", "text", "strong_close"]:
+        return False
+    label = children[1].content.strip()
+    tail = children[3:]
+    description = "".join(child.content for child in tail
+                          if child.type in ("text", "code_inline", "tao_need")).strip()
+    if label.endswith((":", "：")):
+        label = label[:-1].strip()
+    elif tail and tail[0].type == "text" and description.startswith((":", "：")):
+        description = description[1:].strip()
+    else:
+        return False
+    return bool(label and description)
+
+
 class Validator:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -171,7 +189,7 @@ class Validator:
             self.error("TAO-DOC-001", path, locations["updated"], "updated precedes created.")
         return values, profile, "".join(lines[end + 1:]), end + 1
 
-    def fields(self, tokens, expected, path, offset):
+    def fields(self, tokens, expected, path, offset, label_style=None):
         found = []
         for index, token in enumerate(tokens):
             if token.level != 0 or token.type != "html_block":
@@ -183,6 +201,9 @@ class Validator:
             following = tokens[index + 1:] or [None]
             if following[0] is None or following[0].type != "paragraph_open":
                 self.error("TAO-ENTITY-001", path, offset + token.map[0] + 1, f"Field {match[1]} requires a nonempty paragraph.")
+            elif label_style == "strong" and (len(following) < 2 or not labelled_paragraph(following[1])):
+                self.error("TAO-ENTITY-001", path, offset + token.map[0] + 1,
+                           f"Field {match[1]} requires a bold display label with ':' or '：', followed by a nonempty description.")
         if found != expected:
             self.error("TAO-ENTITY-001", path, offset + 1, f"Expected fields {expected}; found {found}.")
 
@@ -240,7 +261,7 @@ class Validator:
                     self.reference(member, types, path, positions[key], key, identity)
         body_offset = line + pos
         body_tokens = self.md.parse("".join(lines[pos:]))
-        self.fields(body_tokens, rule["fields"], path, body_offset)
+        self.fields(body_tokens, rule["fields"], path, body_offset, rule.get("field_label_style"))
         first_field = next((i for i, t in enumerate(body_tokens) if t.type == "html_block" and FIELD.fullmatch(t.content)), len(body_tokens))
         if kind == "REQ" and not any(t.type == "paragraph_open" for t in body_tokens[:first_field]):
             self.error("TAO-ENTITY-001", path, body_offset + 1, "REQ requires a behavior paragraph before its fields.")
