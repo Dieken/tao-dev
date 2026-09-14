@@ -27,4 +27,5 @@ sphinx-publication.md
 explicit-workflow.md
 project-language.md
 plugin-adapters.md
+isolated-runtime.md
 ```
