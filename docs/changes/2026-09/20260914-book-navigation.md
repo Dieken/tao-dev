@@ -32,12 +32,23 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
   - relates: ["CHG_20260914_AR8DMCNHNEHNGWWV"]
   - depends_on: []
   - verify: 注册表、模板和双语资源一致；嵌套导航、Unicode 路径及重排保持 ID 的夹具通过；缺页、循环、重复主位置和非法导航被拒绝；独立包引用闭合。
-  - evidence: [静态检查记录](20260914-book-navigation/evidence/checks.json)
+  - evidence: [本计划验证记录](20260914-book-navigation.md#DOC_20260914_0SHBPV8YQFQFQN8X--verification)
 
+(DOC_20260914_0SHBPV8YQFQFQN8X--verification)=
 <!-- tao:section verification -->
 ## 验证
 
-执行模板正反例、目录图正反例、已有文档与独立包检查，以及 skill 元数据和差异空白检查。结果只覆盖相应静态条件，不构成完整 AST、Sphinx HTML、PDF 或真实 CLI 验收。
+受检输入为本仓库版本 `f49159f305c9a495480b38366fdcd716c10ce119` 的文档与运行源码，排除证据和生成输出；原报告中 41 个输入摘要均已核对与该版本相同，不表示执行时已提交。记录时间为 `2026-09-14T12:04:07+08:00`，环境为 Darwin、Python 3.14.7。
+
+| 检查命令 | 历史结果 |
+|---|---|
+| `python3 tao-navigation-template-check.py` | 退出 0；11 种模板、2 种语言、16 个错误用例符合预期 |
+| `python3 tao-navigation-check.py` | 退出 0；嵌套导航、Unicode、稳定 ID 及 12 个错误用例符合预期 |
+| `python3 tao-doc-review-check.py`、`python3 tao-navigation-package-check.py` | 均退出 0；文档结构、ID、引用与独立包检查通过 |
+| `python3 quick_validate.py plugins/tao-dev/skills/tao-dev`、`git diff --check` | 均退出 0 |
+
+覆盖为 partial；未验证完整 AST、Sphinx HTML、PDF 或真实 CLI 行为。上述临时脚本未作为维护工具交付，不能仅凭记录重放检查。摘要随计划保留，详细输出不在当前目录保留；这记录当时的结果，不证明当前版本通过。
+
 
 <!-- tao:section questions -->
 ## 未决问题

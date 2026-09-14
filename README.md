@@ -60,7 +60,7 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 
 ## 自举方式
 
-维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用 skill 提供的 profile 与模板，变更计划按 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` 保存，附件与验证记录放在同月的同名目录内。
+维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用 skill 提供的 profile 与模板，变更计划按 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` 保存，简短验证结论直接写入计划，独立摘要与附件按需放在同月的同名目录内；原始日志默认不纳入 VCS。
 
 自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
 

@@ -27,6 +27,12 @@ Keep maintained documentation focused on current behavior, constraints
 and useful design rationale. Leave superseded arrangements and routine
 relocation history in Git rather than repeating them in active guidance.
 
+Keep routine validation summaries in the change plan. Raw command output
+and detailed reports belong in ignored temporary storage or CI artifacts
+by default. Retain separate evidence documents or raw data only when
+independent references or explicit retention needs justify them. Log
+expiry alone does not reverse historical results or task completion.
+
 The product CLI and complete AST validator are not implemented. Report
 the actual scope of manual or temporary checks without claiming product
 CLI, publication, or dual-client behavioral acceptance.

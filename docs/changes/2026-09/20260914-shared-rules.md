@@ -37,7 +37,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section verification -->
 ## 验证
 
-执行现有临时文档检查、共享模板正反例检查、skill 元数据检查、独立复制包的引用与边界检查，以及 git diff --check。检查记录使用 evidence profile，保留小型输出与受检文件摘要；临时检查不冒充正式 AST 或真实 CLI 验收。
+执行现有临时文档检查、共享模板正反例检查、skill 元数据检查、独立复制包的引用与边界检查，以及 git diff --check。检查记录引用已有独立摘要，保留受检版本与关键结果，不保留详细输出；临时检查不冒充正式 AST 或真实 CLI 验收。
 
 <!-- tao:section questions -->
 ## 未决问题
