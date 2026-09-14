@@ -51,6 +51,8 @@ tao-dev/
       hooks/hooks.json               # 按需：Claude Code hook 配置
 ```
 
+使用方格式同样随包提供：[文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 负责编写规则，assets/document-profiles.json 负责机器可读结构，assets/templates 与 assets/locales 提供模板和显示资源。skill 和未来 CLI 读取同一版本，不从内部 docs 动态加载格式，也不要求使用方另建 schema。当前模板可填写，脚本和平台适配仍按实际能力验收。
+
 公共 manifest 的最小格式如下；示例产品版本不代表已经发布：
 
 ```json
