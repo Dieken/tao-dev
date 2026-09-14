@@ -11,8 +11,11 @@
 3. [Markdown 文档契约](docs/document-contract.md)：章节结构、全局 ID、条目、引用、任务格式和诊断约定。
 4. [文档组织与产物保存](docs/document-layout.md)：内容归属、拆分阈值、文件命名及证据保存。
 5. [插件打包与运行环境](docs/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
+6. [tao 命令与流程接入](docs/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
 
 运行材料从 [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md) 进入，入口要求读取随包分发的 [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)。规程直接指导使用方项目的设计、编码、验证、评审和演进。
+
+[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。`tao` CLI 仍未实现，命令专篇是实现契约；当前不能按其中的命令示意直接运行，也不能声称自动校验已经完成。
 
 主协议目前同时承载需求与设计，二者通过条目类型和稳定 ID 区分；格式契约独立维护精确语法。暂不再创建内容重复的 spec、design 和 plan。
 
