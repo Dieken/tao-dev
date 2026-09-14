@@ -31,6 +31,8 @@
 
 首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未公开发布或声明双 CLI 运行兼容。
 
+Codex CLI 0.154.0 的原生 hook 需要兼容包：用 `.venv/bin/python scripts/package_plugin.py --format codex-legacy --output tmp/tao/codex-plugin` 生成新目录。该命令仅打包，既不安装也不注册；运行包无需 uv 或开发仓库。公共格式仍是源目录的权威定义，版本限制和两种包的内容见 [插件设计](docs/engineering/plugin-design.md)。
+
 ## 开发文档与分发边界
 
 是否随 skill 发布，以第三方项目使用 tao-dev 时的运行用途为准：内容会作为 prompt 被其 LLM 按需读取，或会被 tao CLI／运行组件加载、执行、渲染或用于校验，才放入分发目录。仅用于开发、测试或维护 tao-dev 自身的文档保留在顶层 `docs/`；“具有通用性”或“自举时会用到”本身不是分发理由。
