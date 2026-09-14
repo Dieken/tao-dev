@@ -8,7 +8,7 @@
 
 1. [协作开发协议](docs/protocol.md)：项目目标、需求、流程、文档职责、设计取舍、验收用例和自举路线。
 2. [术语与缩写](docs/glossary.md)：统一概念、ID 类型前缀及常用缩写。
-3. [Markdown 文档契约](docs/document-contract.md)：解析器实现、现有文档的迁移边界及随包规范入口。
+3. [Markdown 文档契约](docs/document-contract.md)：解析器设计、文档检查范围及随包规范入口。
 4. [文档组织与产物保存](docs/document-layout.md)：本项目组织设计与随包规则的关系。
 5. [插件打包与运行环境](docs/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
 6. [tao 命令与流程接入](docs/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
@@ -60,8 +60,8 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 
 ## 自举方式
 
-维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。新建交付文档使用随包 profile 与模板，本次实例见 [共享规则归位计划](docs/changes/20260914-shared-rules.md)。
+维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用随包 profile 与模板，变更计划与验证记录保存在 docs/changes/。
 
-现有六篇长期文档仍有内部 profile，属于待迁移范围，不能算作已通过共享格式。下一步单独规划条目拆分并保留已有 ID，再用正式解析器及独立反例集验收；完整工具、出版和双 CLI 行为验收仍未完成。自举表示把 tao-dev 自身作为使用方，使用同一产品规则开发它；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
+自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
 
 本 README 是阅读导航，不纳入正文 profile 的结构校验。新增文档类型与正式工具时，再扩展 schema 和检查范围；不预建空目录或自动安装 skill。

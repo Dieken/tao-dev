@@ -13,7 +13,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section scope -->
 ## 目标与边界
 
-把通用文档规则作为 skill 的权威分发内容，让本项目从源码入口和随包模板开始自举。保留已有项目内容与标识符；现有六篇长期文档的整体格式迁移、正式校验器和平台行为验收不属于本次交付。
+把通用文档规则作为 skill 的权威分发内容，让本项目从源码入口和随包模板开始自举。保持项目内容与标识符稳定；正式校验器和平台行为验收不属于本次交付。
 
 <!-- tao:section references -->
 ## 规格引用
@@ -23,7 +23,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section design -->
 ## 设计
 
-文档组织、术语、诊断、本地化及出版规则移入 skill 的 references，原文改为引用，避免两份权威文本。按任务读取参考；仅复制插件根也可访问完整规则。项目需求、实现理由和开发任务仍留在 docs。AGENTS 指向本仓库 skill 源码，CLAUDE 导入同一入口，不进行安装或注册。新建交付文件采用共享 change／evidence profile，旧文档的内部 profile 单独报告为待迁移。
+文档组织、术语、诊断、本地化及出版规则的权威文本位于 skill 的 references，开发文档引用这些规则。按任务读取参考；仅复制插件根也可访问完整规则。项目需求、实现理由和开发任务仍留在 docs。AGENTS 指向本仓库 skill 源码，CLAUDE 导入同一入口，不进行安装或注册。交付文件采用共享 change／evidence profile；检查结论明确实际覆盖的格式。
 
 <!-- tao:section tasks -->
 ## 任务
@@ -42,4 +42,4 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 <!-- tao:section questions -->
 ## 未决问题
 
-现有六篇长期文档还需单独迁移到共享 profile。出版、完整校验器及双 CLI 行为仍待实现和验收；本次不以静态检查代替这些结果。
+出版、完整校验器及双 CLI 行为仍待实现和验收；本次不以静态检查代替这些结果。

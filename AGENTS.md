@@ -19,10 +19,13 @@ distribution. Keep documentation used only to develop or maintain
 tao-dev in top-level `docs/`, including CLI implementation design and
 project requirements, tasks, and test reports. Split mixed-purpose
 documents and identify each bundled resource's reader or runtime caller.
-Existing internal document profiles remain a separately reported
-migration scope;
-do not use them as templates for new documents or claim they already
-pass the shared format. Preserve existing IDs and content when migrating.
+Repository-specific profiles are defined in `docs/document-contract.md`.
+Check each document against its declared schema and report the actual
+validation scope. Preserve existing IDs and references when editing.
+
+Keep maintained documentation focused on current behavior, constraints
+and useful design rationale. Leave superseded arrangements and routine
+relocation history in Git rather than repeating them in active guidance.
 
 The product CLI and complete AST validator are not implemented. Report
 the actual scope of manual or temporary checks without claiming product
