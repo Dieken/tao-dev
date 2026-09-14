@@ -5,16 +5,15 @@
 先按 README 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
 ```sh
-python tests/acceptance/clients.py --client claude --case inside --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client claude --case outside --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client claude --case write --workspace /tmp/tao-cli-experiment
-python tests/acceptance/clients.py --client claude --case review --workspace /tmp/tao-cli-experiment
+.venv/bin/python tests/acceptance/clients.py --client claude --case recover --claude-scope project --reuse-claude-auth --disable-hooks --workspace /tmp/tao-claude-recover
+.venv/bin/python tests/acceptance/clients.py --client claude --case plan --claude-scope local --reuse-claude-auth --workspace /tmp/tao-claude-plan
+.venv/bin/python tests/acceptance/lifecycle.py --client claude --claude-scope user --workspace /tmp/tao-claude-lifecycle
 .venv/bin/python tests/acceptance/clients.py --client codex --case write --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --workspace /tmp/tao-codex-write
 .venv/bin/python tests/acceptance/clients.py --client codex --case recover --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --disable-hooks --workspace /tmp/tao-codex-recover
 .venv/bin/python tests/acceptance/lifecycle.py --codex-legacy --workspace /tmp/tao-codex-lifecycle
 ```
 
-Claude 使用调用级 --plugin-dir。Codex 必须显式选择 --isolated-codex：每个案例使用新的独立 workspace，CODEX_HOME、XDG_CONFIG_HOME、Git 配置位置和安装缓存均留在该工作区；仅试验项目启用插件，客户端默认禁用。安装后用原生 app-server 查询技能边界，项目外空列表之外仍须模型对照。0.154.0 的个人配置模式继续返回 blocked，因为调用级 trust override 不能阻止其持久化项目信任；隔离模式不解除这个保护。
+模型试验必须明确选择独立客户端状态；省略隔离参数时，两端均在启动客户端前返回 blocked，不回退个人配置模式。Codex 选择 --isolated-codex：每个案例使用新的独立 workspace，CODEX_HOME、XDG_CONFIG_HOME、Git 配置位置和安装缓存均留在该工作区；仅试验项目启用插件，客户端默认禁用。安装后用原生 app-server 查询技能边界，项目外空列表之外仍须模型对照。0.154.0 的调用级 trust override 不能阻止其持久化项目信任，不能把它当作配置隔离。
 
 --reuse-codex-auth 明确允许短时复用现有文件式 ChatGPT 认证；仅复制有效期能够覆盖本例的访问令牌、ID token 和账户标识，不复制刷新令牌。副本限制为 0600，调用结束删除并从事件日志中删去任何匹配的令牌值；过期、其他认证方式或自定义 provider/profile 返回未执行，不自动刷新。临时模型配置沿用个人已选模型及供应商路由，禁用远端插件目录、apps、网络搜索和代理委派。报告中的配置模型名不冒充服务端独立确认；Codex token 事件也不提供真实账单。该维护适配目前针对 POSIX，不能用它声称原生 Windows 验收通过。
 
@@ -22,7 +21,11 @@ Claude 使用调用级 --plugin-dir。Codex 必须显式选择 --isolated-codex�
 
 lifecycle.py 不调用模型，实际安装、禁用、重新启用、更新试验副本的版本及描述、卸载，再以新的原生查询验证变化。兼容包同时验证 hook 禁用／移除和定义变更后的信任失效；只改变包版本不会使相同定义的信任失效，信任哈希不是包代码的完整性证明。它不修改源版本或个人安装；更新重新产生默认启用项时必须恢复临时客户端的默认禁用，避免项目外可见。该检查证明加载生命周期，不能替代模型任务和原生 hook 行为。
 
-inside 核对实际发现、引用定位、doctor/status；outside 不带加载参数、不使用工具，只查询初始可用能力。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
+Claude 选择 --claude-scope user|project|local 和 --reuse-claude-auth，在全新的 CLAUDE_CONFIG_DIR 中通过原生市场与安装命令配置该范围。既有 macOS Keychain 或文件认证中的访问令牌只进入子进程环境；不携带刷新令牌，不重新登录，过期及自定义供应商路由明确拒绝。模型沿用已选模型，允许工具限制在 Read、Glob、Grep、Skill、Bash、Write、Edit，每例 CLI 预算上限 2 美元。前后比较既有凭据与监测文件，不自动回滚变化。这里的 user 作用于试验配置的所有目录，project／local 只作用于安装项目；不改变个人日常安装。[认证管理](https://code.claude.com/docs/en/authentication)、[环境变量](https://code.claude.com/docs/en/env-vars)
+
+inside 核对实际发现、引用定位、doctor/status；outside 不使用工具，只查询初始可用能力，同时核对初始化清单。Claude user 范围在同一试验配置的项目外也应可见，project／local 则不可见。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
+
+plan 从自然语言目标调用 new，再调用 handoff；产出完整计划及相同 CHG 的交接，校验实际文档，保留未实现任务。该微型场景的 Claude 调用明确使用低推理强度与简短文档指导，避免把大篇幅写作混入加载验收；不是对默认推理强度的耗时保证。verify 使用真实失败基线，只运行原生验证入口，预期如实报告失败而不修复代码或勾选任务。Claude 要核对真实 Skill 工具调用，不能仅凭命令出现在初始化列表就算验收。lifecycle.py 的 --client claude 与 --claude-scope 组合检查原生启停、版本更新及卸载；这些不调用模型的检查仍不能替代流程行为。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
