@@ -23,7 +23,7 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
 <!-- tao:section design -->
 ## 设计
 
-篇按读者与职责分组，章按能力、子系统或操作主题分组；小章保持单页，多页章使用 navigation 目录页。MyST toctree 唯一维护父子关系与顺序；机器注册表定义相应语法，显示文字使用同套中英文资源。正式 ID 不包含章节号；变更文档按年份分组但保留全局当天的文件序号。
+篇按读者与职责分组，章按能力、子系统或操作主题分组；小章保持单页，多页章使用 navigation 目录页。MyST toctree 唯一维护父子关系与顺序；机器注册表定义相应语法，显示文字使用同套中英文资源。正式 ID 不包含章节号；变更文档按年份分组，文件名使用创建日期与语义 slug。
 
 <!-- tao:section tasks -->
 ## 任务
@@ -32,7 +32,7 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
   - relates: ["CHG_20260914_AR8DMCNHNEHNGWWV"]
   - depends_on: []
   - verify: 注册表、模板和双语资源一致；嵌套导航、Unicode 路径及重排保持 ID 的夹具通过；缺页、循环、重复主位置和非法导航被拒绝；独立包引用闭合。
-  - evidence: [静态检查记录](20260914-002-book-navigation/evidence/checks.json)
+  - evidence: [静态检查记录](20260914-book-navigation/evidence/checks.json)
 
 <!-- tao:section verification -->
 ## 验证

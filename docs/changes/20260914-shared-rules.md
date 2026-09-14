@@ -32,7 +32,7 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
   - relates: ["CHG_20260914_MPNFR3H9WQ7KHFAD"]
   - depends_on: []
   - verify: 包内引用闭合且无项目专用标识符；原有正式 ID 保留；本计划与证据符合随包 profile；中英文模板及既有结构检查无新增错误，报告明确未覆盖的行为验收。
-  - evidence: [检查记录](20260914-001-shared-rules/evidence/shared-rules.md)
+  - evidence: [检查记录](20260914-shared-rules/evidence/shared-rules.md)
 
 <!-- tao:section verification -->
 ## 验证
