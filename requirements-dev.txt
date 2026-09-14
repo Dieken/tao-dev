@@ -1,0 +1,2 @@
+-r plugins/tao-dev/skills/tao-dev/scripts/requirements.txt
+pytest>=8,<10

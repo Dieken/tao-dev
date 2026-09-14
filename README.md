@@ -2,7 +2,7 @@
 
 面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
 
-当前包含需求与设计草案、skill 规程、使用方文档格式注册表和可填写模板。完整自动校验器、模板生成器、hook、出版站点和双 CLI 行为验收尚未完成。
+当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。工作流 CLI、模板生成器、hook、出版站点和双 CLI 行为验收尚未完成。
 
 ## 阅读入口
 
@@ -65,3 +65,21 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/document-contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
 
 本 README 是阅读导航，不纳入正文 profile 的结构校验。新增文档类型与正式工具时，再扩展 schema 和检查范围；不预建空目录或自动安装 skill。
+
+## 运行文档校验与回归测试
+
+需要 Python 3.11 或以上版本。在项目自己的临时虚拟环境安装依赖：
+
+```sh
+python3 -m venv tmp/tao/venv
+tmp/tao/venv/bin/python -m pip install -r requirements-dev.txt
+tmp/tao/venv/bin/python -m pytest
+```
+
+[源文件校验入口](plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py) 随 skill 分发，读取同包格式注册表；[测试](tests/) 留在开发仓库。校验器显式接收项目目录和纳入管理的文件，支持 `--format json`，不执行项目代码或写入文档。第三方只需安装脚本目录中的 requirements.txt，无需 pytest。
+
+```sh
+tmp/tao/venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py --project . --format json docs/protocol.md
+```
+
+上述示例目前会报告主协议的内部 schema 不受支持；这是实际接入缺口，不能按共享格式算通过。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
