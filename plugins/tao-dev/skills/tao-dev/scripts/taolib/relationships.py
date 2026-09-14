@@ -161,6 +161,30 @@ def unique_object(pairs):
     return value
 
 
+def section_redirects(validator, redirects):
+    location = '.tao/config.toml'
+    documents = {doc.metadata.get('id'): doc for doc in validator.result.documents.values()}
+    for source, target in redirects.items():
+        parsed = []
+        for value in (source, target):
+            match = re.fullmatch(r'(.+)--([a-z][a-z0-9-]*)', value)
+            if not match or not validator.identifier(match[1], 'DOC', location, 1):
+                validator.error('TAO-LINK-001', location, 1, 'Section redirects require DOC_ID--section keys and targets.')
+                break
+            parsed.append(match.groups())
+        if len(parsed) != 2:
+            continue
+        (old_doc, _), (new_doc, section) = parsed
+        if old_doc not in validator.result.definitions:
+            validator.error('TAO-LINK-001', location, 1, f'Redirect source document is unknown: {old_doc}.')
+        elif target in redirects:
+            validator.error('TAO-LINK-001', location, 1, 'Section redirects must point directly to a current section, without redirect chains.')
+        elif new_doc not in documents or section not in documents[new_doc].sections:
+            validator.error('TAO-LINK-001', location, 1, f'Redirect destination section is unknown: {target}.')
+        else:
+            validator.result.section_redirects[source] = target
+
+
 def retirements(validator, directory, overrides=None):
     from .documents import valid_date
 

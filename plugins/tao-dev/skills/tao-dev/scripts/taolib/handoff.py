@@ -42,7 +42,8 @@ def save(project, source_path, change, result):
              f"{observation['pending']} pending; evidence reusability not evaluated.\n\n")
     content = re.sub(r"^CLI observation \([^\n]+\): [^\n]*\n\n", "", content, flags=re.M)
     content = content.replace("<!-- tao:section decisions -->", stamp + "<!-- tao:section decisions -->")
-    checked = validate(project.root, sources, retirement_directory=project.paths["retired"], overrides={relative: content})
+    checked = validate(project.root, sources, retirement_directory=project.paths["retired"], overrides={relative: content},
+                       section_redirects=project.section_redirects)
     if not checked.valid:
         errors = "; ".join(f"{d.path}:{d.line} {d.rule_id}" for d in checked.diagnostics if d.severity == "error")
         raise ConfigurationError(f"Handoff would create invalid documents: {errors}")

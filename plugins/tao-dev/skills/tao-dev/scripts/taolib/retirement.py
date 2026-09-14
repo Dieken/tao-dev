@@ -39,7 +39,7 @@ def prepare(project, identity, reason, replacements):
     if not reason.strip():
         raise ConfigurationError('Retirement requires a nonempty reason.')
     result = validate(project.root, project.sources(), book_root=project.book_root,
-                      retirement_directory=project.paths['retired'])
+                      retirement_directory=project.paths['retired'], section_redirects=project.section_redirects)
     target = result.definitions.get(identity)
     if target is None:
         raise ConfigurationError('Retirement requires an existing source or retirement definition.')
@@ -87,7 +87,7 @@ def prepare(project, identity, reason, replacements):
         ledger_text = ledger_text.rstrip('\n') + ('\n' if ledger_text else '') + '\n'.join(additions) + '\n'
     overrides = {target.path: updated, ledger.relative_to(project.root).as_posix(): ledger_text}
     proposed = validate(project.root, project.sources(), book_root=project.book_root,
-                        retirement_directory=project.paths['retired'], overrides=overrides)
+                        retirement_directory=project.paths['retired'], overrides=overrides, section_redirects=project.section_redirects)
     output = {'retired_ids': identities, 'source': target.path, 'remove_document': whole_document,
               'record': ledger.relative_to(project.root).as_posix(), 'already_retired': False,
               'references': [asdict(ref) for ref in result.references if ref.target in identities and ref.path != target.path]}

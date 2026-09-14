@@ -32,3 +32,5 @@ scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次�
 独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录调用既有 Claude 认证。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。只在请求出站已有授权时执行；这不是消费项目必须安装的工具。调用形态为 `.venv/bin/python scripts/review_claude.py --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
 
 脚本保留实际模型事件和运行摘要；只有调用完成、结论绑定一致且监测的个人配置未变时才生成待导入记录。监测变化、超时或未完成不能作为隔离验收通过；不要猜测原配置后回滚。真实客户端审查不进入普通 pytest，完整 verify 也不自动启动模型。
+
+章节重定向回归实际使用维护环境中的 Node.js 执行生成的解析页脚本，检查旧片段、编码片段和默认入口；缺少 Node.js 时该测试明确失败。Node.js 仅用于本项目维护验收，不是 Python 核心、插件运行环境或消费项目的依赖。

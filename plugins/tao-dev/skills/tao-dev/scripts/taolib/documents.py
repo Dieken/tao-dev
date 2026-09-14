@@ -299,6 +299,8 @@ class Validator:
                         section = match[1]
                         sections.append(section)
                         doc.sections[section] = line
+                        doc.section_titles[section] = ''.join(child.content for child in tokens[index + 1].children or []
+                                                             if child.type in ('text', 'code_inline', 'tao_need'))
             if token.type == "fence" and token.level == 0:
                 if re.match(r"\{(?:req|uc|adr)(?:\}|\s)", token.info):
                     self.entity(token, section, path, offset)
@@ -405,7 +407,7 @@ class Validator:
                     stack.extend((target, False) for target in reversed(graph.get(node, [])))
 
 
-def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired", overrides=None):
+def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_directory="docs/retired", overrides=None, section_redirects=None):
     """Validate explicit managed sources. Historical deletion needs a baseline."""
     validator = Validator(root)
     overrides = overrides or {}
@@ -428,6 +430,7 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
     relationships.retirements(validator, retirement_directory, overrides)
     relationships.attachments(validator)
     relationships.book(validator, book_root)
+    relationships.section_redirects(validator, section_redirects or {})
     validator.resolve()
     if baseline_ids is not None:
         validator.result.deletion_checked = True

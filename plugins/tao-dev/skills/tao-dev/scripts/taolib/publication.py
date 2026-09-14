@@ -88,6 +88,20 @@ def resolver_pages(result, output):
     directory = output / "refs"
     directory.mkdir()
     for identity, definition in result.definitions.items():
+        redirects = {}
+        fallback = []
+        for old, current in result.section_redirects.items():
+            if old.split('--')[0] != identity:
+                continue
+            doc_id, section = current.split('--')
+            document = result.documents[result.definitions[doc_id].path]
+            target = '../' + str(Path(document.path).with_suffix('.html')) + '#' + current
+            redirects['#' + old] = target
+            label = document.metadata['title'] + ' / ' + (document.section_titles.get(section) or section)
+            fallback.append(f'<li id="{old}"><a href="{html.escape(target)}">{html.escape(label)}</a></li>')
+        mapping = json.dumps(redirects).replace('<', '\\u003c')
+        redirect_script = (f'const sectionRedirects={mapping};let fragment=location.hash;'
+                           'try{fragment=decodeURIComponent(fragment);}catch(error){}')
         if definition.path.endswith(".jsonl"):
             targets = [r.target for r in result.references if r.source == identity and r.relation == "replaced_by"]
             links = " ".join(
@@ -95,13 +109,19 @@ def resolver_pages(result, output):
                 f'{html.escape(result.definitions[target].title or target)}</a>'
                 for target in targets)
             body = f'<h1 id="{identity}">{identity}</h1><p>Retired: {html.escape(definition.title)}</p>{links}'
+            if redirects:
+                body += '<script>' + redirect_script + 'if(sectionRedirects[fragment])location.replace(sectionRedirects[fragment]);</script>'
         else:
             target = "../" + str(Path(definition.path).with_suffix(".html")) + "#" + identity
             # Preserve section fragments when the DOC resolver is used.
             base = target.split("#")[0]
+            quoted_base = json.dumps(base).replace("<", "\\u003c")
             body = (f'<h1 id="{identity}">{html.escape(definition.title or identity)}</h1>'
                     f'<a href="{html.escape(target)}">Open definition</a>'
-                    f'<script>location.replace({json.dumps(base)} + (location.hash || {json.dumps("#" + identity)}));</script>')
+                    f'<script>{redirect_script}location.replace(sectionRedirects[fragment] || '
+                    f'({quoted_base} + (location.hash || {json.dumps("#" + identity)})));</script>')
+        if fallback:
+            body += '<ul>' + ''.join(fallback) + '</ul>'
         (directory / f"{identity}.html").write_text('<!doctype html><meta charset="utf-8"><title>' + identity + '</title>' + body, encoding="utf-8")
 
 
@@ -141,7 +161,8 @@ def build(project):
     baseline = {p.stem for p in (destination / "refs").glob("*.html")
                 if re.fullmatch(r"(?:DOC|REQ|UC|ADR|TASK|CHG|EVD)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}", p.stem)}
     result = validate(project.root, project.sources(), baseline_ids=baseline or None,
-                      book_root=project.book_root, retirement_directory=project.paths["retired"])
+                      book_root=project.book_root, retirement_directory=project.paths["retired"],
+                      section_redirects=project.section_redirects)
     if not result.valid:
         details = "; ".join(f"{d.path}:{d.line} {d.rule_id}: {d.message}" for d in result.diagnostics if d.severity == "error")
         raise ConfigurationError("Book sources are invalid: " + details)
@@ -191,4 +212,4 @@ def build(project):
                 raise
         return {"directory": destination.relative_to(project.root).as_posix(),
                 "index": (destination / Path(project.book_root).with_suffix(".html")).relative_to(project.root).as_posix(),
-                "definitions": len(result.definitions), "stable_links_checked": True}
+                "definitions": len(result.definitions), "section_redirects": len(result.section_redirects), "stable_links_checked": True}

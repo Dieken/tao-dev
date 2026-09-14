@@ -73,7 +73,7 @@ def arguments(argv):
 
 def index(project):
     return validate(project.root, project.sources(), book_root=project.book_root,
-                    retirement_directory=project.paths["retired"])
+                    retirement_directory=project.paths["retired"], section_redirects=project.section_redirects)
 
 
 def skeleton(project, args, registry, result):
