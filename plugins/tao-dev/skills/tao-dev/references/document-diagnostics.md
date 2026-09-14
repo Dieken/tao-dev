@@ -2,7 +2,7 @@
 
 检查使用方项目的文档、解读诊断或修正文档时读取本文。它帮助 agent 区分错误、提示和语义判断，并解释诊断结果。
 
-[源文件校验器](../scripts/validate_documents.py) 接受 `--project <项目目录>`、一个或多个项目相对 Markdown 文件路径、可选 `--format json` 和 `--book-root <导航文件>`。使用 Python 3.11 或以上版本及 [运行依赖](../scripts/requirements.txt)，遵守项目既有安装授权；依赖不可用时报告缺口，不擅自安装。它只读源文件并输出结果，检查共享 profile 的结构、ID、关系、任务、退役和导航。诊断当前使用英文，message_locale 如实为 en；未知 schema 报错。未提供基线时 deletion_checked 为 false；未指定书根时不声称检查整本书的可达性。生成 HTML、语义正确性和项目行为另行验收，不能从源文件检查通过推断。
+[源文件校验器](../scripts/validate_documents.py) 接受 `--project <项目目录>`、一个或多个项目相对 Markdown 文件路径、可选 `--format json` 和 `--book-root <导航文件>`。入口使用 [独立核心运行环境](runtime.md)，与 tao CLI 和 hook 共用；标准库启动层在依赖不可用时报告缺口，不擅自安装。它只读源文件并输出结果，检查共享 profile 的结构、ID、关系、任务、退役和导航。诊断当前使用英文，message_locale 如实为 en；未知 schema 报错。未提供基线时 deletion_checked 为 false；未指定书根时不声称检查整本书的可达性。生成 HTML、语义正确性和项目行为另行验收，不能从源文件检查通过推断。
 
 ## 检查层次
 

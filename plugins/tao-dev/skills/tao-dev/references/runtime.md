@@ -14,9 +14,11 @@
 
 下文 tao 指本插件 scripts/tao.py 的受信任入口，不要求全局注册命令。先用选定 Python 调用该入口；TAO_PYTHON 可明确选择基础解释器，必须是单个可执行路径，不含参数。未指定时使用启动入口的解释器；显式指定无效时不回退。只把它用来创建独立环境，不向它安装包。
 
+POSIX shell 可执行 `sh <插件根>/skills/tao-dev/scripts/tao-launch.sh cli <参数>`；PowerShell 入口为同目录的 tao-launch.ps1。路径含空格时整体引用。启动器依次探测 python3、python、py -3；显式 TAO_PYTHON 优先且不会被替换。validate 入口转发独立文档校验器，hook 入口供客户端事件调用。Python 入口和启动器采用同一套运行环境规则，启动器不负责安装客户端或注册命令。
+
 | 操作 | 实际行为 |
 |---|---|
-| tao doctor | 只读诊断核心环境；依赖缺失也输出诊断，不要求先有项目 |
+| tao doctor | 只读诊断核心环境，并发现独立出版环境；依赖缺失也输出诊断，不要求先有项目 |
 | tao doctor --publication | 只读诊断出版环境 |
 | tao setup | 准备核心环境；已匹配且完整时复用 |
 | tao setup --publication | 准备核心与出版的完整环境 |
@@ -26,6 +28,8 @@
 依赖准备须在已有安装授权内执行；目标与授权明确时由 agent 选择核心或出版，无需反复询问类型。普通执行不联网、不隐式运行 setup。网络准备使用 PyPI；企业离线分发可提供与清单哈希匹配的 wheel。安装过程屏蔽可能将写入重定向的 pip 配置，环境缺少合适包时说明原因，不改为源码构建或未锁定安装。
 
 不支持的 Python、缺少 venv／ensurepip、依赖或网络缺失均报告 not_run，不能自动安装系统软件。TAO-RUNTIME-001 表示配置或解释器问题，002 表示未准备，003 表示环境损坏，004 表示准备锁繁忙，005 表示准备失败；错误信息给出下一步及可用日志位置。完整 verify 在运行前失败时保持 blocked。
+
+hook 在项目未配置时直接无操作，不创建工具数据；项目已配置但 Python 或核心环境不可用时，返回未执行的提示，不阻止原始编辑，也不把缺失检查报告为通过。hook 不调用 setup。当前客户端 manifest 使用 shell 启动器；原生 Windows 的 shell 可用性和 PowerShell 接入须另行验收，不能用 Python 单元测试代替。
 
 ## 更新和故障
 

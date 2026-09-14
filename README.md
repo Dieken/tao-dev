@@ -71,16 +71,24 @@ tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代
 开发需要 uv 和受支持的 Python；依赖在 pyproject.toml 声明、uv.lock 锁定，环境位于忽略的 .venv/。插件使用者不需要 uv。准备开发环境：
 
 ```sh
-uv sync --locked --extra publication
-uv run --locked --extra publication python -m pytest
+uv sync --no-config --locked --extra publication
+uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
+uv run --no-config --locked --extra publication python -m pytest
 ```
 
-[源文件校验入口](plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py) 随 skill 分发，读取同包格式注册表；[测试](tests/) 留在开发仓库。校验器显式接收项目目录和纳入管理的文件，支持 `--format json`，不执行项目代码或写入文档。运行依赖清单由 `uv run --locked --extra publication python scripts/export_dependencies.py` 生成；发布前运行同一命令加 `--check` 拒绝不同步的清单。第三方使用生成的 pip 清单，无需 uv 或 pytest。
+[源文件校验入口](plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py) 随 skill 分发，读取同包格式注册表；[测试](tests/) 留在开发仓库。校验器显式接收项目目录和纳入管理的文件，支持 `--format json`，不执行项目代码或写入文档。运行依赖清单由 `uv run --no-config --locked --extra publication python scripts/export_dependencies.py` 生成；发布前运行同一命令加 `--check` 拒绝不同步的清单。第三方使用生成的 pip 清单，无需 uv 或 pytest。
 
 ```sh
-uv run --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py doctor --format json
-uv run --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
+export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
+export TAO_PYTHON="$PWD/.venv/bin/python"
+uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --wheelhouse tmp/tao/wheels
+uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py doctor --format json
+uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
 ```
+
+准备 wheels 是明确的下载操作；普通测试离线使用 tmp/tao/wheels，缺少时报告前提未满足，不自动联网。测试用真实独立 venv 验证入口，不安装到开发或业务环境。
+
+上面的环境变量示例用于 POSIX shell，并将本仓库的自举运行限定在临时目录；Windows 使用 PowerShell 设置对应变量和 .venv/Scripts/python.exe。插件用户按 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md) 使用客户端提供的数据目录，不要求安装 uv。
 
 单独检查一个文件可能报告范围外的引用；跨文档关系需要一起传入相关文件。仓库回归测试会纳入 docs/ 下的全部 Markdown。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
 
@@ -89,7 +97,8 @@ uv run --locked --extra publication python plugins/tao-dev/skills/tao-dev/script
 开发依赖已包含可选出版组件。运行以下命令，按输出的 index 打开 HTML；也可用本地 HTTP 服务器预览 tmp/tao/book/。构建不会发布外部站点，生成文件默认不纳入 VCS。
 
 ```sh
-uv run --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
+uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --publication --wheelhouse tmp/tao/wheels
+uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
 ```
 
 ## 运行项目检查

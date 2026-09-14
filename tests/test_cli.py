@@ -33,6 +33,12 @@ def test_doctor_reports_only_implemented_capabilities_without_writing(tmp_path):
     assert list(tmp_path.iterdir()) == before
 
 
+def test_doctor_discovers_separately_prepared_publication_environment(tmp_path):
+    report = json.loads(run(tmp_path, "doctor").stdout)
+    assert "docs.build" in report["capabilities"]
+    assert report["outputs"]["runtime"]["publication"]["state"] == "ready"
+
+
 def test_docs_verify_pass_is_explicitly_partial_without_vcs(tmp_path):
     project(tmp_path)
     completed = run(tmp_path, "verify", "--only", "docs", "--scope", "changed")

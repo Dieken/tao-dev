@@ -24,6 +24,6 @@
 
 ## 构建和保存
 
-在项目已有 Python 环境中准备 [可选出版依赖](../scripts/requirements-publication.txt)，配置 documents.book_root 后运行 `tao docs build`。未安装依赖时报告缺口，不自动安装。输出位于配置的 temporary 目录下的 book/，默认 tmp/tao/book/；首页位置以 JSON 输出 index 为准。HTML、构建日志和缓存默认不纳入 VCS。发布到外部站点是另一项需要明确授权的操作。
+按 [运行环境规程](runtime.md) 在已有授权内执行 `tao setup --publication`，使用独立环境中的 [锁定出版依赖](../scripts/requirements-publication.txt)；配置 documents.book_root 后运行 `tao docs build`。构建本身不安装依赖；出版环境缺失不影响核心检查。输出位于配置的 temporary 目录下的 book/，默认 tmp/tao/book/；首页位置以 JSON 输出 index 为准。HTML、构建日志和缓存默认不纳入 VCS。发布到外部站点是另一项需要明确授权的操作。
 
 构建使用同一个源校验器和条目索引，不再维护第二份需求索引。Sphinx 警告按失败处理，生成后检查锚点唯一性和永久入口；失败保留上一次可用书籍。已有输出的 refs/ 用作删除基线，已出版 ID 必须保留定义或退役记录。首次构建或清空临时输出后没有该基线；长期发布应保留上一版本入口用于删除审查，不能把临时缓存当成历史记录。PDF、跨版本站点重定向及跨 DOC 的章节别名不在当前实现范围。

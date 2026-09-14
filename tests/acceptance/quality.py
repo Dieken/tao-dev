@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / 'tmp/tao/coverage'
 OUTPUT.mkdir(parents=True, exist_ok=True)
 environment = os.environ.copy()
-environment['TAO_COVERAGE_SOURCE'] = str(ROOT / 'plugins/tao-dev/skills/tao-dev/scripts/taolib')
+environment['TAO_COVERAGE_SOURCE'] = str(ROOT / 'plugins/tao-dev/skills/tao-dev/scripts')
 environment['TAO_COVERAGE_DATA'] = str(OUTPUT / '.coverage')
 commands = [
     ['erase'],
