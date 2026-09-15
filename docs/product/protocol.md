@@ -44,7 +44,7 @@ created: '2026-09-14'
 | [Trellis](https://github.com/mindfold-ai/trellis) | 按任务注入上下文、平台适配 | 不预设单一客户端 |
 | [GSD](https://github.com/open-gsd/gsd-core) | 行为验证区别于文件存在、状态恢复 | 不把派生进度当作有效证据 |
 | [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | `writing-plans` 的可验证任务；`verification-before-completion` 的新鲜证据 | 不按固定分钟数切任务，不强制重复审批或给每项计划预写完整实现 |
-| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件或逐阶段人工批准；不要求每段代码都添加来源注释 |
+| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件；不要求每段代码都添加来源注释 |
 | [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
 | [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
 | [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
@@ -65,10 +65,10 @@ created: '2026-09-14'
 :id: REQ_20260914_BFNMKT34JF1BSGW2
 :status: proposed
 
-根据影响、不可逆性和不确定性选择流程级别，记录目标、边界、验收和需要人的决定。已作决定与授权跨阶段保留。
+根据影响、不可逆性和不确定性选择流程级别，记录目标、边界、验收和需要人的决定。完整开发流程在每个写入阶段确认范围，明确批准并进入下一阶段可以合并确认；已作决定与授权跨阶段保留。
 
 <!-- tao:field acceptance -->
-**验收：** README 错字修改可采用简化路径；数据迁移需有相应设计和恢复验证；未获授权的范围变化不得因自动推进而执行。
+**验收：** README 错字修改可采用简化路径；new 从业务需求开始，文档阶段逐项检查后推进；实现获准后自动完成常规任务，重大变化或重试后仍阻断时才寻求人类决定；未获授权的写入不得因自动推进而执行。
 
 <!-- tao:field source -->
 **来源：** BMAD、OpenSpec、Superpowers 的分级或设计先行思想。按风险组合阶段是本协议综合。
@@ -78,7 +78,7 @@ created: '2026-09-14'
 :id: REQ_20260914_NN0AEQ2E1GTVSMTV
 :status: proposed
 
-明确规格、设计、任务、决策与证据的职责；同一版本中的条目只有一个正式定义。索引和反向引用由定义生成。
+完整功能流程分别提供规格、设计、计划入口，可复用适用的共享文档；任务默认内嵌计划，按规模拆分。明确决策与证据的职责；同一版本中的条目只有一个正式定义。索引和反向引用由定义生成。
 
 <!-- tao:field acceptance -->
 **验收：** 修改一个需求后不必同步抄写计划与追踪表；拆分文件仍能找到其任务、决策和验证关系。

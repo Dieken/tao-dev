@@ -21,6 +21,7 @@ created: "2026-09-14"
 :maxdepth: 2
 :titlesonly:
 
+user/workflow.md
 product/index.md
 engineering/index.md
 glossary.md
