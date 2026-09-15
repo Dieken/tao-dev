@@ -1,6 +1,7 @@
 """Render tao entities, stable targets, and book section numbers."""
 
 from docutils import nodes
+from . import publication_links as links
 from docutils.parsers.rst import directives
 from sphinx import addnodes
 from sphinx.util.docutils import SphinxDirective
@@ -22,6 +23,9 @@ class Entity(SphinxDirective):
         title += nodes.reference("", " ¶", refuri="#" + identity, classes=["headerlink"])
         box += title
         box.extend(self.parse_content_to_nodes())
+        for key in ("verifies", "links", "supersedes"):
+            if self.options.get(key):
+                box += links.relationship_paragraph(self.env.app, self.env.docname, key, [x.strip() for x in self.options[key].split(',')])
         return [box]
 
 
@@ -41,7 +45,7 @@ class Term(SphinxDirective):
         box.extend(self.parse_content_to_nodes())
         for key in ("code", "scope", "avoid"):
             if key in self.options:
-                box += nodes.paragraph(text=key + ": " + self.options[key])
+                box += nodes.paragraph(text=links.label(self.env.app, key) + ": " + self.options[key])
         return [box]
 
 
@@ -50,11 +54,7 @@ def need_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     definition = env.config.tao_index["definitions"].get(text)
     if definition is None:
         return [nodes.literal(rawtext, text)], []
-    # Permanent entry points also work for retired definitions.
-    target = "refs/" + text
-    uri = env.app.builder.get_relative_uri(env.docname, target) + "#" + text
-    label = definition.get("title") or text
-    return [nodes.reference(rawtext, label, refuri=uri)], []
+    return [links.reference(env.app, env.docname, text)], []
 
 
 def _number_entries(node, prefix, numbers):
@@ -161,7 +161,11 @@ def targets(app, doctree):
             if task in item.astext().splitlines()[0]:
                 item["ids"] = [task]
                 item.children[0] += nodes.reference("", " ¶", refuri="#" + task, classes=["headerlink"])
+                links.task_relationships(app, docname, item, task)
                 break
+    table = links.related_table(app, docname, doc)
+    if table is not None and sections:
+        sections[0].insert(1, table)
     # MyST/Sphinx resolves source Markdown fragments through this map.
     anchors = {value: (node.line, value, value) for node in doctree.findall(nodes.Element) for value in node.get("ids", [])}
     app.env.metadata[docname]["myst_slugs"] = anchors

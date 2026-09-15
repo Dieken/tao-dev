@@ -62,10 +62,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 引用类型、多目标、阶段完整性与现有文档校验。
   - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
-- [ ] `TASK_20260916_6HZF4R0B3VK98K33` 生成可读的文档与任务关联链接。
+- [x] `TASK_20260916_6HZF4R0B3VK98K33` 生成可读的文档与任务关联链接。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
   - depends_on: []
   - verify: 实际 Sphinx HTML 中的标题、类型、前向与反向链接。
+  - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
 - [ ] `TASK_20260916_DB1X5G163G6C2ZRV` 完善自然语言分派并验证整体行为。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
@@ -76,6 +77,8 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 ## 验证记录
 
 逐项记录实际执行结果；原始报告放入忽略的 tmp/tao/。
+
+出版关联：20 项真实 Sphinx、标题转义、稳定入口、章节重定向与模板回归通过；项目中文书籍构建通过，102 个定义的永久链接检查通过。静态错误检查无诊断。
 
 文档关系：93 项源格式、关系、阶段与项目契约回归通过；33 份实际文档校验通过。六份设计和七份计划补齐结构化依据，独立任务附件的契约变化会使计划批准过期。
 

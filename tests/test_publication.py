@@ -147,7 +147,7 @@ def test_id_references_show_current_titles_without_changing_links(tmp_path):
         source.write_text(source.read_text().replace("拒绝覆盖", requirement_title))
         result = build(configured)
         page = Page((tmp_path / result["directory"] / "docs/spec.html").read_text())
-        for identity, title in ((DOC, "文件导出"), (REQ, requirement_title)):
+        for identity, title in ((DOC, "Specification: 文件导出"), (REQ, "Requirement: "+requirement_title)):
             references = [a for a in page.links
                           if a.get("href") == f"../refs/{identity}.html#{identity}"
                           and "headerlink" not in a.get("class", "")]
@@ -166,3 +166,34 @@ def test_removed_published_id_requires_retirement_and_keeps_previous_book(tmp_pa
     with pytest.raises(ConfigurationError, match="TAO-ID-003"):
         build(configured)
     assert resolver.read_bytes() == previous
+
+
+def test_book_renders_typed_forward_backlinks_and_task_dependencies(tmp_path):
+    from test_document_links import linked_plan, design, DESIGN
+    from test_relationships import check_change, TASK, TASK_TWO
+    (tmp_path/'.tao').mkdir()
+    (tmp_path/'.tao/config.toml').write_text('version=1\nlocale="en"\n[documents]\ninclude=["docs/**/*.md"]\nbook_root="docs/index.md"\n')
+    content=linked_plan([DOC],[DESIGN])
+    second=f'''- [ ] `{TASK_TWO}` Check error result
+  - relates: ["{REQ}"]
+  - depends_on: ["{TASK}"]
+  - verify: Assert error.
+
+'''
+    check_change(tmp_path,content.replace('<!-- tao:section verification -->',second+'<!-- tao:section verification -->'))
+    (tmp_path/'spec.md').rename(tmp_path/'docs/spec.md')
+    (tmp_path/'docs/design.md').write_text(design(specs=[DOC]))
+    nav=navigation('spec.md\ndesign.md\nplans/2026-09/20260914-export.md').replace(CHANGE_DOC,'DOC_20260914_0000000000000090')
+    (tmp_path/'docs/index.md').write_text(nav)
+    output=build(Project(tmp_path)); directory=tmp_path/output['directory']
+    plan_html=(directory/'docs/plans/2026-09/20260914-export.html').read_text()
+    plan=Page(plan_html); spec_page=Page((directory/'docs/spec.html').read_text())
+    assert 'tao-relations' in plan_html and '<table' in plan_html
+    assert 'Specification' in plan_html and 'Design' in plan_html
+    assert any(a['text']=='文件导出' and DOC in a.get('href','') for a in plan.links)
+    assert any(a['text']=='Export design' and DESIGN in a.get('href','') for a in spec_page.links)
+    assert any(a['text']=='导出检查' and CHANGE_DOC in a.get('href','') for a in spec_page.links)
+    assert any(a['text']=='Task: 拒绝覆盖已有目标' and TASK in a.get('href','') for a in plan.links)
+    assert any(a['text']=='Requirement: 拒绝覆盖' and REQ in a.get('href','') for a in plan.links)
+    assert 'relates: [' not in plan_html and 'depends_on: [' not in plan_html
+    assert any(CHANGE_DOC+'--tasks' in a.get('href','') and a['text']=='Tasks in this plan' for a in plan.links)
