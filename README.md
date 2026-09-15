@@ -138,7 +138,7 @@ $HOME/.local/bin/tao uninstall --client claude
 
 ## 参与开发
 
-开发 tao-dev 需要 **uv、Python 3.11–3.14 和 Node.js**。Node.js 用于出版链接的回归检查。进入本仓库后：
+开发 tao-dev 需要 **uv 和 Python 3.11–3.14**。进入本仓库后：
 
 ```sh
 uv sync --no-config --locked --extra publication
