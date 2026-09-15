@@ -5,6 +5,7 @@ title: 插件安装与卸载管理
 locale: zh-Hans
 status: draft
 created: "2026-09-15"
+updated: "2026-09-15"
 ---
 
 # 插件安装与卸载管理
@@ -66,4 +67,11 @@ python3 -m pip download --only-binary=:all: --require-hashes --dest wheelhouse -
 python3 -m pip download --only-binary=:all: --require-hashes --dest wheelhouse -r plugins/tao-dev/skills/tao-dev/scripts/requirements-publication.txt
 ```
 
-将源码和 wheelhouse 复制到目标机器，运行 `python3 tao.py install --client codex --scope project --source . --wheelhouse ./wheelhouse`。这一步不访问在线 marketplace 或 Python 包索引；客户端、Python、Git 和 shell 必须已安装。模型服务的网络需求不由插件安装器改变。
+将源码和 wheelhouse 复制到目标机器，运行：
+
+```sh
+python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
+  --client codex --scope project --source . --wheelhouse ./wheelhouse
+```
+
+这一步不访问在线 marketplace 或 Python 包索引；客户端、Python、Git 和 shell 必须已安装。模型服务的网络需求不由插件安装器改变。
