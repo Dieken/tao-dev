@@ -2,7 +2,7 @@
 
 这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不安装客户端、不重新登录、不修改个人配置；原生安装试验仅写独立客户端状态。
 
-先按 README 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
+先按 [开发指南](../../docs/engineering/development.md) 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
 ```sh
 .venv/bin/python tests/acceptance/clients.py --client claude --case recover --claude-scope project --reuse-claude-auth --disable-hooks --workspace /tmp/tao-claude-recover

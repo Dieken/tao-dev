@@ -1,78 +1,66 @@
 # tao-dev · 协作开发之道
 
-面向 AI 与人的协作开发 skill 项目，覆盖需求、交付、运行与持续改进。
+让 AI 与人围绕可验收的结果协作开发：明确需求，选择简单方案，小步实现，用实际检查支撑交付，并留下能接手的知识。
 
-当前包含需求与设计草案、skill 规程、文档格式注册表、可填写模板，以及可运行的文档源文件校验器和回归测试。核心 CLI 与变更骨架生成可用；短文档 hook 与 Claude 操作／审查入口已定义；本地 HTML 书籍构建可用；已支持配置驱动的代码检查、覆盖率／lint 度量及证据复用；已支持带来源校验的独立审查记录导入；macOS 上的限定版本与包格式已完成双 CLI 行为验收；原生 Windows 和当前源码的独立审查仍待完成。
+tao-dev 包含 **agent skill、共享文档模板和确定性 CLI**。适用于新功能、缺陷修复、重构及交接；局部小改动直接使用项目已有工具，复杂变更再补充必要的规格、设计和证据。
 
-插件运行不需要 uv：标准库入口支持显式 setup 与只读 doctor，核心和文档出版分别准备。使用方式见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)，实际结果与剩余验收边界见 [运行环境变更计划](docs/changes/2026-09/20260914-portable-runtime.md)。
+## 核心能力
 
-## 阅读入口
+- **控制复杂度**：区分用户目标与实现建议，比较收益、代价及更简单的替代方案；按风险安排独立审查。
+- **需求到交付可追踪**：用稳定 ID 关联需求、用例、决策、任务和验证记录，改名或移动时保持引用。
+- **检查结果有依据**：接入项目已有测试与静态检查，识别证据过期、按条件复用结果，并汇总任务和必需审查。局部检查通过只代表其覆盖范围。
+- **文档可直接使用**：提供中英文模板、格式与关系校验、本地 HTML 书籍和稳定链接；项目沿用自己的语言与目录。
+- **会话可恢复**：保存目标、决定、实际状态、证据和下一步，接手时核对当前文件与检查结果。
 
-1. [协作开发协议](docs/product/protocol.md)：项目目标、需求、验收场景和公共来源；[流程设计](docs/engineering/protocol-design.md) 维护协作方式，[长期架构决定](docs/engineering/decisions/index.md) 独立维护技术取舍，[实施计划](docs/changes/2026-09/20260914-bootstrap.md) 维护既有研发任务。
-2. [术语与缩写](docs/glossary.md)：统一概念、ID 类型前缀及常用缩写。
-3. [Markdown 文档契约](docs/engineering/documentation/contract.md)：解析器设计、文档检查范围及 skill 规范入口。
-4. [文档组织与产物保存](docs/engineering/documentation/layout.md)：本项目文档组织的设计依据及规则入口。
-5. [插件打包与运行环境](docs/engineering/plugin-design.md)：Agent Plugins 标准结构、平台组件映射和双 CLI 验收。
-6. [tao 命令与流程接入](docs/engineering/cli-design.md)：拟议命令的输入、输出、副作用、调用时机和实施顺序。
+## 快速开始
 
-运行材料从 [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md) 进入，入口要求读取 [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)。规程直接指导使用方项目的设计、编码、验证、评审和演进。
+当前提供源码试用，尚未公开发布。目标客户端是 Codex CLI 和 Claude Code CLI；已测组合与限制见下方支持状态。
 
-[文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 定义使用方的统一格式，skill 提供规格、设计、计划、任务、决策、用户说明、运维、术语、证据与交接模板，以及中英文显示资源。项目无需自定义 schema；CLI 读取同一份格式注册表。
+### 1. 在目标项目中使用规程
 
-[文档组织规程](plugins/tao-dev/skills/tao-dev/references/document-layout.md) 支持书、篇、单页或多页章的分层组织；navigation 模板以 MyST toctree 维护唯一阅读顺序。目录按实际内容增长，既有文件可映射；导航格式、模板和源图检查已提供，Sphinx 书籍构建和稳定入口检查已实现。
+取得本仓库后，在目标项目的客户端会话中指定 skill 的实际绝对路径，例如：
 
-[流程操作规程](plugins/tao-dev/skills/tao-dev/references/workflow.md) 说明各阶段何时使用工具及能力缺失时如何继续。[tao CLI](plugins/tao-dev/skills/tao-dev/scripts/tao.py) 已提供核心文档操作、配置驱动的验证、审查记录接入和本地出版；配置和保障边界见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)。完整 verify 在必需能力缺失时返回未完成。
+> 请先读取 `/绝对路径/tao-dev/plugins/tao-dev/skills/tao-dev/SKILL.md`，用 tao-dev 为当前项目的“导出取消”功能制定计划。
 
-开发者日常向 skill 描述目标，或使用客户端适配后的 new、verify、status、handoff 操作入口；例如“用 tao-dev 为导出取消功能制定计划”。new 接受自然语言，由 agent 提炼 slug、创建并填写计划草稿；底层 `tao new --slug <slug>` 只负责确定性生成，不是要求用户准备文件名的日常入口。Claude 的四个原生操作入口已在 macOS 实测；Codex 使用已发现的核心 skill，不假定两端斜杠语法相同。检查范围由 agent 选择，完整验证同时汇总收尾条件。
+agent 会读取相关实现、明确范围与验收，按需创建并填写计划。你提供目标即可，无需预先准备文件名或模板。计划草稿不代表已经实现；需要继续编码时，可在同一请求中明确授权。
 
-[独立判断与对抗式审查](plugins/tao-dev/skills/tao-dev/references/review.md) 约束需求取舍和各类产物评审：按风险优先跨模型或跨供应商，先独立判断，再用证据裁决，避免迎合、范围膨胀和无界讨论。当前提供规程，跨模型调度及行为效果尚未验收。
+这条路径直接使用仓库中的规程。原生操作入口、reviewer 和 hook 需要按客户端加载插件；包格式及加载验收方法见 [插件设计](docs/engineering/plugin-design.md) 和 [客户端试验](tests/acceptance/README.md)。
 
-开发文档与第三方采用相同的共享 profile：协议承载需求与用例，独立决策文档承载长期 ADR，实施计划承载研发任务；专题设计引用各自权威规则，同一事实不抄写多份。
+### 2. 按需准备 tao 工具
 
-首批目标环境为 **Codex CLI 和 Claude Code CLI**。公共组件以 Agent Plugins 1.0.0 和 Agent Skills 为格式基线，agent、command、hook 按客户端原生扩展适配，两端分别实际验收。运行源码位于 `plugins/tao-dev/`，已有公共 manifest 和 Claude 兼容 manifest；尚未公开发布或声明双 CLI 运行兼容。
+只使用工程规程不需要 Python。调用 tao CLI 时，需要 **Python 3.11–3.14、venv 和 ensurepip**；插件使用者无需 uv。
 
-Codex CLI 0.154.0 的原生 hook 需要兼容包：用 `.venv/bin/python scripts/package_plugin.py --format codex-legacy --output tmp/tao/codex-plugin` 生成新目录。该命令仅打包，既不安装也不注册；运行包无需 uv 或开发仓库。公共格式仍是源目录的权威定义，版本限制和两种包的内容见 [插件设计](docs/engineering/plugin-design.md)。
+agent 先调用 skill 内的 `scripts/tao.py doctor` 检查环境与能力，再在已有安装授权内执行 `setup`。依赖放在独立运行环境中；普通命令不自动下载依赖。离线准备、路径选择和故障处理见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
-## 开发文档与分发边界
+首次接入文档或项目检查时，agent 复用已有目录、语言和测试命令，按需建立 `.tao/config.toml`。配置示例见 [工具规程](plugins/tao-dev/skills/tao-dev/references/tools.md)；尚未接入的内容会明确报告检查范围。
 
-是否随 skill 发布，以第三方项目使用 tao-dev 时的运行用途为准：内容会作为 prompt 被其 LLM 按需读取，或会被 tao CLI／运行组件加载、执行、渲染或用于校验，才放入分发目录。仅用于开发、测试或维护 tao-dev 自身的文档保留在顶层 `docs/`；“具有通用性”或“自举时会用到”本身不是分发理由。
+### 3. 描述下一步目标
 
-| 内容 | 权威位置 | 随 skill 分发 |
+| 你可以这样说 | 操作意图 | 得到什么 |
 |---|---|---|
-| 工程、流程、审查、文档编写与组织规则 | skill 的 references/ | 是，按任务读取 |
-| 术语、诊断、本地化、出版链接规则 | skill 的 references/ | 是，按需读取 |
-| 格式注册表、模板、显示资源 | skill 的 assets/ | 是，skill 与 CLI 共用 |
-| 本项目需求、实现理由、研发任务和证据 | 项目 docs/ | 否，仅供开发维护 |
+| 用 tao-dev 为导出取消功能制定计划 | new | 已填写目标、范围、已知验收和下一步的草稿 |
+| 检查这次修改是否满足交付条件 | verify | 实际检查结果、覆盖范围、阻碍和未验证项 |
+| 查看这次变更的进度和证据是否过期 | status | 只读状态，不重新运行行为检查 |
+| 保存当前进度，方便下次继续 | handoff | 可恢复的交接摘要及证据入口 |
 
-共享规则由 [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md) 导航。开发文档引用包内权威源，运行材料不反向引用开发文档；出版书籍复用同一源文件，不另复制一套规范。
+以上是操作意图，不要求记忆斜杠语法。Claude 插件提供对应操作入口；Codex 通过已加载的 skill 执行。检查范围由 agent 按当前任务和项目策略选择。
 
-每份随 skill 发布的资源应有明确的 prompt 读取入口或运行调用方；只有 CLI 使用的资源无需读入 LLM 上下文。描述“如何实现 tao CLI”的设计文档不等于“tao CLI 运行时使用的资源”；尚未实现的调用方要标明计划用途，不能声称已经调用。混合两类内容的文件按段落职责拆分，不因其中一部分需要分发就把整份研发文档加入包。
+## 支持状态
 
-使用方项目中的 .tao/ 仅存放 CLI 或 skill 配置；规格、计划、证据与 docs/retired/ 下的退役记录属于项目文档资产，临时报告、书籍输出与可重建缓存默认放在 tmp/tao/，可映射到项目已有生成目录。tao-dev 自身也按这个边界组织，未发生退役或不需要配置时不预建目录。
+核心文档操作、配置驱动的验证与证据复用、独立审查记录导入、本地 HTML 出版已有实现。审查记录导入核对来源和输入一致性；CLI 本身不调度模型。
 
-分发内容中的 `SKILL.md`、运行参考、模板和脚本单独组织；发布采用明确的文件清单，不将整个开发仓库打包。发布包离开开发仓库后须能读到完整规则；不得依赖 `docs/` 或本地研究目录。第三方使用相同模板填写自己的内容，不接收本项目的研发条目。
+| 范围 | 当前依据与限制 |
+|---|---|
+| macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.268 的限定包格式与场景有行为验收记录 |
+| Codex 原生 hook | 0.154.0 需要生成 `codex-legacy` 兼容包；源码公共包可发现 skill，但该版本不发现其中的 hook |
+| 其他平台与版本 | 原生 Windows 验收未完成；Python 运行环境的测试矩阵不等于客户端兼容矩阵 |
+| 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
 
-开发文档维护当前目标、约束、设计理由和必要参考；对话经过、逐轮修改说明与临时检查流水不进入正文。一般修改历史由本项目的 Git 保留，仍有价值的取舍写入决策记录。
+具体受检版本、环境、结果和剩余工作以 [运行环境验收记录](docs/changes/2026-09/20260914-portable-runtime.md) 为准。HTML 构建不包含外部站点部署，当前未实现 PDF 出版。
 
-## 项目语言
+## 参与开发
 
-tao-dev 以简体中文作为需求、设计和维护说明的权威正文；代码标识、文件名、schema 键、状态值、规则号和代码注释使用英文。`SKILL.md` 初期采用中文及必要的英文术语，运行效果通过真实案例评估。
-
-文档日期采用记录时的本地日期，`created` 记录创建日期，无需配置项目时区。需要精确时间的执行记录使用带 UTC 偏移量或 `Z` 的 ISO 8601 时间戳，具体格式见文档契约。
-
-这一选择只适用于 tao-dev 自身。模板和生成器须尊重使用方的项目语言；显示文字可本地化，机器结构与条目标识符不随语言变化。新文档的语言来自用户明确要求或目标项目约定，既有文档默认保留原语言。详细契约见 [本地化规程](plugins/tao-dev/skills/tao-dev/references/localization.md)。
-
-## 自举方式
-
-维护入口 [AGENTS.md](AGENTS.md) 指向本仓库内的 skill 源码，CLAUDE.md 导入同一入口；无需全局安装。交付文档使用 skill 提供的 profile 与模板，变更计划按 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` 保存，简短验证结论直接写入计划，独立摘要与附件按需放在同月的同名目录内；原始日志默认不纳入 VCS。
-
-自举表示使用本仓库的 skill、规则与模板开发 tao-dev，校验范围以 [文档契约](docs/engineering/documentation/contract.md) 为准；本项目形成的需求、设计、计划、测试报告和维护说明仍留在顶层 docs/，不因自举而成为分发内容。
-
-本 README 是阅读导航，不纳入正文 profile 的结构校验。新增文档类型与正式工具时，再扩展 schema 和检查范围；不预建空目录或自动安装 skill。
-
-## 运行文档校验与回归测试
-
-开发需要 uv 和受支持的 Python；依赖在 pyproject.toml 声明、uv.lock 锁定，环境位于忽略的 .venv/。插件使用者不需要 uv。准备开发环境：
+开发 tao-dev 需要 **uv、Python 3.11–3.14 和 Node.js**。Node.js 用于出版链接的回归检查。进入本仓库后：
 
 ```sh
 uv sync --no-config --locked --extra publication
@@ -80,33 +68,13 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 uv run --no-config --locked --extra publication python -m pytest
 ```
 
-[源文件校验入口](plugins/tao-dev/skills/tao-dev/scripts/validate_documents.py) 随 skill 分发，读取同包格式注册表；[测试](tests/) 留在开发仓库。校验器显式接收项目目录和纳入管理的文件，支持 `--format json`，不执行项目代码或写入文档。运行依赖清单由 `uv run --no-config --locked --extra publication python scripts/export_dependencies.py` 生成；发布前运行同一命令加 `--check` 拒绝不同步的清单。第三方使用生成的 pip 清单，无需 uv 或 pytest。
+第二步显式下载测试所需 wheel；准备后普通回归离线运行，不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
 
-```sh
-export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
-export TAO_PYTHON="$PWD/.venv/bin/python"
-uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --wheelhouse tmp/tao/wheels
-uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py doctor --format json
-uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
-```
+本仓库通过 [AGENTS.md](AGENTS.md) 使用自身的 skill；运行材料在 `plugins/tao-dev/`，仅供维护的资料在 `docs/`。
 
-准备 wheels 是明确的下载操作；普通测试离线使用 tmp/tao/wheels，缺少时报告前提未满足，不自动联网。测试用真实独立 venv 验证入口，不安装到开发或业务环境。
+## 深入阅读
 
-上面的环境变量示例用于 POSIX shell，并将本仓库的自举运行限定在临时目录；Windows 使用 PowerShell 设置对应变量和 .venv/Scripts/python.exe。插件用户按 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md) 使用客户端提供的数据目录，不要求安装 uv。
-
-单独检查一个文件可能报告范围外的引用；跨文档关系需要一起传入相关文件。仓库回归测试会纳入 docs/ 下的全部 Markdown。校验器支持注册表中的 11 种共享 profile，覆盖 Markdown 结构、元数据、正式条目、任务、引用、退役及导航关系。指定 `--book-root <导航文件>` 才检查整本书的可达性；检查历史删除需要调用方提供基线。源文件锚点可解析不代表生成 HTML 或复制链接已经验收，语义、代码行为和费用也不由格式检查判定。
-
-## 构建开发手册
-
-开发依赖已包含可选出版组件。运行以下命令，按输出的 index 打开 HTML；也可用本地 HTTP 服务器预览 tmp/tao/book/。构建不会发布外部站点，生成文件默认不纳入 VCS。
-
-```sh
-uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --publication --wheelhouse tmp/tao/wheels
-uv run --no-config --locked --extra publication python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
-```
-
-## 运行项目检查
-
-本项目的 .tao/config.toml 配置实际 Python 回归、子进程分支覆盖率与 Ruff 错误检查；运行 `tao.py verify --only code` 可执行或复用它们，`tao.py status` 只读比较证据。度量结果、原始日志和缓存都在 tmp/tao/；配置与规则见 [验证规程](plugins/tao-dev/skills/tao-dev/references/verification.md)。覆盖率是观察值，当前没有随意设定一个通过百分比。
-
-完整 `tao.py verify <CHG-ID>` 仍会报告尚未完成的任务及缺失或过期的必需审查，不能把局部检查通过当成交付。实际客户端和恢复试验需显式运行，方法见 [试验说明](tests/acceptance/README.md)，普通 pytest 不调用模型。维护环境还需 Node.js，用于实际执行出版页的重定向脚本；项目检查将其程序摘要纳入证据指纹。它不属于分发插件或消费项目的运行依赖。
+- [开发手册](docs/index.md)：产品需求、工程设计、长期决定与变更记录。
+- [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)：需求、设计、编码、验证和演进的判断原则。
+- [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md)：模板、格式、稳定 ID 与文档组织。
+- [独立判断与审查](plugins/tao-dev/skills/tao-dev/references/review.md)：审查强度、证据裁决与停止条件。

@@ -5,6 +5,7 @@ title: 工程设计
 locale: zh-Hans
 status: draft
 created: "2026-09-14"
+updated: "2026-09-15"
 ---
 
 # 工程设计
@@ -21,6 +22,7 @@ created: "2026-09-14"
 :maxdepth: 2
 :titlesonly:
 
+development.md
 protocol-design.md
 documentation/index.md
 cli-design.md
