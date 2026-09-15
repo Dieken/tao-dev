@@ -8,6 +8,7 @@ from .project import Project, ConfigurationError, ConflictError, contained, crea
 from .verification import file_digest, digest_json
 from .reviews import load
 from . import git_workflow
+from tao_messages import Message
 
 PHASES = ('spec', 'design', 'plan', 'implement', 'review', 'finish', 'complete')
 DOC_PHASES = PHASES[:3]
@@ -260,10 +261,10 @@ def advance(project, identity, expected, decision, doc_review=None):
                 for name in names:
                     values = result.documents[name].metadata.get(key, [])
                     if not values or not expected_ids.intersection(values):
-                        raise ConflictError('Link '+key+' to the approved stage documents before advancing.')
+                        raise ConflictError(Message('Link {arg0} to the approved stage documents before advancing.', key))
                     linked.update(values)
                 if not expected_ids or not expected_ids.issubset(linked):
-                    raise ConflictError('The '+key+' relationship must cover the approved stage documents.')
+                    raise ConflictError(Message('The {arg0} relationship must cover the approved stage documents.', key))
             if phase == 'plan' and any(result.documents[n].metadata.get('change') != identity for n in names):
                 raise ConflictError('Plan documents must belong to this workflow change.')
             if phase == 'plan' and doc_review not in ('completed', 'skipped'):
