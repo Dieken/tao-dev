@@ -38,6 +38,8 @@
 
 ## 元数据、结构与语言
 
+既有文档保持 locale 和语言，明确翻译请求才转换或派生。新文档先取用户对产物明确指定的语言，再取项目约定；无法确定时询问一次，不从聊天语言或本 skill 的中文推导。模板显示文字按该语言选择，机器键保持不变；多语言派生见 [本地化](localization.md)。
+
 UTF-8 Markdown 以 YAML frontmatter 开始。共同必需字段为 `schema`、`id`、`title`、`locale`、`status`、`created`，可选 `updated`；含义与枚举以注册表为准。字符串非空，拒绝重复键、未知字段、自定义 YAML tag。`id` 是文档自身的 DOC ID；正文恰有一个一级标题，与 title 一致。status 的 accepted 来自实际评审决定，不能由格式通过自动设置，也不代表文中所有条目均已接受。
 
 日期采用带引号的 `YYYY-MM-DD` 本地日历日期，updated 不能早于 created；精确记录使用带数值 UTC 偏移量或 Z 的 RFC 3339 时间戳。created 不因编辑变化，updated 只在语义修改时更新；已有日期不因环境变化重算。导入文档无法确认创建日期时，记录首次纳入管理的日期并说明依据，不猜原始日期。不要把这些元数据加入 SKILL.md、agent 或 manifest，它们遵循自身格式。
@@ -53,7 +55,7 @@ UTF-8 Markdown 以 YAML frontmatter 开始。共同必需字段为 `schema`、`i
 
 plan profile 的 `change` 定义一个 CHG ID，生成计划前由工作流状态提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
-模板中的 `{{TOKEN}}` 是待替换变量。heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余由 agent 填入实际内容、已有引用或工具生成的 ID。替换元数据时使用合法 YAML 字符串转义，不把用户文本直接拼进 YAML。新增语言沿用同一变量键集，只翻译显示文字，不改变结构键、schema、ID 或关系。
+模板中的 `{{TOKEN}}` 是待替换变量。heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。
 
 模板输出不得残留变量。需求／用例／决策扩展为多项时，每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。变更骨架可由 new 生成，其余模板由 agent 或人工填写；生成骨架后仍需消除占位符并检查真实内容。
 
