@@ -42,7 +42,8 @@ curl -fsSL https://raw.githubusercontent.com/Dieken/tao-dev/main/install.sh | sh
 在本地 tao-dev 仓库运行，直接使用当前工作目录中的内容，包括未提交修改：
 
 ```sh
-python3 tao.py install --client codex --scope project --source .
+python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
+  --client codex --scope project --source .
 ```
 
 安装到其他项目时加 `--project /path/to/project`。Windows 将 `python3` 换成可用的 Python 命令，如 `py -3`。本地来源不依赖在线 marketplace；安装器会生成客户端所需的本地清单。

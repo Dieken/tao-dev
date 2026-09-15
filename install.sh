@@ -16,4 +16,4 @@ command -v git >/dev/null 2>&1 || { echo 'Git is required.' >&2; exit 2; }
 work=$(mktemp -d "${TMPDIR:-/tmp}/tao-install.XXXXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 git clone --quiet --depth 1 https://github.com/Dieken/tao-dev.git "$work/source"
-"$python" -I -B "$work/source/tao.py" install "$@"
+"$python" -I -B "$work/source/plugins/tao-dev/skills/tao-dev/scripts/tao.py" install "$@"

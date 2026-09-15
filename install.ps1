@@ -27,7 +27,8 @@ try {
     if ($Source) { $arguments += @('--source',$Source) }
     if ($Marketplace) { $arguments += @('--marketplace',$Marketplace) }
     if ($Wheelhouse) { $arguments += @('--wheelhouse',$Wheelhouse) }
-    & $python @prefix -I -B (Join-Path $work 'source/tao.py') @arguments
+    $entry = Join-Path $work 'source/plugins/tao-dev/skills/tao-dev/scripts/tao.py'
+    & $python @prefix -I -B $entry @arguments
     if ($LASTEXITCODE -ne 0) { throw 'tao install did not complete; inspect its report.' }
 } finally {
     if (Test-Path $work) { Remove-Item -LiteralPath $work -Recurse -Force }
