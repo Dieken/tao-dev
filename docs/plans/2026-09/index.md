@@ -22,9 +22,8 @@ created: "2026-09-14"
 :titlesonly:
 
 20260914-bootstrap.md
-20260914-shared-rules.md
+20260914-shared-rules/index.md
 20260914-book-navigation.md
-20260914-shared-rules/evidence/shared-rules.md
 20260914-portable-runtime.md
 20260914-numbered-html-sections.md
 20260915-agent-workflow.md
