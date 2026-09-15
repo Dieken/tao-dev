@@ -54,6 +54,25 @@ python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
 
 `tao setup` 是低层的运行环境准备命令，供维护、修复或预置依赖使用。它一次创建或复用彼此隔离的核心与出版环境，但不安装或启用客户端插件，不选择 scope，不写 hook 绑定，也不代替 `tao install`。正常安装时无需手工运行 setup。
 
+### `tao` 命令在哪里
+
+安装器会创建一个独立的 `tao` 启动器，默认位置是：
+
+- macOS／Linux：`~/.local/bin/tao`
+- Windows：`%USERPROFILE%\.local\bin\tao.cmd`
+
+安装器会在安装摘要中显示实际绝对路径，但不会修改 shell 的 PATH。`~/.local/bin` 已在 PATH 中时可以直接使用 `tao`；否则使用摘要中的路径或默认完整路径。例如：
+
+```sh
+$HOME/.local/bin/tao --project "$PWD" doctor
+```
+
+```powershell
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" doctor
+```
+
+README 后面的 `tao` 表示这个安装器生成的启动器，不是 `python3 /path/to/tao.py` 的简写。只有从 tao-dev 本地源码目录执行首次安装时，才需要直接运行 `plugins/tao-dev/skills/tao-dev/scripts/tao.py`。
+
 ### 范围、来源与升级
 
 | 参数 | 含义 |
@@ -70,42 +89,132 @@ python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
 **重复执行同一条安装命令即可升级**，已有且匹配的依赖环境会复用。本地工作目录的内容变化也会更新已安装副本。安装器同时提供 `tao` 命令；位置显示在安装摘要中，若其目录未在 PATH 中，可直接使用摘要中的完整路径。
 
 ```sh
-tao install --client codex --scope project
-tao install --client claude --scope local --source /path/to/tao-dev
+$HOME/.local/bin/tao install --client codex --scope project
+$HOME/.local/bin/tao install --client claude --scope local --source /path/to/tao-dev
 ```
 
 未重新指定来源时，沿用该客户端和范围已有的安装来源。无需手工重新打包、修改客户端配置或运行 setup。离线机器需要提前准备源码、客户端、Python 与对应平台的锁定 wheel，详见 [安装管理说明](docs/engineering/installation.md)。
 
-### 开始使用
+### 在 agent 中调用 tao-dev
 
-安装成功后，在目标项目启动新的 `claude` 或 `codex` 会话：
+安装成功后，在目标项目启动新的 `claude` 或 `codex` 会话。skill 调用和请求内容要放在**同一条消息**中；不要先单独发送 `/tao-dev:tao-dev` 或 `$tao-dev`，再发送任务。
 
-- Claude Code：使用 `/tao-dev:tao-dev`。
-- Codex：从 `/skills` 或 `$` 选择 tao-dev。
-- 例如：让 tao-dev 为一个小功能制定计划，明确验收条件，再继续实现和验证。
+粘贴到 Claude Code：
 
-首次接入项目时，可让 agent 建立适合该项目的 tao 配置；短文档 hook 在项目已有 `.tao/config.toml` 时提供反馈。
+```text
+/tao-dev:tao-dev 请检查当前项目的语言、目录、测试、静态检查和文档构建方式。若项目还没有 .tao/config.toml，请创建一份只接入现有检查的最小配置；若已经存在，请核对而不要重置。然后使用安装好的 tao 启动器运行 doctor，并说明配置了哪些检查、哪些内容仍需人工决定。本轮只完成项目接入，不创建功能计划。
+```
+
+粘贴到 Codex：
+
+```text
+$tao-dev 请检查当前项目的语言、目录、测试、静态检查和文档构建方式。若项目还没有 .tao/config.toml，请创建一份只接入现有检查的最小配置；若已经存在，请核对而不要重置。然后使用安装好的 tao 启动器运行 doctor，并说明配置了哪些检查、哪些内容仍需人工决定。本轮只完成项目接入，不创建功能计划。
+```
+
+这条消息让 agent 创建或核对 `.tao/config.toml`；目前没有单独的 `tao init` 命令。项目存在这份配置后，随插件安装的短文档 hook 会在 agent 写入 Markdown 时自动检查并反馈，无需手工运行 hook。
+
+### 完整示例：用 tao-dev 为 tao-dev 开发一个 feature
+
+下面以新增 `tao docs serve` 为例，演示一次完整开发周期。开发对象是 tao-dev 自身；当前已有 `tao docs build`，尚无 `tao docs serve`。在 tao-dev 源码根目录完成安装并执行上面的首次接入后，按顺序操作。
+
+#### 1. 创建变更文档骨架（终端，只执行一次）
+
+macOS／Linux：
+
+```sh
+$HOME/.local/bin/tao --project "$PWD" new --slug docs-serve --locale zh-Hans
+```
+
+Windows PowerShell：
+
+```powershell
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" new --slug docs-serve --locale zh-Hans
+```
+
+命令会输出新建的变更文档路径和稳定 ID。若同名变更已经存在，不要重复创建，让 agent 继续使用已有文档。
+
+#### 2. 制定计划（发给 agent 的一条新消息）
+
+粘贴到 Claude Code：
+
+```text
+/tao-dev:tao-dev 请为刚创建的 docs-serve 变更制定计划。先检查 tao docs build、运行环境和 Sphinx 出版实现，再填写现有变更文档。目标是增加 tao docs serve：先构建本地 HTML book，再启动仅监听本机的预览服务；受管理 Markdown 变化后重新构建；输出访问 URL 和构建目录；Ctrl+C 后干净退出。验收必须覆盖初次构建、修改后重建、构建失败、端口占用和进程退出，不依赖真实浏览器或外部网络。本轮只完善需求、设计、任务和验证方案，不修改实现代码。
+```
+
+粘贴到 Codex：
+
+```text
+$tao-dev 请为刚创建的 docs-serve 变更制定计划。先检查 tao docs build、运行环境和 Sphinx 出版实现，再填写现有变更文档。目标是增加 tao docs serve：先构建本地 HTML book，再启动仅监听本机的预览服务；受管理 Markdown 变化后重新构建；输出访问 URL 和构建目录；Ctrl+C 后干净退出。验收必须覆盖初次构建、修改后重建、构建失败、端口占用和进程退出，不依赖真实浏览器或外部网络。本轮只完善需求、设计、任务和验证方案，不修改实现代码。
+```
+
+#### 3. 实现计划（计划确认后再发一条消息）
+
+粘贴到 Claude Code：
+
+```text
+/tao-dev:tao-dev 请按 docs-serve 变更文档中已经确认的计划开始实现。逐项完成任务，添加能验证行为的测试，并使用项目配置中的检查命令。只有实际检查通过后才能更新对应任务和证据；若实现需要改变已确认范围，先停下来说明原因。
+```
+
+粘贴到 Codex：
+
+```text
+$tao-dev 请按 docs-serve 变更文档中已经确认的计划开始实现。逐项完成任务，添加能验证行为的测试，并使用项目配置中的检查命令。只有实际检查通过后才能更新对应任务和证据；若实现需要改变已确认范围，先停下来说明原因。
+```
+
+#### 4. 查看状态并运行确定性检查（终端）
+
+以下命令使用 tao CLI，不会调用模型：
+
+```sh
+$HOME/.local/bin/tao --project "$PWD" status
+$HOME/.local/bin/tao --project "$PWD" verify --only code
+$HOME/.local/bin/tao --project "$PWD" verify --only docs
+$HOME/.local/bin/tao --project "$PWD" docs build
+```
+
+Windows PowerShell：
+
+```powershell
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" status
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" verify --only code
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" verify --only docs
+& "$HOME\.local\bin\tao.cmd" --project "$PWD" docs build
+```
+
+`tao docs build` 使用安装时准备的 publication venv 运行 Sphinx，并在输出中给出 book 的 HTML 入口，默认位于 `tmp/tao/book/`。实现 `tao docs serve` 后，可再直接验证新命令；浏览完成后按 Ctrl+C：
+
+```sh
+$HOME/.local/bin/tao --project "$PWD" docs serve
+```
+
+#### 5. 核对交付（检查通过后发给 agent 的一条新消息）
+
+粘贴到 Claude Code：
+
+```text
+/tao-dev:tao-dev 请核对 docs-serve 变更的实现、任务状态、验证输出和文档。只根据当前文件和实际检查结果更新完成状态与证据，指出尚未覆盖的平台或场景，并生成一份下一位开发者可以直接接手的简短交接摘要。不要把未运行的检查写成通过。
+```
+
+粘贴到 Codex：
+
+```text
+$tao-dev 请核对 docs-serve 变更的实现、任务状态、验证输出和文档。只根据当前文件和实际检查结果更新完成状态与证据，指出尚未覆盖的平台或场景，并生成一份下一位开发者可以直接接手的简短交接摘要。不要把未运行的检查写成通过。
+```
+
+可先点击阅读 [SKILL.md](plugins/tao-dev/skills/tao-dev/SKILL.md)，了解上述消息触发的协作规则。skill 负责判断、规划和推进；`tao` CLI 负责创建文档、检查状态、执行确定性验证和构建 Sphinx book。
 
 ### 卸载
 
 指定客户端后，安装器会发现用户级、当前及客户端已知项目中的安装，列出各份安装的范围与文件，提示选择并确认删除：
 
 ```sh
-tao uninstall --client codex
-tao uninstall --client claude
+$HOME/.local/bin/tao uninstall --client codex
+$HOME/.local/bin/tao uninstall --client claude
 ```
 
 共享配置只清理对应项目；其他安装仍在使用的缓存保留。无法确认归属的旧 Python 环境会保留并说明；共享 `tao` 命令保留，方便再次安装。
 
 只查看用 `--list`；自动化删除指定一份用 `--id <列表中的安装 ID> --yes`。完整属于 tao-dev 的目录只列目录本身，不展开内部文件。
-
-### 自举体验：用 tao-dev 为 tao-dev 开发新功能
-
-**这个练习的开发对象是 tao-dev 本身。** 在 tao-dev 源码根目录完成上述安装后，启动客户端；可先点击阅读 [SKILL.md](plugins/tao-dev/skills/tao-dev/SKILL.md)，再输入：
-
-> 请使用 tao-dev，为 tao-dev 自身新增 `tao docs serve` 命令制定开发计划：在本机预览生成的文档书籍，并在 Markdown 修改后重新构建和刷新页面。先检查现有实现，明确范围、验收场景和必要设计，生成并填写变更计划；本轮只规划，暂不编码。
-
-这是一项示例新需求，当前已有 `tao docs build`，尚无 `tao docs serve`。要继续体验实现、测试和审查，可随后要求 agent 按计划继续开发。
 
 ## 支持状态
 
