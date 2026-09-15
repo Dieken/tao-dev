@@ -28,7 +28,7 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 <!-- tao:section tasks -->
 ## 任务
 
-- [x] `TASK_20260915_50BX90SPVQNT4SH3` 迁移实施计划命名：迁移 plan profile、模板、目录、配置和所有引用，保留 CHG 身份。
+- [x] `TASK_20260915_50BX90SPVQNT4SH3` 迁移实施计划命名：迁移 plan profile、模板、目录、配置和所有引用，保留 CHG ID。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: []
   - verify: 文档/关系/CLI/出版回归和旧名称扫描。
