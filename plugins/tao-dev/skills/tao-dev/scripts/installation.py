@@ -456,10 +456,12 @@ def install(args):
 
 
 def guide(record):
-    invocation = '/tao-dev:tao-dev' if record['client'] == 'claude' else '$tao-dev'
+    invocation = '/tao-dev:' if record['client'] == 'claude' else '$tao-dev '
     return [f'Open a new {record["client"]} session in your project.',
-            f'{invocation} Plan a small feature for this project and define how to verify it.',
-            'No TAO environment variables are required.',
+            f'Optional project checks: {invocation}setup',
+            f'Start a feature: {invocation}new <your business requirement>',
+            f'Check progress: {invocation}status; resume work: {invocation}continue',
+            'No TAO environment variables or PATH changes are required for agent use.',
             f'CLI: {record.get("launcher", "tao")} install / uninstall --client {record["client"]}']
 
 
