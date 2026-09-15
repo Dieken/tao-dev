@@ -2,10 +2,9 @@
 
 import json
 import re
-import shutil
-import subprocess
 
 import pytest
+from py_mini_racer import MiniRacer
 
 from taolib.project import Project, ConfigurationError
 from taolib.publication import build
@@ -30,12 +29,18 @@ def configured(root, target=NEW_SECTION):
 
 
 def resolve(page, fragment):
-    node = shutil.which('node')
-    assert node, 'Resolver execution tests require test-only Node.js; consuming projects do not.'
     scripts = re.findall(r'<script>(.*?)</script>', page, re.S)
-    code = 'let redirects=[];let location={hash:' + json.dumps(fragment) + ',replace(value){redirects.push(value);}};\n' + '\n'.join(scripts) + '\nconsole.log(JSON.stringify(redirects));'
-    result = subprocess.run([node, '-e', code], capture_output=True, text=True, check=True)
-    return json.loads(result.stdout)
+    assert scripts, 'Resolver page must contain an executable redirect script.'
+    code = ('let redirects=[];let location={hash:' + json.dumps(fragment)
+            + ',replace(value){redirects.push(value);}};\n'
+            + '\n'.join(scripts) + '\nJSON.stringify(redirects);')
+    with MiniRacer() as engine:
+        return json.loads(engine.eval(code, timeout_sec=5))
+
+
+def test_resolver_executes_without_external_node(monkeypatch):
+    monkeypatch.setenv('PATH', '')
+    assert resolve('<script>location.replace("../docs/current.html#target");</script>', '#old') == ['../docs/current.html#target']
 
 
 def test_old_retired_section_redirects_and_has_a_readable_fallback(tmp_path):
