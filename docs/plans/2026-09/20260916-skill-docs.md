@@ -52,10 +52,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 核对路径和阈值不变，日常构建不再要求人为移动文件；运行出版及重定向测试。
   - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
-- [ ] `TASK_20260916_ERK5P7RVBS65CDPN` 归并项目配置，移出工具与运行环境内部细节。
+- [x] `TASK_20260916_ERK5P7RVBS65CDPN` 归并项目配置，移出工具与运行环境内部细节。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
   - depends_on: ["TASK_20260916_2QKPJMGCDAZ6ZPHT"]
   - verify: 核对启动入口、配置键、依赖准备与故障恢复仍可操作；运行运行环境和项目接入测试。
+  - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
 - [ ] `TASK_20260916_GJ2QQMABGAWAKJBG` 去重阶段授权、恢复与审查流程。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
@@ -87,6 +88,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 1：已保存原文快照和八项任务；基线 9 项测试通过，独立阅读发现日常构建被要求执行出版器变动回归。
 任务 2：文档、退役、ADR 与引用解析共 60 项测试通过；195 个本地文件链接无缺失。合并诊断与条目写法，退役独立按需读取；更新验收读取分类。
 任务 3：出版、重定向与仓库共 16 项测试通过；193 个本地链接无缺失。补齐锁文件已有的 mini-racer 后重跑；普通构建仅检查实际产物，变动回归归开发文档。
+任务 4：运行环境、hook、安装绑定、项目接入与仓库共 41 项测试通过；190 个本地链接无缺失。配置归入 setup，内部机制进入安装设计。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
