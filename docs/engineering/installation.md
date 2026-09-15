@@ -62,7 +62,9 @@ CLI 试验遵循 AGENTS.md：使用独立 CODEX_HOME、CLAUDE_CONFIG_DIR 与 Git
 
 0.2.1 将两端 hook 改为直接执行 hook.py：静态 marketplace 配置使用 PATH 中的 python3，完整安装将其替换为已验证的解释器与插件脚本绝对路径，并删除 POSIX／PowerShell 启动包装。最终 305 项回归通过，5 项原生探针按默认策略跳过；另行启用的两项双客户端原生范围测试通过。隔离的 Codex project 与 Claude local 完整安装均准备核心及出版 venv 并通过 doctor；Codex 从 0.2.0 重复安装到 0.2.1 后复用两套环境，最终 hook 信任通过。依赖导出、Ruff 错误规则、受管理文档、HTML 书籍与两种插件包检查通过；原生 Windows 仍未执行。
 
-0.2.2 将 setup 收敛为一次准备核心与出版两套隔离环境，删除 --publication 参数；install 只调用一次完整 setup。macOS、Python 3.12 下使用当前锁定 wheel 实测 core venv 占用约 14 MiB，publication venv 约 105 MiB。并发准备会等待同一环境完成后复用；出版准备失败仍保留已经验证的核心环境。最终 307 项回归通过，5 项原生客户端探针按默认策略跳过；依赖导出、Ruff 错误规则、受管理文档及 public／Codex 兼容包检查通过。此次未重复执行真实客户端探针，原生 Windows 仍未执行。
+0.2.2 将 setup 收敛为一次准备核心与出版两套隔离环境，删除 --publication 参数；install 只调用一次完整 setup。macOS、Python 3.12 下使用当前锁定 wheel 实测 core venv 占用约 14 MiB，publication venv 约 105 MiB。并发准备会等待同一环境完成后复用；出版准备失败仍保留已经验证的核心环境。
+
+完整复验启用 5 项默认关闭的原生客户端探针后，312 项 pytest 全部通过、无跳过。Codex project 与 Claude local 的本地源码安装均完成首次安装、重复安装复用、无 TAO 变量 doctor、绝对 hook 绑定、按 ID 卸载及空列表确认；Claude user／project／local 和 Codex 的原生生命周期均完成禁用、启用、0.2.2 至 0.2.3 更新与移除。复验中修正 Claude 生命周期脚本仍读取已删除根 plugin.json 的过时路径。依赖导出、Ruff 错误规则、30 份受管理文档、HTML 书籍及 public／Codex 兼容包检查通过。测试未调用模型、未修改个人客户端或认证；原生 Windows 仍未执行。
 
 ### 离线 wheel 准备
 
