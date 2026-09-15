@@ -64,10 +64,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 保留阶段检查点、累计范围、有界轮次、来源和输入绑定；运行工作流、审查及接续测试。
   - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
-- [ ] `TASK_20260916_YVCPXGFRXBASZ9FA` 集中证据保存、验证与复用规则。
+- [x] `TASK_20260916_YVCPXGFRXBASZ9FA` 集中证据保存、验证与复用规则。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
   - depends_on: ["TASK_20260916_GJ2QQMABGAWAKJBG"]
   - verify: 核对历史结果、原始材料与当前复用资格分离；运行验证、度量及任务证据测试。
+  - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
 - [ ] `TASK_20260916_CXYJA4DC7KG1495E` 精简工程规程、术语、本地化与入口。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
@@ -91,6 +92,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 3：出版、重定向与仓库共 16 项测试通过；193 个本地链接无缺失。补齐锁文件已有的 mini-racer 后重跑；普通构建仅检查实际产物，变动回归归开发文档。
 任务 4：运行环境、hook、安装绑定、项目接入与仓库共 41 项测试通过；190 个本地链接无缺失。配置归入 setup，内部机制进入安装设计。
 任务 5：工作流、审查调度、来源记录、文档阶段和接续共 40 项测试通过；195 个本地链接无缺失。授权规则集中，状态与审查接口保留操作专属约束。
+任务 6：验证、度量、审查来源、任务关系与仓库共 76 项测试通过；197 个本地链接无缺失。保存原则集中，机器复用条件与字段填写各归其位。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
