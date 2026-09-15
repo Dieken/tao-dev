@@ -52,10 +52,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 空项目、已有配置、多技术栈及检查命令探测测试。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_VA29A39MM0VE0YG3` 实现审查范围与有界轮次：保存确认的审查范围、固定输入和轮次预算，支持串行/并行编排及停止条件。
+- [x] `TASK_20260915_VA29A39MM0VE0YG3` 实现审查范围与有界轮次：保存确认的审查范围、固定输入和轮次预算，支持串行/并行编排及停止条件。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_EC0WZ5Z2TNFB3HR2"]
   - verify: 多提交/脏工作区范围、全项目审查、恢复后轮次上限测试。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_0N10J9P66VNQ57SB` 更新 skill 与客户端动作：共享阶段规程；增加 setup/continue/refine/implement/review/debug/docs/finish 包装；分开文档职责。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -79,6 +80,8 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 交接恢复：29 项工作流、handoff 与 CLI 回归通过。计划前可保存正式交接；重复恢复保留新进度；读取后 handoff 变化会拒绝旧摘要接续；不自动删除文件。
 
 项目接入：33 项探测、配置、项目边界、CLI 与 hook 测试通过。验证空项目只读、monorepo 候选命令不执行、同配置不改写、过期配置摘要拒绝覆盖，Ruff 核心规则通过。
+
+有界审查：50 项审查范围、轮次、工作流、独立审查记录和验证回归通过。覆盖多提交/脏输入、实际 ZIP 快照、重载后轮次与时间预算、缺失报告及过期范围拒绝，Ruff 核心规则通过。
 
 <!-- tao:section questions -->
 ## 未决问题

@@ -183,9 +183,17 @@ def advance(project, identity, expected, decision, doc_review=None):
                 raise ConflictError('Stage artifacts must use the matching document profile.')
             if phase == 'plan' and doc_review not in ('completed', 'skipped'):
                 raise ConflictError('Record the user decision about document review before implementation.')
+            if phase == 'plan' and doc_review == 'completed':
+                from .review_runs import passed
+                if not passed(owner, state, 'docs'):
+                    raise ConflictError('A current completed document review is required for this choice.')
             state['approvals'][phase] = {'digest': artifact_digest(owner, state, phase), 'decision': decision}
             if phase == 'plan':
                 state['doc_review'] = doc_review
+        if phase == 'review':
+            from .review_runs import passed
+            if not passed(owner, state, 'code'):
+                raise ConflictError('Complete a current code review before entering finish.')
         state['phase'] = PHASES[PHASES.index(phase)+1]
         state['decision'] = decision
         state['next'] = 'Begin '+state['phase']+' within the recorded decision.'
@@ -221,6 +229,16 @@ def resume(project, identity, expected, decision, handoff_digest=None):
 
 
 def dispatch(project, args):
+    if args.operation.startswith('review-'):
+        from . import review_runs
+        owner = locate(project, args.change)
+        if args.operation == 'review-preview':
+            return review_runs.preview(owner, read(owner, args.change), args.scope, args.kind, args.base, args.include)
+        source = load(contained(owner.root, args.source))
+        if args.operation == 'review-begin':
+            return review_runs.begin(owner, args.change, args.expect, source, args.mode, args.reviewers,
+                                     args.decision, args.max_rounds, args.budget_seconds)
+        return review_runs.finish(owner, args.change, args.expect, source)
     if args.operation == 'start':
         return start(project, args.slug, args.summary, args.locale, args.decision, args.worktree)
     if args.operation == 'status':
