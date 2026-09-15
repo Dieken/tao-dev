@@ -31,7 +31,7 @@ def run(workspace, *, codex_legacy=False):
     isolated_codex.check_boundary(workspace, inside)
     manifest = plugin / ('.codex-plugin/plugin.json' if codex_legacy else 'plugin.json')
     value = json.loads(manifest.read_text())
-    value['version'] = '0.2.3'
+    value['version'] = '0.3.1'
     manifest.write_text(json.dumps(value))
     skill = plugin / 'skills/tao-dev/SKILL.md'
     skill.write_text(skill.read_text().replace('description: ', 'description: Acceptance update marker. ', 1))
@@ -49,12 +49,12 @@ def run(workspace, *, codex_legacy=False):
     update_result = json.loads(updated.stdout)
     latest = isolated_codex.check_boundary(workspace, inside)
     found = latest[str(inside)][0]
-    if 'Acceptance update marker.' not in found['description'] or '/0.2.3/' not in found['path']:
+    if 'Acceptance update marker.' not in found['description'] or '/0.3.1/' not in found['path']:
         raise RuntimeError('Fresh native discovery still exposes the old plugin.')
     updated_hooks = isolated_codex.hook_inventory(workspace, inside) if codex_legacy else []
     if codex_legacy:
         hooks = [hook for row in updated_hooks for hook in row['hooks']]
-        if (len(hooks) != 1 or '/0.2.3/' not in hooks[0]['sourcePath'] or
+        if (len(hooks) != 1 or '/0.3.1/' not in hooks[0]['sourcePath'] or
                 hooks[0]['currentHash'] == initial_hook['currentHash'] or hooks[0]['trustStatus'] == 'trusted'):
             raise RuntimeError('Updated hook must use the new cache and require fresh trust.')
     removed = subprocess.run(['codex', 'plugin', 'remove', isolated_codex.PLUGIN_ID, '--json'],

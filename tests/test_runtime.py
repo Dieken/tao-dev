@@ -42,13 +42,13 @@ def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tm
     completed = invoke(bare_python, data, "doctor")
     assert completed.returncode == 2
     report = json.loads(completed.stdout)
-    assert report["tool_version"] == "0.2.2"
+    assert report["tool_version"] == "0.3.0"
     assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-002"
     assert report["outputs"]["runtime"]["state"] == "missing"
     joined = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), "doctor", "--format=json"],
                             env=os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)},
                             capture_output=True, text=True)
-    assert json.loads(joined.stdout)["tool_version"] == "0.2.2"
+    assert json.loads(joined.stdout)["tool_version"] == "0.3.0"
     assert not data.exists()
 
 
