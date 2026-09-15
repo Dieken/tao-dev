@@ -310,5 +310,15 @@
   "Each artifact role requires distinct document paths.": "每个产物角色需要互不重复的文档路径。",
   "A current completed document review is required for this choice.": "此选项要求已完成当前版本的文档审查。",
   "Checkpoint artifacts must be existing project-relative files.": "检查点产物必须是已存在文件的项目相对路径。",
-  "Git operation unavailable: {arg0}": "无法执行 Git 操作：{arg0}"
+  "Git operation unavailable: {arg0}": "无法执行 Git 操作：{arg0}",
+  "A controlled term requires a definition.": "受控术语必须有定义。",
+  "A controlled term requires a preferred name.": "受控术语必须有首选名称。",
+  "A dedicated design must belong to the same change; shared designs omit change.": "专属设计必须属于同一开发事项；共享设计不填写 change。",
+  "Avoided terms must be distinct nonempty strings excluding the preferred name.": "不建议用词必须是无重复的非空字符串，且不能包含首选名称。",
+  "Controlled terms belong in the glossary terms section.": "受控术语必须位于 glossary 文档的 terms 章节。",
+  "Define a preferred term only once per scope.": "同一范围内只能定义一次相同的首选术语。",
+  "Link {arg0} to the approved stage documents before advancing.": "推进前，使用 {arg0} 关联已批准的上游阶段文档。",
+  "Plan documents must belong to this workflow change.": "计划文档必须属于当前工作流的开发事项。",
+  "Term options must be known, distinct and nonempty.": "术语选项必须受支持、无重复且非空。",
+  "The {arg0} relationship must cover the approved stage documents.": "{arg0} 关联必须覆盖已批准的上游阶段文档。"
 }
