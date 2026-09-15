@@ -46,10 +46,11 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
   - verify: 情景演练、入口读取范围与文档校验。
   - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
-- [ ] `TASK_20260916_3R6KR1TV9MW0VVXJ` 隔离新审查批次与续审预算。
+- [x] `TASK_20260916_3R6KR1TV9MW0VVXJ` 隔离新审查批次与续审预算。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
   - depends_on: []
   - verify: 跨会话续审、新阶段审查及预算耗尽反例。
+  - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
 - [ ] `TASK_20260916_D0XMQ8AB9DWAC60R` 补齐类型化文档关系及现有依据。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
@@ -70,6 +71,8 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
 ## 验证记录
 
 逐项记录实际执行结果；原始报告放入忽略的 tmp/tao/。
+
+审查预算：15 项审查与工作流回归通过。新增反例确认独立新批次重置预算并保留旧记录；续审不重置，仍在运行的批次不能被新批次覆盖。
 
 Skill 精简：入口校验与受管理文档校验通过。独立只读情景复核确认 status 不加载工程全文，经验保留优先可执行约束，不新增重复总结或修改全局 skill。
 

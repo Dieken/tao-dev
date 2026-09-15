@@ -116,3 +116,43 @@ def test_failed_review_can_close_after_history_invalidates_comparison(tmp_path, 
     state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'History changed; reviewer interrupted'})
     assert state['reviews']['code']['runs'][-1]['outcome'] == 'failed'
     assert 'ancestor' in state['reviews']['code']['runs'][-1]['input_error']
+
+
+def test_explicit_new_batch_resets_budget_and_retains_previous_stage(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    from taolib.review_runs import preview, begin, finish
+    from taolib.workflows import mutate
+    from taolib.project import Project, ConflictError
+    project = Project(tmp_path)
+    (tmp_path/'spec.md').write_text('# Spec\n')
+    request = preview(project, state, 'project', 'docs')
+    state = begin(project, state['change'], 1, request, 'serial', 1, 'Review specification')
+    state = mutate(project, state['change'], state['revision'], lambda owner, current: current['reviews']['docs'].update(started_at='2000-01-01T00:00:00+00:00'))
+    state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Old review ended'})
+    old = state['reviews']['docs']
+    (tmp_path/'design.md').write_text('# Design\n')
+    request = preview(project, state, 'project', 'docs')
+    with pytest.raises(ConflictError, match='budget'):
+        begin(project, state['change'], state['revision'], request, 'serial', 1, 'Continue prior review')
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1,
+                  'User requests a new design review', new_batch=True)
+    assert state['reviews']['docs']['runs'][0]['round'] == 1
+    assert state['reviews']['docs']['started_at'] != old['started_at']
+    assert state['review_history']['docs'] == [old]
+    assert state['reviews']['docs']['decision'] == 'User requests a new design review'
+    with pytest.raises(ConflictError, match='running'):
+        begin(project, state['change'], state['revision'], request, 'serial', 1,
+              'Do not hide running review', new_batch=True)
+
+
+def test_new_batch_flag_reaches_workflow_command(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    from taolib.review_runs import preview
+    from taolib.project import Project
+    request = preview(Project(tmp_path), state, 'project', 'code')
+    (tmp_path/'tmp/tao').mkdir(parents=True, exist_ok=True)
+    path = tmp_path/'tmp/tao/preview.json'; path.write_text(json.dumps(request))
+    code, result = call(tmp_path, capsys, 'workflow', 'review-begin', state['change'],
+                        '--expect', str(state['revision']), '--from', str(path),
+                        '--mode', 'serial', '--reviewers', '1', '--decision', 'New requested review', '--new-batch')
+    assert code == 0, result
