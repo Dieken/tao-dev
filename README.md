@@ -51,11 +51,65 @@ py -3.13 -c "import venv, ensurepip"
 
 后续 `tao setup` 会在独立虚拟环境中准备自己的 pip 和锁定依赖，无需向系统 Python 执行 `pip install tao-dev`。
 
-### 2. 取得源码并生成完整安装包
+### 2. Claude Code：从 GitHub 安装（推荐）
+
+仓库已提供 [marketplace 清单](.claude-plugin/marketplace.json)，直接分发完整插件。无需克隆源码或手工打包。在目标项目根目录打开终端，选择安装范围：`user` 对当前用户的所有项目启用，`project` 写入团队共享配置，`local` 仅自己在当前项目启用。
+
+```sh
+# 将 user 换成 project 或 local，可选择项目级安装
+TAO_SCOPE=user
+export TAO_PYTHON="$(python3 -c 'import sys; print(sys.executable)')"
+claude plugin marketplace add Dieken/tao-dev --scope "$TAO_SCOPE"
+claude plugin install tao-dev@tao-dev --scope "$TAO_SCOPE"
+```
+
+读取客户端实际安装路径，后续从这个完整插件准备运行环境：
+
+```sh
+TAO_PLUGIN_DIR="$(claude plugin list --json | "$TAO_PYTHON" -c 'import json,sys; rows=[p for p in json.load(sys.stdin) if p["id"]=="tao-dev@tao-dev" and p["scope"]==sys.argv[1]]; assert len(rows)==1, "请核对安装范围"; print(rows[0]["installPath"])' "$TAO_SCOPE")"
+```
+
+<details>
+<summary>Windows PowerShell</summary>
+
+```powershell
+$TaoScope = 'user' # 或 project、local
+$env:TAO_PYTHON = py -3.13 -c "import sys; print(sys.executable)"
+claude plugin marketplace add Dieken/tao-dev --scope $TaoScope
+claude plugin install tao-dev@tao-dev --scope $TaoScope
+$TaoPluginDir = (claude plugin list --json | ConvertFrom-Json | Where-Object { $_.id -eq 'tao-dev@tao-dev' -and $_.scope -eq $TaoScope }).installPath
+if (-not $TaoPluginDir) { throw '未找到所选范围的插件安装路径' }
+```
+
+当前 hook 使用 `sh`，需让 Git for Windows 的 shell 可从 PATH 找到（可用 `sh --version` 检查）。原生 Windows 完整验收尚未完成；也可在 WSL 内按 Linux 步骤安装和启动客户端。
+
+</details>
+
+接着执行**第 4 节准备运行环境**，从同一终端运行 `claude`，再按**第 6 节确认组件**；跳过第 3 节本地打包和第 5 节本地安装。安装插件不会自动准备 Python 依赖。以后重新安装或升级后，应重新读取 installPath。
+
+从旧本地 marketplace 迁移时，先用 `claude plugin uninstall tao-dev@tao-dev-local --scope <原范围> --keep-data` 移除原插件，再按上面安装；沿用原 TAO_RUNTIME_DIR。若还保留独立 skill 副本，将其移出 skill 搜索目录，避免两个入口同时加载。见 [官方安装说明](https://code.claude.com/docs/en/discover-plugins#add-from-github)。
+
+#### 后续升级
+
+选择与安装时相同的范围，再执行：
+
+```sh
+TAO_SCOPE=user # 或 project、local
+claude plugin marketplace update tao-dev
+claude plugin update tao-dev@tao-dev --scope "$TAO_SCOPE"
+```
+
+PowerShell 设置 `$TaoScope` 并传给 `--scope`。升级后重新读取 installPath，按第 4 节执行两次 setup 和 doctor；从同一终端启动 `claude`，已有会话按提示 `/reload-plugins` 或重启。
+
+要自动获取后续插件版本，可在 `/plugin` → Marketplaces → tao-dev 中开启 **Enable auto-update**；第三方 marketplace 默认不开启自动更新。自动更新插件文件不会自动安装新的 Python 依赖，依赖变化时仍需执行上述准备步骤。见 [自动更新说明](https://code.claude.com/docs/en/discover-plugins#configure-auto-updates)。
+
+默认跟随仓库的默认分支，插件版本由 manifest 管理。Git tag 不是安装或升级的前提；若将来源固定为某个 tag，后续更新仍停留在该 tag，需要主动更换来源版本。
+
+### 3. 本地安装源：Codex 或离线使用
 
 每个客户端选择用户级或项目级安装。**用户级对当前用户的各项目启用；项目级仅对指定项目启用。** 客户端仍可能把插件副本放在用户缓存中，安装范围不等于所有文件的物理存放位置。只想项目级启用时，也要关闭此前的用户级安装及独立 skill 副本。
 
-以下步骤生成包含完整运行材料的本地 marketplace（插件目录索引），再交给客户端安装。打包只需 Python 标准库，不依赖 pip 包或 uv；输出目录必须尚不存在。
+Codex CLI 0.154.0 使用本节生成兼容安装源；Claude Code 需要离线或本地开发安装时也可使用。本节生成包含完整运行材料的本地 marketplace（插件目录索引），再交给客户端安装。打包只需 Python 标准库，不依赖 pip 包或 uv；输出目录必须尚不存在。
 
 ```sh
 git clone https://github.com/Dieken/tao-dev.git
@@ -119,7 +173,9 @@ $env:TAO_PYTHON = py -3.13 -c "import sys; print(sys.executable)"
 
 </details>
 
-### 3. 准备 CLI、出版与 hook 共用的运行环境
+本地打包完成后设置插件路径：POSIX shell 执行 `TAO_PLUGIN_DIR="$TAO_MARKETPLACE/plugins/tao-dev"`，PowerShell 执行 `$TaoPluginDir = Join-Path $TaoMarketplace 'plugins/tao-dev'`。GitHub 安装使用第 2 节从客户端读取的路径。
+
+### 4. 准备 CLI、出版与 hook 共用的运行环境
 
 在同一终端设置运行目录，避免终端 setup 与插件 hook 使用不同环境。选择一种范围：
 
@@ -136,7 +192,6 @@ export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
 准备完整运行依赖，包括 HTML 出版：
 
 ```sh
-TAO_PLUGIN_DIR="$TAO_MARKETPLACE/plugins/tao-dev"
 "$TAO_PYTHON" "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/tao.py" setup
 "$TAO_PYTHON" "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/tao.py" setup --publication
 "$TAO_PYTHON" "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/tao.py" doctor --project "$PWD" --format json
@@ -159,7 +214,6 @@ $env:TAO_RUNTIME_DIR = Join-Path (Get-Location).Path 'tmp/tao/runtime'
 然后执行：
 
 ```powershell
-$TaoPluginDir = Join-Path $TaoMarketplace 'plugins/tao-dev'
 & $env:TAO_PYTHON "$TaoPluginDir/skills/tao-dev/scripts/tao.py" setup
 & $env:TAO_PYTHON "$TaoPluginDir/skills/tao-dev/scripts/tao.py" setup --publication
 & $env:TAO_PYTHON "$TaoPluginDir/skills/tao-dev/scripts/tao.py" doctor --project (Get-Location).Path --format json
@@ -169,9 +223,9 @@ $TaoPluginDir = Join-Path $TaoMarketplace 'plugins/tao-dev'
 
 以后启动客户端前重新设置 TAO_PYTHON、TAO_RUNTIME_DIR，或在个人 shell 配置中保存用户级设置；项目级变量必须指向当前项目。不要把本机绝对路径写入团队共享配置。仅本机使用的 `.local/tao-dev/` 与 `tmp/tao/` 应加入项目忽略规则；安装源目录需要保留，客户端更新时还会读取它。
 
-### 4. 安装并启用完整插件
+### 5. 从本地安装源安装并启用
 
-以下命令在**目标项目根目录**执行。PowerShell 将 `$TAO_MARKETPLACE` 换成 `$TaoMarketplace`；其余客户端命令相同。
+GitHub 安装的 Claude 插件跳过本节。以下命令在**目标项目根目录**执行。PowerShell 将 `$TAO_MARKETPLACE` 换成 `$TaoMarketplace`；其余客户端命令相同。
 
 #### Claude Code CLI
 
@@ -224,7 +278,7 @@ codex plugin add tao-dev@tao-dev-local --json
 
 安装缓存仍由用户目录管理；受信任项目的配置覆盖用户级默认值，实现仅本项目启用。仅在项目目录运行 `plugin add` 不会自动限制范围。使用 `codex --enable hooks` 启动客户端，按提示确认项目信任，再在 `/hooks` 中查看并信任 tao-dev 的实际 hook 定义；代码变化后需要重新审阅。见 [项目启用配置](https://developers.openai.com/plugins/build/plugins#enable-or-disable-a-plugin-for-a-repo) 与 [hook 信任](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)。
 
-### 5. 确认完整安装生效
+### 6. 确认完整安装生效
 
 | 检查 | Claude Code CLI | Codex CLI |
 |---|---|---|
@@ -233,24 +287,24 @@ codex plugin add tao-dev@tao-dev-local --json
 | 短文档检查 | `/hooks` 中能看到 tao-dev 的 PostToolUse hook | `/hooks` 中能看到已启用、已信任的 tao-dev hook |
 | CLI 与出版 | 从已安装插件入口运行 doctor，核心与出版环境均 ready | 同左 |
 
-安装列表中出现 skill 还不够；同时检查 hook 及对应客户端入口。原生安装路径可从 Claude 的 `plugin list --json` 的 installPath、Codex 的 `plugin add --json` 的 installedPath 获取。该路径下也应有 `skills/tao-dev/scripts/tao.py`，可用第 3 节的环境执行 doctor。
+安装列表中出现 skill 还不够；同时检查 hook 及对应客户端入口。原生安装路径可从 Claude 的 `plugin list --json` 的 installPath、Codex 的 `plugin add --json` 的 installedPath 获取。该路径下也应有 `skills/tao-dev/scripts/tao.py`，可用第 4 节的环境执行 doctor。
 
 hook 只在项目已有 `.tao/config.toml` 时进行短文档反馈。首次接入其他项目，可要求 agent 使用 tao-dev 建立适合该项目的配置，再通过一次受管理 Markdown 的修改检查 hook 输出；它不会替代完整 verify。项目级安装还应在另一个未启用 tao-dev 的项目中启动新会话，确认 skill 和 hook 均未加载。
 
 #### GitHub、版本与更新
 
-本指南从 [GitHub 源码](https://github.com/Dieken/tao-dev)生成**完整插件**。`$skill-installer` 只安装 skill 目录，不能代替这里的完整插件安装。两端虽然都有 GitHub marketplace 来源机制，但当前仓库根没有对应清单，Codex 0.154.0 还需要生成兼容包，因此使用上面的本地打包流程。见 [Codex marketplace](https://developers.openai.com/plugins/build/plugins#add-a-marketplace-from-the-cli) 和 [Claude marketplace](https://code.claude.com/docs/en/discover-plugins#add-from-github)。
+Claude Code 优先使用第 2 节的 GitHub marketplace 安装与升级。Codex 0.154.0 仍需生成兼容包，使用本地流程；仓库尚未提供 Codex 的 GitHub marketplace 清单。`$skill-installer` 只安装 skill 目录，不能代替完整插件安装。
 
-当前没有发布 tag，需要固定版本时，在源码目录先执行 `git checkout --detach <完整 commit SHA>` 再打包，并记录该 SHA。`git pull` 不会自动更新已安装副本。更新前记录安装范围；生成新的安装源目录并按第 4 节更新 marketplace 来源，再执行客户端更新：
+以下更新步骤适用于本地安装源。需要固定源码版本时，在源码目录先执行 `git checkout --detach <完整 commit SHA>` 再打包，并记录该 SHA。`git pull` 不会自动更新已安装副本。更新前记录安装范围；生成新的安装源目录并按第 5 节更新 marketplace 来源，再执行客户端更新：
 
 - Claude：`claude plugin update tao-dev@tao-dev-local --scope <原范围>`。同版本开发快照若仍命中旧缓存，用 `claude plugin uninstall tao-dev@tao-dev-local --scope <原范围> --keep-data` 保留运行数据，再按原范围重新安装。
-- Codex：更换安装源目录时，先执行 `codex plugin marketplace remove tao-dev-local`，再 `codex plugin marketplace add <新安装源目录>`，然后重新执行 `codex plugin add tao-dev@tao-dev-local`。它会再次写入用户级启用，项目级用户必须重新完成第 4 节的用户级 false、项目级 true 配置。
+- Codex：更换安装源目录时，先执行 `codex plugin marketplace remove tao-dev-local`，再 `codex plugin marketplace add <新安装源目录>`，然后重新执行 `codex plugin add tao-dev@tao-dev-local`。它会再次写入用户级启用，项目级用户必须重新完成第 5 节的用户级 false、项目级 true 配置。
 
 更新后重跑两次 setup 和 doctor，并复核 hook 信任。版本字段和发布 tag 的维护见 [开发指南](docs/engineering/development.md)。
 
-### 6. 自举体验：用 tao-dev 为 tao-dev 开发新功能
+### 7. 自举体验：用 tao-dev 为 tao-dev 开发新功能
 
-**这个练习的开发对象就是 tao-dev 本身。** 在 tao-dev 源码根目录按第 4 节启动客户端并调用插件。若此前给其他项目做了项目级安装，先为 tao-dev 完成相同的启用配置，并按第 3 节设置它自己的项目运行目录。可以先点击阅读 [SKILL.md](plugins/tao-dev/skills/tao-dev/SKILL.md)，再输入：
+**这个练习的开发对象就是 tao-dev 本身。** GitHub marketplace 用户先克隆 [tao-dev 源码](https://github.com/Dieken/tao-dev)。进入源码根目录，设置第 4 节的运行环境，然后启动 `claude` 或 `codex --enable hooks` 并调用插件。若此前给其他项目做了项目级安装，先为 tao-dev 完成相同的启用配置，并按第 4 节设置它自己的项目运行目录。可以先点击阅读 [SKILL.md](plugins/tao-dev/skills/tao-dev/SKILL.md)，再输入：
 
 > 请使用 tao-dev，为 tao-dev 自身新增 `tao docs serve` 命令制定开发计划：在本机预览生成的文档书籍，并在 Markdown 修改后重新构建和刷新页面。先检查现有实现，明确范围、验收场景和必要设计，生成并填写变更计划；本轮只规划，暂不编码。
 

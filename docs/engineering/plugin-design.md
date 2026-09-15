@@ -57,6 +57,8 @@ tao-dev/
 
 `--marketplace` 在所选格式外增加客户端可读取的本地目录索引，插件位于输出根的 `plugins/tao-dev/`。public 的索引使用 Claude 格式，codex-legacy 使用 Codex 格式，均以相对路径引用完整插件；它不修改客户端配置或注册状态。用户按 README 完成原生安装、运行依赖准备和 hook 检查，单独复制 skill 不能代替完整插件安装。
 
+仓库根的 `.claude-plugin/marketplace.json` 是 Claude Code 的 GitHub 分发入口，使用稳定的 marketplace 名称 `tao-dev`，相对引用 `./plugins/tao-dev`，不在目录条目里重复版本号。生成的 `tao-dev-local` 目录用于本地安装与开发，两种来源分别注册，迁移时移除旧插件以免重复加载。GitHub marketplace 随默认分支更新，客户端通过插件 manifest 版本识别新版本；固定 Git tag 是可选的快照安装方式，会停止跟随分支。
+
 公共 manifest 的最小格式如下；示例产品版本不代表已经发布：
 
 ```json
