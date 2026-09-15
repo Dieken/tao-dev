@@ -21,7 +21,7 @@ from .project import ConfigurationError, ConflictError, Project, create_file
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
-CAPABILITIES = ["doctor", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs"]
+CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 
@@ -36,7 +36,8 @@ def arguments(argv):
     common.add_argument("--project", type=Path, default=argparse.SUPPRESS)
     common.add_argument("--format", choices=("text", "json"), default=argparse.SUPPRESS)
     common.add_argument("--diagnostic-locale", default=argparse.SUPPRESS)
-    parser = ArgumentParser(prog="tao", parents=[common])
+    parser = ArgumentParser(prog="tao", parents=[common],
+                            epilog="Installation: tao install --help; tao uninstall --help.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("doctor", parents=[common])
     show = commands.add_parser("show", parents=[common])

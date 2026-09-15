@@ -4,14 +4,15 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import time
-from tao_messages import configured_locale, diagnostic, Message
+from pathlib import Path
 
+from installed_runtime import binding, shared_cli
+from tao_messages import Message, configured_locale, diagnostic
 
 SCRIPTS = Path(__file__).resolve().parent
 IMPORTS = {"core": ["markdown_it", "yaml"],
@@ -33,8 +34,10 @@ def environment():
     return result
 
 
-def data_root():
-    explicit = os.environ.get("TAO_RUNTIME_DIR") or os.environ.get("CLAUDE_PLUGIN_DATA")
+def data_root(installed=None):
+    explicit = (os.environ.get("TAO_RUNTIME_DIR")
+                or (installed["runtime_dir"] if installed else None)
+                or os.environ.get("CLAUDE_PLUGIN_DATA"))
     if explicit:
         path = Path(explicit)
         if not path.is_absolute():
@@ -70,13 +73,14 @@ def inspect_python(python):
         raise RuntimeFailure(Message('Python is unavailable or unsupported: {arg0}', exc)) from exc
 
 
-def context(mode):
-    python = os.environ.get("TAO_PYTHON") or sys.executable
+def context(mode, project=None):
+    installed = binding(SCRIPTS, project)
+    python = os.environ.get("TAO_PYTHON") or (installed["python"] if installed else None) or sys.executable
     info = inspect_python(python)
     inventory = SCRIPTS / ("requirements-publication.txt" if mode == "publication" else "requirements.txt")
     digest = hashlib.sha256(inventory.read_bytes()).hexdigest()
     key = hashlib.sha256(json.dumps([info, mode, digest], sort_keys=True).encode()).hexdigest()[:32]
-    root = data_root()
+    root = data_root(installed)
     return {"mode": mode, "base_python": str(python), "base": info,
             "inventory": str(inventory), "digest": digest,
             "key": key, "root": root, "slot": root / "runtimes" / key}
@@ -202,7 +206,7 @@ def emit(command, outputs, error=None, json_output=True, locale=None):
               "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
                                                        **diagnostic(error, locale)}]}
     if command == "doctor":
-        result["capabilities"] = ["doctor", "setup"]
+        result["capabilities"] = ["doctor", "setup", "install", "uninstall"]
     if command == "verify":
         result.update(coverage="unknown", readiness="blocked")
     if json_output:
@@ -229,6 +233,9 @@ def operation(argv):
 def main(argv=None, entry="tao.py"):
     argv = list(sys.argv[1:] if argv is None else argv)
     command, position = operation(argv)
+    if entry == "tao.py" and command in ("install", "uninstall"):
+        from installation import main as installation_main
+        return installation_main([command, *argv[:position], *argv[position + 1:]])
     if entry == "validate_documents.py":
         command = "validate"
     mode = "publication" if command == "docs" or command in ("setup", "doctor") and "--publication" in argv else "core"
@@ -236,9 +243,27 @@ def main(argv=None, entry="tao.py"):
     json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
                       for index, value in enumerate(argv))
     try:
-        ctx = context(mode)
+        project = None
+        for index, value in enumerate(argv):
+            if value == "--project" and index + 1 < len(argv):
+                project = argv[index + 1]
+            elif value.startswith("--project="):
+                project = value.split("=", 1)[1]
+        if shared_cli(SCRIPTS):
+            installed = binding(SCRIPTS, project)
+            if installed is None:
+                raise RuntimeFailure("No installation matches this project. Run tao install to prepare one.")
+            native_scripts = Path(installed["plugin_path"]) / "skills/tao-dev/scripts"
+            native_entry = native_scripts / entry
+            if shared_cli(native_scripts) or not native_entry.is_file():
+                raise RuntimeFailure("Installed plugin cache is unavailable. Run tao install to restore it.")
+            python = os.environ.get("TAO_PYTHON") or installed["python"]
+            return subprocess.run([python, "-I", "-B", str(native_entry), *argv],
+                                  env=environment(), check=False).returncode
+        ctx = context(mode, project)
         if command == "setup":
             parser = argparse.ArgumentParser(prog="tao setup")
+            parser.add_argument("--project", type=Path)
             parser.add_argument("--publication", action="store_true")
             parser.add_argument("--wheelhouse", type=Path)
             parser.add_argument("--format", choices=("text", "json"), default="text")
@@ -260,7 +285,7 @@ def main(argv=None, entry="tao.py"):
         from taolib.cli import main as cli_main
         runtime_context = description(ctx, directory)
         if command == "doctor" and mode == "core":
-            publication = context("publication")
+            publication = context("publication", project)
             try:
                 prepared = selected(publication)
                 runtime_context["publication"] = description(publication, prepared, state="ready" if prepared else "missing")
