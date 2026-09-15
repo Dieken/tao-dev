@@ -29,7 +29,7 @@ class Project:
     def __init__(self, explicit=None):
         if explicit is None:
             cwd = Path.cwd()
-            explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file()), None)
+            explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file() or (p / ".tao/workflows").is_dir()), None)
             if explicit is None:
                 raise ConfigurationError("Specify --project or provide project-local .tao/config.toml.")
         self.root = Path(explicit).resolve()

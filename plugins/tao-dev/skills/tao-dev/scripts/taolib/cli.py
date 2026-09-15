@@ -13,7 +13,7 @@ import time
 from . import __version__
 from .verification import policy, execute, evidence, file_digest, digest_json
 from .measurements import usage
-from . import reviews
+from . import reviews, workflows
 from .documents import ASSETS, validate
 from .identifiers import new_id
 from .handoff import save as save_handoff
@@ -21,7 +21,7 @@ from .project import ConfigurationError, ConflictError, Project, create_file
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
-CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs"]
+CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs", "workflow"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 
@@ -48,6 +48,29 @@ def arguments(argv):
     new = commands.add_parser("new", parents=[common])
     new.add_argument("--slug", required=True)
     new.add_argument("--locale")
+    new.add_argument("--change")
+    workflow = commands.add_parser("workflow", parents=[common])
+    operations = workflow.add_subparsers(dest="operation", required=True)
+    begin = operations.add_parser("start", parents=[common])
+    begin.add_argument("--slug", required=True)
+    begin.add_argument("--summary", required=True)
+    begin.add_argument("--locale")
+    begin.add_argument("--decision", required=True)
+    begin.add_argument("--worktree", action="store_true")
+    state = operations.add_parser("status", parents=[common])
+    state.add_argument("change", nargs="?")
+    for operation in ("checkpoint", "advance", "revise"):
+        command = operations.add_parser(operation, parents=[common])
+        command.add_argument("change")
+        command.add_argument("--expect", type=int, required=True)
+        if operation == "checkpoint":
+            command.add_argument("--from", dest="source", required=True)
+        else:
+            command.add_argument("--decision", required=True)
+            if operation == "advance":
+                command.add_argument("--doc-review", choices=("completed", "skipped"))
+            else:
+                command.add_argument("--phase", choices=workflows.DOC_PHASES, required=True)
     status = commands.add_parser("status", parents=[common])
     status.add_argument("change", nargs="?")
     review = commands.add_parser("review", parents=[common])
@@ -86,20 +109,23 @@ def index(project):
 def skeleton(project, args, registry, result):
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.slug):
         raise ConfigurationError("--slug must contain lowercase ASCII words separated by hyphens.")
-    locale = args.locale or project.locale
+    workflow = workflows.read(project, args.change) if getattr(args, "change", None) else None
+    locale = args.locale or (workflow["locale"] if workflow else project.locale)
     if locale is None:
         locales = {doc.metadata["locale"] for doc in result.documents.values()}
         locale = next(iter(locales)) if len(locales) == 1 else None
     if locale not in ("en", "zh-Hans"):
         raise ConfigurationError("Choose an available document language once: en or zh-Hans.")
-    day = date.today()
+    day = date.fromisoformat(workflow['created']) if workflow else date.today()
     path = project.output("plans", day.strftime("%Y-%m/%Y%m%d-") + args.slug + ".md")
-    if path.exists() or path.with_suffix("").exists():
+    if workflow and (workflow['slug'] != args.slug or path.relative_to(project.root).as_posix() != workflow['plan_path']):
+        raise ConflictError('Use the workflow slug and reserved plan location.')
+    if path.exists() or (path.with_suffix("").exists() and not workflow):
         raise ConflictError(Message('Change or attachment path already exists: {arg0}', path.relative_to(project.root)))
     existing = set(result.definitions)
     ids = {}
     for kind in ("DOC", "CHG", "TASK"):
-        ids[kind + "_ID"] = new_id(kind, registry, existing, today=day)
+        ids[kind + "_ID"] = workflow["change"] if workflow and kind == "CHG" else new_id(kind, registry, existing, today=day)
         existing.add(ids[kind + "_ID"])
     labels = json.loads((ASSETS / f"locales/{locale}.json").read_text())
     values = ids | labels | {"LOCALE": locale, "CREATED": day.isoformat()}
@@ -215,6 +241,9 @@ def dispatch(args):
         report.update(capabilities=CAPABILITIES + (["verify.code", "verify.evidence"] if policy(project) else []), schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
         return report, 0
+    if args.command == "workflow":
+        report["outputs"] = workflows.dispatch(project, args)
+        return report, 0
     if args.command == "docs":
         if "docs.build" not in CAPABILITIES:
             raise ConfigurationError("Publication dependencies are unavailable; consult requirements-publication.txt.")
@@ -228,6 +257,11 @@ def dispatch(args):
         outcome, code = retire(project, args.id, args.reason, args.replaced_by, apply=args.apply)
         report.update(outcome)
         return report, code
+    if args.command in ("status", "new", "handoff") and getattr(args, "change", None):
+        try:
+            project = workflows.locate(project, args.change)
+        except ConflictError:
+            pass  # An indexed legacy plan need not have a workflow checkpoint.
     result = index(project)
     if args.command == "review":
         config = policy(project)
@@ -261,7 +295,7 @@ def dispatch(args):
             documents = [d for d in documents if d.metadata.get("change") == args.change]
         tasks = [asdict(result.definitions[t]) for doc in documents for t in doc.tasks]
         current = evidence(project, policy(project)) if policy(project) else {"state": "not-evaluated"}
-        report["outputs"] = {"tasks": tasks, "evidence_reusability": current["state"], "evidence": current,
+        report["outputs"] = {"workflows": workflows.status(project, args.change) if (not args.change or workflows.state_path(project, args.change).is_file()) else [], "tasks": tasks, "evidence_reusability": current["state"], "evidence": current,
                              "validation": "source diagnostics and receipt freshness only; no checks rerun"}
         target = args.change or (documents[0].metadata.get('change') if len(documents) == 1 else None)
         if target and (target not in result.definitions or not target.startswith('CHG_')):
