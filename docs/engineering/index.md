@@ -23,6 +23,7 @@ updated: "2026-09-15"
 :titlesonly:
 
 development.md
+installation.md
 protocol-design.md
 documentation/index.md
 cli-design.md

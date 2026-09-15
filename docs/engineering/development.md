@@ -43,9 +43,17 @@ uv run --no-config --locked --extra publication python -m pytest
 
 普通 pytest 不调用模型。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。真实客户端试验单独按 [验收说明](../../tests/acceptance/README.md) 显式运行。
 
+安装相关回归可单独运行：
+
+```sh
+.venv/bin/python -m pytest tests/test_installed_runtime.py tests/test_install_clients.py tests/test_installation.py
+```
+
+这些测试覆盖记录与作用域选择、无 TAO 环境变量的运行入口、原生客户端适配、安装更新与卸载边界；模拟客户端的测试不能替代真实客户端验收。运行资料和客户端配置使用临时目录，依赖使用离线 wheel。原生试验必须另外遵循 AGENTS.md，使用独立 CODEX_HOME、CLAUDE_CONFIG_DIR、Git 配置与实验项目，不修改个人客户端、认证或全局插件配置，并检查项目内加载与项目外缺席。
+
 ### 在本仓库使用 tao
 
-以下 POSIX shell 示例将自举运行环境限定在项目临时目录；后续命令在同一 shell 中运行。Windows 在 PowerShell 中设置对应环境变量，并使用 `.venv/Scripts/python.exe`。
+通过 install 安装的用户直接使用安装器提供的 tao 命令，无需设置 TAO 环境变量。维护本仓库的源码入口不要求注册插件；以下 POSIX shell 示例用显式覆盖将源码自举环境限定在项目临时目录，后续命令在同一 shell 中运行。Windows 在 PowerShell 中设置对应环境变量，并使用 `.venv/Scripts/python.exe`。
 
 ```sh
 export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
@@ -90,9 +98,19 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 给上述命令添加 `--marketplace`，输出变为含 `plugins/tao-dev/` 的完整本地安装源：public 生成 Claude 的 `.claude-plugin/marketplace.json`，codex-legacy 生成 Codex 的 `.agents/plugins/marketplace.json`，目录索引名均为 `tao-dev-local`。这个选项只生成文件，实际安装、启用范围和运行环境准备按 [README](../../README.md) 执行。两种格式分别生成到不同的新目录，不合并为一个安装源。
 
+### 维护安装实现
+
+源码与分发插件共用 scripts/tao.py 的 install/uninstall 实现；这两个命令在独立运行环境准备之前由标准库入口处理。install 一次完成取得来源、准备核心与出版依赖、原生安装与范围配置、写入绑定和 doctor 检查；普通命令与 hook 不自动下载。安装参数与边界见 [安装设计](installation.md)。
+
+--source 接受完整插件目录、仓库目录或 Git 来源；安装器复制插件，按内容生成本机专用 marketplace 和版本后缀，再调用客户端原生安装。原始源码目录不属于可删除资源。--marketplace 使用已有目录清单，两者互斥；重复 install 默认沿用已记录来源，也可明确切换来源。--wheelhouse 只限制依赖获取，不使远程 Git 或客户端操作自动离线。
+
+安装记录模块负责验证安装身份、工具数据归属和运行绑定，客户端适配模块负责原生缓存及共享配置。共享 CLI 按当前目录或 --project 从两个客户端的记录中选择安装，先转交对应原生插件入口，使不同项目沿用各自版本的依赖清单；install/uninstall 继续使用共享安装器。运行数据目录优先采用显式 TAO 覆盖，其次采用匹配的安装记录，再回退到 Claude 数据目录和平台默认目录。记录中的解释器及运行位置不写进项目共享配置；未知或符号链接重定向的归属不能成为递归删除依据。共享 CLI 在最后一份安装卸载后仍保留，以便再次安装。
+
+Claude 保留 user、project、local 三种原生范围。Codex 的 repo、local 参数均归一为 project，与 user 构成两个有效范围；不能把 local 描述为额外的个人项目配置。修改安装流程时同步相关行为测试，并分别报告模拟适配测试、实际依赖准备与原生客户端验收的范围。
+
 ### 版本与发布 tag
 
-Claude Code 与 Codex 的 GitHub 安装入口分别为仓库根 [Claude 清单](../../.claude-plugin/marketplace.json) 和 [Codex 清单](../../.agents/plugins/marketplace.json)，目录名为 `tao-dev`，以相对路径引用完整插件。目录清单不重复声明插件版本，版本取自插件 manifest。每次发布影响插件内容的更新，必须递增 manifest 版本并同步下表中的字段；仅推送代码或创建 Git tag 不会使已安装的同版本插件升级。用户先刷新 marketplace，再按 README 更新插件并恢复原启用范围；Claude 第三方目录的自动更新需用户自行开启。Codex 的 GitHub 清单引用兼容源码，公共格式仍由打包器生成，不将生成副本提交进仓库。
+Claude Code 与 Codex 的 GitHub 安装入口分别为仓库根 [Claude 清单](../../.claude-plugin/marketplace.json) 和 [Codex 清单](../../.agents/plugins/marketplace.json)，目录名为 `tao-dev`，以相对路径引用完整插件。目录清单不重复声明插件版本，版本取自插件 manifest。每次发布影响插件内容的更新，必须递增 manifest 版本并同步下表中的字段；仅推送代码或创建 Git tag 不会使已安装的同版本插件升级。用户按 README 重复 install 刷新来源并更新原作用域的安装；本地 --source 的内容变化由专用目录清单和版本后缀区分。Codex 的 GitHub 清单引用兼容源码，公共格式仍由打包器生成，不将生成副本提交进仓库。
 
 skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyproject.toml](../../pyproject.toml) 的 `project.version` 为主版本。无需在 SKILL.md 中另设独立版本；[Agent Skills 规范](https://agentskills.io/specification#metadata-field)允许可选的 `metadata.version`，但不要求提供，也不定义安装和更新行为。
 
@@ -115,7 +133,7 @@ skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyp
 ## 排障
 
 - **缺少 wheel 或依赖**：先确认显式下载步骤和锁文件是否同步，再运行所需 setup；普通测试不会自动联网补齐。
-- **运行环境不可用**：检查 TAO_RUNTIME_DIR、TAO_PYTHON 与 doctor 输出，按运行环境规程处理；不要清理仍被其他进程使用的锁或目录。
+- **运行环境不可用**：先检查 doctor 输出、当前项目和安装记录；使用源码自举或显式覆盖时再检查 TAO_RUNTIME_DIR、TAO_PYTHON。按运行环境规程处理，不清理仍被其他进程使用的锁或目录。
 - **文档引用无法解析**：确认管理范围包含定义所在文件；单独检查一个文件不能代替跨文档检查。未提供历史基线时也不能证明所有历史删除均已检测。
 - **出版链接回归缺少 Node.js**：准备维护环境中的 Node.js 后重跑，不把缺少运行前提当作插件运行依赖。
 - **完整验证受阻**：按报告区分未完成任务、审查缺失或过期及工具故障。当前版本的总体发布状态由实际验收记录维护，不通过降低策略取得通过结果。

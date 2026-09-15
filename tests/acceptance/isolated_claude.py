@@ -102,18 +102,18 @@ def lifecycle(workspace, scope):
         if not Path(rows[0]['installPath']).resolve().is_relative_to(workspace):
             raise RuntimeError('Native Claude installation escaped the experiment.')
 
-    installed(True, '0.1.0')
+    installed(True, '0.2.0')
     command('disable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(False, '0.1.0')
+    installed(False, '0.2.0')
     command('enable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(True, '0.1.0')
+    installed(True, '0.2.0')
     for relative in ('plugin.json', '.claude-plugin/plugin.json'):
         path = workspace / 'marketplace/plugins/tao-dev' / relative
         data = json.loads(path.read_text())
-        data['version'] = '0.1.1'
+        data['version'] = '0.2.1'
         path.write_text(json.dumps(data))
     command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(True, '0.1.1')
+    installed(True, '0.2.1')
     command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     if any(item['id'] == 'tao-dev@tao-runtime-test' for item in command('list', '--json')):
         raise RuntimeError('Uninstalled Claude plugin still appears in native state.')
