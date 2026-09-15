@@ -54,7 +54,24 @@ def locate(project, identity):
 
 def artifact_digest(project, state, phase):
     names = state['artifacts'].get(phase, [])
-    return digest_json([(name, file_digest(contained(project.root, name))) for name in names]) if names else None
+    rows = []
+    for name in names:
+        path = contained(project.root, name)
+        if not path.is_file():
+            rows.append((name, None))
+            continue
+        if phase == 'plan':
+            content = path.read_text(encoding='utf-8')
+            content = re.sub(r'(?m)^- \[([ x])\] (?=`TASK_)', '- [ ] ', content)
+            content = re.sub(r'(?m)^  - evidence:.*\n?', '', content)
+            # Runtime observations have an explicit slot; task contracts and
+            # the approved verification strategy remain content-bound.
+            content = re.sub(r'(?ms)^<!-- tao:results -->\n.*?^<!-- /tao:results -->\n?', '', content)
+            content = re.sub(r'\n{3,}', '\n\n', content)
+            rows.append((name, digest_json(content)))
+        else:
+            rows.append((name, file_digest(path)))
+    return digest_json(rows) if names else None
 
 
 def handoff_observation(project, state):

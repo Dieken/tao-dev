@@ -26,7 +26,7 @@ tao --project <root> workflow start --slug <slug> --summary <目标> --locale <�
 
 更新采用项目写锁和原子替换；revision 不一致时拒绝覆盖，先读取最新状态再协调。每次有意义的进展都保存检查点，不能只在 handoff 时保存。
 
-`tao workflow advance <CHG-ID> --expect <revision> --decision <用户决定>` 记录批准当前产物并进入下一阶段：spec → design → plan → implement → review → finish → complete。前三阶段需要已关联且通过源校验的对应文档；批准绑定实际内容摘要。计划进入实现还需 `--doc-review completed|skipped` 记录真实文档审查或用户跳过决定，不能以参数代替实际审查。
+`tao workflow advance <CHG-ID> --expect <revision> --decision <用户决定>` 记录批准当前产物并进入下一阶段：spec → design → plan → implement → review → finish → complete。前三阶段需要已关联且通过源校验的对应文档；批准绑定实际内容摘要。计划的任务勾选、evidence 行及显式 tao:results 块属于执行记录，不使计划批准失效；任务正文、依赖、验证办法与方案变化仍会失效，不能把这些内容藏进结果块。计划进入实现还需 `--doc-review completed|skipped` 记录真实文档审查或用户跳过决定，不能以参数代替实际审查。
 
 `tao workflow revise <CHG-ID> --expect <revision> --phase spec|design|plan --decision <用户决定>` 回到指定已到达阶段，撤销该阶段及下游的旧批准，不删除产物或代码。批准后的文档变化会由 status 标记 stale_approvals；不得继续沿用过期批准。纯文档排版也会触发保守失效，agent 解释实际影响并取得相称决定。
 

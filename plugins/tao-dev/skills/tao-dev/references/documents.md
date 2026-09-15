@@ -20,7 +20,7 @@
 |---|---|---|
 | 书／篇／多页章入口 `<group>/index.md` | `tao.project.navigation/v0.1` | [navigation](../assets/templates/navigation.md) |
 | 能力规格 `docs/product/<capability>.md` | `tao.project.spec/v0.1` | [spec](../assets/templates/spec.md) |
-| 一次交付计划 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md` | `tao.project.plan/v0.1` | [change](../assets/templates/plan.md) |
+| 一次交付计划 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md` | `tao.project.plan/v0.1` | [plan](../assets/templates/plan.md) |
 | 系统／模块设计 `docs/engineering/<module>.md`，或计划的设计附件 | `tao.project.design/v0.1` | [design](../assets/templates/design.md) |
 | 计划的任务附件 `<plan-stem>/tasks.md` | `tao.project.tasks/v0.1` | [tasks](../assets/templates/tasks.md) |
 | 长期决定 `docs/engineering/decisions/<slug>.md` | `tao.project.decision/v0.1` | [decision](../assets/templates/decision.md) |
@@ -30,9 +30,9 @@
 | 按需独立检查摘要 `<plan-stem>/evidence/<slug>.md` | `tao.project.evidence/v0.1` | [evidence](../assets/templates/evidence.md) |
 | 恢复摘要 `<plan-stem>/handoff.md` | `tao.project.handoff/v0.1` | [handoff](../assets/templates/handoff.md) |
 
-一次检查或交接没有关联变更时，分别放在 `docs/evidence/` 或 `docs/handoffs/`。规格定义承诺，计划引用这些定义并说明本次差异。内容归属、文件命名及拆分阈值的权威规则见 [文档组织](document-layout.md)；目录、章节含义与注册表保持一致。
+没有关联开发工作的检查放在 `docs/evidence/`；交接关联已有计划或计划生成前的工作流，使用预留计划位置。规格定义承诺，计划引用这些定义并说明本次差异。内容归属、文件命名及拆分阈值的权威规则见 [文档组织](document-layout.md)；目录、章节含义与注册表保持一致。
 
-拆分时计划通过 `tasks_doc`、`design_doc` 引用附件 DOC；附件通过 `change` 引用计划定义的 CHG。原章节只留对应 `{need}` 引用和职责说明，不能保留第二份正文。当前 tasks_doc 指向一份完整任务集合，不通过普通正文引用暗中扩展为多份任务附件；扩展该关系须先定义并验证格式。计划及其任务附件合起来至少有一个 TASK。
+计划通过 `tasks_doc`、`design_doc` 引用相应 DOC；任务附件必须通过 `change` 引用同一 CHG，专属设计可关联该 CHG，共享设计不必声明专属开发工作。计划生成前的 CHG 由 [工作流状态](workflow-state.md) 提供。原章节只留对应 `{need}` 引用和职责说明，不能保留第二份正文。当前 tasks_doc 指向一份完整任务集合，不通过普通正文引用暗中扩展为多份任务附件；扩展该关系须先定义并验证格式。计划及其任务附件合起来至少有一个 TASK。
 
 ## 元数据、结构与语言
 
@@ -49,7 +49,7 @@ UTF-8 Markdown 以 YAML frontmatter 开始。共同必需字段为 `schema`、`i
 
 章节键与字段键均匹配 `[a-z][a-z0-9-]*`，不依赖标题翻译或序号。二级章节不能增删或改序，细节放在三级及以下且不跳级。必需章节确实不适用时写一句具体依据，不留空或复制模板提示；规格的术语章节优先链接项目术语表，不重复定义。
 
-change profile 的 `change` 定义一个 CHG ID；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
+plan profile 的 `change` 定义一个 CHG ID，生成计划前由工作流状态提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
 模板中的 `{{TOKEN}}` 是待替换变量。heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余由 agent 填入实际内容、已有引用或工具生成的 ID。替换元数据时使用合法 YAML 字符串转义，不把用户文本直接拼进 YAML。新增语言沿用同一变量键集，只翻译显示文字，不改变结构键、schema、ID 或关系。
 
@@ -97,11 +97,11 @@ retired 表示条目已退出当前有效集合；deprecation 表示不建议继
 
 ADR 三个字段都必须以“加粗的纯文本标签＋冒号＋非空说明”开始，注册表以 `field_label_style: strong` 声明这一显示约束。中文模板使用“背景与备选／选择／代价”，英文使用“Context and alternatives／Decision／Consequences”。允许翻译标签，冒号可为半角或全角、位于加粗范围内或紧随其后，例如 `**选择：** 采用独立环境。` 或 `**Decision**: Use an isolated environment.`。标签不能省略，也不能只有标签而没有说明；行内代码不能冒充加粗标签，HTML 注释不能充当说明。这是 tao-dev 的阅读格式约束，不把特定中文词语用作机器键。内容是否充分比较备选、解释选择和评估影响仍须语义审查。
 
-每个规格至少一个 REQ；有用例或性质时使用 UC。REQ 仅定义在 requirements，UC 在 cases 或 invariants（紧凑计划可在 design），ADR 在 decisions、design 或 architecture；类型位置也由注册表校验。同一条件在需求、设计、任务间通过 ID 引用，不抄写多份验收标准。
+每个规格至少一个 REQ；有用例或性质时使用 UC。REQ 仅定义在 requirements，UC 在 cases 或 invariants（用户明确选择合并文档时可在 plan.design），ADR 在 decisions、design 或 architecture；类型位置也由注册表校验。同一条件在需求、设计、任务间通过 ID 引用，不抄写多份验收标准。
 
 ## 设计与验证内容
 
-设计文档的固定章节区分边界与架构、接口与数据、不变量、失败处理、验证。紧凑计划在 design 章节简明覆盖受影响的这些方面；确实无变化的方面可以合并一句说明，不能靠复制整段代码充当设计。
+设计文档的固定章节区分边界与架构、接口与数据、不变量、失败处理、验证。完整流程中设计独立维护，plan.design 引用适用设计；具体组织见文档组织。确实无变化的方面可用一句说明，不复制整段代码充当设计。
 
 明确系统边界与数据流、公开接口和调用方、数据约束和所有者、状态转换、失败后的状态与恢复。只记录影响决定的签名、模型、公式或图；详细实现由代码承担。已有基线时说明保持哪些可观察行为，避免把“优化”默认解释为允许语义变化。
 
@@ -124,7 +124,7 @@ checkbox 只接受 `[ ]` 或 `[x]`。字段行缩进两个空格，按 relates�
 
 evidence 可选，但勾选完成时必需，为指向验证记录的单个 Markdown 链接，默认指向本计划的 verification 章节，也可指向独立 evidence 摘要或实际报告；不要求另建文件或 EVD。章节链接使用出版规程定义的稳定锚点。链接存在不自动代表完成，checkbox 也不代表已合并或发布。依赖图、执行批次、反向引用和覆盖表由字段生成，不另手工维护 JSON waves 或重复状态。
 
-change 模板的 VERIFICATION 先填写检查办法，执行后在同一章节补充受检输入、时间、命令与环境、结果、范围及保存情况；不用另一份文档重复这些内容。独立 evidence 模板仅在 [保存规则](evidence-retention.md) 要求拆分时使用，其中 reports 字段可写“原始输出未长期保存”及原因，无需伪造报告链接。
+plan 模板的 VERIFICATION 先填写检查办法，执行后在同一章节的 `<!-- tao:results -->` 与 `<!-- /tao:results -->` 之间补充受检输入、时间、命令与环境、结果、范围及保存情况；不用另一份文档重复这些内容。独立 evidence 模板仅在 [保存规则](evidence-retention.md) 要求拆分时使用，其中 reports 字段可写“原始输出未长期保存”及原因，无需伪造报告链接。
 
 evidence 文档 frontmatter 的 result 记录本次结果，coverage 记录本次覆盖；两者不能代替完整交付验证。recorded_at 是实际记录时刻，不能用提交时刻冒充执行时刻。正文 inputs 的 fingerprint 字段记录受检输入引用，优先使用固定 VCS 版本、范围及版本一致性结论；有未提交输入时按 [保存规则](evidence-retention.md) 补充，environment 记录必要环境；checks 记录命令或人工观察步骤、预期、实际观察与报告入口；findings 说明限制；retention 说明保存位置与期限。各字段键见注册表。无法还原输入或取得报告时如实说明限制，不虚构哈希、版本对应关系或 passed。
 
