@@ -32,6 +32,19 @@ class Page(HTMLParser):
             self.links.append(attrs)
 
 
+def rendered_links(md, tokens):
+    """Walk links that Sphinx renders, including supported directive bodies."""
+    for token in tokens:
+        if token.type == 'inline':
+            yield from (child for child in token.children or [] if child.type in ('link_open', 'image'))
+        elif token.type == 'fence' and token.level == 0 and re.match(r'\{(?:term|req|uc|adr)\}(?:\s|$)', token.info):
+            lines = token.content.splitlines(keepends=True)
+            pos = 0
+            while pos < len(lines) and lines[pos].startswith(':'):
+                pos += 1
+            yield from rendered_links(md, md.parse(''.join(lines[pos:])))
+
+
 def stage_sources(project, result, source):
     """Stage managed sources and explicitly linked local reading material."""
     pending = [project.root / p for p in result.documents]
@@ -52,20 +65,15 @@ def stage_sources(project, result, source):
             raw_files.append(relative)
             continue
         text = path.read_text(encoding="utf-8")
-        for token in md.parse(text):
-            if token.type != "inline":
+        for child in rendered_links(md, md.parse(text)):
+            url = child.attrGet("href") or child.attrGet("src")
+            parts = urlsplit(url)
+            if parts.scheme or parts.netloc or not parts.path:
                 continue
-            for child in token.children or []:
-                if child.type not in ("link_open", "image"):
-                    continue
-                url = child.attrGet("href") or child.attrGet("src")
-                parts = urlsplit(url)
-                if parts.scheme or parts.netloc or not parts.path:
-                    continue
-                target = (path.parent / unquote(parts.path)).resolve()
-                contained(project.root, target)
-                if target.is_file():
-                    pending.append(target)
+            target = (path.parent / unquote(parts.path)).resolve()
+            contained(project.root, target)
+            if target.is_file():
+                pending.append(target)
         if relative not in result.documents:
             if "templates" in path.parts:
                 fence = "`" * max(4, max((len(x) for x in re.findall(r"`+", text)), default=0) + 1)

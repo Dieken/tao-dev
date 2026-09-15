@@ -197,3 +197,15 @@ def test_book_renders_typed_forward_backlinks_and_task_dependencies(tmp_path):
     assert any(a['text']=='Requirement: 拒绝覆盖' and REQ in a.get('href','') for a in plan.links)
     assert 'relates: [' not in plan_html and 'depends_on: [' not in plan_html
     assert any(CHANGE_DOC+'--tasks' in a.get('href','') and a['text']=='Tasks in this plan' for a in plan.links)
+
+
+def test_term_definition_stages_its_local_attachment(tmp_path):
+    from test_glossary import glossary
+    configured=project(tmp_path)
+    term=glossary('```{term} Export\n\nSee [local notes](notes.txt).\n```').replace(DOC,'DOC_20260914_0000000000000080')
+    (tmp_path/'docs/terms.md').write_text(term)
+    (tmp_path/'docs/notes.txt').write_text('Important export constraints.\n')
+    (tmp_path/'docs/index.md').write_text(navigation('spec.md\nterms.md'))
+    output=build(configured); directory=tmp_path/output['directory']
+    assert (directory/'docs/notes.txt').read_text()=='Important export constraints.\n'
+    assert any(a['text']=='local notes' for a in Page((directory/'docs/terms.html').read_text()).links)
