@@ -20,7 +20,7 @@
 |---|---|---|
 | 书／篇／多页章入口 `<group>/index.md` | `tao.project.navigation/v0.1` | [navigation](../assets/templates/navigation.md) |
 | 能力规格 `docs/product/<capability>.md` | `tao.project.spec/v0.1` | [spec](../assets/templates/spec.md) |
-| 一次交付计划 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md` | `tao.project.change/v0.1` | [change](../assets/templates/change.md) |
+| 一次交付计划 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md` | `tao.project.plan/v0.1` | [change](../assets/templates/plan.md) |
 | 系统／模块设计 `docs/engineering/<module>.md`，或计划的设计附件 | `tao.project.design/v0.1` | [design](../assets/templates/design.md) |
 | 计划的任务附件 `<plan-stem>/tasks.md` | `tao.project.tasks/v0.1` | [tasks](../assets/templates/tasks.md) |
 | 长期决定 `docs/engineering/decisions/<slug>.md` | `tao.project.decision/v0.1` | [decision](../assets/templates/decision.md) |

@@ -13,8 +13,8 @@ from test_documents import spec
 def configured(root, body='print("checked")', *, timeout=5, budget=20):
     (root / 'docs').mkdir()
     (root / 'docs/spec.md').write_text(spec())
-    (root / 'docs/changes/2026-09').mkdir(parents=True)
-    (root / 'docs/changes/2026-09/20260914-export.md').write_text(change().replace('- [x]', '- [ ]'))
+    (root / 'docs/plans/2026-09').mkdir(parents=True)
+    (root / 'docs/plans/2026-09/20260914-export.md').write_text(change().replace('- [x]', '- [ ]'))
     (root / 'check.py').write_text(body)
     (root / '.tao').mkdir()
     (root / '.tao/config.toml').write_text(f'''version = 1
@@ -96,7 +96,7 @@ def test_full_verification_requires_closed_target_tasks(tmp_path):
     configured(tmp_path)
     code, result = report(tmp_path, 'verify', CHG)
     assert code == 1 and result['readiness'] == 'blocked'
-    path = tmp_path / 'docs/changes/2026-09/20260914-export.md'
+    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
     text = path.read_text().replace('- [ ]', '- [x]')
     path.write_text(text)
     code, result = report(tmp_path, 'verify', CHG)
@@ -206,7 +206,7 @@ def test_unknown_or_exceeded_model_budget_does_not_start_checks(tmp_path):
 
 
 def test_check_cannot_close_tasks_while_full_verification_is_running(tmp_path):
-    configured(tmp_path, 'from pathlib import Path\np=Path("docs/changes/2026-09/20260914-export.md")\np.write_text(p.read_text().replace("- [ ]", "- [x]"))')
+    configured(tmp_path, 'from pathlib import Path\np=Path("docs/plans/2026-09/20260914-export.md")\np.write_text(p.read_text().replace("- [ ]", "- [x]"))')
     config = tmp_path / '.tao/config.toml'
     config.write_text(config.read_text().replace('"check.py", "docs/**/*.md"', '"check.py"'))
     code, result = report(tmp_path, 'verify', CHG)

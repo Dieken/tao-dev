@@ -24,5 +24,5 @@ created: "2026-09-14"
 product/index.md
 engineering/index.md
 glossary.md
-changes/index.md
+plans/index.md
 ```

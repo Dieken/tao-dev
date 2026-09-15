@@ -22,7 +22,7 @@ created: '2026-09-14'
 
 当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。首批运行验收环境固定为 Codex CLI 和 Claude Code CLI。
 
-本协议定义必须实现的结果和验收场景。协作方式见 [流程设计](../engineering/protocol-design.md)，长期技术取舍见 [架构决定](../engineering/decisions/index.md)，既有研发任务见 [实施计划](../changes/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
+本协议定义必须实现的结果和验收场景。协作方式见 [流程设计](../engineering/protocol-design.md)，长期技术取舍见 [架构决定](../engineering/decisions/index.md)，既有研发任务见 [实施计划](../plans/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
 
 <!-- tao:section terms -->
 ## 术语与来源
@@ -346,4 +346,4 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 | CLI 版本与入口加载方式 | 操作接口见命令专篇；两端固定实际测试版本与项目局部加载方式 | 双 CLI 验收前 |
 | 质量预算和默认检查集 | 发现项目现状，由项目配置确定；不设通用覆盖率或复杂度达标分 | 每个项目接入时 |
 
-首版 skill 入口与工程规程已形成独立运行材料，统一格式注册表、可填写模板及通用文档规则已随 skill 提供，见 [插件设计](../engineering/plugin-design.md)。源文件校验器和独立回归测试已提供；可生成变更骨架、保存交接并构建本地 HTML，从交接继续开发已有隔离样例。完整双 CLI 行为与生命周期验收仍未完成；当前能力以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 为准，实际验收及限制见 [交付记录](../changes/2026-09/20260914-bootstrap.md)。流程效率仍须由使用数据评估。
+首版 skill 入口与工程规程已形成独立运行材料，统一格式注册表、可填写模板及通用文档规则已随 skill 提供，见 [插件设计](../engineering/plugin-design.md)。源文件校验器和独立回归测试已提供；可生成变更骨架、保存交接并构建本地 HTML，从交接继续开发已有隔离样例。完整双 CLI 行为与生命周期验收仍未完成；当前能力以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 为准，实际验收及限制见 [交付记录](../plans/2026-09/20260914-bootstrap.md)。流程效率仍须由使用数据评估。

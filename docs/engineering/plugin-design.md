@@ -10,7 +10,7 @@ updated: "2026-09-15"
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](../product/protocol.md)。目录图展示源码布局；当前已提供 Codex 与 Claude 兼容 manifest、公共格式打包、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；Claude 调用级插件与 hook、两端原生 skill／操作及独立审查已有部分运行结果；完整双端验收尚未完成，见 [实际记录](../changes/2026-09/20260914-bootstrap.md)。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](../product/protocol.md)。目录图展示源码布局；当前已提供 Codex 与 Claude 兼容 manifest、公共格式打包、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；Claude 调用级插件与 hook、两端原生 skill／操作及独立审查已有部分运行结果；完整双端验收尚未完成，见 [实际记录](../plans/2026-09/20260914-bootstrap.md)。
 
 <!-- tao:section overview -->
 ## 标准基线与目标环境

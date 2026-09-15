@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: "{{DOC_ID}}"
 title: "{{TITLE}}"
 locale: "{{LOCALE}}"

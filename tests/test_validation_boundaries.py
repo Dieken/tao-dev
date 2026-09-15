@@ -34,7 +34,7 @@ def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
         for index, profile in enumerate(registry["profiles"].values(), 1):
             template = (ASSETS / profile["template"]).read_text()
             name = Path(profile["template"]).name
-            if name == "change.md":
+            if name == "plan.md":
                 name = "2026-09/20260914-export.md"
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)

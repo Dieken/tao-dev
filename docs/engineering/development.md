@@ -94,7 +94,7 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 .venv/bin/python scripts/package_plugin.py --format codex-legacy --output tmp/tao/codex-plugin
 ```
 
-按目标客户端选择所需格式；输出目录必须尚不存在。这些命令只打包，不安装或注册。兼容包的适用版本及组件差异见 [插件设计](plugin-design.md)，客户端验收与当前缺口见 [运行环境记录](../changes/2026-09/20260914-portable-runtime.md)。
+按目标客户端选择所需格式；输出目录必须尚不存在。这些命令只打包，不安装或注册。兼容包的适用版本及组件差异见 [插件设计](plugin-design.md)，客户端验收与当前缺口见 [运行环境记录](../plans/2026-09/20260914-portable-runtime.md)。
 
 给上述命令添加 `--marketplace`，输出变为含 `plugins/tao-dev/` 的完整本地安装源：public 生成 Claude 的 `.claude-plugin/marketplace.json`，codex-legacy 生成 Codex 的 `.agents/plugins/marketplace.json`，目录索引名均为 `tao-dev-local`。这个选项只生成文件，实际安装、启用范围和运行环境准备按 [README](../../README.md) 执行。两种格式分别生成到不同的新目录，不合并为一个安装源。
 

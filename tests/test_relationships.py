@@ -15,7 +15,7 @@ OLD = "REQ_20260913_0000000000000007"
 
 def change():
     return f'''---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: {CHANGE_DOC}
 title: 导出检查
 locale: zh-Hans
@@ -64,7 +64,7 @@ change: {CHG}
 
 def check_change(tmp_path, content):
     (tmp_path / "spec.md").write_text(spec(), encoding="utf-8")
-    path = tmp_path / "docs/changes/2026-09/20260914-export.md"
+    path = tmp_path / "docs/plans/2026-09/20260914-export.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return validate(tmp_path, [tmp_path / "spec.md", path])

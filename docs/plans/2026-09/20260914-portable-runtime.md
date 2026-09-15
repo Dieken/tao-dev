@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: DOC_20260914_3541E3H7SN5V7MS5
 title: 可独立准备的插件运行环境
 locale: zh-Hans

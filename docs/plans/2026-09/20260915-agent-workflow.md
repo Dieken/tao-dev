@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: DOC_20260915_SPNXNDTHJMFVSAN7
 title: Agent 内开发工作流
 locale: zh-Hans
@@ -28,10 +28,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 <!-- tao:section tasks -->
 ## 任务
 
-- [ ] `TASK_20260915_50BX90SPVQNT4SH3` 迁移实施计划命名：迁移 plan profile、模板、目录、配置和所有引用，保留 CHG 身份。
+- [x] `TASK_20260915_50BX90SPVQNT4SH3` 迁移实施计划命名：迁移 plan profile、模板、目录、配置和所有引用，保留 CHG 身份。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: []
   - verify: 文档/关系/CLI/出版回归和旧名称扫描。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_A06VK7REAK7AN8AS` 持久化工作流与 Git 隔离：增加阶段、批准版本、检查点、worktree/fork 绑定和只读恢复状态；兼容无配置起步。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -67,6 +68,8 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 ## 验证
 
 每项提交前运行受影响的回归、文档校验及差异检查，完成后在此追加实际证据。最终运行完整测试与本地书籍构建。客户端模型调用仅使用既有客户端和授权配置，在隔离项目内执行；不更改全局配置。
+
+命名迁移：先观察新增 plans 配置用例因旧键拒绝而失败，迁移后 109 项文档、CLI、关系、退役与出版回归全部通过。所有正式 ID 保持不变。
 
 <!-- tao:section questions -->
 ## 未决问题

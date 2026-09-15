@@ -88,7 +88,7 @@ def test_document_retirement_includes_owned_ids_and_rejects_broken_file_links(tm
 
 def test_task_removal_preserves_neighbor_and_document_contract(tmp_path):
     setup_project(tmp_path)
-    folder = tmp_path / 'docs/changes/2026-09'
+    folder = tmp_path / 'docs/plans/2026-09'
     folder.mkdir(parents=True)
     source = change()
     start = source.index('- [x]')

@@ -11,7 +11,7 @@
 | 产品规格 | `docs/product/<capability>.md`，每个用户可命名的能力一份；含目标、范围、REQ／UC、约束 | 本次施工步骤、执行日志 |
 | 系统与模块设计 | `docs/engineering/<system-or-module>.md`，每个已有系统或模块一份；含边界、状态、接口与依赖 | 复制规格全文、日常任务 |
 | 跨变更的技术决定 | `docs/engineering/decisions/<slug>.md`，每个 ADR 一份；含背景、备选、决定、后果 | 临时实现过程；只影响本次变更的选择留在计划 |
-| 变更计划 | `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
+| 变更计划 | `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
 | 用户说明 | `docs/user/<user-task>.md`，每个读者操作目标一份 | 内部研发任务 |
 | 运维说明 | `docs/operations/<operation>.md`，每个部署、诊断或恢复操作一份 | 暂时实验记录 |
 | 术语 | `docs/glossary.md`，项目共用；首次定义和同义词关系集中维护 | 复制各模块的全部接口定义 |
@@ -57,7 +57,7 @@ docs/
       index.md
       create-account.md            # user-guide
       recover-access.md            # user-guide
-  changes/
+  plans/
     index.md                       # 变更记录，与长期主题阅读分开
     2026-09/
       index.md
@@ -70,7 +70,7 @@ docs/
 
 **ADR 的增长与分类：** 默认平铺在 `docs/engineering/decisions/`，由 index.md 组织阅读，不按年月拆分。直属 ADR 超过上述数量阈值时，先检查是否混入本应留在变更计划中的局部实现选择，再按稳定主题评估分组；阈值触发评估，不自动触发搬迁。分组采用 `decisions/<topic>/<slug>.md`，沿用上述层级和每组最少篇数要求；跨主题决定只选一个主归属，其他位置引用。没有自然分组时保持平铺，在目录页说明理由。被替代的 ADR 保留记录及替代关系，不因状态变化另建日期归档目录。
 
-变更计划按创建月份分组，默认路径为 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`。月份目录取计划 created 的年和月，月份固定两位，并与文件名日期一致；例如 `docs/changes/2026-09/20260914-stable-links.md`。计划与同名附件目录放在同一月份下，按需创建目录；编辑或归档不按当前月份重新分组。调整位置时一起更新文件引用，保留正式 ID。项目可映射变更根目录，其下仍按年月和日期文件名组织。
+变更计划按创建月份分组，默认路径为 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`。月份目录取计划 created 的年和月，月份固定两位，并与文件名日期一致；例如 `docs/plans/2026-09/20260914-stable-links.md`。计划与同名附件目录放在同一月份下，按需创建目录；编辑或归档不按当前月份重新分组。调整位置时一起更新文件引用，保留正式 ID。项目可映射变更根目录，其下仍按年月和日期文件名组织。
 
 ## 阅读顺序与导航格式
 

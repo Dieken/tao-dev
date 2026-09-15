@@ -43,7 +43,7 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 
 ### 命名规则
 
-变更计划按创建月份分组，默认路径为 `docs/changes/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
+变更计划按创建月份分组，默认路径为 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
 
 <!-- tao:section invariants -->
 ## 自举与唯一来源

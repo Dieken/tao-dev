@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: DOC_20260914_8MPMXBCGKMRS74T4
 title: 实现协作开发核心能力
 locale: zh-Hans
