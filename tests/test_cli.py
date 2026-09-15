@@ -124,7 +124,7 @@ def test_project_config_is_local_and_determines_managed_scope(tmp_path):
 
 def test_symlinked_config_and_output_cannot_escape_project(tmp_path):
     project(tmp_path)
-    (tmp_path / "docs/changes").symlink_to(tmp_path.parent, target_is_directory=True)
+    (tmp_path / "docs/plans").symlink_to(tmp_path.parent, target_is_directory=True)
     assert run(tmp_path, "new", "--slug", "escape", "--locale", "en").returncode == 2
 
 
@@ -193,7 +193,7 @@ change: {CHG}
     completed = run(tmp_path, "handoff", CHG, "--from", "draft.md")
     assert completed.returncode == 0, completed.stdout
     target = tmp_path / json.loads(completed.stdout)["outputs"]["path"]
-    assert target == tmp_path / "docs/changes/2026-09/20260914-export/handoff.md"
+    assert target == tmp_path / "docs/plans/2026-09/20260914-export/handoff.md"
     assert "Concrete recovery context." in target.read_text()
     assert "CLI observation" in target.read_text()
     assert not (tmp_path / ".git").exists()

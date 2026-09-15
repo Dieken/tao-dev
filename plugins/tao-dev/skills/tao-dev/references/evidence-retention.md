@@ -5,7 +5,7 @@
 ## 保存位置
 
 ```text
-docs/changes/<yyyy-mm>/
+docs/plans/<yyyy-mm>/
   <yyyymmdd>-<slug>.md              # 计划与默认验证结论
   <yyyymmdd>-<slug>/evidence/       # 按需：独立摘要或须保留的报告
 tmp/tao/                           # 可映射的生成根，默认不纳入 VCS

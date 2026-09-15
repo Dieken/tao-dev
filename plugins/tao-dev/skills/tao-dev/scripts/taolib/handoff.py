@@ -20,7 +20,7 @@ def save(project, source_path, change, result):
     if metadata["schema"] != "tao.project.handoff/v0.1":
         raise ConfigurationError("--from must use the handoff profile.")
     change = change or metadata.get("change")
-    candidates = [d for d in result.documents.values() if d.metadata["schema"] == "tao.project.change/v0.1"
+    candidates = [d for d in result.documents.values() if d.metadata["schema"] == "tao.project.plan/v0.1"
                   and (d.metadata.get("change") == change if change else any(result.definitions[t].status == "pending" for t in d.tasks))]
     if len(candidates) != 1:
         raise ConfigurationError("Handoff requires one identifiable change; supply its CHG ID.")

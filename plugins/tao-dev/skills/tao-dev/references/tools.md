@@ -39,7 +39,7 @@ exclude = []
 # book_root = "docs/index.md"
 
 [paths]
-changes = "docs/changes"
+plans = "docs/plans"
 retired = "docs/retired"
 temporary = "tmp/tao"
 ```

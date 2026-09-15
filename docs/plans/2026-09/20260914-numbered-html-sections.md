@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: DOC_20260914_Z9JYQ4JG1V0VPA52
 title: Sphinx HTML 章节显示编号
 locale: zh-Hans

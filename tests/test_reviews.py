@@ -15,7 +15,7 @@ from test_relationships import CHG
 
 def setup_review(root):
     configured(root)
-    path = root / "docs/changes/2026-09/20260914-export.md"
+    path = root / "docs/plans/2026-09/20260914-export.md"
     path.write_text(path.read_text().replace("- [ ]", "- [x]"))
     config = root / ".tao/config.toml"
     config.write_text(config.read_text().replace("[verification]", '[verification]\nrequired_reviews = ["independent"]'))

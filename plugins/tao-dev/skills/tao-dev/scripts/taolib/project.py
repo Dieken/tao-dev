@@ -49,7 +49,7 @@ class Project:
         paths = self.config.get("paths", {})
         if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root", "section_redirects"}:
             raise ConfigurationError("Invalid documents configuration.")
-        if not isinstance(paths, dict) or paths.keys() - {"changes", "retired", "temporary"}:
+        if not isinstance(paths, dict) or paths.keys() - {"plans", "retired", "temporary"}:
             raise ConfigurationError("Invalid paths configuration.")
         self.includes = documents.get("include", ["docs/**/*.md"])
         self.excludes = documents.get("exclude", [])
@@ -60,7 +60,7 @@ class Project:
         for patterns in (self.includes, self.excludes):
             if not isinstance(patterns, list) or any(not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts for p in patterns):
                 raise ConfigurationError("Document patterns must be project-relative string arrays.")
-        self.paths = {"changes": "docs/changes", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
+        self.paths = {"plans": "docs/plans", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
         for value in self.paths.values():
             if not isinstance(value, str) or not value or Path(value).is_absolute():
                 raise ConfigurationError("Configured paths must be nonempty project-relative strings.")

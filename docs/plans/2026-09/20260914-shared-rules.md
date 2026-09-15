@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: "DOC_20260914_ZTVP0B3S9N1JQ7X8"
 title: "共享文档规则归位"
 locale: "zh-Hans"

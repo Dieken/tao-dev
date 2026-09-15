@@ -240,8 +240,8 @@
         "REQ": 1
       }
     },
-    "tao.project.change/v0.1": {
-      "template": "templates/change.md",
+    "tao.project.plan/v0.1": {
+      "template": "templates/plan.md",
       "sections": [
         "scope",
         "references",

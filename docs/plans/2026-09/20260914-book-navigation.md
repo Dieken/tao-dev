@@ -1,5 +1,5 @@
 ---
-schema: tao.project.change/v0.1
+schema: tao.project.plan/v0.1
 id: "DOC_20260914_0SHBPV8YQFQFQN8X"
 title: "篇章层级与统一目录页"
 locale: "zh-Hans"

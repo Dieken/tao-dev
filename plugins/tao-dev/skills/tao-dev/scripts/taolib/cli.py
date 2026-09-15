@@ -93,7 +93,7 @@ def skeleton(project, args, registry, result):
     if locale not in ("en", "zh-Hans"):
         raise ConfigurationError("Choose an available document language once: en or zh-Hans.")
     day = date.today()
-    path = project.output("changes", day.strftime("%Y-%m/%Y%m%d-") + args.slug + ".md")
+    path = project.output("plans", day.strftime("%Y-%m/%Y%m%d-") + args.slug + ".md")
     if path.exists() or path.with_suffix("").exists():
         raise ConflictError(Message('Change or attachment path already exists: {arg0}', path.relative_to(project.root)))
     existing = set(result.definitions)
@@ -103,7 +103,7 @@ def skeleton(project, args, registry, result):
         existing.add(ids[kind + "_ID"])
     labels = json.loads((ASSETS / f"locales/{locale}.json").read_text())
     values = ids | labels | {"LOCALE": locale, "CREATED": day.isoformat()}
-    template = (ASSETS / registry["profiles"]["tao.project.change/v0.1"]["template"]).read_text()
+    template = (ASSETS / registry["profiles"]["tao.project.plan/v0.1"]["template"]).read_text()
     rendered = re.sub(r"\{\{([^}]+)\}\}", lambda m: values.get(m[1], m[0]), template)
     # Template metadata remains a draft with a TITLE placeholder. No user
     # description is interpolated into YAML or a shell command.
@@ -170,7 +170,7 @@ def verify(project, args, report):
         report['outputs']['documents_changed_during_checks'] = True
         codes.append(1)
     if not args.only:
-        changes = [d for d in result.documents.values() if d.metadata.get("schema") == "tao.project.change/v0.1"]
+        changes = [d for d in result.documents.values() if d.metadata.get("schema") == "tao.project.plan/v0.1"]
         if not args.change and len(changes) == 1:
             args.change = changes[0].metadata["change"]
         if not args.change:
