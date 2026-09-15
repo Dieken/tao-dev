@@ -52,6 +52,56 @@ def locate(project, identity):
     return matches[0]
 
 
+def plan_contract(content):
+    """Exclude actual execution metadata, preserving code examples verbatim."""
+    from .documents import parser, SECTION
+    lines = content.splitlines(keepends=True)
+    protected, markers = set(), {}
+    for token in parser().parse(content):
+        if token.map and token.type in {'fence', 'code_block'}:
+            protected.update(range(*token.map))
+        if token.map and token.type == 'html_block' and token.level == 0:
+            value = token.content.strip()
+            match = SECTION.fullmatch(value)
+            if match:
+                markers[token.map[0]] = match[1]
+            elif value in {'<!-- tao:results -->', '<!-- /tao:results -->'}:
+                markers[token.map[0]] = value
+    section, pending = None, None
+    excluded = set()
+    for number, marker in sorted(markers.items()):
+        if marker == '<!-- tao:results -->' and section == 'verification':
+            pending = number
+        elif marker == '<!-- /tao:results -->' and pending is not None:
+            excluded.update(range(pending, number + 1))
+            pending = None
+        else:
+            section, pending = marker, None
+    section, in_task, result = None, False, []
+    for number, line in enumerate(lines):
+        if number in excluded:
+            continue
+        if number in protected:
+            result.append(line)
+            in_task = False
+            continue
+        if number in markers:
+            section, in_task = markers[number], False
+        if section == 'tasks':
+            if re.match(r'^- \[([ x])\] `TASK_', line):
+                in_task = True
+                line = re.sub(r'^- \[([ x])\]', '- [ ]', line)
+            elif in_task and line.startswith('  - evidence:'):
+                continue
+            elif line.strip() and not line.startswith('  '):
+                in_task = False
+        # Ignore incidental blank lines around appended execution records.
+        if not line.strip() and result and not result[-1].strip():
+            continue
+        result.append(line)
+    return ''.join(result)
+
+
 def artifact_digest(project, state, phase):
     names = state['artifacts'].get(phase, [])
     rows = []
@@ -61,13 +111,7 @@ def artifact_digest(project, state, phase):
             rows.append((name, None))
             continue
         if phase == 'plan':
-            content = path.read_text(encoding='utf-8')
-            content = re.sub(r'(?m)^- \[([ x])\] (?=`TASK_)', '- [ ] ', content)
-            content = re.sub(r'(?m)^  - evidence:.*\n?', '', content)
-            # Runtime observations have an explicit slot; task contracts and
-            # the approved verification strategy remain content-bound.
-            content = re.sub(r'(?ms)^<!-- tao:results -->\n.*?^<!-- /tao:results -->\n?', '', content)
-            content = re.sub(r'\n{3,}', '\n\n', content)
+            content = plan_contract(path.read_text(encoding='utf-8'))
             rows.append((name, digest_json(content)))
         else:
             rows.append((name, file_digest(path)))

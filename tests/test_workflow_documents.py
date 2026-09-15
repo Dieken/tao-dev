@@ -35,3 +35,15 @@ def test_task_progress_does_not_revoke_plan_but_task_contract_change_does(tmp_pa
     assert observe(project, state)['stale_approvals'] == []
     plan.write_text(progressed.replace('拒绝覆盖已有目标', '允许覆盖已有目标'))
     assert observe(project, state)['stale_approvals'] == ['plan']
+
+
+def test_fenced_contract_examples_remain_part_of_plan_approval(tmp_path):
+    from taolib.project import Project
+    from taolib.workflows import artifact_digest
+    plan = tmp_path / 'plan.md'
+    state = {'artifacts': {'plan': ['plan.md']}}
+    contract = change().replace('<!-- tao:section tasks -->', '```yaml\nchecks:\n  - evidence: required\n```\n\n<!-- tao:section tasks -->')
+    plan.write_text(contract)
+    before = artifact_digest(Project(tmp_path), state, 'plan')
+    plan.write_text(contract.replace('evidence: required', 'evidence: optional'))
+    assert artifact_digest(Project(tmp_path), state, 'plan') != before
