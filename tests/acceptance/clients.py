@@ -224,22 +224,22 @@ def main():
     if args.case in ('inside', 'outside'):
         prompt = boundary + ('Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not search the filesystem. If available, invoke its status operation, follow its required starting references and run its doctor/status with the configured Python interpreter. Report limitations accurately. Interpreter: ' + sys.executable if args.case == 'inside' else 'Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not use any tools or search the filesystem. Reply with a short JSON object.')
     elif args.case == 'recover':
-        prompt = boundary + 'Use tao-dev to continue solely from the persisted handoff at ' + recovery['handoff'] + '. Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. Detect stale evidence after the code change, run configured verification, and update the existing task checkbox and plan summary only using actual results. Do not create a new plan or ask for already supplied requirements. Use Python interpreter ' + sys.executable + '. Finish with the measured checks, outcomes and limits.'
+        prompt = boundary + 'Use tao-dev continue to reconcile the current files and the persisted handoff at ' + recovery['handoff'] + '. Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. Detect stale evidence after the code change, run configured verification, and update the existing task checkbox and plan summary only using actual results. Do not create a new plan or ask for already supplied requirements. Use Python interpreter ' + sys.executable + '. Finish with the measured checks, outcomes and limits.'
     elif args.case == 'review':
         prompt = boundary + 'Use the available tao-dev review guidance to independently review example.py against requirements.txt. Do not change either file. Identify a concrete trigger, evidence and minimal fix; do not invent findings. This is your first review: no other reviewer conclusions are provided. Keep the response concise.'
     elif args.case == 'plan':
-        prompt = boundary + ('Use the native tao-dev new operation with this goal: plan how to make export refuse existing files and preserve their exact bytes. '
-                             'Read example.py and requirements.txt. Create and fully fill one compact English plan with concrete acceptance, minimal design and tasks. '
+        prompt = boundary + ('Use the advertised tao-dev skill for this explicitly scoped maintenance exercise: prepare a compact plan to make export refuse existing files and preserve their exact bytes. '
+                             'Read example.py and requirements.txt. Writing the plan and handoff is authorized. Use the simplified maintenance path in this non-Git fixture, not the complete feature workflow. Create and fully fill one compact English plan with concrete acceptance and tasks. '
                              'For this tiny change, aim for roughly 300 words and at most two tasks; keep the handoff to a few sentences. '
                              'These are size guidelines, not exact limits: do not count words or edit solely to hit a word count. '
                              'Do not implement the repair or change requirements, configuration or plugin resources. Then invoke the native tao-dev handoff operation '
                              'to save a concise persisted handoff for the same change and IDs. Use native Skill entries on Claude; Codex uses its advertised skill. '
                              'Actually validate the documents, leave implementation tasks open, and report only the paths and measured outcomes.')
     elif args.case == 'verify':
-        prompt = boundary + ('Invoke the native tao-dev verify operation on the existing change ' + recovery['change'] +
+        prompt = boundary + ('Invoke the native tao-dev review action, limited to its deterministic checks for the existing change ' + recovery['change'] +
                              '. This is a verification-only request: the example deliberately violates the existing requirement. '
                              'Use the actual Skill entry on Claude. Do not repair code, edit requirements or configuration, or check off tasks. '
-                             'Run full verification and report its measured result and why readiness is or is not satisfied. '
+                             'Do not dispatch semantic reviewers or create review-run records in this focused probe. Run full tao CLI verification and report its measured result and why readiness is or is not satisfied. '
                              'An honestly reported failed verification is the expected outcome of this acceptance experiment.')
     elif args.case == 'routing':
         prompt = boundary + (

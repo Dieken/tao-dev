@@ -38,7 +38,7 @@ print("Existing bytes preserved; new file exported.")
     created = tao('new', '--slug', 'protect-export')['outputs']
     path = directory / created['path']
     values = {'TITLE':'Protect existing export files', 'SCOPE':'Refuse existing paths and preserve their exact bytes.',
-              'REFERENCES':'See requirements.txt in the project root.', 'DESIGN':'Use exclusive file creation; do not check then overwrite.',
+              'REFERENCES':'See requirements.txt in the project root.', 'DESIGN_REFERENCE':'This focused maintenance fixture uses exclusive creation; a separate feature design is outside this probe.',
               'TASK_TITLE':'Implement and verify refusal of existing targets', 'TASK_VERIFY':'Run the configured export regression and validate documentation.',
               'VERIFICATION':'The initial check fails because export overwrites an existing file.', 'QUESTIONS':'None.'}
     path.write_text(re.sub(r'\{\{([^}]+)\}\}', lambda m: values[m[1]], path.read_text()))
