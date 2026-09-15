@@ -16,7 +16,7 @@ agent 已进入 review 且需要固定范围、保存受检输入或控制调用
 tao workflow review-begin <CHG-ID> --expect <revision> --from <preview.json> --mode serial|parallel --reviewers <数量> --decision <确认内容>
 ```
 
-开始前重新核对预览，输入变化即拒绝。登记成功后返回该轮受检 ZIP 快照、摘要和记录，agent 才派发审查。快照包含受检文件及未修改上下文，删除项由范围与 Git 基准解释；只读检查快照和固定 Git 版本，不让子 agent 修改被审查文件。必要复现使用独立临时目录。
+开始前重新核对预览，输入变化即拒绝。登记成功后返回工作区与暂存区各自的受检 ZIP 快照、摘要和记录，agent 才派发审查。输入同时绑定工作区内容、文件模式及暂存区 blob/mode；暂存区与工作区不同也必须检查。快照包含受检文件及未修改上下文，删除项由范围与 Git 基准解释；只读检查快照和固定 Git 版本，不让子 agent 修改被审查文件。必要复现使用独立临时目录。
 
 每轮记录 reviewers 个审查者，serial 为一人，parallel 最多三人；各自先独立形成判断，再由主 agent 合并重复发现并核实跨范围问题。多名并行审查者属于同一轮。使用既有授权内的原生子 agent、人工或实际可用的另一 CLI，不自动安装、登录或新增供应商。调用方式和真实可确认的模型/供应商写进各自报告；能力不满足时如实报告，不能伪装来源。
 
@@ -30,6 +30,6 @@ tao workflow review-begin <CHG-ID> --expect <revision> --from <preview.json> --m
 tao workflow review-end <CHG-ID> --expect <revision> --from <result.json>
 ```
 
-非失败结果必须有对应人数的非空报告；输入改变会记为 stale，超出时间预算记为 budget-exceeded。这些记录不自动满足 required_reviews，也不证明报告结论正确。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
+非失败结果必须有对应人数的非空报告；输入改变会记为 stale，超出时间预算记为 budget-exceeded。这些记录不自动满足 required_reviews，也不证明报告结论正确。历史变化或其他输入错误不阻止登记失败，错误原因随记录保留。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
 
 修复需要已有修改授权；修复后先验证受影响行为，再在剩余预算内定向复核。预算耗尽而阻断未解时，停止调用并给出证据和处理选择，不能自动通过。继续新的审查范围时先让用户确认，不把新增范围隐藏在复核中。原始快照及报告在 temporary 下默认不纳入 Git，正式计划保留受检范围、结论和必要限制。

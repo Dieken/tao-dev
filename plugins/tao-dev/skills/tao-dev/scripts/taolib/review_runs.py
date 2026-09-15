@@ -1,6 +1,7 @@
 """Review scope snapshots and persistent round budgets; agents conduct reviews."""
 from datetime import datetime, timezone
 import os
+import subprocess
 from pathlib import Path
 import uuid
 import zipfile
@@ -29,8 +30,15 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
     info = git_workflow.context(project.root)
     target = info['base_commit'] if info else None
     source = None
+    index = {}
     if info:
         files = names(git_workflow.run(project.root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'))
+        for entry in names(git_workflow.run(project.root, 'ls-files', '--stage', '-z')):
+            fields, name = entry.split('\t', 1)
+            mode, blob, stage = fields.split()
+            if stage != '0':
+                raise ConflictError('Resolve or explicitly inspect unmerged index entries before snapshot review.')
+            index[name] = {'mode': mode, 'blob': blob}
         untracked = names(git_workflow.run(project.root, 'ls-files', '-z', '--others', '--exclude-standard'))
         if scope == 'feature':
             reference = base or (state.get('git') or {}).get('base_commit')
@@ -40,6 +48,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
             if git_workflow.run(project.root, 'merge-base', '--is-ancestor', source, target, required=False) is None:
                 raise ConflictError('The recorded base is no longer an ancestor. Confirm a new base after rebase or history replacement.')
             selected = names(git_workflow.run(project.root, 'diff', '--name-only', '-z', source, '--')) | untracked
+            selected |= names(git_workflow.run(project.root, 'diff', '--cached', '--name-only', '-z', source, '--'))
             files |= selected  # Deleted paths remain visible in the review scope.
         else:
             selected = set(files)
@@ -67,7 +76,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
         if path.is_dir():
             raise ConfigurationError('Review submodule contents in an explicit scope: '+name)
         exists = path.is_file()
-        rows.append([name, file_digest(path) if exists else None])
+        rows.append([name, file_digest(path) if exists else None, path.stat().st_mode & 0o777 if exists else None, index.get(name)])
         if exists:
             total += path.stat().st_size
     selected &= files
@@ -78,7 +87,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
     return {'schema': 'tao.review-scope/v0.1', 'change': state['change'], 'scope': scope, 'kind': kind,
             'base_commit': source, 'target_commit': target, 'include': include,
             'selected_files': sorted(selected), 'context_files': [r[0] for r in rows], 'excluded_files': excluded,
-            'input_digest': digest_json(rows), 'input_bytes': total,
+            'input_digest': digest_json(rows), 'input_bytes': total, 'index_entries': {name: index[name] for name in sorted(files & index.keys())},
             'instruction': 'Confirm this scope before starting. The snapshot includes unchanged context; inspect relevant callers and authoritative documents. No review has run.'}
 
 
@@ -121,12 +130,22 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
                 path = contained(owner.root, name)
                 if path.is_file():
                     archive.write(path, name)
+        index_snapshot = owner.output('temporary', f'review-inputs/{run_id}-index.zip')
+        with zipfile.ZipFile(index_snapshot, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
+            for name, entry in request['index_entries'].items():
+                blob = subprocess.run(['git', '-C', str(owner.root), 'cat-file', 'blob', entry['blob']], capture_output=True, timeout=30)
+                if blob.returncode:
+                    raise ConfigurationError('Cannot preserve the staged Git blob for '+name)
+                member = zipfile.ZipInfo(name)
+                member.external_attr = int(entry['mode'], 8) << 16
+                archive.writestr(member, blob.stdout)
         if preview(owner, state, request['scope'], key, request['base_commit'], request['include']) != request:
             raise ConflictError('Inputs changed while snapshotting; no review was started.')
         series['runs'].append({'id': run_id, 'round': len(series['runs'])+1, 'started_at': now.isoformat(),
                                'outcome': 'running', 'mode': mode, 'reviewers': reviewers, 'decision': decision,
                                'request': request, 'snapshot': snapshot.relative_to(owner.root).as_posix(),
-                               'snapshot_digest': file_digest(snapshot)})
+                               'snapshot_digest': file_digest(snapshot), 'index_snapshot': index_snapshot.relative_to(owner.root).as_posix(),
+                               'index_snapshot_digest': file_digest(index_snapshot)})
         state['reviews'][key] = series
     return workflows.mutate(project, identity, expected, edit)
 
@@ -152,8 +171,12 @@ def finish(project, identity, expected, result):
             if Path(name).is_absolute() or not path.is_file() or not path.stat().st_size:
                 raise ConflictError('Review report is missing or empty.')
             saved.append({'path': name, 'digest': file_digest(path)})
-        current = preview(owner, state, run['request']['scope'], kind, run['request']['base_commit'], run['request']['include'])
-        outcome = result['outcome'] if current == run['request'] else 'stale'
+        try:
+            current = preview(owner, state, run['request']['scope'], kind, run['request']['base_commit'], run['request']['include'])
+            outcome = result['outcome'] if current == run['request'] or result['outcome'] == 'failed' else 'stale'
+        except (OSError, ValueError) as exc:
+            run['input_error'] = str(exc)
+            outcome = 'failed' if result['outcome'] == 'failed' else 'stale'
         if (datetime.now(timezone.utc)-datetime.fromisoformat(series['started_at'])).total_seconds() >= series['budget_seconds']:
             outcome = 'budget-exceeded'
         run.update(outcome=outcome, reports=saved, summary=result['summary'], ended_at=datetime.now(timezone.utc).isoformat())

@@ -83,3 +83,36 @@ def test_elapsed_budget_is_preserved_when_a_session_resumes(tmp_path, capsys):
     assert state['reviews']['code']['runs'][-1]['outcome'] == 'budget-exceeded'
     with pytest.raises(ConflictError, match='budget'):
         begin(Project(tmp_path), state['change'], state['revision'], preview(project, state, 'project', 'code'), 'serial', 1, 'New session')
+
+
+def test_index_is_in_scope_snapshot_and_freshness_even_when_worktree_reverted(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project
+    project = Project(tmp_path)
+    (tmp_path/'code.py').write_text('value = 999\n'); git(tmp_path, 'add', 'code.py')
+    (tmp_path/'code.py').write_text('value = 0\n')
+    request = preview(project, state, 'feature', 'code')
+    assert 'code.py' in request['selected_files']
+    state = begin(project, state['change'], 1, request, 'serial', 1, 'Review both index and working tree')
+    run = state['reviews']['code']['runs'][-1]
+    with zipfile.ZipFile(tmp_path/run['index_snapshot']) as archive:
+        assert archive.read('code.py') == b'value = 999\n'
+    git(tmp_path, 'add', 'code.py')  # Only index content changes now.
+    (tmp_path/'tmp/tao/report.md').write_text('Initial staged version was reviewed.')
+    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Reviewed initial input'})
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'stale'
+
+
+def test_failed_review_can_close_after_history_invalidates_comparison(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project
+    project = Project(tmp_path)
+    (tmp_path/'code.py').write_text('value = 1\n')
+    state = begin(project, state['change'], 1, preview(project, state, 'feature', 'code'), 'serial', 1, 'Review feature')
+    git(tmp_path, 'checkout', '--orphan', 'replacement')
+    git(tmp_path, 'add', 'code.py'); git(tmp_path, 'commit', '-m', 'Replacement history')
+    state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'History changed; reviewer interrupted'})
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'failed'
+    assert 'ancestor' in state['reviews']['code']['runs'][-1]['input_error']
