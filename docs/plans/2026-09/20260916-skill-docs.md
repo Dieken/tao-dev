@@ -40,10 +40,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 记录原始提交、资源规模与三种阅读场景；doctor 和仓库、打包、引用解析基线检查。
   - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
-- [ ] `TASK_20260916_RWHKPTK18BJ7GJWN` 重整文档编写规则，合并诊断与条目写法，拆出退役流程。
+- [x] `TASK_20260916_RWHKPTK18BJ7GJWN` 重整文档编写规则，合并诊断与条目写法，拆出退役流程。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
   - depends_on: ["TASK_20260916_SZ2EWQCK7P6HBJ52"]
   - verify: 检查新入口可达、模板字段与既有契约一致、退役恢复约束保留；运行文档及退役相关测试。
+  - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
 - [ ] `TASK_20260916_2QKPJMGCDAZ6ZPHT` 分离文件组织和书籍导航，移出出版器回归要求。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
@@ -83,6 +84,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 <!-- tao:results -->
 基线提交为 49e7362；原始 skill 入口及 18 份参考共 1,102 行。原文快照、规模统计与临时输出位于忽略的 tmp/tao/skill-audit/。doctor 确认核心与出版环境均 ready；基线 9 项仓库、打包和引用解析测试通过。
 任务 1：已保存原文快照和八项任务；基线 9 项测试通过，独立阅读发现日常构建被要求执行出版器变动回归。
+任务 2：文档、退役、ADR 与引用解析共 60 项测试通过；195 个本地文件链接无缺失。合并诊断与条目写法，退役独立按需读取；更新验收读取分类。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

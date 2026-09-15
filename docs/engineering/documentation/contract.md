@@ -5,7 +5,7 @@ title: Markdown 文档契约
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
-updated: "2026-09-15"
+updated: "2026-09-16"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
@@ -18,9 +18,20 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 本文定义共享 profile 在本仓库的应用与解析器实现边界；术语含义见 [术语与缩写](../../glossary.md)，文件职责与拆分规则见 [文档组织与产物保存](layout.md)。本项目的交付文档与第三方使用方均采用 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 中的 `tao.project.*` profile。格式由 tao-dev 定义，项目可映射目录、选择语言，并通过项目开发约定覆盖文档拆分阈值；不得要求使用方复制本项目的章节结构、研发任务或设计记录。运行组件的 manifest、SKILL.md、agent、command 和 hook 使用各自公共标准或平台格式，不套用正文 profile。
 
-格式设计优先复用公共语法与成熟惯例，具体映射维护在 [公共依据与写法](../../../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。EARS 约束 REQ 正文，验收方法留在 acceptance；保留现有模板变量与稳定结构键，不另建同义字段。格式解析与自然语言质量判断分别验收，不宣称符合完整 EARS、Gherkin 或 arc42 工具链。
+### 公共依据与采用范围
 
-检查分层、结论边界和修正规则统一见 [文档诊断规程](../../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)，本篇只维护实现设计。
+| 内容 | 采用的依据 | 在 tao-dev 中如何使用 |
+|---|---|---|
+| 行为需求 | [EARS 作者说明](https://alistairmavin.com/ears/) | REQ 正文默认使用下述条件化句式；不把 EARS 扩大为文件组织标准 |
+| 验收场景 | [Gherkin 的 Given／When／Then](https://cucumber.io/docs/gherkin/reference/) | UC 按前置条件、动作、可观察结果编写；MyST 中的 UC 不是可直接执行的 .feature 文件 |
+| 架构决策 | [Nygard ADR](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions) | 沿用标题、状态、context、decision、consequences；使用全局 ID，保留替代关系 |
+| 系统设计 | [arc42](https://arc42.org/overview/) | 按需覆盖边界、约束、结构、运行与部署、质量和风险；用既有 profile 的章节或子节承载，不强制复制整套目录 |
+| 面向使用者的文档 | [Diátaxis](https://diataxis.fr/) | 区分教程、操作指南、参考、解释的阅读目的；按目的组织页面，避免同页混写学习教程与故障操作步骤 |
+
+EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践或框架；不能统一声称它们是正式认证标准。tao 的 profile、章节标记、全局 ID、关系字段和 JSONL 退役记录是本项目补充。MyST 承载正文，YAML 承载元数据，GFM 提供 checkbox 写法；这些公开语法并不自动认可 tao 的附加字段或渲染指令。
+
+
+面向消费项目的写法见 [条目规程](../../../plugins/tao-dev/skills/tao-dev/references/document-entries.md)。
 
 <!-- tao:section architecture -->
 ## 解析与索引
@@ -73,12 +84,33 @@ CHG、EVD 由相应 profile 的 frontmatter 字段定义；DOC 与正文条目�
 
 正式 ID 使用 `类型_YYYYMMDD_16位随机串`；完整正则、日历校验、80 位安全随机数据编码、分配与退役规则由文档规程及格式注册表权威定义，内部自举采用相同规则。移动、翻译或修改标题不重编 ID。
 
-此自定义格式不是标准 ULID；三字母类型前缀的完整 ID 长 29 字符，TASK 长 30 字符。格式借鉴 [ULID 规范](https://github.com/ulid/spec#specification) 的 Crockford Base32 字符集与随机长度，采用可直接阅读的本地日期，属于本项目格式。它无需跨仓库编号服务；同日期同类型的百万次独立均匀随机分配，碰撞概率约为 `4.1 × 10^-13`，仍须查重并发现复制错误。日期是分配日线索，不表示修改时刻或内容版本。
+此自定义格式不是标准 ULID；三字母类型前缀的完整 ID 长 29 字符，TASK 长 30 字符。格式借鉴 [ULID 规范](https://github.com/ulid/spec#specification) 的 Crockford Base32 字符集与随机长度，采用可直接阅读的本地日期，属于本项目格式。分配器从安全随机源取 10 字节，按大端编码并保留前导零；每位使用完整字符集，不套用 ULID 首位限制。结合当前定义和退役索引检查完整 ID 碰撞，最多生成三个候选，仍冲突则失败。它无需跨仓库编号服务；同日期同类型的百万次独立均匀随机分配，碰撞概率约为 `4.1 × 10^-13`，仍须查重并发现复制错误。日期是分配日线索，不表示修改时刻或内容版本。
 
 <!-- tao:section errors -->
 ## 诊断与修正
 
-诊断 JSON 字段、规则号、严重级别、退出码和修正边界统一见 [文档诊断规程](../../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。CLI 的公共结果封装见 [命令设计](../cli-design.md)。实现按规则号与参数消费结果，界面文字可本地化；源文件校验器和 CLI 共享诊断实现。字符列按 Unicode 码点计数，编辑器采用 UTF-16 等定位方式时由适配层转换。
+诊断结果同时面向终端阅读与机器消费。JSON 记录至少包含 `rule_id`、`severity`、`path`、`line`、`message`、`suggestion`、`message_locale`，可选 `column`、`entity_id`、`related_locations`、`parameters`。行列从 1 开始，重复定义同时报告两个位置；字符列按 Unicode 码点计数。
+
+| 规则号 | 默认级别 | 诊断与建议 |
+|---|---|---|
+| TAO-DOC-001 | error | 元数据非法／缺失／版本不支持；说明字段或所需版本 |
+| TAO-DOC-002 | error | 必需章节缺失、顺序错误或键重复；给出期望结构 |
+| TAO-ID-001 | error | ID 格式或对象类型错误；定位创建处，不擅自重写所有引用 |
+| TAO-ID-002 | error | 重复定义；要求判断是误复制还是新对象 |
+| TAO-ID-003 | error | 与基线相比正式条目被删除但无退役记录；恢复定义或登记退役 |
+| TAO-LINK-001 | error | 构建后稳定锚点、复制链接或旧入口不可解析；修复出版映射 |
+| TAO-REF-001 | error | 引用目标无法解析；提示检查拼写、索引范围或导入 |
+| TAO-REF-002 | error | 关系目标类型不符或依赖／替代成环；输出路径 |
+| TAO-ENTITY-001 | error | 条目字段或必需标记段非法、缺失、空白；ADR 缺少加粗标签、冒号或非空说明时定位对应字段 |
+| TAO-TASK-001 | error | 任务格式、字段或完成证据入口不符合约定 |
+| TAO-QUALITY-001 | warning | 可疑占位符、空泛验收或未决项；要求结合语境复查 |
+| TAO-REF-003 | warning | 引用已废弃或已替代条目；提示新目标或说明历史用途 |
+| TAO-REF-004 | error | 纳入管理的文档文件链接使用本机绝对地址或越出项目范围；改用项目内相对路径或公开上游链接 |
+
+上述规则号稳定，措辞可以改善。输入语法损坏时先报告根错误，抑制由它引起的大量误报。退出码：`0` 无 error（可含 warning），`1` 有文档 error，`2` 工具或配置故障、检查未完成。发布就绪检查另评阻断问题，不能与格式退出码混为一谈。
+
+
+错误传播先保留根诊断，抑制派生误报；消费项目的修正方法见 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md)。
 
 <!-- tao:section verification -->
 ## 验证与演进
