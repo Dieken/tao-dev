@@ -63,7 +63,7 @@ export TAO_PYTHON="$PWD/.venv/bin/python"
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
 ```
 
-`verify --only docs` 检查配置纳入的全部开发文档、跨文档关系和书籍导航。独立校验器的参数及结果范围见 [诊断规程](../../plugins/tao-dev/skills/tao-dev/references/document-diagnostics.md)。README、运行 prompt 和模板使用各自格式，不套用开发正文 profile。
+`verify --only docs` 检查配置纳入的全部开发文档、跨文档关系和书籍导航。独立校验器的参数及结果范围见 [诊断规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md)。README、运行 prompt 和模板使用各自格式，不套用开发正文 profile。
 
 需要执行项目策略时，使用同一入口的 `verify --only code`；`status` 只读比较证据。完整 `verify <CHG-ID>` 还汇总目标任务、依赖及必需审查，不能用局部结果代替。结果、日志与缓存保存规则见 [验证规程](../../plugins/tao-dev/skills/tao-dev/references/verification.md)。
 

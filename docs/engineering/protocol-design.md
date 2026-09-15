@@ -67,7 +67,7 @@ review 先确认累计功能、全项目或自定义范围，再确认串行/并
 
 长期文档使用语义文件名，变更文件使用 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`；永久引用仍用完整 ID。`tmp/tao/` 放每次执行生成的测试、覆盖、静态分析、基准及书籍报告，默认不纳入 VCS。普通变更的简短验证结论写入计划 verification 并随计划保留；不默认创建独立 evidence 或归档原始日志。需独立引用或持久保存原始数据时再按文档规程处理。
 
-使用方的具体 profile、模板和字段由文档规程维护；内部文档保留需求、理由和验收。行为需求默认采用 EARS，场景沿用 Given／When／Then，决策沿用 ADR；公共依据与 tao 扩展的边界见 [写法规程](../../plugins/tao-dev/skills/tao-dev/references/document-standards.md)。设计明确不变量与失败处理，测试性质通过 UC 关联 REQ，任务通过关系字段生成依赖图；不依赖局部编号、手工同步 waves 或统一将测试标成可选。
+使用方的具体 profile、模板和字段由文档规程维护；内部文档保留需求、理由和验收。行为需求默认采用 EARS，场景沿用 Given／When／Then，决策沿用 ADR；公共依据与 tao 扩展的边界见 [写法规程](../../plugins/tao-dev/skills/tao-dev/references/document-entries.md)。设计明确不变量与失败处理，测试性质通过 UC 关联 REQ，任务通过关系字段生成依赖图；不依赖局部编号、手工同步 waves 或统一将测试标成可选。
 
 本项目内部文档也按职责分开：协议维护需求与用例，decisions/ 维护长期 ADR，专题文档维护精确契约，README 组织阅读入口。产品目录不会作为一组空目录提前创建。
 
