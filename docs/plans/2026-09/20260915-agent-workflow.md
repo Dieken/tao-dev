@@ -64,10 +64,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 分发包、链接、动作入口和情境行为检查。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_7762WHGSN8RDKHRC` 重写用户指南与集成验证：README 保留精简全周期；完整可复制流程写入 docs/user；更新维护文档和版本。
+- [x] `TASK_20260915_7762WHGSN8RDKHRC` 重写用户指南与集成验证：README 保留精简全周期；完整可复制流程写入 docs/user；更新维护文档和版本。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_0N10J9P66VNQ57SB"]
   - verify: 全量测试、两客户端隔离生命周期、Sphinx 构建、独立审查和差异检查。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 <!-- tao:section verification -->
 ## 验证
@@ -88,9 +89,9 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 
 53 项文档关系、工作流与分发测试通过；核心 Ruff 通过；独立 agent 的八个行为情境复测通过，并清理三处旧文档歧义。
 
-53 项文档关系、工作流与分发测试通过；核心 Ruff 通过；独立 agent 的八个行为情境复测通过，并清理三处旧文档歧义。
-
 - 定向复核复现计划批准摘要错误忽略围栏内 evidence 示例，回归先失败；限定执行元数据位置后 11 项工作流与文档回归通过。
+
+最终全量 pytest 为 336 passed、0 failed、0 skipped（378.34 秒），启用全部原生客户端探针。安装后指南补充的 20 项安装回归通过。Codex 兼容包及 Claude user/project/local 四组独立原生生命周期均通过启停、0.3.0→0.3.1 升级与卸载，监测的个人配置保持不变，未调用模型。32 份受管理文档、书籍导航、分发资源链接、Sphinx HTML 构建与稳定链接、doctor 0.3.0、依赖导出及 Ruff 核心规则通过。独立上下文初审及定向复核发现的三处问题均有复现与修复回归；八个 skill 行为情境通过。原生 Windows、全部动作的真实客户端长流程及全产品跨供应商审查不在本次已验收范围；未据此声明完整 verify 的正式审查记录门槛已满足。
 
 <!-- tao:section questions -->
 ## 未决问题
