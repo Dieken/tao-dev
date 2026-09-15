@@ -107,11 +107,10 @@ def lifecycle(workspace, scope):
     installed(False, '0.2.2')
     command('enable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     installed(True, '0.2.2')
-    for relative in ('plugin.json', '.claude-plugin/plugin.json'):
-        path = workspace / 'marketplace/plugins/tao-dev' / relative
-        data = json.loads(path.read_text())
-        data['version'] = '0.2.3'
-        path.write_text(json.dumps(data))
+    manifest = workspace / 'marketplace/plugins/tao-dev/.claude-plugin/plugin.json'
+    data = json.loads(manifest.read_text())
+    data['version'] = '0.2.3'
+    manifest.write_text(json.dumps(data))
     command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     installed(True, '0.2.3')
     command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
