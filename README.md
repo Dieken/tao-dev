@@ -89,24 +89,26 @@ $HOME/.local/bin/tao install --client claude --scope local --source /path/to/tao
 | 查看 spec 后推进 | `spec 符合预期，同意开始编写 design。` | 同左 |
 | 查看 design 后推进 | `design 符合预期，同意开始编写 plan 和 tasks。` | 同左 |
 | 查看计划后审查 | `/tao-dev:review` | `$tao-dev review` |
-| 审查完成，开始实现 | `/tao-dev:implement 同意按已确认的计划实现和测试。` | `$tao-dev implement 同意按已确认的计划实现和测试。` |
+| 审查完成，开始实现 | `/tao-dev:implement` | `$tao-dev implement` |
 | 实现完成后审查 | `/tao-dev:review` | `$tao-dev review` |
-| 构建 Sphinx HTML book | `/tao-dev:docs 同意构建本地文档，给我 HTML 入口。` | `$tao-dev docs 同意构建本地文档，给我 HTML 入口。` |
+| 构建 Sphinx HTML book | `/tao-dev:docs` | `$tao-dev docs` |
 | 选择收尾操作 | `/tao-dev:finish` | `$tao-dev finish` |
 
 new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写 spec。默认工作副本在项目根的 `.worktrees/`。agent 自动处理文件名、路径和文档语言，逐阶段提供可点击的产物与下一步选择；spec、design、plan 各有明确入口，tasks 默认在 plan 内。实现获准后尽量自主完成代码、测试与必要检查。
 
 review 会让你确认范围和串行／并行方式，默认审查本功能从分支起点以来的累计修改；文档阶段审查文档，实现后对照文档审查代码。通常一轮初审加最多一轮定向复核，明确区分测试结果与审查结论。finish 会列出合入、推送、清理等选择，按你的实际授权执行。
 
-| 随时可用 | 用途 |
-|---|---|
-| `status` | 只读查看阶段、完成事项、阻断和下一步 |
-| `continue` | 在当前或新会话核对实际状态并继续；无需事先 handoff |
-| `refine` | 根据意见扩展、细化或删减 spec、design、plan/tasks |
-| `debug` | 调查缺陷、复现和定位，获准后修复 |
-| `handoff` | 保存交接摘要和可直接粘贴的继续输入 |
+### 随时可用
 
-上述动作沿用 `/tao-dev:<动作>` 或 `$tao-dev <动作>`。也可通过主 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md) 入口提出自然语言请求；加载后无需重复动作名。agent 会区分新事项、修订与恢复，复用已有文档，归属不清楚时才询问。完整的澄清、修改、审查选择、中断恢复及收尾示例见 [开发流程使用指南](docs/user/workflow.md)。
+| 用途 | Claude Code 输入 | Codex 输入 |
+|---|---|---|
+| 只读查看阶段、完成事项、阻断和下一步 | `/tao-dev:status` | `$tao-dev status` |
+| 在当前或新会话核对实际状态并继续；无需事先 handoff | `/tao-dev:continue` | `$tao-dev continue` |
+| 根据意见扩展、细化或删减 spec、design、plan/tasks | `/tao-dev:refine` | `$tao-dev refine` |
+| 调查缺陷、复现和定位，获准后修复 | `/tao-dev:debug` | `$tao-dev debug` |
+| 保存交接摘要和可直接粘贴的继续输入 | `/tao-dev:handoff` | `$tao-dev handoff` |
+
+动作已表达操作意图，无需再附一句同义要求；有额外范围或要求时才补充在同一条消息中。refine 的修改意见、debug 的故障现象可沿用上下文，缺少必要信息时 agent 会询问。也可通过主 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md) 入口提出自然语言请求；加载后无需重复动作名。agent 会区分新事项、修订与恢复，复用已有文档，归属不清楚时才询问。完整的澄清、修改、审查选择、中断恢复及收尾示例见 [开发流程使用指南](docs/user/workflow.md)。
 
 ### 卸载
 
