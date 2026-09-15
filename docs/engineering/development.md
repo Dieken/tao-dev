@@ -92,7 +92,7 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 ### 版本与发布 tag
 
-Claude Code 的 GitHub 安装入口为仓库根 [marketplace 清单](../../.claude-plugin/marketplace.json)，目录名为 `tao-dev`，以相对路径引用完整插件。目录清单不重复声明插件版本，版本取自插件 manifest。每次发布影响插件内容的更新，必须递增 manifest 版本并同步下表中的字段；仅推送代码或创建 Git tag 不会使已安装的同版本插件升级。用户先刷新 marketplace，再按原安装范围更新插件；第三方目录的自动更新需用户自行开启。
+Claude Code 与 Codex 的 GitHub 安装入口分别为仓库根 [Claude 清单](../../.claude-plugin/marketplace.json) 和 [Codex 清单](../../.agents/plugins/marketplace.json)，目录名为 `tao-dev`，以相对路径引用完整插件。目录清单不重复声明插件版本，版本取自插件 manifest。每次发布影响插件内容的更新，必须递增 manifest 版本并同步下表中的字段；仅推送代码或创建 Git tag 不会使已安装的同版本插件升级。用户先刷新 marketplace，再按 README 更新插件并恢复原启用范围；Claude 第三方目录的自动更新需用户自行开启。Codex 的 GitHub 清单引用兼容源码，公共格式仍由打包器生成，不将生成副本提交进仓库。
 
 skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyproject.toml](../../pyproject.toml) 的 `project.version` 为主版本。无需在 SKILL.md 中另设独立版本；[Agent Skills 规范](https://agentskills.io/specification#metadata-field)允许可选的 `metadata.version`，但不要求提供，也不定义安装和更新行为。
 
@@ -103,11 +103,11 @@ skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyp
 | 位置 | 维护方式 |
 |---|---|
 | `pyproject.toml` 的 `project.version` | 先修改主版本，再更新 `uv.lock` |
-| `plugins/tao-dev/plugin.json` 与 `plugins/tao-dev/.claude-plugin/plugin.json` | 将两个客户端 manifest 的 `version` 同步为主版本 |
+| `plugins/tao-dev/.codex-plugin/plugin.json` 与 `plugins/tao-dev/.claude-plugin/plugin.json` | 将两个客户端 manifest 的 `version` 同步为主版本 |
 | `plugins/tao-dev/skills/tao-dev/scripts/taolib/__init__.py` | 将 `__version__` 同步为主版本，用于 CLI 报告 |
 | `plugins/tao-dev/skills/tao-dev/scripts/runtime.json` | 运行前述 `scripts/export_dependencies.py` 生成，不手工修改 |
 
-发布前运行依赖导出的 `--check`、相关回归和打包检查，并核对上述版本一致；其中 `--check` 只校验生成的运行策略与依赖清单，不检查全部 manifest 和 CLI 版本。生成的 `codex-legacy` manifest 由打包脚本继承公共 manifest 的版本，无需单独维护。回归与验收脚本中固定旧版本的预期也应核对。
+发布前运行依赖导出的 `--check`、相关回归和打包检查，并核对上述版本一致；其中 `--check` 只校验生成的运行策略与依赖清单，不检查全部 manifest 和 CLI 版本。生成的公共 manifest 由打包脚本继承 Codex manifest 的版本，无需单独维护。回归与验收脚本中固定旧版本的预期也应核对。
 
 `protocol_version`、文档 schema 的 `/v0.1` 和 `.tao/config.toml` 的格式版本各自表示数据契约，不能随项目发布版本一并替换。
 

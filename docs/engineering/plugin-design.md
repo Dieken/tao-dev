@@ -10,7 +10,7 @@ updated: "2026-09-15"
 
 # 插件打包与运行环境
 
-本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](../product/protocol.md)。目录图展示目标布局；当前已提供公共及 Claude manifest、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；Claude 调用级插件与 hook、两端原生 skill／操作及独立审查已有部分运行结果；完整双端验收尚未完成，见 [实际记录](../changes/2026-09/20260914-bootstrap.md)。
+本文是 tao-dev 的内部产品设计，定义运行组件的格式、分发边界和验收方法，不属于发布包。需求依据为 {need}`REQ_20260914_BWAY1ZF6HNPM855Y`，总体协议见 [协作开发协议](../product/protocol.md)。目录图展示源码布局；当前已提供 Codex 与 Claude 兼容 manifest、公共格式打包、共享 skill、核心 CLI、Claude commands／reviewer，以及两端的短文档 hook 配置；Claude 调用级插件与 hook、两端原生 skill／操作及独立审查已有部分运行结果；完整双端验收尚未完成，见 [实际记录](../changes/2026-09/20260914-bootstrap.md)。
 
 <!-- tao:section overview -->
 ## 标准基线与目标环境
@@ -35,7 +35,8 @@ tao-dev/
   docs/                              # 内部需求、设计与维护资料
   plugins/
     tao-dev/                         # 插件根，独立复制后可以安装
-      plugin.json                    # Agent Plugins 公共 manifest
+      .codex-plugin/
+        plugin.json                  # Codex 兼容 manifest；公共格式由打包生成
       skills/
         tao-dev/
           SKILL.md                   # 共享流程入口
@@ -53,11 +54,11 @@ tao-dev/
 
 是否分发资源，以消费项目中的实际读取者或运行调用方为准：LLM 按需读取的工程、流程、审查和文档规则放 references/；CLI 加载的格式注册表、模板和显示资源放 assets/；实际执行代码放 scripts/。只有工具读取的资源无需进入 LLM 上下文。本项目的需求、实现理由、研发任务及验收报告留在 docs/；可复用或自举时有用，本身不构成分发理由。混合职责的文档按段落拆分，包内规则不依赖开发仓库。
 
-运行源码仅放入分发所需内容。打包脚本从 plugins/tao-dev/ 复制运行目录，排除 Python 字节码；公共格式复制该目录内容，Codex 兼容格式仅选 skills/、com.openai/ 并生成兼容 manifest。维护者应检查实际包内容，避免把开发文件放入运行源码目录；当前脚本不是逐文件白名单。
+运行源码仅放入分发所需内容。打包脚本从 plugins/tao-dev/ 复制运行目录，排除 Python 字节码；公共格式复制运行目录（排除 .codex-plugin/），从 Codex manifest 的名称、版本、描述和 hook 路径生成根 plugin.json；Codex 兼容格式仅选 skills/、com.openai/ 和 .codex-plugin/。维护者应检查实际包内容，避免把开发文件放入运行源码目录；当前脚本不是逐文件白名单。
 
 `--marketplace` 在所选格式外增加客户端可读取的本地目录索引，插件位于输出根的 `plugins/tao-dev/`。public 的索引使用 Claude 格式，codex-legacy 使用 Codex 格式，均以相对路径引用完整插件；它不修改客户端配置或注册状态。用户按 README 完成原生安装、运行依赖准备和 hook 检查，单独复制 skill 不能代替完整插件安装。
 
-仓库根的 `.claude-plugin/marketplace.json` 是 Claude Code 的 GitHub 分发入口，使用稳定的 marketplace 名称 `tao-dev`，相对引用 `./plugins/tao-dev`，不在目录条目里重复版本号。生成的 `tao-dev-local` 目录用于本地安装与开发，两种来源分别注册，迁移时移除旧插件以免重复加载。GitHub marketplace 随默认分支更新，客户端通过插件 manifest 版本识别新版本；固定 Git tag 是可选的快照安装方式，会停止跟随分支。
+仓库根的 `.claude-plugin/marketplace.json` 与 `.agents/plugins/marketplace.json` 分别是 Claude Code、Codex 的 GitHub 分发入口，使用稳定的 marketplace 名称 `tao-dev`，相对引用 `./plugins/tao-dev`，不在目录条目里重复版本号。生成的 `tao-dev-local` 目录用于本地安装与开发，两种来源分别注册，迁移时移除旧插件以免重复加载。GitHub marketplace 随默认分支更新，客户端通过插件 manifest 版本识别新版本；固定 Git tag 是可选的快照安装方式，会停止跟随分支。
 
 公共 manifest 的最小格式如下；示例产品版本不代表已经发布：
 
@@ -72,11 +73,11 @@ tao-dev/
 
 `$schema` 标识标准版本，`version` 标识产品版本。顶层只使用规范允许的字段，不自行加入 `agents`、`commands` 或 `hooks`。平台信息放在正式支持的扩展或兼容 manifest 中；元数据校验采用固定版本 schema，不在插件加载时从网络取回执行规则。[Manifest 约定](https://agent-plugins.org/plugin-authors/manifest)
 
-Codex 专用 hook 在根 manifest 的 `extensions.com.openai.hooks` 显式指向 `./com.openai/hooks/hooks.json`，避免同时误载 Claude 默认 hook。该字段与对应短文档 hook 配置已提供，触发行为按双端验收记录判断。新包优先使用公共 manifest；`.codex-plugin/plugin.json` 仅作为有实际版本兼容需求时的回退，不再维护一份重复的默认定义。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
+源码的 `.codex-plugin/plugin.json` 显式将 hooks 指向 `./com.openai/hooks/hooks.json`，避免误载 Claude 默认 hook。GitHub 清单直接引用这个兼容源码目录；公共包由打包器将同一路径写入根 manifest 的 `extensions.com.openai.hooks`。运行资源只维护一份，平台格式在打包边界转换。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
 
-Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook；同一运行代码采用兼容 manifest 后可以发现。针对这一具体版本，维护入口 `scripts/package_plugin.py --format codex-legacy --output <新目录>` 从权威元数据生成单独的 `.codex-plugin/plugin.json`，复制原样的 skills/ 与 com.openai/。兼容副本不包含优先级更高的根 manifest，也不带 Claude command／agent；Codex 通过 skill 执行相同操作。默认 public 输出保留公共布局。两种输出均不包含开发文档，不安装或注册插件，不覆盖已有目录；不能把“额外放一份兼容 manifest”误当作客户端已经选用了它。
+Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook；同一运行代码采用兼容 manifest 后可以发现。因此 GitHub 分发目录不放优先级更高的根 plugin.json；仅追加兼容 manifest，或移除公共 manifest 的 inline extension，均不能让该版本发现 hook。维护入口 `scripts/package_plugin.py --format codex-legacy --output <新目录>` 复制兼容 manifest、skills/ 与 com.openai/。兼容副本不包含优先级更高的根 manifest，也不带 Claude command／agent；Codex 通过 skill 执行相同操作。默认 public 输出保留公共布局。两种输出均不包含开发文档，不安装或注册插件，不覆盖已有目录。
 
-Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；兼容 manifest 的名称、版本和描述从公共元数据派生并检查一致性。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
+Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；其 manifest 的名称、版本和描述与 Codex manifest 检查一致；公共格式由打包器派生。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 
 公共版本需要 MCP 时才增加根 `mcp.json`；Claude 兼容配置按其原生格式生成并单独验收。初版不为符合目录示意而引入 MCP 服务。
 

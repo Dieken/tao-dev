@@ -14,21 +14,21 @@ def build(output, *, codex_legacy=False):
         raise ValueError('Package output must be new and outside the source plugin.')
     if any(path.is_symlink() for path in SOURCE.rglob('*')):
         raise ValueError('Package sources must not contain symbolic links.')
-    manifest = json.loads((SOURCE / 'plugin.json').read_text())
+    manifest = json.loads((SOURCE / '.codex-plugin/plugin.json').read_text())
     output.mkdir(parents=True)
-    names = ('skills', 'com.openai') if codex_legacy else tuple(p.name for p in SOURCE.iterdir())
+    names = ('skills', 'com.openai', '.codex-plugin') if codex_legacy else tuple(
+        p.name for p in SOURCE.iterdir() if p.name != '.codex-plugin')
     for name in names:
         source = SOURCE / name
         if source.is_dir():
             shutil.copytree(source, output / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
         else:
             shutil.copy2(source, output / name)
-    if codex_legacy:
-        compatibility = {key: manifest[key] for key in ('name', 'version', 'description')}
-        compatibility['hooks'] = manifest['extensions']['com.openai']['hooks']
-        target = output / '.codex-plugin'
-        target.mkdir()
-        (target / 'plugin.json').write_text(json.dumps(compatibility, indent=2) + '\n')
+    if not codex_legacy:
+        portable = {'$schema': 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
+                    **{key: manifest[key] for key in ('name', 'version', 'description')},
+                    'extensions': {'com.openai': {'hooks': manifest['hooks']}}}
+        (output / 'plugin.json').write_text(json.dumps(portable, indent=2) + '\n')
     return output
 
 
