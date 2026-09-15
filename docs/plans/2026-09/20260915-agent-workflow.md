@@ -46,10 +46,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 计划前交接、重复恢复、新交接版本和旧状态冲突测试。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_EC0WZ5Z2TNFB3HR2` 实现项目接入与检查探测：提供只读技术栈/工具探测、最小配置写入及幂等接入；安装选择由 agent 执行。
+- [x] `TASK_20260915_EC0WZ5Z2TNFB3HR2` 实现项目接入与检查探测：提供只读技术栈/工具探测、最小配置写入及幂等接入；安装选择由 agent 执行。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_TCBW79Y67NJV58SM"]
   - verify: 空项目、已有配置、多技术栈及检查命令探测测试。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_VA29A39MM0VE0YG3` 实现审查范围与有界轮次：保存确认的审查范围、固定输入和轮次预算，支持串行/并行编排及停止条件。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -76,6 +77,8 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 工作流状态：113 项阶段、CLI、文档、关系、退役和项目边界回归通过，Ruff 核心规则通过。覆盖无计划起步、内容变更使批准过期、检查点并发冲突、复用 CHG 与真实 Git worktree/fork。
 
 交接恢复：29 项工作流、handoff 与 CLI 回归通过。计划前可保存正式交接；重复恢复保留新进度；读取后 handoff 变化会拒绝旧摘要接续；不自动删除文件。
+
+项目接入：33 项探测、配置、项目边界、CLI 与 hook 测试通过。验证空项目只读、monorepo 候选命令不执行、同配置不改写、过期配置摘要拒绝覆盖，Ruff 核心规则通过。
 
 <!-- tao:section questions -->
 ## 未决问题

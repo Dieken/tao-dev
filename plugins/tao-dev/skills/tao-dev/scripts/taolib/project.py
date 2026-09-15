@@ -26,7 +26,7 @@ def contained(root, relative):
 
 
 class Project:
-    def __init__(self, explicit=None):
+    def __init__(self, explicit=None, *, config=None):
         if explicit is None:
             cwd = Path.cwd()
             explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file() or (p / ".tao/workflows").is_dir()), None)
@@ -36,7 +36,7 @@ class Project:
         if not self.root.is_dir():
             raise ConfigurationError("Project root must exist.")
         config_path = contained(self.root, ".tao/config.toml")
-        self.config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
+        self.config = config if config is not None else (tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {})
         if self.config and self.config.get("version") != 1:
             raise ConfigurationError("Unsupported configuration version; expected 1.")
         if self.config.keys() - {"version", "locale", "ui", "documents", "paths", "hooks", "verification"}:
