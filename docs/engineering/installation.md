@@ -27,6 +27,15 @@ install 是用户安装与升级的唯一完整入口。setup 一次准备相互
 
 实现步骤：先验证记录与运行绑定，再完成客户端适配及原生隔离探针，然后实现安装、升级、交互卸载与引导器，最后简化 README、运行回归和独立审查。临时命令输出与探针放 tmp/tao/。本地内容摘要作为插件版本的 +local 构建标识，保证同版本工作目录修改也触发缓存更新。
 
+
+### 运行绑定与 hook 实现
+
+共享 CLI 根据项目从两端记录选择安装，先转交原生插件入口；未准备或无效记录不参与正常绑定。基础解释器取 TAO_PYTHON、匹配记录或启动解释器。运行根依次取 TAO_RUNTIME_DIR、记录 runtime_dir、CLAUDE_PLUGIN_DATA、平台用户数据目录；平台默认位置为 macOS 的 ~/Library/Application Support/tao-dev、Linux 的 ${XDG_DATA_HOME:-~/.local/share}/tao-dev、Windows 的本地应用数据目录。user 工具数据在客户端目录的 tao-dev/managed/<安装 ID>/，共享 CLI 位于 tao-dev/cli/。
+
+静态 hook 使用 python3 -I -B 调用 hook.py，Claude 使用插件根和独立 args，Codex 使用插件根与带引号的命令字符串；安装器固定已验证解释器和脚本的绝对路径。事件从 stdin 输入，普通 hook 只选核心环境，不调用 setup。外层 handler 超时为 35 秒；短检查缓存绑定源、运行代码、契约、配置与依赖版本，仅保留合并指纹和有限诊断。
+
+安装屏蔽可重定向写入的 pip 配置；启动时检查实际包版本和必要导入。项目匹配和卸载归属回归须覆盖共享 CLI、嵌套项目、无效记录和并发准备。
+
 <!-- tao:section contracts -->
 ## 接口与使用
 
