@@ -151,7 +151,7 @@ def setup(ctx, wheelhouse=None):
         raise RuntimeFailure("Runtime slot escapes data directory.")
     slot.mkdir(parents=True, exist_ok=True)
     lock = slot / "prepare.lock"
-    deadline = time.monotonic() + 10
+    deadline = time.monotonic() + 120
     while True:
         try:
             lock.mkdir()
@@ -238,7 +238,7 @@ def main(argv=None, entry="tao.py"):
         return installation_main([command, *argv[:position], *argv[position + 1:]])
     if entry == "validate_documents.py":
         command = "validate"
-    mode = "publication" if command == "docs" or command in ("setup", "doctor") and "--publication" in argv else "core"
+    mode = "publication" if command == "docs" or (command == "doctor" and "--publication" in argv) else "core"
     ctx = None
     json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
                       for index, value in enumerate(argv))
@@ -264,17 +264,19 @@ def main(argv=None, entry="tao.py"):
         if command == "setup":
             parser = argparse.ArgumentParser(prog="tao setup")
             parser.add_argument("--project", type=Path)
-            parser.add_argument("--publication", action="store_true")
             parser.add_argument("--wheelhouse", type=Path)
             parser.add_argument("--format", choices=("text", "json"), default="text")
             parser.add_argument("--diagnostic-locale")
             args = parser.parse_args(argv[position + 1:])
             directory = setup(ctx, args.wheelhouse)
-            return emit(command, {"runtime": description(ctx, directory)}, json_output=json_output)
+            runtime = description(ctx, directory)
+            ctx = context("publication", project)
+            publication = setup(ctx, args.wheelhouse)
+            runtime["publication"] = description(ctx, publication)
+            return emit(command, {"runtime": runtime}, json_output=json_output)
         directory = selected(ctx)
         if directory is None:
-            suffix = " --publication" if mode == "publication" else ""
-            raise RuntimeFailure(Message('The {arg0} runtime is not prepared. Run tao setup{arg1}; ordinary commands do not install dependencies.', mode, suffix), "TAO-RUNTIME-002", "missing")
+            raise RuntimeFailure(Message('The {arg0} runtime is not prepared. Run tao setup; ordinary commands do not install dependencies.', mode), "TAO-RUNTIME-002", "missing")
         if Path(sys.prefix).resolve() != directory.resolve():
             child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
             return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / entry), *argv], env=child_env).returncode

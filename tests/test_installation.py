@@ -27,6 +27,25 @@ def test_source_modes_are_exclusive():
         install.arguments(['install', '--client', 'codex', '--source', '.', '--marketplace', 'a/b'])
 
 
+def test_dependency_preparation_invokes_one_complete_setup(monkeypatch, tmp_path):
+    calls = []
+    report = {'status': 'passed', 'outputs': {'runtime': {
+        'state': 'ready', 'mode': 'core',
+        'publication': {'state': 'ready', 'mode': 'publication'},
+    }}}
+
+    def run(argv, **_kwargs):
+        calls.append([str(value) for value in argv])
+        return json.dumps(report)
+
+    monkeypatch.setattr(install, 'run', run)
+    prepared = install.prepare(install.PLUGIN, Path(sys.executable), tmp_path / 'runtime', tmp_path, None)
+    assert len(calls) == 1
+    assert '--publication' not in calls[0]
+    assert [item['mode'] for item in prepared] == ['core', 'publication']
+    assert 'publication' not in prepared[0]
+
+
 def test_empty_selection_and_eof_do_not_delete(monkeypatch):
     args = install.arguments(['uninstall', '--client', 'codex'])
     monkeypatch.setattr('builtins.input', lambda *_: '')

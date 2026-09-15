@@ -214,16 +214,16 @@ def clean_environment():
 def prepare(plugin, python, runtime_dir, project, wheelhouse):
     env = clean_environment() | {'TAO_PYTHON': str(python), 'TAO_RUNTIME_DIR': str(runtime_dir)}
     entry = plugin / 'skills/tao-dev/scripts/tao.py'
-    reports = []
-    for extra in ([], ['--publication']):
-        argv = [python, '-I', '-B', entry, 'setup', *extra, '--format', 'json']
-        if wheelhouse:
-            argv += ['--wheelhouse', wheelhouse]
-        result = json.loads(run(argv, cwd=project, env=env, timeout=300))
-        if result['status'] != 'passed' or result['outputs']['runtime']['state'] != 'ready':
-            raise InstallError('Dependency preparation did not report ready.')
-        reports.append(result['outputs']['runtime'])
-    return reports
+    argv = [python, '-I', '-B', entry, 'setup', '--format', 'json']
+    if wheelhouse:
+        argv += ['--wheelhouse', wheelhouse]
+    result = json.loads(run(argv, cwd=project, env=env, timeout=300))
+    runtime = dict(result.get('outputs', {}).get('runtime', {}))
+    publication = runtime.pop('publication', {})
+    if (result.get('status') != 'passed' or runtime.get('state') != 'ready'
+            or publication.get('state') != 'ready'):
+        raise InstallError('Dependency preparation did not report both runtimes ready.')
+    return [runtime, publication]
 
 
 def doctor(plugin, python, project):

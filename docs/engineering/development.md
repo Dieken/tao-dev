@@ -72,7 +72,7 @@ export TAO_PYTHON="$PWD/.venv/bin/python"
 沿用上面的环境变量，准备出版环境后构建：
 
 ```sh
-.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --publication --wheelhouse tmp/tao/wheels
+.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --wheelhouse tmp/tao/wheels
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
 ```
 
