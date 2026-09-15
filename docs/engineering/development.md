@@ -92,6 +92,8 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 ### 版本与发布 tag
 
+Claude Code 的 GitHub 安装入口为仓库根 [marketplace 清单](../../.claude-plugin/marketplace.json)，目录名为 `tao-dev`，以相对路径引用完整插件。目录清单不重复声明插件版本，版本取自插件 manifest。每次发布影响插件内容的更新，必须递增 manifest 版本并同步下表中的字段；仅推送代码或创建 Git tag 不会使已安装的同版本插件升级。用户先刷新 marketplace，再按原安装范围更新插件；第三方目录的自动更新需用户自行开启。
+
 skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyproject.toml](../../pyproject.toml) 的 `project.version` 为主版本。无需在 SKILL.md 中另设独立版本；[Agent Skills 规范](https://agentskills.io/specification#metadata-field)允许可选的 `metadata.version`，但不要求提供，也不定义安装和更新行为。
 
 开发中的不同内容用完整 commit SHA 区分；无需为每次提交递增版本，也不为支持 GitHub 安装而提前标记正式发布。准备可供用户固定安装的版本时，先完成对应范围的验收、独立审查和支持限制说明，再为该提交创建 `v<版本号>` tag；已经公开的 tag 不移动，修订另发新版本。
