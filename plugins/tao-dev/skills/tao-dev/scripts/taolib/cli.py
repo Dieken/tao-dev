@@ -63,6 +63,23 @@ def arguments(argv):
     begin.add_argument("--locale")
     begin.add_argument("--decision", required=True)
     begin.add_argument("--worktree", action="store_true")
+    preview = operations.add_parser("review-preview", parents=[common])
+    preview.add_argument("change")
+    preview.add_argument("--scope", choices=("feature", "project"), default="feature")
+    preview.add_argument("--kind", choices=("docs", "code"))
+    preview.add_argument("--base")
+    preview.add_argument("--include", action="append", default=[])
+    for operation in ("review-begin", "review-end"):
+        command = operations.add_parser(operation, parents=[common])
+        command.add_argument("change")
+        command.add_argument("--expect", type=int, required=True)
+        command.add_argument("--from", dest="source", required=True)
+        if operation == "review-begin":
+            command.add_argument("--mode", choices=("serial", "parallel"), required=True)
+            command.add_argument("--reviewers", type=int, required=True)
+            command.add_argument("--decision", required=True)
+            command.add_argument("--max-rounds", type=int)
+            command.add_argument("--budget-seconds", type=int)
     state = operations.add_parser("status", parents=[common])
     state.add_argument("change", nargs="?")
     for operation in ("checkpoint", "advance", "revise", "resume"):
