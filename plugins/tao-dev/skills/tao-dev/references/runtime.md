@@ -30,7 +30,7 @@
 | tao doctor | 只读诊断核心环境，并发现独立出版环境；依赖缺失也输出诊断，不要求先有项目 |
 | tao doctor --publication | 只读诊断出版环境 |
 | tao setup | 准备核心环境；已匹配且完整时复用 |
-| tao setup --publication | 准备核心与出版的完整环境 |
+| tao setup --publication | 准备出版环境；不同时准备核心环境 |
 | install 或 setup 附加 --wheelhouse <目录> | 依赖仅从明确提供的本地 wheel 目录安装，不访问包索引；Git 来源与客户端操作仍按来源执行 |
 | 其他命令 | 使用所需的已准备环境；docs build 选择出版环境，其余选择核心 |
 
@@ -38,7 +38,7 @@
 
 不支持的 Python、缺少 venv／ensurepip、依赖或网络缺失均报告 not_run，不能自动安装系统软件。TAO-RUNTIME-001 表示配置或解释器问题，002 表示未准备，003 表示环境损坏，004 表示准备锁繁忙，005 表示准备失败；错误信息给出下一步及可用日志位置。完整 verify 在运行前失败时保持 blocked。
 
-hook 在项目未配置时直接无操作，不创建工具数据；项目已配置但 Python 或核心环境不可用时，返回未执行的提示，不阻止原始编辑，也不把缺失检查报告为通过。hook 不调用 setup。仅通过客户端原生 marketplace 安装插件不会创建 venv 或安装 pip package；静态 hook 只有在 PATH 提供受支持的 python3 且同一运行数据目录已经显式完成 setup 时，才能转交已准备的核心环境。完整安装应使用 tao install，由它准备依赖、保存运行绑定并写入精确 hook 路径。
+hook 在项目未配置时直接无操作，不创建工具数据；项目已配置但 Python 或核心环境不可用时，返回未执行的提示，不阻止原始编辑，也不把缺失检查报告为通过。hook 不调用 setup。面向使用者的完整安装应使用 tao install，由它准备两套依赖环境、保存运行绑定并写入精确 hook 路径。
 
 ## 更新和故障
 

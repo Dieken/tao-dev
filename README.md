@@ -35,7 +35,7 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 
 </details>
 
-默认通过仓库的 marketplace 安装完整插件，包括 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md)、CLI、模板及客户端组件。安装结束会输出版本、生效范围、插件和运行环境位置、写入的文件／目录，以及简短使用指南。
+引导脚本从 GitHub 取得 tao-dev，再由 `tao install` 安装完整插件，包括 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md)、CLI、模板及客户端组件。安装结束会输出版本、生效范围、插件和运行环境位置、写入的文件／目录，以及简短使用指南。
 
 ### 从本地 Git 工作目录安装
 
@@ -46,7 +46,13 @@ python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
   --client codex --scope project --source .
 ```
 
-安装到其他项目时加 `--project /path/to/project`。Windows 将 `python3` 换成可用的 Python 命令，如 `py -3`。本地来源不依赖在线 marketplace；安装器会生成客户端所需的本地清单。
+安装到其他项目时加 `--project /path/to/project`。Windows 将 `python3` 换成可用的 Python 命令，如 `py -3`。本地来源不访问 GitHub；`tao install` 会生成并注册客户端所需的本地清单。
+
+### `tao install` 与 `tao setup`
+
+`tao install` 是面向使用者的完整安装和升级入口。它选择客户端与生效范围，取得并注册插件，创建独立 Python 虚拟环境，安装核心与出版依赖，将 hook 绑定到已验证的 Python 和插件路径，最后运行 doctor。安装成功后可以直接开始使用。
+
+`tao setup` 是低层的运行环境准备命令，供维护、修复或预置依赖使用。`tao setup` 只准备核心环境，`tao setup --publication` 只准备出版环境；它不安装或启用客户端插件，不选择 scope，不写 hook 绑定，也不代替 `tao install`。正常安装时无需手工运行 setup。
 
 ### 范围、来源与升级
 
@@ -89,7 +95,7 @@ tao uninstall --client codex
 tao uninstall --client claude
 ```
 
-也支持已有的手工 marketplace／本地安装。共享配置只清理对应项目；其他安装仍在使用的缓存保留。无法确认归属的旧 Python 环境会保留并说明；共享 `tao` 命令保留，方便再次安装。
+共享配置只清理对应项目；其他安装仍在使用的缓存保留。无法确认归属的旧 Python 环境会保留并说明；共享 `tao` 命令保留，方便再次安装。
 
 只查看用 `--list`；自动化删除指定一份用 `--id <列表中的安装 ID> --yes`。完整属于 tao-dev 的目录只列目录本身，不展开内部文件。
 
@@ -108,7 +114,7 @@ tao uninstall --client claude
 | 范围 | 当前依据与限制 |
 |---|---|
 | macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.270 的安装、升级、回滚和卸载已在隔离环境验证；其他场景见验收记录 |
-| Codex 原生 hook | 安装器使用兼容 manifest 并检查原生 skill、hook 与信任状态；公共格式仍供单独打包使用 |
+| Codex 原生 hook | 安装器使用兼容 manifest，并检查 skill、hook 与信任状态 |
 | 其他平台与版本 | 原生 Windows 验收未完成；Python 运行环境的测试矩阵不等于客户端兼容矩阵 |
 | 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
 

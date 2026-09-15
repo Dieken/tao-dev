@@ -15,6 +15,8 @@ updated: "2026-09-15"
 
 提供一次调用即可安装完整插件、核心与出版依赖、配置客户端并运行 doctor 的安装入口。重复 install 刷新来源并升级；uninstall 按客户端发现安装，先展示文件与范围，再让用户选择删除。用户只需准备受支持的 Python、pip、Git 和目标客户端，不要求设置 TAO 环境变量。源码与插件分发共用同一安装实现；首次远程引导器只取得源码并转交 tao install。
 
+install 是用户安装与升级的唯一完整入口。setup 只准备单个运行环境：无参数时准备核心环境，附加 --publication 时准备出版环境；它不负责客户端注册、scope、hook 绑定或最终 doctor 验收。install 在自己的事务流程中分别准备两套环境，用户不需要另行执行 setup。
+
 <!-- tao:section architecture -->
 ## 组件与数据流
 
