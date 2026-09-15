@@ -2,7 +2,7 @@
 
 优先使用安装摘要中已验证的 tao 启动器绝对路径；也可使用本 skill 的 [scripts/tao.py](../scripts/tao.py) 与安装时选定的 Python。首次准备或环境不可用时读取 [运行环境规程](runtime.md)：标准库入口提供 setup 和 doctor，运行不依赖 uv，普通命令只使用已准备的独立环境。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 简写这个已定位入口，不要求用户配置 PATH 或 TAO 环境变量。
 
-先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；完整安装包含文档与出版能力；新增加的 project.inspect、project.configure、workflow 接口分别用于项目接入和协调状态。配置项目检查策略后包含 verify.code 与 verify.evidence。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
+本会话首次调用时运行 `tao --project <目录> doctor --format json`；入口、项目配置或运行环境未变时复用结果，发生变化或运行失败再检查。支持的操作以返回的 capabilities 为准；完整安装包含文档与出版能力；新增加的 project.inspect、project.configure、workflow 接口分别用于项目接入和协调状态。配置项目检查策略后包含 verify.code 与 verify.evidence。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
 
 | 操作 | 已实现行为 |
 |---|---|

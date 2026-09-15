@@ -40,10 +40,11 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
   - verify: 术语结构、重复项与反例回归。
   - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
-- [ ] `TASK_20260916_NASWY0MW29RN8B55` 精简 skill 并优先固化可执行经验。
+- [x] `TASK_20260916_NASWY0MW29RN8B55` 精简 skill 并优先固化可执行经验。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
   - depends_on: []
   - verify: 情景演练、入口读取范围与文档校验。
+  - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
 - [ ] `TASK_20260916_3R6KR1TV9MW0VVXJ` 隔离新审查批次与续审预算。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
@@ -69,6 +70,8 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
 ## 验证记录
 
 逐项记录实际执行结果；原始报告放入忽略的 tmp/tao/。
+
+Skill 精简：入口校验与受管理文档校验通过。独立只读情景复核确认 status 不加载工程全文，经验保留优先可执行约束，不新增重复总结或修改全局 skill。
 
 术语条目：45 项术语、文档与项目契约回归通过；新增结构反例先失败后通过。实际 Sphinx 构建通过，术语正文可出版且不新增正式 ID。
 
