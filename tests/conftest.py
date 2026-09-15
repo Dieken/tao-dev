@@ -19,11 +19,10 @@ def tool_runtime(tmp_path_factory):
     os.environ.update(TAO_RUNTIME_DIR=str(data), TAO_PYTHON=sys.executable)
     try:
         entry = root / "plugins/tao-dev/skills/tao-dev/scripts/tao.py"
-        for extra in ([], ["--publication"]):
-            completed = subprocess.run([sys.executable, str(entry), "setup", *extra,
-                                        "--wheelhouse", str(wheels), "--format", "json"],
-                                       capture_output=True, text=True)
-            assert completed.returncode == 0, completed.stdout + completed.stderr
+        completed = subprocess.run([sys.executable, str(entry), "setup",
+                                    "--wheelhouse", str(wheels), "--format", "json"],
+                                   capture_output=True, text=True)
+        assert completed.returncode == 0, completed.stdout + completed.stderr
         yield data
     finally:
         for key, value in previous.items():

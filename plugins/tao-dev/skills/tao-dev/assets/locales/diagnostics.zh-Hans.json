@@ -190,7 +190,7 @@
   "The destination changed during preparation; reload it before retrying.": "准备过程中目标发生变化；请重新读取后再试。",
   "The model review did not complete successfully.": "模型审查未成功完成。",
   "The retirement source is not a managed document.": "退役来源不是受管文档。",
-  "The {arg0} runtime is not prepared. Run tao setup{arg1}; ordinary commands do not install dependencies.": "尚未准备 {arg0} 运行环境。请运行 tao setup{arg1}；普通命令不会安装依赖。",
+  "The {arg0} runtime is not prepared. Run tao setup; ordinary commands do not install dependencies.": "尚未准备 {arg0} 运行环境。请运行 tao setup；普通命令不会安装依赖。",
   "This profile requires at least one task.": "此文档格式至少需要一个任务。",
   "Unclosed YAML frontmatter.": "YAML frontmatter 未闭合。",
   "Unfilled template placeholder.": "存在未填写的模板占位符。",

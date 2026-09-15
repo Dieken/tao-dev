@@ -52,7 +52,7 @@ python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
 
 `tao install` 是面向使用者的完整安装和升级入口。它选择客户端与生效范围，取得并注册插件，创建独立 Python 虚拟环境，安装核心与出版依赖，将 hook 绑定到已验证的 Python 和插件路径，最后运行 doctor。安装成功后可以直接开始使用。
 
-`tao setup` 是低层的运行环境准备命令，供维护、修复或预置依赖使用。`tao setup` 只准备核心环境，`tao setup --publication` 只准备出版环境；它不安装或启用客户端插件，不选择 scope，不写 hook 绑定，也不代替 `tao install`。正常安装时无需手工运行 setup。
+`tao setup` 是低层的运行环境准备命令，供维护、修复或预置依赖使用。它一次创建或复用彼此隔离的核心与出版环境，但不安装或启用客户端插件，不选择 scope，不写 hook 绑定，也不代替 `tao install`。正常安装时无需手工运行 setup。
 
 ### 范围、来源与升级
 

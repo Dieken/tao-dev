@@ -42,13 +42,13 @@ def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tm
     completed = invoke(bare_python, data, "doctor")
     assert completed.returncode == 2
     report = json.loads(completed.stdout)
-    assert report["tool_version"] == "0.2.1"
+    assert report["tool_version"] == "0.2.2"
     assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-002"
     assert report["outputs"]["runtime"]["state"] == "missing"
     joined = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), "doctor", "--format=json"],
                             env=os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)},
                             capture_output=True, text=True)
-    assert json.loads(joined.stdout)["tool_version"] == "0.2.1"
+    assert json.loads(joined.stdout)["tool_version"] == "0.2.2"
     assert not data.exists()
 
 
@@ -58,6 +58,8 @@ def test_offline_preparation_runs_without_uv_and_does_not_modify_base(bare_pytho
     info = prepare(bare_python, data)
     assert info["mode"] == "core"
     assert Path(info["python"]).is_file()
+    assert info["publication"]["state"] == "ready"
+    assert Path(info["publication"]["python"]).is_file()
     report = invoke(bare_python, data, "id", "new", "REQ", "--project", str(tmp_path), extra={"PATH": ""})
     assert report.returncode == 0, report.stdout + report.stderr
     assert json.loads(report.stdout)["outputs"]["id"].startswith("REQ_")
@@ -67,21 +69,33 @@ def test_offline_preparation_runs_without_uv_and_does_not_modify_base(bare_pytho
     assert prepare(bare_python, data)["python"] == info["python"]
 
 
-def test_failed_publication_install_keeps_core_and_does_not_implicitly_install(bare_python, tmp_path):
+def test_failed_complete_setup_keeps_existing_core_and_does_not_implicitly_install(bare_python, tmp_path):
+    scripts = tmp_path / "plugin/scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
     data = tmp_path / "data"
-    info = prepare(bare_python, data)
+    info = prepare(bare_python, data, scripts=scripts)
+    requirements = scripts / "requirements-publication.txt"
+    requirements.write_text(requirements.read_text() + "\n# New publication inventory\n")
     empty = tmp_path / "empty-wheels"
     empty.mkdir()
-    failed = invoke(bare_python, data, "setup", "--publication", "--wheelhouse", str(empty))
+    failed = invoke(bare_python, data, "setup", "--wheelhouse", str(empty), scripts=scripts)
     assert failed.returncode == 2
     assert json.loads(failed.stdout)["status"] == "not_run"
     assert Path(info["python"]).is_file()
-    assert invoke(bare_python, data, "doctor").returncode == 0
+    core = subprocess.run([info["python"], "-I", "-c", "import markdown_it, yaml"],
+                          capture_output=True, text=True)
+    assert core.returncode == 0, core.stdout + core.stderr
     before = sorted(str(p.relative_to(data)) for p in data.rglob("*"))
-    missing = invoke(bare_python, data, "docs", "build", "--project", str(tmp_path))
+    missing = invoke(bare_python, data, "docs", "build", "--project", str(tmp_path), scripts=scripts)
     assert missing.returncode == 2
     assert "publication" in missing.stdout
     assert sorted(str(p.relative_to(data)) for p in data.rglob("*")) == before
+
+
+def test_setup_rejects_removed_publication_option(bare_python, tmp_path):
+    completed = invoke(bare_python, tmp_path / "data", "setup", "--publication")
+    assert completed.returncode == 2
+    assert "unrecognized arguments: --publication" in completed.stderr
 
 
 def test_changed_dependencies_use_another_environment_and_preserve_old(bare_python, tmp_path):
@@ -107,8 +121,10 @@ def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
     completed = subprocess.run([str(bare_python), str(plugin / "tao.py"), "setup", "--wheelhouse", str(WHEELS), "--format", "json"],
                                env=env, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    selected = Path(json.loads(completed.stdout)["outputs"]["runtime"]["python"])
+    runtime = json.loads(completed.stdout)["outputs"]["runtime"]
+    selected = Path(runtime["python"])
     assert selected.is_relative_to(data)
+    assert Path(runtime["publication"]["python"]).is_relative_to(data)
     assert not list(plugin.rglob("__pycache__"))
 
 
@@ -119,16 +135,18 @@ def test_concurrent_preparation_publishes_one_complete_environment(bare_python, 
     processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
     outputs = [process.communicate(timeout=60) for process in processes]
     assert all(p.returncode == 0 for p in processes), outputs
-    selected = [json.loads(stdout)["outputs"]["runtime"]["python"] for stdout, _ in outputs]
+    reports = [json.loads(stdout)["outputs"]["runtime"] for stdout, _ in outputs]
+    selected = [report["python"] for report in reports]
     assert selected[0] == selected[1]
-    assert len(list(data.rglob("ready.json"))) == 1
+    assert reports[0]["publication"]["python"] == reports[1]["publication"]["python"]
+    assert len(list(data.rglob("ready.json"))) == 2
     assert not list(data.rglob("prepare.lock"))
 
 
 def test_corrupt_environment_requires_explicit_repair(bare_python, tmp_path):
     data = tmp_path / "data"
     first = prepare(bare_python, data)
-    marker = next(data.rglob("ready.json"))
+    marker = Path(first["python"]).parent.parent / "ready.json"
     marker.write_text("{}")
     broken = invoke(bare_python, data, "doctor")
     assert broken.returncode == 2
