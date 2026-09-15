@@ -428,6 +428,16 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
         if source is None:
             continue
         validator.document(source, relative)
+    # Before a plan exists, the durable workflow owns the CHG identity. Once
+    # the plan is written its normal frontmatter remains the published target.
+    from .project import Project
+    from .workflows import local
+    try:
+        for state in (local(Project(validator.root)) if (validator.root / ".tao/workflows").is_dir() else []):
+            if state['change'] not in validator.result.definitions:
+                validator.define(state['change'], f".tao/workflows/{state['change']}.json", 1, 'draft', state['summary'])
+    except (OSError, ValueError) as exc:
+        validator.error('TAO-DOC-001', '.tao/workflows', 1, str(exc))
     relationships.retirements(validator, retirement_directory, overrides)
     relationships.attachments(validator)
     relationships.book(validator, book_root)

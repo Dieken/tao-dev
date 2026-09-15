@@ -34,10 +34,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 文档/关系/CLI/出版回归和旧名称扫描。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_A06VK7REAK7AN8AS` 持久化工作流与 Git 隔离：增加阶段、批准版本、检查点、worktree/fork 绑定和只读恢复状态；兼容无配置起步。
+- [x] `TASK_20260915_A06VK7REAK7AN8AS` 持久化工作流与 Git 隔离：增加阶段、批准版本、检查点、worktree/fork 绑定和只读恢复状态；兼容无配置起步。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_50BX90SPVQNT4SH3"]
   - verify: 中断恢复、过期批准、并发修改和 Git worktree 隔离测试。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_TCBW79Y67NJV58SM` 完善 handoff 与继续恢复：支持计划前交接；核对后标记接续版本，不删除正式交接文件。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -70,6 +71,8 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 每项提交前运行受影响的回归、文档校验及差异检查，完成后在此追加实际证据。最终运行完整测试与本地书籍构建。客户端模型调用仅使用既有客户端和授权配置，在隔离项目内执行；不更改全局配置。
 
 命名迁移：先观察新增 plans 配置用例因旧键拒绝而失败，迁移后 109 项文档、CLI、关系、退役与出版回归全部通过。所有正式 ID 保持不变。
+
+工作流状态：113 项阶段、CLI、文档、关系、退役和项目边界回归通过，Ruff 核心规则通过。覆盖无计划起步、内容变更使批准过期、检查点并发冲突、复用 CHG 与真实 Git worktree/fork。
 
 <!-- tao:section questions -->
 ## 未决问题

@@ -21,6 +21,8 @@
 
 通用 `--project`、`--format text|json` 与 `--diagnostic-locale <语言>` 可以放在操作前后。诊断默认语言及回退见 [本地化规程](localization.md)，不改变生成文档的语言。没有可靠影响基线时，changed 范围回退到 all 并说明原因。未提供历史基线时，源校验结果 deletion_checked 为 false；不能声称已检测所有历史删除。错误元数据、重复定义或越界路径会阻止分配新 ID，避免基于不完整索引生成文件。
 
+工作流阶段、版本批准与 worktree 绑定使用 [工作流状态接口](workflow-state.md)；`tao workflow status` 为只读，写操作要求显式动作和检查点版本。
+
 ## 一次配置，日常复用
 
 显式 --project 指定根目录；否则从当前目录向上寻找最近的 `.tao/config.toml`。不写全局配置。无配置时，显式项目根内默认管理 docs/ 下的 Markdown；没有匹配文件时验证报未完成，不能以空检查通过。README、运行 prompt 与模板有自己的格式，不因 Markdown 扩展名自动纳入。
