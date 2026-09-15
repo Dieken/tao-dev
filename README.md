@@ -51,7 +51,11 @@ py -3.13 -c "import venv, ensurepip"
 
 后续 `tao setup` 会在独立虚拟环境中准备自己的 pip 和锁定依赖，无需向系统 Python 执行 `pip install tao-dev`。
 
-### 2. Claude Code：从 GitHub 安装（推荐）
+### 2. 从 GitHub marketplace 安装（推荐）
+
+选择自己的客户端完成安装，再执行第 4 节准备运行依赖和第 6 节确认组件。需要离线安装时，从第 3 节开始。
+
+#### Claude Code CLI
 
 仓库已提供 [marketplace 清单](.claude-plugin/marketplace.json)，直接分发完整插件。无需克隆源码或手工打包。在目标项目根目录打开终端，选择安装范围：`user` 对当前用户的所有项目启用，`project` 写入团队共享配置，`local` 仅自己在当前项目启用。
 
@@ -89,7 +93,7 @@ if (-not $TaoPluginDir) { throw '未找到所选范围的插件安装路径' }
 
 从旧本地 marketplace 迁移时，先用 `claude plugin uninstall tao-dev@tao-dev-local --scope <原范围> --keep-data` 移除原插件，再按上面安装；沿用原 TAO_RUNTIME_DIR。若还保留独立 skill 副本，将其移出 skill 搜索目录，避免两个入口同时加载。见 [官方安装说明](https://code.claude.com/docs/en/discover-plugins#add-from-github)。
 
-#### 后续升级
+##### Claude Code 后续升级
 
 选择与安装时相同的范围，再执行：
 
@@ -105,11 +109,52 @@ PowerShell 设置 `$TaoScope` 并传给 `--scope`。升级后重新读取 instal
 
 默认跟随仓库的默认分支，插件版本由 manifest 管理。Git tag 不是安装或升级的前提；若将来源固定为某个 tag，后续更新仍停留在该 tag，需要主动更换来源版本。
 
-### 3. 本地安装源：Codex 或离线使用
+#### Codex CLI
+
+仓库提供 [Codex marketplace 清单](.agents/plugins/marketplace.json)，与 Claude 清单引用同一份完整插件。以下命令按 Codex CLI 0.154.0 核对；无需先克隆或打包源码。
+
+在目标项目根目录执行：
+
+```sh
+export TAO_PYTHON="$(python3 -c 'import sys; print(sys.executable)')"
+codex plugin marketplace add Dieken/tao-dev
+TAO_PLUGIN_DIR="$(codex plugin add tao-dev@tao-dev --json | "$TAO_PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["installedPath"])')"
+```
+
+<details>
+<summary>Windows PowerShell</summary>
+
+```powershell
+$env:TAO_PYTHON = py -3.13 -c "import sys; print(sys.executable)"
+codex plugin marketplace add Dieken/tao-dev
+$TaoPluginDir = (codex plugin add tao-dev@tao-dev --json | ConvertFrom-Json).installedPath
+if (-not $TaoPluginDir) { throw '未找到插件安装路径' }
+```
+
+hook 同样需要 Git for Windows 提供的 `sh`；原生 Windows 完整验收尚未完成。
+
+</details>
+
+以上默认写入用户级启用。**仅当前项目使用时，启动 Codex 前先完成第 5 节的项目启用配置，将其中 `tao-dev@tao-dev-local` 换成 `tao-dev@tao-dev`。** Codex 没有 `--scope project/local`；在项目目录执行安装命令不会自动限制范围。
+
+接着执行第 4 节的两次 setup 和 doctor，从同一终端用 `codex --enable hooks` 启动，确认项目信任，并在 `/hooks` 中检查、信任 tao-dev 的 hook。跳过第 3 节打包和第 5 节的本地注册命令。[官方 marketplace 说明](https://developers.openai.com/plugins/build/plugins)
+
+##### Codex 后续升级
+
+```sh
+codex plugin marketplace upgrade tao-dev
+TAO_PLUGIN_DIR="$(codex plugin add tao-dev@tao-dev --json | "$TAO_PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["installedPath"])')"
+```
+
+PowerShell 执行同一条 marketplace upgrade，再按上面的安装命令重新读取 `$TaoPluginDir`。`plugin add` 会再次写入用户级启用；项目级用户需重新应用用户级 false、项目级 true 配置。随后重跑第 4 节的 setup 和 doctor，启动新会话并复核 hook 信任。固定 Git ref 的安装不会自动跟随其他版本。
+
+### 3. 本地／离线安装源
 
 每个客户端选择用户级或项目级安装。**用户级对当前用户的各项目启用；项目级仅对指定项目启用。** 客户端仍可能把插件副本放在用户缓存中，安装范围不等于所有文件的物理存放位置。只想项目级启用时，也要关闭此前的用户级安装及独立 skill 副本。
 
-Codex CLI 0.154.0 使用本节生成兼容安装源；Claude Code 需要离线或本地开发安装时也可使用。本节生成包含完整运行材料的本地 marketplace（插件目录索引），再交给客户端安装。打包只需 Python 标准库，不依赖 pip 包或 uv；输出目录必须尚不存在。
+两端均可使用本地流程，不依赖 GitHub 或在线 marketplace。本节生成包含完整运行材料的本地 JSON 目录清单，再交给客户端安装；Codex 原生插件安装仍需要这份本地清单。打包只需 Python 标准库，不依赖 pip 包或 uv；输出目录必须尚不存在。
+
+联网准备源码时执行以下命令；离线机器可直接使用提前下载的仓库副本，或接收本节生成的完整安装源目录（包含隐藏文件），无需在离线机器上执行 git clone。
 
 ```sh
 git clone https://github.com/Dieken/tao-dev.git
@@ -139,7 +184,7 @@ export TAO_PYTHON="$(python3 -c 'import sys; print(sys.executable)')"
 "$TAO_PYTHON" "$TAO_SOURCE_DIR/scripts/package_plugin.py" --format codex-legacy --marketplace --output "$TAO_MARKETPLACE"
 ```
 
-Codex 0.154.0 需要兼容 manifest 才能发现 hook，因此这里使用 codex-legacy。Codex 的操作及审查通过 skill 和原生子代理执行，不加载 Claude 的 commands／agent 注册文件。两端完整组件的映射见 [插件设计](docs/engineering/plugin-design.md)。
+Codex 0.154.0 使用 codex-legacy 包加载 skill 与 hook；GitHub 安装源已采用同样的兼容 manifest。Codex 的操作及审查通过 skill 和原生子代理执行，不加载 Claude 的 commands／agent 注册文件。两端完整组件的映射见 [插件设计](docs/engineering/plugin-design.md)。
 
 <details>
 <summary>Windows PowerShell：取得源码与打包</summary>
@@ -173,7 +218,18 @@ $env:TAO_PYTHON = py -3.13 -c "import sys; print(sys.executable)"
 
 </details>
 
-本地打包完成后设置插件路径：POSIX shell 执行 `TAO_PLUGIN_DIR="$TAO_MARKETPLACE/plugins/tao-dev"`，PowerShell 执行 `$TaoPluginDir = Join-Path $TaoMarketplace 'plugins/tao-dev'`。GitHub 安装使用第 2 节从客户端读取的路径。
+本地打包完成后设置插件路径：POSIX shell 执行 `TAO_PLUGIN_DIR="$TAO_MARKETPLACE/plugins/tao-dev"`，PowerShell 执行 `$TaoPluginDir = Join-Path $TaoMarketplace 'plugins/tao-dev'`。GitHub 安装使用第 2 节从各自客户端读取的路径。
+
+#### 离线安装前准备依赖
+
+在与离线目标具有相同系统、CPU 架构和 Python 次版本的联网机器上，先准备第 1 节的客户端、Python 安装材料及系统依赖，并从同一版本的插件下载锁定 wheel：
+
+```sh
+"$TAO_PYTHON" -m pip download --only-binary=:all: --require-hashes --dest "$TAO_MARKETPLACE/wheelhouse" -r "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/requirements.txt"
+"$TAO_PYTHON" -m pip download --only-binary=:all: --require-hashes --dest "$TAO_MARKETPLACE/wheelhouse" -r "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/requirements-publication.txt"
+```
+
+PowerShell 将调用前缀换成 `& $env:TAO_PYTHON`，路径变量换成 `$TaoMarketplace`、`$TaoPluginDir`。将完整安装源目录连同 wheelhouse 复制到目标机器，按目标位置重新设置这些变量；按第 4 节使用 `--wheelhouse`，再执行第 5 节的本地注册。Python、pip／venv、客户端和所需 shell 也必须提前安装；离线准备不代表模型服务可以断网使用。
 
 ### 4. 准备 CLI、出版与 hook 共用的运行环境
 
@@ -197,7 +253,7 @@ export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
 "$TAO_PYTHON" "$TAO_PLUGIN_DIR/skills/tao-dev/scripts/tao.py" doctor --project "$PWD" --format json
 ```
 
-两次 setup 分别准备核心环境和出版环境，显式联网下载锁定依赖，写入独立虚拟环境；doctor 应报告两者 ready。离线安装分别执行 `setup --wheelhouse <目录>` 和 `setup --publication --wheelhouse <目录>`，详见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+两次 setup 分别准备核心环境和出版环境，显式联网下载锁定依赖，写入独立虚拟环境；doctor 应报告两者 ready。离线安装将上面的两条 setup 分别改为 `setup --wheelhouse "$TAO_MARKETPLACE/wheelhouse"` 和 `setup --publication --wheelhouse "$TAO_MARKETPLACE/wheelhouse"`（PowerShell 使用 `$TaoMarketplace/wheelhouse`），不访问包索引。详见 [运行环境规程](plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
 <details>
 <summary>Windows PowerShell：运行环境</summary>
@@ -225,7 +281,7 @@ $env:TAO_RUNTIME_DIR = Join-Path (Get-Location).Path 'tmp/tao/runtime'
 
 ### 5. 从本地安装源安装并启用
 
-GitHub 安装的 Claude 插件跳过本节。以下命令在**目标项目根目录**执行。PowerShell 将 `$TAO_MARKETPLACE` 换成 `$TaoMarketplace`；其余客户端命令相同。
+GitHub 安装跳过本节的本地注册命令；Codex 项目级用户仍需完成本节下方的启用配置。以下命令在**目标项目根目录**执行。PowerShell 将 `$TAO_MARKETPLACE` 换成 `$TaoMarketplace`；其余客户端命令相同。
 
 #### Claude Code CLI
 
@@ -260,7 +316,11 @@ codex plugin marketplace add "$TAO_MARKETPLACE"
 codex plugin add tao-dev@tao-dev-local --json
 ```
 
-**用户级到此完成安装与启用。** 若只在当前项目启用，安装后还需完成下面两项配置。合并到已有表，不覆盖配置文件或重复添加同名 TOML 表：
+**用户级到此完成安装与启用。**
+
+##### Codex 项目启用配置（GitHub 与本地安装通用）
+
+若只在当前项目启用，安装后还需完成下面两项配置。以下以本地安装的 `tao-dev@tao-dev-local` 为例，GitHub 安装将两个表名均换成 `tao-dev@tao-dev`。合并到已有表，不覆盖配置文件或重复添加同名 TOML 表：
 
 1. 在 `~/.codex/config.toml`（自定义 CODEX_HOME 时为其下的 config.toml）中，将这次安装写入的用户级状态改为：
 
@@ -293,7 +353,7 @@ hook 只在项目已有 `.tao/config.toml` 时进行短文档反馈。首次接�
 
 #### GitHub、版本与更新
 
-Claude Code 优先使用第 2 节的 GitHub marketplace 安装与升级。Codex 0.154.0 仍需生成兼容包，使用本地流程；仓库尚未提供 Codex 的 GitHub marketplace 清单。`$skill-installer` 只安装 skill 目录，不能代替完整插件安装。
+Claude Code 与 Codex 均可按第 2 节从 GitHub marketplace 安装与升级完整插件。`$skill-installer` 只安装 skill 目录，不能代替完整插件安装。GitHub 的 `tao-dev` 与本地的 `tao-dev-local` 是不同来源；切换方式时移除或禁用旧入口，避免重复加载。
 
 以下更新步骤适用于本地安装源。需要固定源码版本时，在源码目录先执行 `git checkout --detach <完整 commit SHA>` 再打包，并记录该 SHA。`git pull` 不会自动更新已安装副本。更新前记录安装范围；生成新的安装源目录并按第 5 节更新 marketplace 来源，再执行客户端更新：
 
