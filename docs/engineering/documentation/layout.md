@@ -5,6 +5,7 @@ title: 文档组织与产物保存
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
+updated: "2026-09-15"
 ---
 
 # 文档组织与产物保存
@@ -31,7 +32,7 @@ created: '2026-09-14'
 
 Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航；物理目录不是阅读顺序的唯一决定因素。MyST 可直接用 Markdown 围栏表达该指令，适合让 agent 和人工编辑同一份源目录。[Sphinx toctree](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-toctree)、[MyST 内容组织](https://myst-parser.readthedocs.io/en/latest/syntax/organising_content.html#using-toctree-to-include-other-documents-as-children)
 
-未来出版实现从源目录提取图并检查闭环、重复主位置、漏挂、越界和指向排除文件等问题；不能只检查文件夹是否存在。运行规程定义可观察结果，具体 Sphinx 主题、HTML 侧栏与 PDF 篇章映射留在出版实现阶段验证；新增模板与静态夹具不构成真实书籍构建验收。目录只随实际内容建立，不为展示层级提前创建空篇章。
+出版实现从源目录提取图并检查环、重复主位置、漏挂、越界和指向排除文件的问题。HTML 构建器在根 toctree 的 AST 节点上启用 Sphinx numbered 属性；标准收集完成后，按已校验的导航图校正编号表与 TOC 引用节点，使正文、左侧书籍导航和页内目录共用编号。navigation 页保留页标题编号，排除固定导读和目录标题造成的虚假层级。
 
 <!-- tao:section contracts -->
 ## 拆分与命名
@@ -49,7 +50,7 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 
 现有长期开发资料包括协议、格式契约、术语、文档组织、插件设计和 [命令设计](../cli-design.md)。协议维护 REQ／UC，decisions/ 中的独立文档维护长期 ADR，实施计划维护既有研发任务，专题文档维护实现设计并引用 skill 中的规则，README 只负责导航。它们是长期文档，保留语义文件名。
 
-使用方模板及中英文显示资源已随 skill 提供，当前可手工填写；源文件校验器可运行，生成与出版能力仍需验收。后续以真实文件验证拆分前后 ID、退役记录、并发分配、证据保存和书籍构建；不能以模板存在宣称自动生成或校验已实现。
+使用方模板及中英文显示资源随 skill 提供，生成器、源文件校验器和 HTML 出版层使用同一契约。当前能力以工具规程及 doctor 为准；具体版本的实测结果保留在变更记录中。
 
 项目交付文档采用 skill 定义的 tao.project.* profile；本仓库的文档检查范围由 [文档契约](contract.md) 维护。格式检查与工具行为验收分别报告。
 
@@ -63,4 +64,4 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 
 目录示意、报告类型、VCS 归属、持久保存与输入识别边界见 [证据与产物保存](../../../plugins/tao-dev/skills/tao-dev/references/evidence-retention.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保持只放配置。普通验证结论随计划保存，原始日志默认不进 VCS；独立摘要与必要报告按需保留。产品实现需分别表示历史结果、原始材料可用性和当前复用资格，不能因日志过期取消历史任务完成状态。
 
-拆分和移动后重新校验全局 ID、引用及导航关系；出版后另检查稳定入口。
+拆分和移动后重新校验全局 ID、引用及导航关系。出版回归覆盖正文、左侧导航和页内目录的编号一致性、编号重排、标题更新、特殊字符、改名、退役说明及失效删除；实际访问旧稳定入口，不能从 AST 或配置存在推导链接可用。

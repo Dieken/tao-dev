@@ -6,14 +6,14 @@
 
 | 操作 | 已实现行为 |
 |---|---|
-| `tao verify --only docs` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；0 表示本子集通过，coverage 始终 partial，readiness 为 not-evaluated |
+| `tao verify --only docs` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；结果为 partial／not-evaluated |
 | `tao verify` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／有效审查记录时返回 2 与 blocked |
 | `tao verify --only code` | 按项目既有检查策略实际运行或复用有效结果，返回 partial；`--only evidence` 只检查当前证据 |
 | `tao verify --only docs --dry-run` | 只显示选择方案，不执行检查，不生成通过证据 |
 | `tao id new REQ` | 用本地日期及安全随机源生成 ID；读取现有定义和退役记录查重，不写编号台账 |
 | `tao retire <ID> --reason <说明> [--replaced-by <ID>] [--apply]` | 默认只读预览移除对象、引用影响及退役后的校验；--apply 才保存退役记录并移除正文。替代参数可重复，必须同类型且可解析；完整规则见 [文档规程](documents.md) |
 | `tao show <ID>` | 显示定义、引用和源位置；站点未构建时 url 为空 |
-| `tao new --slug <slug> --locale en` | 排他创建本地日期的变更骨架；同名计划或附件存在时报错，不覆盖。agent 必须继续填写目标、范围和可确定内容，清除占位符 |
+| `tao new --slug <slug> --locale en` | 排他创建本地日期的变更骨架；同名计划或附件存在时报错，不覆盖。后续由 agent 按流程规程填写草稿 |
 | `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的、change 元数据与目标 CHG 一致的 handoff 文档，保存到计划附件；更新保留 DOC ID，附只读状态观察；不停止会话或提交 |
 | `tao review <CHG-ID> [--from <文件>]` | 无 --from 时只读返回审查输入绑定；有 --from 时校验并导入实际审查记录，不启动模型；格式及信任边界见 [审查记录](review-receipts.md) |
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
@@ -54,7 +54,7 @@ documents.include 与 documents.exclude 均按项目根目录使用 Python Path.
 
 ## 客户端入口与短检查
 
-Claude 插件提供 new、verify、status、handoff 斜杠命令及 reviewer 角色；它们引用共享运行规程。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。组件定义与实际加载、触发、模型行为分别验收；完整跨供应商审查不能由角色文件存在推断。
+Claude 插件提供 new、verify、status、handoff 斜杠命令及 reviewer 角色；它们引用共享运行规程。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。跨供应商审查以实际模型与来源为准。
 
 两端 PostToolUse 配置通过平台启动包装调用同一个 [hook 脚本](../scripts/hook.py)，再选择与 CLI 相同的核心运行环境。TAO_PYTHON 只选择基础解释器；未设置时包装查找 Python，依赖缺失时报告 not_run，不自动安装。脚本仅在当前项目已有 .tao/config.toml 时运行，只做 docs 子集反馈，不运行项目命令或模型。可配置：
 
@@ -66,4 +66,4 @@ timeout_seconds = 5
 
 默认预算 5 秒，允许 1–30 秒，外层客户端 handler 超时为 35 秒。相同源文件、运行代码、契约、配置及依赖版本只复用短反馈；改动后重新检查。缓存仅保存合并输入指纹和有限诊断，位于 tmp/tao/cache/，不是持久输入清单或交付证据。超时、依赖缺失、锁冲突和格式错误如实提示；不阻止已发生的写入，也不声称完整验证通过。进程中断遗留锁时先确认没有运行中的写入，再清理临时锁。
 
-hook 只覆盖其匹配的文件工具；由终端命令产生的修改仍依靠 skill 显式验证。禁用 hook 后显式 CLI 仍可用。项目内定义文件通过静态检查不等于客户端已触发，验收记录须区分这两层。
+hook 只覆盖其匹配的文件工具；由终端命令产生的修改仍依靠 skill 显式验证。禁用 hook 后显式 CLI 仍可用。检查记录须说明 hook 是否实际触发。

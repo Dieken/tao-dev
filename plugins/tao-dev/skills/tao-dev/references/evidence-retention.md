@@ -5,31 +5,13 @@
 ## 保存位置
 
 ```text
-docs/
-  index.md                         # 书籍入口与目录
-  glossary.md
-  retired/
-    20260914.jsonl                 # 正式退役记录，纳入 VCS
-  product/                         # 长期规格
-  engineering/                     # 系统、模块与决策
-  user/
-  operations/
-  changes/
-    2026-09/
-      20260914-stable-links.md      # 计划正文
-      20260914-stable-links/        # 按需附件
-        evidence/                  # 按需：独立验证摘要或须保留的报告
-.tao/
-  config.toml                      # 项目约定，纳入 VCS
-tmp/tao/                           # 工具生成文件，默认不纳入 VCS
+docs/changes/<yyyy-mm>/
+  <yyyymmdd>-<slug>.md              # 计划与默认验证结论
+  <yyyymmdd>-<slug>/evidence/       # 按需：独立摘要或须保留的报告
+tmp/tao/                           # 可映射的生成根，默认不纳入 VCS
   cache/                           # 可重建索引、缓存及短期锁
-  <run-id>/                        # 每次执行独立，避免覆盖旧报告
-    junit.xml                      # 测试结果
-    coverage.json                  # 覆盖数据，也可有 HTML 目录
-    diagnostics.sarif              # 静态分析结果
-    benchmark.json                 # 基准测量
-    stdout.log                     # 原始输出，也可含截图和跟踪文件
-  book/                            # 生成的 HTML／PDF 书籍
+  <run-id>/                        # 本次日志、测试、覆盖率、诊断或基准报告
+  book/                            # 本地出版产物
 ```
 
 默认生成根为项目内的 `tmp/tao/`，仅在实际生成文件时创建；已有生成目录可通过项目配置映射，不要求另增顶层目录。下属 cache/、各次执行目录及 book/ 一起随生成根映射；.tao/ 不存放生成产物。清理仅限已确认的 tao 生成目录，不清空整个 tmp/ 或共享生成根，也不删除活跃操作所用的文件。
