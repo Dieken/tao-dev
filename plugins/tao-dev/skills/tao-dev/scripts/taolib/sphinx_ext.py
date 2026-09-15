@@ -25,6 +25,26 @@ class Entity(SphinxDirective):
         return [box]
 
 
+class Term(SphinxDirective):
+    required_arguments = 1
+    final_argument_whitespace = True
+    has_content = True
+    option_spec = {key: directives.unchanged for key in ("english", "code", "avoid", "scope")}
+
+    def run(self):
+        box = nodes.container(classes=["tao-term"])
+        title = nodes.paragraph()
+        title += nodes.strong(text=self.arguments[0])
+        if self.options.get("english"):
+            title += nodes.Text(" / " + self.options["english"])
+        box += title
+        box.extend(self.parse_content_to_nodes())
+        for key in ("code", "scope", "avoid"):
+            if key in self.options:
+                box += nodes.paragraph(text=key + ": " + self.options[key])
+        return [box]
+
+
 def need_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     env = inliner.document.settings.env
     definition = env.config.tao_index["definitions"].get(text)
@@ -166,6 +186,7 @@ def setup(app):
     app.add_config_value("tao_index", {}, "env")
     for kind in ("req", "uc", "adr"):
         app.add_directive(kind, Entity)
+    app.add_directive("term", Term)
     app.add_role("need", need_role)
     app.connect("doctree-read", targets, priority=400)
     app.connect("env-get-updated", section_numbers, priority=600)

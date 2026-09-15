@@ -12,7 +12,10 @@ created: "{{CREATED}}"
 <!-- tao:section terms -->
 ## {{heading.terms}}
 
-{{TERMS}}
+```{term} {{TERM}}
+
+{{DEFINITION}}
+```
 
 <!-- tao:section abbreviations -->
 ## {{heading.abbreviations}}

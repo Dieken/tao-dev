@@ -1,6 +1,6 @@
 # 术语、ID 前缀与缩写
 
-理解文档类型、标识符或审查术语时查阅本文。这里定义 tao-dev 的通用词汇；使用方的领域术语由项目术语表维护，精确语法见 [文档规程](documents.md)。
+首次编写 tao 文档、命名代码或审查相关改动前，查阅本文涉及的术语；进入新领域或发现用词冲突时补读，不为只读 status 加载全文。这里定义 tao-dev 的通用词汇；使用方的领域术语由项目术语表维护，精确语法见 [文档规程](documents.md)。
 
 ## 概念
 
@@ -56,17 +56,12 @@
 | SDD | Spec-Driven Development | 此处指“规格驱动开发”；不是另一些资料中的 Source-Driven Development（按来源核实技术用法） |
 | VCS | Version Control System | 版本控制系统；当前完整开发流程依赖 Git，文档校验等独立能力不要求 Git |
 | CLI | Command-Line Interface | 命令行接口；区分 tao 工具与 Claude Code／Codex 客户端 |
-| CI | Continuous Integration | 持续集成；执行必要检查，不以流水线全绿代替需求验收 |
-| AST | Abstract Syntax Tree | 抽象语法树；识别正式条目与围栏示例，避免全文搜索误判 |
 | i18n / l10n | Internationalization / Localization | 国际化是让系统支持多语言的设计，本地化是某种语言及地区的具体呈现 |
 | EARS | Easy Approach to Requirements Syntax | 用条件、事件、系统主体与可观察结果约束需求表达；可按项目语言书写，不把关键词检查当作语义验收 |
-| RFC | Request for Comments | 标准与技术文档系列；精确时间戳格式参考 RFC 3339 |
-| BCP | Best Current Practice | 最佳当前实践文档系列；BCP 47 用于语言标签 |
 | GFM | GitHub Flavored Markdown | Markdown 方言；此处借用任务列表语法，不要求使用 GitHub 或 Git |
-| MCP | Model Context Protocol | 工具和资源接入协议；初版没有引入 MCP 服务的必要 |
 
 ## 使用规则
 
-关键术语首次出现时给出中文和英文；后续使用统一简称。新增影响需求或接口理解的术语先补充定义，普通英文单词不必收录。机器字段如 `id`、`locale` 保持原名，显示文字使用本地化标签。
+关键术语首次出现时给出中文和英文；后续使用统一简称。项目受控术语只收录跨文档易混淆、已有冲突或反复误用的概念；局部领域解释留在相关 spec/design，不汇总全部词汇。优先引用既有定义，传给独立审查者时只携带相关条目。机器字段如 `id`、`locale` 保持原名，显示文字使用本地化标签。
 
 术语表定义含义，精确语法以文档规程为准；避免在多个文件重复维护正则、枚举和完整字段表。

@@ -34,10 +34,11 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
   - verify: 全仓用词核查与受管理文档校验。
   - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
-- [ ] `TASK_20260916_R23QAC7XE5A3B9Z4` 约束项目术语条目及按需读取。
+- [x] `TASK_20260916_R23QAC7XE5A3B9Z4` 约束项目术语条目及按需读取。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
   - depends_on: []
   - verify: 术语结构、重复项与反例回归。
+  - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
 - [ ] `TASK_20260916_NASWY0MW29RN8B55` 精简 skill 并优先固化可执行经验。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
@@ -68,6 +69,8 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
 ## 验证记录
 
 逐项记录实际执行结果；原始报告放入忽略的 tmp/tao/。
+
+术语条目：45 项术语、文档与项目契约回归通过；新增结构反例先失败后通过。实际 Sphinx 构建通过，术语正文可出版且不新增正式 ID。
 
 术语核查：修正六处把标识符称为“身份”的用法，保留认证含义；同步计划、产物和 Git 术语。受管理文档校验通过。
 

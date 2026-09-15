@@ -357,7 +357,21 @@
         "terms",
         "abbreviations"
       ],
-      "metadata": {}
+      "metadata": {},
+      "terms": {
+        "directive": "term",
+        "section": "terms",
+        "required": [
+          "preferred",
+          "definition"
+        ],
+        "options": [
+          "english",
+          "code",
+          "avoid",
+          "scope"
+        ]
+      }
     },
     "tao.project.evidence/v0.1": {
       "template": "templates/evidence.md",
