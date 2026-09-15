@@ -55,6 +55,8 @@ tao-dev/
 
 运行源码仅放入分发所需内容。打包脚本从 plugins/tao-dev/ 复制运行目录，排除 Python 字节码；公共格式复制该目录内容，Codex 兼容格式仅选 skills/、com.openai/ 并生成兼容 manifest。维护者应检查实际包内容，避免把开发文件放入运行源码目录；当前脚本不是逐文件白名单。
 
+`--marketplace` 在所选格式外增加客户端可读取的本地目录索引，插件位于输出根的 `plugins/tao-dev/`。public 的索引使用 Claude 格式，codex-legacy 使用 Codex 格式，均以相对路径引用完整插件；它不修改客户端配置或注册状态。用户按 README 完成原生安装、运行依赖准备和 hook 检查，单独复制 skill 不能代替完整插件安装。
+
 公共 manifest 的最小格式如下；示例产品版本不代表已经发布：
 
 ```json
