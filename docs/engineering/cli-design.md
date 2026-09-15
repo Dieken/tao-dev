@@ -5,7 +5,7 @@ title: tao 命令与流程接入
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
-updated: "2026-09-15"
+updated: "2026-09-16"
 ---
 
 # tao 命令与流程接入
@@ -17,7 +17,7 @@ updated: "2026-09-15"
 <!-- tao:section overview -->
 ## 用户操作与命名依据
 
-用户通常只需表达“整理需求、制定计划、实现、审查、验证”的意图，由 skill 推进。流程名称统一为 `specify → plan → implement → review → verify`：specify 包含必要澄清，plan 包含必要设计与任务拆分；调试、恢复和交接按需进入。它们不是每次都需用户手动调用的五个命令，也不要求每个节点生成一份文件。
+安装后的日常操作在 agent 会话内完成。动作统一为 setup、new、continue、refine、implement、review、debug、status、handoff、docs、finish。完整流程为澄清 → spec → design → plan/tasks → implement → review → finish；文档阶段通过检查点推进，不另设三个文档动作。实际调用示例见 [用户指南](../user/workflow.md)。
 
 **tao CLI 只承接确定性操作。** 解析、生成、验证、查询和保存记录可以在普通终端或 CI 执行；需求判断、设计、对抗式审查仍由 skill、可用客户端或人工完成。`tao review` 仅返回输入绑定或导入实际审查记录，不隐式调用模型，不从报告数量或客户端名称推导审查通过；精确格式见 [审查记录规程](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md)。
 
@@ -42,39 +42,18 @@ updated: "2026-09-15"
 
 ### 本项目的命名规则
 
-常用入口优先使用一个完整、常见的词：`new`、`verify`、`status`、`handoff`。`new` 唯一表示创建变更计划，因此无需再输入 change；不表示初始化项目、启动实现或恢复会话。`handoff` 表示保存供后续工作读取的交接摘要，不创建可回滚快照、不停止会话、不转交执行权，也不把机器保存过程称为内容分析。摘要由 agent 整理，CLI 负责校验、附加状态索引与落盘。
+Claude command 包装使用 `/tao-dev:<动作>`，Codex 使用 `$tao-dev <动作>`；包装只传递动作与完整请求，共用 skill 中的流程规程。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
 
-使用完整词而非 n／v／ctx 等缩写，不增加同义别名或让用户在 start／new／propose 之间选择。`start` 在参考项目中并不少见，但涵盖会话初始化或计划执行，不能准确描述这里只创建计划的操作。`save` 缺少保存对象，`pause` 暗示暂停执行，均不如 handoff 明确。低频且需要对象限定的 `id new`、`docs build` 保留分组；直接叫 build 容易与使用方项目的代码构建混淆。
+agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、隔离工作副本并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
 
-斜杠命令采用同一操作词，并由客户端提供必要命名空间；例如 `new`、`handoff` 可呈现为 `/tao:new`、`/tao:handoff`，不再展开为 new-change 或 context-save。**这是操作名示意，不是已经可用或保证两端相同的调用语法。** 实际前缀与 skill 调用方式随客户端适配验收，遵循 [插件设计](plugin-design.md)，不另造跨客户端通用语法。
-
-CLI 和 agent 入口共享操作意图，但输入和完成条件不同。开发者日常使用客户端中的 skill／斜杠入口或自然语言请求；终端 CLI 面向 agent、自动化和需要直接操作文件的开发者，不要求日常用户手动调用。handoff 同样由 agent 整理摘要，再调用 `tao handoff --from <file>`；用户无需准备中间文件。
-
-### new 的两层契约
-
-| 层次 | 输入示意 | 职责与完成条件 |
-|---|---|---|
-| 开发者使用的 agent 入口 | `new 为导出功能增加取消操作`，或“用 tao-dev 为导出取消功能制定计划” | 接受自然语言及已有会话上下文，调查与必要澄清，提炼 slug，组织并写入可阅读的计划草稿；真实斜杠语法由客户端适配决定 |
-| agent 使用的终端 CLI | `tao new --slug cancel-export` | 校验显式 slug、目标路径和冲突，按模板创建草稿骨架、分配 DOC／CHG 等生成内容所需 ID，返回实际路径与 ID；不调用模型或理解需求 |
-
-`<slug>` 在 CLI 接口表中表示必需值；改为显式 `--slug` 选项是为了与自然语言描述区分。裸 `tao new` 或缺少该选项时返回参数诊断，不猜测描述、不调用模型、不落盘。CLI 的成功只表示骨架已创建，不表示计划已写好、验证通过或可开始实现。直接使用 CLI 的开发者承担后续填写工作。
-
-agent 入口的描述不是 slug 参数，也不按 shell 参数拆分。只输入 new 时先复用会话中已明确的目标；没有可识别目标才询问。知道目标后由 agent 提炼简短 slug，冲突时判断继续已有变更或细化名称，不把命名选择转交用户。命令包装只传递操作、完整描述及必要上下文，不能直接把用户描述拼成底层 shell 命令。
-
-执行顺序为“理解目标与读取相关材料 → 判断是否需要新计划 → CLI 创建模板骨架 → agent 填写并检查草稿”。骨架包含结构和元数据，不是空文件；尚待填写的模板变量不满足正式文档契约。agent 应在本次工作中继续补齐已有信息，缺少实质信息时明确未决项；中断遗留骨架须报告未完成，恢复时继续同一文件和 ID。不能以生成器返回 0 或文件存在作为 new 的交付结果。
-
-new 的 agent 入口交付目标、范围、已有依据、可确定的验收及下一步规划入口；不足以决定的设计与任务如实标为未决，不虚构方案。草稿不等于评审通过或完整 plan 阶段完成，new 本身不隐含开始编码；同一请求已明确授权继续设计或实现时，按原请求推进，不额外要求用户输入下一条命令。
-
-优先复用已有 skill；按需增加入口包装，不为每个辅助 CLI 子命令创建一个 skill。核心 CLI、变更骨架、配置驱动的项目检查与证据复用已实现，客户端入口的部分实际结果见变更记录；操作能力和配置以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 及 doctor 输出为准。
-
-验证统一使用 verify；文档检查、行为验证及只读收尾判断是其内部分类。验收后的归档、集成和发布按实际授权处理，不从命名自动派生额外步骤。未发布的草案名称不保留兼容别名。
+CLI 与 agent 动作有意区分职责：`tao setup` 准备工具运行环境，setup 动作接入业务项目；`tao review` 导入实际来源记录，review 动作调度有界审查；finish 动作处理用户选中的集成与清理，没有同名底层命令。handoff 由 agent 整理内容、CLI 验证并保存，不停止会话或转交执行权。
 
 <!-- tao:section architecture -->
 ## 流程接入
 
-skill 对照 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型，也不用再执行收尾命令。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+skill 对照 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型；finish 动作呈现具体收尾选择。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
 
-setup 与运行环境选择以 [运行环境规程](../../plugins/tao-dev/skills/tao-dev/references/runtime.md) 为准，不另设日常斜杠命令。doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。某项 CLI 能力缺失时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
+运行环境准备以 [运行环境规程](../../plugins/tao-dev/skills/tao-dev/references/runtime.md) 为准；agent setup 通过 project inspect/configure 接入项目检查。doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。某项 CLI 能力缺失时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
 
 hook 仅在已验证的平台事件上触发预算内的短检查，例如 `verify --only docs --scope changed`；它不启动完整跨模型评审、全量长测试或生成／退役操作。相同输入的重复事件合并，避免验证报告写入后再次触发自身。完整交付验证由 skill 在收尾时发起，CI 按项目配置复核；未来自动化不能绕过既有授权或未解决阻断。
 
@@ -100,9 +79,19 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 | `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记到 `docs/retired/<yyyymmdd>.jsonl`，日期取退役的本地日期 | 已实现默认预览，显式 `--apply` 才写入；不把退役叫作 deprecate 或 archive，以免混淆弃用通知、删除承诺与归档已完成工作 |
 | `tao docs build` | 生成书籍、条目索引与永久链接入口 | 出版阶段；只写配置的生成目录，默认 `tmp/tao/book/`，不部署网站 |
 
-常规交互集中在创建、验证、查看进度；doctor、编号、保存等由 agent 按时机调用或供排障使用。没有单独 finish 命令：交付前必须核对的条件在完整 verify 中自动汇总，验收后的提交、合入、归档或发布仍按实际授权与项目流程处理，不因验证成功附带执行。
+doctor、编号、保存等由 agent 按时机调用。完整 verify 汇总确定性条件，finish 动作核对语义审查并执行用户选中的收尾；验证成功不附带提交、合入或发布授权。
 
-第一批发布 doctor、id new、show 与 verify 的文档子集。能力列表区分 `verify.docs`、`verify.code`、`verify.evidence`；只实现文档子集时不能声称支持完整交付验证。没有实现的命令或子能力不列为可用，也不用返回成功的空实现占位。
+doctor 返回当前已实现能力。能力列表区分 `verify.docs`、`verify.code`、`verify.evidence`；只实现文档子集时不能声称支持完整交付验证。没有实现的命令或子能力不列为可用，也不用返回成功的空实现占位。
+
+### 持久流程与审查调度
+
+接口精确定义集中在运行包的 [工作流状态](../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md)、[项目接入](../../plugins/tao-dev/skills/tao-dev/references/project-setup.md) 和 [审查调度](../../plugins/tao-dev/skills/tao-dev/references/review-runs.md)，这里说明实现边界：
+
+- `.tao/workflows/<CHG>.json` 保存阶段、批准、产物入口、工作分支和必要恢复记录；写入采用锁与版本条件，防止旧会话覆盖新进度。正式 TASK 仍在计划内，客户端 UI 状态由其重建。
+- 批准绑定文档契约；任务完成勾选、任务证据和明确的执行结果区域不改变原计划契约。契约变化使受影响的批准失效。状态记录决定，不提供身份认证或伪造用户批准。
+- status 只读；continue 先协调实际文件、任务、证据和进程，再登记恢复。handoff 是保留的正式文档，通过内容版本识别是否已协调，不自动删除或重放下一步。
+- review-preview 以固定分支起点计算累计修改，显式覆盖工作树与 index；review-begin 固定所选输入和上下文快照并登记预算，review-end 记录实际报告。并行调度仍由 agent 执行，CLI 不调用模型；调度记录不代替来源校验的正式审查记录。
+- 完整隔离流程当前依赖 Git；基本文档校验和配置检查保持独立，不预建其他 VCS 适配框架。
 
 ### 自动选择与公共执行契约
 
@@ -114,7 +103,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 
 接入由 agent 优先发现并复用现有构建、测试、CI 和项目约定，不把工具清单交给用户逐项勾选。只有目标、预算或权限等无法从已有信息确定的关键选择才询问；策略确定后日常调用自动复用，不静默降低既有门槛。
 
-普通用户不选择类型、范围或级别。以下选项供 skill、hook、CI 或排障按需使用：
+以下底层验证选项供 skill、hook、CI 或排障使用；语义审查的范围和方式通过 review 动作的提问确定：
 
 | 选项 | 意义与限制 |
 |---|---|
@@ -139,7 +128,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 
 #### 环境与写入边界
 
-项目根由显式 `--project <path>` 或当前目录向上最近的 `.tao/config.toml` 确定。无配置时 doctor、id new、show 和 `verify --only docs` 可以在显式给定的项目根工作；完整验证缺少策略或目标时说明需补齐的信息，不擅自创建全局配置。
+项目根由显式 `--project <path>` 或当前目录向上最近的 `.tao/config.toml` 或 `.tao/workflows/` 确定。无配置时 doctor、id new、show 和 `verify --only docs` 可以在显式给定的项目根工作；完整验证缺少策略或目标时说明需补齐的信息，不擅自创建全局配置。
 
 Python 枚举、Markdown AST、日历解析与 `secrets` 安全随机源是正确性路径；`rg` 只作可选加速，不以全文命中决定正式定义或 ID 分配。VCS 是可选基线来源，Sphinx 是可选出版依赖，没有它们仍可执行文档子集。枚举当前文件包含未跟踪内容，不用 VCS 跟踪列表代替受检范围。
 
