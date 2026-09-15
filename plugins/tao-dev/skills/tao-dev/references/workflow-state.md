@@ -37,3 +37,17 @@ tao --project <root> workflow start --slug <slug> --summary <目标> --locale <�
 创建计划时使用 `tao new --slug <原 slug> --change <CHG-ID>`，沿用开发事项身份、日期、语言和预留路径。已有设计附件不阻止本事项创建计划；已有计划一律不覆盖。未使用工作流状态的已有计划仍可直接使用原 CLI。
 
 CHG 表示开发事项，plan 表示实施计划。计划出现前，状态提供 CHG 引用目标；计划出现后，正式文档中的定义成为展示入口。不能用是否存在 plan.md 来推断整个任务是否存在或已获准实现。
+
+## handoff 与 continue
+
+`tao handoff <CHG-ID> --from <摘要文件>` 接受 handoff profile，计划前也可保存到预留计划的同名附件目录。返回可点击路径，由 agent 提示在对应项目内用 `continue` 恢复；多个任务时附上这个实际路径。正式 handoff 默认随项目保留，不加入忽略规则，不复制完整会话，也不自动提交或传送未提交源码。
+
+continue 先读取 status、对应产物及 handoff，核对当前进度、批准时效、未完成修改、测试证据和记录的运行中操作。不能仅凭旧摘要重做已完成任务或重新启动仍活跃的进程。确认核对完成后：
+
+```text
+tao workflow resume <CHG-ID> --expect <revision> --decision <核对结果> --handoff-digest <status 返回的摘要>
+```
+
+不存在 handoff 时省略 --handoff-digest。此操作只记录恢复检查点，保留当前阶段、下一步和任务进度，不删除 handoff、不自动批准下一阶段。文件在核对后改变会拒绝接续；新版本显示 unread，已接续版本显示 resumed。再次 continue 从新检查点继续，旧摘要只作背景。保存 handoff 后如状态更新冲突，文档仍保留，status 可按固定位置重新发现。
+
+没有 handoff 时仍从状态及实际产物恢复；缺少的会话讨论不能凭空还原。状态文件也丢失时先调查现有分支和文档，向用户列出能确认的阶段与缺失决定，不能用文件存在推断批准。整个机制不提供进程保活、文件备份或跨机器传输。

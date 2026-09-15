@@ -57,10 +57,21 @@ def artifact_digest(project, state, phase):
     return digest_json([(name, file_digest(contained(project.root, name))) for name in names]) if names else None
 
 
+def handoff_observation(project, state):
+    path = (Path(state['plan_path']).with_suffix('') / 'handoff.md').as_posix()
+    target = contained(project.root, path)
+    if not target.is_file():
+        return {'handoff_state': 'missing' if state.get('handoff') else 'absent', 'handoff_path': path, 'handoff_digest': None}
+    digest = file_digest(target)
+    previous = state.get('resumed_handoff') or {}
+    return {'handoff_state': 'resumed' if previous.get('digest') == digest and previous.get('path') == path else 'unread',
+            'handoff_path': path, 'handoff_digest': digest}
+
+
 def observe(project, state):
     stale = [phase for phase, approval in state['approvals'].items()
              if phase in DOC_PHASES and artifact_digest(project, state, phase) != approval['digest']]
-    return state | {'project': str(project.root), 'stale_approvals': stale,
+    return state | handoff_observation(project, state) | {'project': str(project.root), 'stale_approvals': stale,
                     'next_action': 'refine' if stale else 'continue',
                     'observation': 'Read-only; inspect live operations and actual files before resuming.'}
 
@@ -195,6 +206,20 @@ def revise(project, identity, expected, phase, decision):
     return mutate(project, identity, expected, edit)
 
 
+def resume(project, identity, expected, decision, handoff_digest=None):
+    text(decision)
+    def edit(owner, state):
+        observed = handoff_observation(owner, state)
+        if observed['handoff_digest'] != handoff_digest:
+            raise ConflictError('Handoff changed since inspection; read and reconcile its current content first.')
+        if observed['handoff_digest']:
+            state['resumed_handoff'] = {'path': observed['handoff_path'], 'digest': observed['handoff_digest'],
+                                        'revision': state['revision'], 'decision': decision}
+        state['recovery'] = decision
+        # Keep phase, current next step, approvals and all actual task progress.
+    return mutate(project, identity, expected, edit)
+
+
 def dispatch(project, args):
     if args.operation == 'start':
         return start(project, args.slug, args.summary, args.locale, args.decision, args.worktree)
@@ -202,6 +227,8 @@ def dispatch(project, args):
         return {'workflows': status(project, args.change)}
     if args.operation == 'checkpoint':
         return checkpoint(project, args.change, args.expect, load(contained(project.root, args.source)))
+    if args.operation == 'resume':
+        return resume(project, args.change, args.expect, args.decision, args.handoff_digest)
     if args.operation == 'advance':
         return advance(project, args.change, args.expect, args.decision, args.doc_review)
     return revise(project, args.change, args.expect, args.phase, args.decision)

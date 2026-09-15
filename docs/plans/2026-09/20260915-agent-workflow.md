@@ -40,10 +40,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 中断恢复、过期批准、并发修改和 Git worktree 隔离测试。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_TCBW79Y67NJV58SM` 完善 handoff 与继续恢复：支持计划前交接；核对后标记接续版本，不删除正式交接文件。
+- [x] `TASK_20260915_TCBW79Y67NJV58SM` 完善 handoff 与继续恢复：支持计划前交接；核对后标记接续版本，不删除正式交接文件。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_A06VK7REAK7AN8AS"]
   - verify: 计划前交接、重复恢复、新交接版本和旧状态冲突测试。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_EC0WZ5Z2TNFB3HR2` 实现项目接入与检查探测：提供只读技术栈/工具探测、最小配置写入及幂等接入；安装选择由 agent 执行。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -73,6 +74,8 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 命名迁移：先观察新增 plans 配置用例因旧键拒绝而失败，迁移后 109 项文档、CLI、关系、退役与出版回归全部通过。所有正式 ID 保持不变。
 
 工作流状态：113 项阶段、CLI、文档、关系、退役和项目边界回归通过，Ruff 核心规则通过。覆盖无计划起步、内容变更使批准过期、检查点并发冲突、复用 CHG 与真实 Git worktree/fork。
+
+交接恢复：29 项工作流、handoff 与 CLI 回归通过。计划前可保存正式交接；重复恢复保留新进度；读取后 handoff 变化会拒绝旧摘要接续；不自动删除文件。
 
 <!-- tao:section questions -->
 ## 未决问题

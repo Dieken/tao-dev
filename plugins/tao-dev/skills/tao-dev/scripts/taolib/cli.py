@@ -59,7 +59,7 @@ def arguments(argv):
     begin.add_argument("--worktree", action="store_true")
     state = operations.add_parser("status", parents=[common])
     state.add_argument("change", nargs="?")
-    for operation in ("checkpoint", "advance", "revise"):
+    for operation in ("checkpoint", "advance", "revise", "resume"):
         command = operations.add_parser(operation, parents=[common])
         command.add_argument("change")
         command.add_argument("--expect", type=int, required=True)
@@ -69,7 +69,9 @@ def arguments(argv):
             command.add_argument("--decision", required=True)
             if operation == "advance":
                 command.add_argument("--doc-review", choices=("completed", "skipped"))
-            else:
+            elif operation == "resume":
+                command.add_argument("--handoff-digest")
+            elif operation == "revise":
                 command.add_argument("--phase", choices=workflows.DOC_PHASES, required=True)
     status = commands.add_parser("status", parents=[common])
     status.add_argument("change", nargs="?")
