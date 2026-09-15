@@ -5,6 +5,8 @@ title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
 created: "{{CREATED}}"
+# Before stage approval, add spec_docs: [<spec DOC ID>].
+# Also add design_docs: [<design DOC ID>]; tasks_doc is optional.
 change: "{{CHG_ID}}"
 ---
 

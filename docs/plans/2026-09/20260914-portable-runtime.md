@@ -6,6 +6,8 @@ locale: zh-Hans
 status: draft
 created: "2026-09-14"
 change: CHG_20260914_3RC5QW89C26B69MA
+spec_docs: ["DOC_20260914_E1B61A3F8V1TYAZB"]
+design_docs: ["DOC_20260915_P8J10N4KDFYZY2EN", "DOC_20260914_7RJ1YVEC0CP478BY"]
 ---
 
 # 可独立准备的插件运行环境
@@ -16,12 +18,14 @@ change: CHG_20260914_3RC5QW89C26B69MA
 落实无需 uv 的插件运行与明确的作用域边界；实施依赖统一、标准库启动与环境准备、两端接入和隔离验收。保留现有文档格式及业务命令，不引入插件安装器、系统 Python 下载器或后台服务。
 
 <!-- tao:section references -->
-## 规格引用
+## 规格依据
 
-需求见 [插件运行环境](../../product/runtime.md)，长期决定为 {need}`ADR_20260914_Z19W6HRG4MWQM97A`。
+{need}`DOC_20260914_E1B61A3F8V1TYAZB`。
 
 <!-- tao:section design -->
 ## 设计
+
+设计依据：{need}`DOC_20260915_P8J10N4KDFYZY2EN`；{need}`DOC_20260914_7RJ1YVEC0CP478BY`。
 
 开发依赖在 pyproject.toml 唯一定义，uv.lock 锁定；核心及核心加出版两份 requirements 自动导出。开发使用 .venv，发布包无需 uv 或开发目录。
 

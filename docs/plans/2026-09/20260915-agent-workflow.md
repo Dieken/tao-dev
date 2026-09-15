@@ -6,6 +6,8 @@ locale: zh-Hans
 status: draft
 created: "2026-09-15"
 change: CHG_20260915_0M6WRQNJ6CCANQ70
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197"]
 ---
 
 # Agent 内开发工作流
@@ -16,12 +18,14 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 落实用户确认的 agent 内开发周期：可选项目接入、业务澄清、隔离工作副本、spec/design/plan 检查点、自动实现、有限审查、恢复交接与显式收尾。保持完整安装入口，Git 是完整流程的首个实现，不新增 VCS 框架或供应商。每个边界清楚的增量独立验证和提交。
 
 <!-- tao:section references -->
-## 依据
+## 规格依据
 
-依据本会话已确认的九项设计决定，以及 [工程规程](../../../plugins/tao-dev/skills/tao-dev/references/engineering.md) 与 [现有流程](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md)。用户已授权逐项实施；不再要求重复批准这份清单。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`。
 
 <!-- tao:section design -->
 ## 实施设计
+
+设计依据：{need}`DOC_20260914_AG3NSZ8RBSFA0YHW`；{need}`DOC_20260914_0VF190409FQCN197`。
 
 复用已有文档注册表、原子文件操作和配置检查执行层。阶段及批准版本存入项目内工作流状态；正式交接和项目知识保留为文档，日志与缓存留在忽略目录。命令包装只转发动作，共享规程是 agent 行为的唯一来源。审查默认初审加一次定向复核，输入变化后不复用旧结论。新 CLI 能力通过行为测试后才写成已支持。
 

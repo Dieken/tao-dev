@@ -103,7 +103,15 @@ def plan_contract(content):
 
 
 def artifact_digest(project, state, phase):
-    names = state['artifacts'].get(phase, [])
+    names = list(state['artifacts'].get(phase, []))
+    if phase == 'plan' and names:
+        from .documents import validate
+        result = validate(project.root, project.sources())
+        for name in list(names):
+            doc = result.documents.get(name)
+            target = result.definitions.get(doc.metadata.get('tasks_doc')) if doc else None
+            if target and target.path not in names:
+                names.append(target.path)
     rows = []
     for name in names:
         path = contained(project.root, name)
@@ -239,9 +247,25 @@ def advance(project, identity, expected, decision, doc_review=None):
             result = validate(owner.root, owner.sources())
             if not result.valid:
                 raise ConflictError('Managed documents must validate before stage approval.')
+            from .documents import ASSETS
+            registry = json.loads((ASSETS / 'document-profiles.json').read_text())
             expected_schema = f'tao.project.{phase}/v0.1'
             if any(name not in result.documents or result.documents[name].metadata['schema'] != expected_schema for name in names):
                 raise ConflictError('Stage artifacts must use the matching document profile.')
+            profile = registry['profiles'][expected_schema]
+            for key in profile.get('approval_requires', []):
+                role = {'spec_docs': 'spec', 'design_docs': 'design'}[key]
+                expected_ids = {result.documents[n].metadata['id'] for n in state['artifacts'].get(role, []) if n in result.documents}
+                linked = set()
+                for name in names:
+                    values = result.documents[name].metadata.get(key, [])
+                    if not values or not expected_ids.intersection(values):
+                        raise ConflictError('Link '+key+' to the approved stage documents before advancing.')
+                    linked.update(values)
+                if not expected_ids or not expected_ids.issubset(linked):
+                    raise ConflictError('The '+key+' relationship must cover the approved stage documents.')
+            if phase == 'plan' and any(result.documents[n].metadata.get('change') != identity for n in names):
+                raise ConflictError('Plan documents must belong to this workflow change.')
             if phase == 'plan' and doc_review not in ('completed', 'skipped'):
                 raise ConflictError('Record the user decision about document review before implementation.')
             if phase == 'plan' and doc_review == 'completed':

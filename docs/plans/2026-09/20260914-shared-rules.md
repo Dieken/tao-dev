@@ -6,6 +6,8 @@ locale: "zh-Hans"
 status: draft
 created: "2026-09-14"
 change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_Y5RR8BVF6065JTYP"]
 ---
 
 # 共享文档规则归位
@@ -16,12 +18,14 @@ change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 把通用文档规则作为 skill 的权威分发内容，让本项目从源码入口和 skill 提供的模板开始自举。保持项目内容与标识符稳定；正式校验器和平台行为验收不属于本次交付。
 
 <!-- tao:section references -->
-## 规格引用
+## 规格依据
 
-项目依据见 [协作开发协议](../../product/protocol.md) 的文档统一格式、信息单一来源及自举需求。运行规则由 [文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md) 与同包注册表定义。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`。
 
 <!-- tao:section design -->
 ## 设计
+
+设计依据：{need}`DOC_20260914_P1G9T0KSCC0FTBM1`；{need}`DOC_20260914_Y5RR8BVF6065JTYP`。
 
 文档组织、术语、诊断、本地化及出版规则的权威文本位于 skill 的 references，开发文档引用这些规则。按任务读取参考；仅复制插件根也可访问完整规则。项目需求、实现理由和开发任务仍留在 docs。AGENTS 指向本仓库 skill 源码，CLAUDE 导入同一入口，不进行安装或注册。交付文件采用共享 change／evidence profile；检查结论明确实际覆盖的格式。
 

@@ -6,6 +6,7 @@ locale: zh-Hans
 status: draft
 created: '2026-09-14'
 updated: "2026-09-16"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
 # tao 命令与流程接入

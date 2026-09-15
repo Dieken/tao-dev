@@ -148,13 +148,15 @@ class Validator:
                 continue
             if key.value in values:
                 self.error("TAO-DOC-001", path, line, Message('Duplicate metadata: {arg0}.', key.value))
-            if not isinstance(value, yaml.ScalarNode) or value.tag != "tag:yaml.org,2002:str":
+            if isinstance(value, yaml.SequenceNode) and all(isinstance(item, yaml.ScalarNode) and item.tag == "tag:yaml.org,2002:str" for item in value.value):
+                values[key.value] = [item.value for item in value.value]
+            elif not isinstance(value, yaml.ScalarNode) or value.tag != "tag:yaml.org,2002:str":
                 self.error("TAO-DOC-001", path, line, Message('{arg0} must be a string; quote dates.', key.value))
                 values[key.value] = None
             else:
                 values[key.value] = value.value
             locations[key.value] = line
-        profile = self.registry["profiles"].get(values.get("schema"))
+        profile = self.registry["profiles"].get(values.get("schema")) if isinstance(values.get("schema"), str) else None
         if profile is None:
             self.error("TAO-DOC-001", path, locations.get("schema", 2), Message('Unsupported schema: {arg0}.', repr(values.get('schema'))))
             return None
@@ -165,7 +167,16 @@ class Validator:
             value, line = values.get(key), locations.get(key, 2)
             if key not in values and not rule.get("required"):
                 continue
+            if rule["type"] == "array":
+                if not isinstance(value, list) or not value or any(not isinstance(item, str) for item in value) or len(value) != len(set(value)):
+                    self.error("TAO-DOC-001", path, line, Message('{arg0} requires distinct nonempty IDs.', key))
+                    values[key] = []
+                else:
+                    for item in value:
+                        self.reference(item, [rule["prefix"]], path, line, key, values.get("id"))
+                continue
             if not isinstance(value, str) or not value.strip():
+                values[key] = None
                 self.error("TAO-DOC-001", path, line, Message('{arg0} requires a nonempty string.', key))
                 continue
             if rule.get("enum") and value not in rule["enum"]:
@@ -186,7 +197,7 @@ class Validator:
                 if rule["role"] == "definition":
                     self.define(value, path, line, values.get("status", "draft"), values.get("title", ""))
                 else:
-                    self.reference(value, [rule["prefix"]], path, line)
+                    self.reference(value, [rule["prefix"]], path, line, key, values.get("id"))
         if valid_date(values.get("created")) and valid_date(values.get("updated")) and values["updated"] < values["created"]:
             self.error("TAO-DOC-001", path, locations["updated"], "updated precedes created.")
         return values, profile, "".join(lines[end + 1:]), end + 1
