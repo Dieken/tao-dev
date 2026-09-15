@@ -1,6 +1,7 @@
 """Git-specific workspace operations; ordinary document checks need no VCS."""
 from pathlib import Path
 import subprocess
+from tao_messages import Message
 from .project import ConfigurationError, ConflictError, Project, contained, create_file
 
 
@@ -10,7 +11,7 @@ def run(root, *args, required=True):
     except (OSError, subprocess.TimeoutExpired) as exc:
         if not required:
             return None
-        raise ConfigurationError(f'Git operation unavailable: {exc}') from exc
+        raise ConfigurationError(Message('Git operation unavailable: {arg0}', str(exc))) from exc
     if result.returncode:
         if not required:
             return None
