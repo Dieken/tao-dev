@@ -51,6 +51,7 @@ class Document:
     section_titles: dict[str, str] = field(default_factory=dict)
     tasks: list[str] = field(default_factory=list)
     navigation: list[str] = field(default_factory=list)
+    terms: list[dict] = field(default_factory=list)
 
 
 @dataclass

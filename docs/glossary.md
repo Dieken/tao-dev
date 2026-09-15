@@ -14,7 +14,14 @@ created: '2026-09-14'
 <!-- tao:section terms -->
 ## 术语与类型
 
-标识符、对象同一性、规格、设计、证据与审查等概念统一见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。本项目的“自举”指用本仓库内的 skill 源码及其规则开发 tao-dev；无需将产品全局安装。
+标识符、对象同一性、规格、设计、证据与审查等概念统一见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。
+
+```{term} 自举
+:english: Self-hosting
+:scope: tao-dev development
+
+用本仓库内的 skill 源码及其规则开发 tao-dev；无需将产品全局安装。
+```
 
 ### ID 类型前缀
 

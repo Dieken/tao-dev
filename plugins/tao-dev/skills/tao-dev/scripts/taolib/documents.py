@@ -15,7 +15,7 @@ import yaml
 from markdown_it import MarkdownIt
 
 from .model import Definition, Diagnostic, Document, Reference, Result
-from . import relationships
+from . import relationships, glossary
 from tao_messages import diagnostic, Message
 
 
@@ -307,6 +307,8 @@ class Validator:
                     self.entity(token, section, path, offset)
                 elif re.match(r"\{(?:chg|evd)\}", token.info):
                     self.error("TAO-ENTITY-001", path, line, "CHG and EVD are defined only in frontmatter.")
+                elif re.match(r"\{term\}(?:\s|$)", token.info):
+                    glossary.term(self, token, section, doc, offset)
                 elif token.info.strip() == "{toctree}":
                     navigation_count += 1
                     relationships.navigation(self, token, section, doc, offset)
