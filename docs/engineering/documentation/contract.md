@@ -6,6 +6,7 @@ locale: zh-Hans
 status: draft
 created: '2026-09-14'
 updated: "2026-09-15"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
 # Markdown 文档契约
@@ -39,6 +40,14 @@ updated: "2026-09-15"
 出版层复用 taolib 的源文档索引，以同一份定义和关系生成条目引用、稳定锚点及 refs/ 解析页。PDF 和第三方编辑器表现不由 HTML 构建结果推导。
 
 出版适配将源文的章节键与条目定义转换为 MyST 显式目标或等价 AST 节点；已有显式标签须校验一致，避免重复注入。仅设置 html_permalinks 不足以保证复制稳定链接，需要实际检查主题行为。实现依据见 [MyST 显式目标](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html#creating-explicit-targets) 与 [Sphinx 永久链接](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_permalinks)。这些实现选择供 tao-dev 开发维护使用；使用方只需读取 skill 中的链接与出版结果规程。
+
+### 类型化文档关系
+
+规格是行为依据，设计通过 spec_docs 关联规格，计划通过 spec_docs/design_docs 关联本次依据，任务内嵌或由 tasks_doc 唯一指定。字段、目标类型及数组约束以分发注册表为准；正文的一般链接不自动推断成依据。每条关系只维护正向定义，出版层据此生成类型与标题链接及反向入口，不把目录树当作业务依赖图。
+
+源校验允许关系尚未补齐的草稿；阶段批准要求相应字段存在并覆盖工作流已确认的上游文档。计划批准摘要还包含独立任务附件的契约，任务说明或依赖变化会使批准过期，完成勾选和执行证据本身不改变契约。
+
+项目受控词汇沿用 glossary profile，以有定义的 term 条目约束首选名称、可选代码名称、范围及不建议用词；不新增条目 ID 或全仓词语禁令。只收录有歧义或反复误用的跨文档概念。
 
 <!-- tao:section contracts -->
 ## 结构与条目

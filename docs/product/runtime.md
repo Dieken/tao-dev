@@ -12,7 +12,7 @@ created: "2026-09-14"
 <!-- tao:section scope -->
 ## 目标与边界
 
-为已安装的 agent 插件准备可诊断、可隔离的 Python 环境。无需 uv；Python 为显式前提。客户端管理安装作用域，不提供系统软件安装器、插件注册器或常驻服务。
+为已安装的 agent 插件准备可诊断、可隔离的 Python 环境。无需 uv；Python 为显式前提。完整 install 协调客户端注册与安装作用域，并准备 tao 专用依赖；不提供系统 Python 安装器或常驻服务。
 
 <!-- tao:section terms -->
 ## 术语

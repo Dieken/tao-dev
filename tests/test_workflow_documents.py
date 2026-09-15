@@ -12,7 +12,7 @@ def test_plan_can_reference_existing_shared_design_without_claiming_ownership(tm
     values = {'DOC_ID': identity, 'TITLE': 'Existing design', 'LOCALE': 'en', 'CREATED': '2026-09-14'}
     design = re.sub(r'\{\{([^}]+)\}\}', lambda m: values.get(m[1], 'Existing design contract.'), template)
     (tmp_path/'shared-design.md').write_text(design)
-    check_change(tmp_path, change().replace('change: '+CHG, 'change: '+CHG+'\ndesign_doc: '+identity))
+    check_change(tmp_path, change().replace('change: '+CHG, 'change: '+CHG+'\ndesign_docs: ["'+identity+'"]'))
     result = validate(tmp_path, list(tmp_path.rglob('*.md')))
     assert result.valid, result.to_dict()
 
@@ -20,12 +20,16 @@ def test_plan_can_reference_existing_shared_design_without_claiming_ownership(tm
 def test_task_progress_does_not_revoke_plan_but_task_contract_change_does(tmp_path, capsys):
     state = start(tmp_path, capsys)
     from taolib.workflows import mutate, advance, observe
+    from test_document_links import design, DESIGN
+    from test_documents import DOC
     from taolib.project import Project
-    check_change(tmp_path, change().replace(CHG, state['change']))
+    source = change().replace('change: '+CHG, 'change: '+state['change']+'\nspec_docs: ["'+DOC+'"]\ndesign_docs: ["'+DESIGN+'"]')
+    check_change(tmp_path, source.replace(CHG, state['change']))
+    (tmp_path/'docs/design.md').write_text(design(specs=[DOC]))
     (tmp_path/'spec.md').rename(tmp_path/'docs/spec.md')
     plan = tmp_path/'docs/plans/2026-09/20260914-export.md'
     def prepare(owner, current):
-        current.update(phase='plan', artifacts={'plan': [plan.relative_to(tmp_path).as_posix()]})
+        current.update(phase='plan', artifacts={'plan': [plan.relative_to(tmp_path).as_posix()], 'spec': ['docs/spec.md'], 'design': ['docs/design.md']})
     project = Project(tmp_path)
     state = mutate(project, state['change'], 1, prepare)
     state = advance(project, state['change'], state['revision'], 'Plan approved; skip optional docs review and implement', 'skipped')

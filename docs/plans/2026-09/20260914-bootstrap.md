@@ -6,6 +6,8 @@ locale: zh-Hans
 status: draft
 created: '2026-09-14'
 change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
+design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197", "DOC_20260914_7RJ1YVEC0CP478BY", "DOC_20260914_P1G9T0KSCC0FTBM1"]
 ---
 
 # 实现协作开发核心能力
@@ -18,10 +20,12 @@ change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
 <!-- tao:section references -->
 ## 规格依据
 
-项目需求见 {need}`DOC_20260914_4C7N0XHQSP7CY69P`；设计见 {need}`DOC_20260914_AG3NSZ8RBSFA0YHW`。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`；{need}`DOC_20260914_E1B61A3F8V1TYAZB`。
 
 <!-- tao:section design -->
 ## 实现约束
+
+设计依据：{need}`DOC_20260914_AG3NSZ8RBSFA0YHW`；{need}`DOC_20260914_0VF190409FQCN197`；{need}`DOC_20260914_7RJ1YVEC0CP478BY`；{need}`DOC_20260914_P1G9T0KSCC0FTBM1`。
 
 使用统一的版本化文档契约，以可复现的小增量验证工具和流程；运行源码与开发资料分开。具体接口见 [命令设计](../../engineering/cli-design.md)。
 

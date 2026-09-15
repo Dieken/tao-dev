@@ -6,6 +6,7 @@ locale: zh-Hans
 status: draft
 created: '2026-09-14'
 updated: "2026-09-16"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
 # 协作流程与架构决定

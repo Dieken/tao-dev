@@ -90,13 +90,25 @@ def attachments(validator):
         if len(doc.tasks) < profile.get("minimum_tasks", 0):
             validator.error("TAO-TASK-001", doc.path, 1, "This profile requires at least one task.")
         total_tasks = len(doc.tasks)
+        for key, rule in profile['metadata'].items():
+            if not rule.get('target_profile'):
+                continue
+            targets = doc.metadata.get(key, []) if rule['type'] == 'array' else [doc.metadata.get(key)]
+            for identity in targets:
+                target = by_id.get(identity)
+                if target is None:
+                    continue
+                if target.metadata['schema'] != rule['target_profile']:
+                    validator.error('TAO-REF-002', doc.path, 1, Message('{arg0} must select the matching profile and change back-reference.', key))
+                if key == 'design_docs' and target.metadata.get('change') not in (None, doc.metadata.get('change')):
+                    validator.error('TAO-REF-002', doc.path, 1, 'A dedicated design must belong to the same change; shared designs omit change.')
         for key, rule in profile.get("attachments", {}).items():
             if key not in doc.metadata:
                 continue
             target = by_id.get(doc.metadata[key])
             if target is None:
                 continue  # The reference resolver reports this root error.
-            if target.metadata["schema"] != rule["profile"] or ((key != "design_doc" or target.metadata.get("change") is not None) and target.metadata.get("change") != doc.metadata.get("change")):
+            if target.metadata["schema"] != rule["profile"] or target.metadata.get("change") != doc.metadata.get("change"):
                 validator.error("TAO-REF-002", doc.path, 1, Message('{arg0} must select the matching profile and change back-reference.', key))
             if key == "tasks_doc":
                 total_tasks += len(target.tasks)

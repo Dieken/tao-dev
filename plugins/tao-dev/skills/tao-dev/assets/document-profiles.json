@@ -257,30 +257,41 @@
           "role": "definition",
           "required": true
         },
-        "design_doc": {
-          "type": "id",
-          "prefix": "DOC",
-          "role": "reference",
-          "required": false
-        },
         "tasks_doc": {
           "type": "id",
           "prefix": "DOC",
           "role": "reference",
-          "required": false
+          "required": false,
+          "target_profile": "tao.project.tasks/v0.1"
+        },
+        "spec_docs": {
+          "type": "array",
+          "items": "id",
+          "prefix": "DOC",
+          "role": "reference",
+          "required": false,
+          "target_profile": "tao.project.spec/v0.1"
+        },
+        "design_docs": {
+          "type": "array",
+          "items": "id",
+          "prefix": "DOC",
+          "role": "reference",
+          "required": false,
+          "target_profile": "tao.project.design/v0.1"
         }
       },
       "requires_task_set": true,
       "attachments": {
-        "design_doc": {
-          "profile": "tao.project.design/v0.1",
-          "section": "design"
-        },
         "tasks_doc": {
           "profile": "tao.project.tasks/v0.1",
           "section": "tasks"
         }
-      }
+      },
+      "approval_requires": [
+        "spec_docs",
+        "design_docs"
+      ]
     },
     "tao.project.design/v0.1": {
       "template": "templates/design.md",
@@ -298,8 +309,19 @@
           "prefix": "CHG",
           "role": "reference",
           "required": false
+        },
+        "spec_docs": {
+          "type": "array",
+          "items": "id",
+          "prefix": "DOC",
+          "role": "reference",
+          "required": false,
+          "target_profile": "tao.project.spec/v0.1"
         }
-      }
+      },
+      "approval_requires": [
+        "spec_docs"
+      ]
     },
     "tao.project.tasks/v0.1": {
       "template": "templates/tasks.md",

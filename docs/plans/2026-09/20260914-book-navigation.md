@@ -6,6 +6,8 @@ locale: "zh-Hans"
 status: draft
 created: "2026-09-14"
 change: "CHG_20260914_AR8DMCNHNEHNGWWV"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_Y5RR8BVF6065JTYP", "DOC_20260914_P1G9T0KSCC0FTBM1"]
 ---
 
 # 篇章层级与统一目录页
@@ -16,12 +18,14 @@ change: "CHG_20260914_AR8DMCNHNEHNGWWV"
 为使用方文档增加篇、章与内容页的组织规则及统一目录模板，保持阅读顺序、正文位置和全局标识符的单一来源。本次范围为组织规则、目录模板与静态验收，不包含出版器实现。
 
 <!-- tao:section references -->
-## 规格引用
+## 规格依据
 
-需求依据见 [协作开发协议](../../product/protocol.md) 中的信息单一来源、统一文档格式及持续成书要求；实现取舍见 [组织设计](../../engineering/documentation/layout.md)。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`。
 
 <!-- tao:section design -->
 ## 设计
+
+设计依据：{need}`DOC_20260914_Y5RR8BVF6065JTYP`；{need}`DOC_20260914_P1G9T0KSCC0FTBM1`。
 
 篇按读者与职责分组，章按能力、子系统或操作主题分组；小章保持单页，多页章使用 navigation 目录页。MyST toctree 唯一维护父子关系与顺序；机器注册表定义相应语法，显示文字使用同套中英文资源。正式 ID 不包含章节号；变更文档按创建月份分组，文件名使用创建日期与语义 slug。
 

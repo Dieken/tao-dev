@@ -6,6 +6,7 @@ locale: zh-Hans
 status: draft
 created: '2026-09-14'
 updated: "2026-09-15"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 ---
 
 # 插件打包与运行环境

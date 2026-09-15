@@ -6,6 +6,8 @@ locale: zh-Hans
 status: draft
 created: "2026-09-16"
 change: CHG_20260916_4ZTBQCAS0SR9KGTY
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 ---
 
 # 文档关联与工作流使用体验
@@ -18,10 +20,12 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
 <!-- tao:section references -->
 ## 规格依据
 
-规格见 [协作开发协议](../../product/protocol.md)，设计见 [文档契约](../../engineering/documentation/contract.md) 与 [命令设计](../../engineering/cli-design.md)。本计划记录已批准的实施范围；具体契约与关系在相应权威文档维护。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`。
 
 <!-- tao:section design -->
 ## 设计引用
+
+设计依据：{need}`DOC_20260914_P1G9T0KSCC0FTBM1`；{need}`DOC_20260914_0VF190409FQCN197`。
 
 文档关系由 profile 定义并校验，出版层生成可读链接及反向关系；复用已有术语表类型。审查批次独立保存预算与历史，续审保持原预算。动作分派与写入批准统一在流程规程维护。
 
@@ -52,10 +56,11 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
   - verify: 跨会话续审、新阶段审查及预算耗尽反例。
   - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
-- [ ] `TASK_20260916_D0XMQ8AB9DWAC60R` 补齐类型化文档关系及现有依据。
+- [x] `TASK_20260916_D0XMQ8AB9DWAC60R` 补齐类型化文档关系及现有依据。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
   - depends_on: []
   - verify: 引用类型、多目标、阶段完整性与现有文档校验。
+  - evidence: [验证记录](#DOC_20260916_M4PCSTFN67XY86TX--verification)
 
 - [ ] `TASK_20260916_6HZF4R0B3VK98K33` 生成可读的文档与任务关联链接。
   - relates: ["CHG_20260916_4ZTBQCAS0SR9KGTY"]
@@ -71,6 +76,8 @@ change: CHG_20260916_4ZTBQCAS0SR9KGTY
 ## 验证记录
 
 逐项记录实际执行结果；原始报告放入忽略的 tmp/tao/。
+
+文档关系：93 项源格式、关系、阶段与项目契约回归通过；33 份实际文档校验通过。六份设计和七份计划补齐结构化依据，独立任务附件的契约变化会使计划批准过期。
 
 审查预算：15 项审查与工作流回归通过。新增反例确认独立新批次重置预算并保留旧记录；续审不重置，仍在运行的批次不能被新批次覆盖。
 

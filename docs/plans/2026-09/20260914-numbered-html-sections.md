@@ -6,6 +6,8 @@ locale: zh-Hans
 status: draft
 created: "2026-09-14"
 change: CHG_20260914_4FMEGWFGCT4HCYPN
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_Y5RR8BVF6065JTYP", "DOC_20260914_P1G9T0KSCC0FTBM1"]
 ---
 
 # Sphinx HTML 章节显示编号
@@ -18,12 +20,14 @@ change: CHG_20260914_4FMEGWFGCT4HCYPN
 本次修改覆盖 Sphinx HTML 构建、出版回归测试和随 skill 分发的文档规程。不改变源 Markdown schema、ID 格式、目录文件命名、PDF 行为或外部站点迁移规则。
 
 <!-- tao:section references -->
-## 规格引用
+## 规格依据
 
-文档层级、阅读顺序和显示编号的既有约束见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)；稳定锚点和实际 HTML 验收见 [出版规程](../../../plugins/tao-dev/skills/tao-dev/references/publication.md)。
+{need}`DOC_20260914_4C7N0XHQSP7CY69P`。
 
 <!-- tao:section design -->
 ## 设计
+
+设计依据：{need}`DOC_20260914_Y5RR8BVF6065JTYP`；{need}`DOC_20260914_P1G9T0KSCC0FTBM1`。
 
 Sphinx 扩展先在根 toctree 的 AST 节点上设置 `numbered`，启动 Sphinx 对正文和导航的完整编号流程。标准目录收集完成后，扩展读取已校验的导航图，为每份页面分配由父级位置和同级顺序组成的编号，再从页面目录节点生成内容章节的后续层级，并把结果同步到标题编号表和 TOC 引用节点。navigation 页本身取得所在篇章编号，但固定的导读和目录标题显式不编号，避免结构性包装制造虚假深度。目录顺序仍由源 toctree 唯一决定；使用方不需要在每份导航文档重复填写出版选项。
 
