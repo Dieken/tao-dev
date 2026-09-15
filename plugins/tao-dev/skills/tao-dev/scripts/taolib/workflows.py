@@ -298,7 +298,7 @@ def dispatch(project, args):
         source = load(contained(owner.root, args.source))
         if args.operation == 'review-begin':
             return review_runs.begin(owner, args.change, args.expect, source, args.mode, args.reviewers,
-                                     args.decision, args.max_rounds, args.budget_seconds)
+                                     args.decision, args.max_rounds, args.budget_seconds, args.new_batch)
         return review_runs.finish(owner, args.change, args.expect, source)
     if args.operation == 'start':
         return start(project, args.slug, args.summary, args.locale, args.decision, args.worktree)

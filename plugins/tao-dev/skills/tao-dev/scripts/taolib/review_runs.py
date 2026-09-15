@@ -91,7 +91,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
             'instruction': 'Confirm this scope before starting. The snapshot includes unchanged context; inspect relevant callers and authoritative documents. No review has run.'}
 
 
-def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, budget_seconds=None):
+def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, budget_seconds=None, new_batch=False):
     workflows.text(decision)
     if mode not in ('serial', 'parallel') or type(reviewers) is not int or not 1 <= reviewers <= 3 or (mode == 'serial' and reviewers != 1):
         raise ConfigurationError('Use one serial reviewer or up to three parallel reviewers.')
@@ -108,8 +108,11 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
         series = state['reviews'].get(key)
         if any(s['runs'] and s['runs'][-1]['outcome'] == 'running' for s in state['reviews'].values()):
             raise ConflictError('A review is still recorded as running; reconcile its result or failure first.')
-        if series is None:
-            series = {'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
+        if series is not None and new_batch:
+            state.setdefault('review_history', {}).setdefault(key, []).append(series)
+        if series is None or new_batch:
+            series = {'id': uuid.uuid4().hex, 'phase': state['phase'], 'decision': decision,
+                      'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
                       'budget_seconds': budget_seconds or 1800, 'runs': [], 'budget_decisions': []}
         for field, value in (('max_rounds', max_rounds), ('budget_seconds', budget_seconds)):
             if value is not None:
