@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import queue
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +18,7 @@ import threading
 import time
 import tomllib
 from contextlib import nullcontext
+from pathlib import Path
 
 
 class ClientError(ValueError):
@@ -183,6 +184,67 @@ def _valid_id(plugin_id):
     return marketplace
 
 
+def _command_line(argv, *, windows=None):
+    """Serialize argv for the shell used by a Codex command hook."""
+    values = [str(value) for value in argv]
+    windows = os.name == 'nt' if windows is None else windows
+    return subprocess.list2cmdline(values) if windows else shlex.join(values)
+
+
+def _bind_hook(client, plugin, python):
+    """Replace the portable hook command with this installation's exact paths."""
+    plugin = Path(plugin).resolve()
+    python = Path(python).resolve()
+    script = plugin / 'skills/tao-dev/scripts/hook.py'
+    relative = Path('hooks/hooks.json' if client == 'claude' else 'com.openai/hooks/hooks.json')
+    path = plugin / relative
+    if (client not in ('claude', 'codex') or path.is_symlink() or script.is_symlink()
+            or not path.is_file() or not script.is_file()
+            or not path.resolve().is_relative_to(plugin)):
+        raise ClientError('Cannot bind an invalid tao-dev hook installation')
+    definition = _read_json(path)
+    try:
+        groups = definition['hooks']['PostToolUse']
+        group = groups[0]
+        handlers = group['hooks']
+        handler = handlers[0]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ClientError('Cannot bind an invalid tao-dev hook definition') from exc
+    handler_keys = {'type', 'command', 'args', 'timeout'} if client == 'claude' else {
+        'type', 'command', 'timeout'}
+    if (set(definition) != {'hooks'} or set(definition.get('hooks', {})) != {'PostToolUse'}
+            or len(groups) != 1 or set(group) != {'matcher', 'hooks'}
+            or group.get('matcher') != ('Write|Edit' if client == 'claude' else 'Write|Edit|apply_patch')
+            or len(handlers) != 1 or set(handler) != handler_keys
+            or handler.get('type') != 'command' or handler.get('timeout') != 35):
+        raise ClientError('Cannot bind an unexpected tao-dev hook definition')
+    if client == 'claude':
+        portable = ('python3', ['-I', '-B', '${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py'])
+        bound = (str(python), ['-I', '-B', str(script)])
+        if (handler.get('command'), handler.get('args')) not in (portable, bound):
+            raise ClientError('Cannot bind an unexpected tao-dev hook command')
+        handler['command'], handler['args'] = bound
+    else:
+        portable = 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+        bound = _command_line([python, '-I', '-B', script])
+        if handler.get('command') not in (portable, bound) or 'args' in handler or 'commandWindows' in handler:
+            raise ClientError('Cannot bind an unexpected tao-dev hook command')
+        handler['command'] = bound
+    original = path.read_bytes()
+    updated = (json.dumps(definition, indent=2) + '\n').encode()
+    if path.read_bytes() != original:
+        raise ClientError(f'Hook definition changed concurrently; retry: {path}')
+    descriptor, temporary = tempfile.mkstemp(prefix='.tao-hook-', dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
+            stream.write(updated)
+        os.chmod(temporary, path.stat().st_mode & 0o777)
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return path
+
+
 def _native_row(plugin_id, scope, project, plugin, version, files, *, enabled=True):
     return {'native': True, 'id': plugin_id, 'plugin_id': plugin_id, 'scope': scope,
             'project': str(project) if project is not None else None,
@@ -256,17 +318,18 @@ def discover(client, project):
     return result
 
 
-def _trust_hook(project, plugin_id, plugin):
+def _trust_hook(project, plugin_id, plugin, python=None):
     rows = _rpc('hooks/list', {'cwds': [str(project)]}, project).get('data', [])
     hooks = [hook for row in rows for hook in row.get('hooks', []) if hook.get('pluginId') == plugin_id]
     if any(row.get('errors') for row in rows) or len(hooks) != 1:
         raise ClientError('Cannot verify the exact installed tao-dev hook inventory')
     hook = hooks[0]
-    launcher = plugin / 'skills/tao-dev/scripts/tao-launch.sh'
-    expected = 'sh "' + str(launcher) + '" hook'
+    script = plugin / 'skills/tao-dev/scripts/hook.py'
+    expected = (_command_line([python, '-I', '-B', script]) if python is not None else
+                f'python3 -I -B "{script}"')
     source = Path(hook.get('sourcePath', '')).resolve()
-    if (not source.is_relative_to(plugin.resolve()) or not launcher.is_file() or
-            not launcher.resolve().is_relative_to(plugin.resolve()) or hook.get('command') != expected or
+    if (not source.is_relative_to(plugin.resolve()) or not script.is_file() or
+            not script.resolve().is_relative_to(plugin.resolve()) or hook.get('command') != expected or
             hook.get('eventName') != 'postToolUse' or hook.get('handlerType') != 'command' or
             hook.get('matcher') != 'Write|Edit|apply_patch' or hook.get('timeoutSec') != 35 or
             not hook.get('enabled') or hook.get('isManaged') or not hook.get('currentHash') or
@@ -333,7 +396,7 @@ def _check_claude_source(known, source, ref):
                           'use a distinct marketplace name or update the native registration explicitly')
 
 
-def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None):
+def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None):
     project = Path(project).expanduser().resolve()
     scope = validate_scope(client, scope, project)
     marketplace = _valid_id(plugin_id)
@@ -373,6 +436,8 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
             expected_base = home / 'plugins/cache' / marketplace / 'tao-dev'
             if not plugin.is_relative_to(expected_base) or plugin == expected_base:
                 raise ClientError(f'Claude installed tao-dev outside its expected native cache: {plugin}')
+            if python is not None:
+                _bind_hook(client, plugin, python)
             native = _run(['claude', 'plugin', 'list', '--json'], project)
             if not any(row.get('id') == plugin_id and row.get('scope') == scope and row.get('enabled') is True
                        and (scope == 'user' or Path(row.get('projectPath', '')).resolve() == project) for row in native):
@@ -417,10 +482,12 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
                 raise ClientError(f'Codex installed tao-dev outside its expected native cache: {plugin}')
             files.append(str(plugin.parent))
             version = _read_json(plugin / '.codex-plugin/plugin.json').get('version', plugin.name)
+            if python is not None:
+                _bind_hook(client, plugin, python)
             edits = [(_key('plugins', plugin_id, 'enabled'), True), ('features.hooks', True)]
             _write_config(activation, edits)
             files.append(str(activation))
-            files.extend(_trust_hook(project, plugin_id, plugin))
+            files.extend(_trust_hook(project, plugin_id, plugin, python))
             verification = _verify_skills(project, plugin_id, plugin)
             verification['native_hook_trusted'] = True
         return {'plugin_id': plugin_id, 'plugin_path': str(plugin), 'plugin_base': str(plugin.parent),

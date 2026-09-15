@@ -136,7 +136,7 @@ def trust_test_hook(workspace, inside, plugin):
     hook = hooks[0]
     source = Path(hook['sourcePath']).resolve()
     cache = source.parents[2]
-    expected = 'sh "' + str(cache / 'skills/tao-dev/scripts/tao-launch.sh') + '" hook'
+    expected = 'python3 -I -B "' + str(cache / 'skills/tao-dev/scripts/hook.py') + '"'
     if (not cache.is_relative_to((workspace / 'client-state').resolve()) or
             hook['pluginId'] != PLUGIN_ID or hook['eventName'] != 'postToolUse' or
             hook['handlerType'] != 'command' or hook['command'] != expected or

@@ -383,7 +383,8 @@ def install(args):
                     else:
                         marketplace = spec['location']
                     installed = clients.install_plugin(args.client, marketplace, plugin_id, args.scope, args.project,
-                                                       ref=spec.get('ref') if spec['kind'] == 'marketplace' else None)
+                                                       ref=spec.get('ref') if spec['kind'] == 'marketplace' else None,
+                                                       python=python)
                     files.extend(installed.get('files', []))
                     cached = Path(installed['plugin_path'])
                     receipt = dict(schema=1, id=identifier, client=args.client, scope=args.scope,

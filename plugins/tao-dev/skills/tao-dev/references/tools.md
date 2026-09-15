@@ -56,7 +56,7 @@ documents.include 与 documents.exclude 均按项目根目录使用 Python Path.
 
 Claude 插件提供 new、verify、status、handoff 斜杠命令及 reviewer 角色；它们引用共享运行规程。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。跨供应商审查以实际模型与来源为准。
 
-两端 PostToolUse 配置通过平台启动包装调用同一个 [hook 脚本](../scripts/hook.py)，再选择与 CLI 相同的核心运行环境。TAO_PYTHON 只选择基础解释器；未设置时包装查找 Python，依赖缺失时报告 not_run，不自动安装。脚本仅在当前项目已有 .tao/config.toml 时运行，只做 docs 子集反馈，不运行项目命令或模型。可配置：
+两端 PostToolUse 配置直接调用同一个 [hook 脚本](../scripts/hook.py)，再选择与 CLI 相同的已准备核心环境。静态 marketplace 配置从 PATH 查找 python3；tao install 将其改为已验证的解释器与脚本绝对路径。依赖缺失时报告 not_run，不自动创建 venv 或安装 package。脚本仅在当前项目已有 .tao/config.toml 时运行，只做 docs 子集反馈，不运行项目命令或模型。可配置：
 
 ```toml
 [hooks]
