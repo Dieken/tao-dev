@@ -1,0 +1,37 @@
+"""Published design reuse and task progress preserve the approved plan contract."""
+from pathlib import Path
+from taolib.documents import ASSETS, validate
+from test_relationships import change, check_change, CHG
+from test_workflows import start
+
+
+def test_plan_can_reference_existing_shared_design_without_claiming_ownership(tmp_path):
+    import re
+    identity = 'DOC_20260914_0000000000000008'
+    template = (ASSETS/'templates/design.md').read_text()
+    values = {'DOC_ID': identity, 'TITLE': 'Existing design', 'LOCALE': 'en', 'CREATED': '2026-09-14'}
+    design = re.sub(r'\{\{([^}]+)\}\}', lambda m: values.get(m[1], 'Existing design contract.'), template)
+    (tmp_path/'shared-design.md').write_text(design)
+    check_change(tmp_path, change().replace('change: '+CHG, 'change: '+CHG+'\ndesign_doc: '+identity))
+    result = validate(tmp_path, list(tmp_path.rglob('*.md')))
+    assert result.valid, result.to_dict()
+
+
+def test_task_progress_does_not_revoke_plan_but_task_contract_change_does(tmp_path, capsys):
+    state = start(tmp_path, capsys)
+    from taolib.workflows import mutate, advance, observe
+    from taolib.project import Project
+    check_change(tmp_path, change().replace(CHG, state['change']))
+    (tmp_path/'spec.md').rename(tmp_path/'docs/spec.md')
+    plan = tmp_path/'docs/plans/2026-09/20260914-export.md'
+    def prepare(owner, current):
+        current.update(phase='plan', artifacts={'plan': [plan.relative_to(tmp_path).as_posix()]})
+    project = Project(tmp_path)
+    state = mutate(project, state['change'], 1, prepare)
+    state = advance(project, state['change'], state['revision'], 'Plan approved; skip optional docs review and implement', 'skipped')
+    original = plan.read_text()
+    progressed = original.replace('- [x]', '- [ ]').replace('<!-- tao:section questions -->', '<!-- tao:results -->\nTests ran successfully.\n<!-- /tao:results -->\n\n<!-- tao:section questions -->')
+    plan.write_text(progressed)
+    assert observe(project, state)['stale_approvals'] == []
+    plan.write_text(progressed.replace('拒绝覆盖已有目标', '允许覆盖已有目标'))
+    assert observe(project, state)['stale_approvals'] == ['plan']

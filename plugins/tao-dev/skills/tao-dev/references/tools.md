@@ -1,8 +1,8 @@
 # 确定性工具与项目配置
 
-通过本 skill 的 [scripts/tao.py](../scripts/tao.py) 调用工具。首次准备或环境不可用时读取 [运行环境规程](runtime.md)：标准库入口提供 setup 和 doctor，运行不依赖 uv，普通命令只使用已准备的独立环境。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 只是该脚本入口的简写，不从 PATH 猜测同名程序。
+优先使用安装摘要中已验证的 tao 启动器绝对路径；也可使用本 skill 的 [scripts/tao.py](../scripts/tao.py) 与安装时选定的 Python。首次准备或环境不可用时读取 [运行环境规程](runtime.md)：标准库入口提供 setup 和 doctor，运行不依赖 uv，普通命令只使用已准备的独立环境。遵守已有依赖安装授权，不自动全局安装。下文 `tao` 简写这个已定位入口，不要求用户配置 PATH 或 TAO 环境变量。
 
-先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；当前包含 doctor、id.new、show、new、status、handoff、review、retire、verify.docs；安装可选出版依赖后还包含 docs.build。配置项目检查策略后包含 verify.code 与 verify.evidence。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
+先运行 `tao --project <目录> doctor --format json`。支持的操作以返回的 capabilities 为准；完整安装包含文档与出版能力；新增加的 project.inspect、project.configure、workflow 接口分别用于项目接入和协调状态。配置项目检查策略后包含 verify.code 与 verify.evidence。行为检查、度量、预算与证据复用按 [验证规程](verification.md) 配置和解释。
 
 | 操作 | 已实现行为 |
 |---|---|
@@ -58,7 +58,7 @@ documents.include 与 documents.exclude 均按项目根目录使用 Python Path.
 
 ## 客户端入口与短检查
 
-Claude 插件提供 new、verify、status、handoff 斜杠命令及 reviewer 角色；它们引用共享运行规程。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。跨供应商审查以实际模型与来源为准。
+Claude 的动作命令与 reviewer 角色引用共享规程；完整动作列表只在 [流程操作](workflow.md) 维护。Codex 使用 tao-dev skill 入口和相同操作意图，不能把 Claude 的命令或角色发现当作 Codex 原生支持。跨供应商审查以实际模型与来源为准。
 
 两端 PostToolUse 配置直接调用同一个 [hook 脚本](../scripts/hook.py)，再选择与 CLI 相同的已准备核心环境。静态 marketplace 配置从 PATH 查找 python3；tao install 将其改为已验证的解释器与脚本绝对路径。依赖缺失时报告 not_run，不自动创建 venv 或安装 package。脚本仅在当前项目已有 .tao/config.toml 时运行，只做 docs 子集反馈，不运行项目命令或模型。可配置：
 

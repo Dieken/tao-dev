@@ -58,10 +58,11 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
   - verify: 多提交/脏工作区范围、全项目审查、恢复后轮次上限测试。
   - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
-- [ ] `TASK_20260915_0N10J9P66VNQ57SB` 更新 skill 与客户端动作：共享阶段规程；增加 setup/continue/refine/implement/review/debug/docs/finish 包装；分开文档职责。
+- [x] `TASK_20260915_0N10J9P66VNQ57SB` 更新 skill 与客户端动作：共享阶段规程；增加 setup/continue/refine/implement/review/debug/docs/finish 包装；分开文档职责。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
   - depends_on: ["TASK_20260915_VA29A39MM0VE0YG3"]
   - verify: 分发包、链接、动作入口和情境行为检查。
+  - evidence: [验证记录](#DOC_20260915_SPNXNDTHJMFVSAN7--verification)
 
 - [ ] `TASK_20260915_7762WHGSN8RDKHRC` 重写用户指南与集成验证：README 保留精简全周期；完整可复制流程写入 docs/user；更新维护文档和版本。
   - relates: ["CHG_20260915_0M6WRQNJ6CCANQ70"]
@@ -84,6 +85,10 @@ change: CHG_20260915_0M6WRQNJ6CCANQ70
 有界审查：50 项审查范围、轮次、工作流、独立审查记录和验证回归通过。覆盖多提交/脏输入、实际 ZIP 快照、重载后轮次与时间预算、缺失报告及过期范围拒绝，Ruff 核心规则通过。
 
 独立审查修复：审查者在隔离 Git 仓库复现暂存区遗漏与历史变化导致失败轮次无法结束。新增两项回归先失败，修复后 6 项审查运行测试全部通过；快照分别保存工作区和暂存区内容与模式，失败关闭保留输入错误。
+
+53 项文档关系、工作流与分发测试通过；核心 Ruff 通过；独立 agent 的八个行为情境复测通过，并清理三处旧文档歧义。
+
+53 项文档关系、工作流与分发测试通过；核心 Ruff 通过；独立 agent 的八个行为情境复测通过，并清理三处旧文档歧义。
 
 <!-- tao:section questions -->
 ## 未决问题

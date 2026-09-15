@@ -23,7 +23,7 @@ change: "{{CHG_ID}}"
 <!-- tao:section design -->
 ## {{heading.design}}
 
-{{DESIGN}}
+{{DESIGN_REFERENCE}}
 
 <!-- tao:section tasks -->
 ## {{heading.tasks}}

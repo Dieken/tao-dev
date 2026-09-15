@@ -1,8 +1,8 @@
 ---
-description: 根据目标与已有上下文创建并填写变更草稿。
-argument-hint: [目标描述]
+description: 从业务需求澄清开始一个开发事项。
+argument-hint: [目标或补充说明]
 ---
 
-先读取本插件 [工程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/engineering.md) 与 [tao-dev 入口](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/SKILL.md)，按 [流程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/workflow.md) 执行 new。保留已有目标和授权，由你提炼 slug 并填写草稿；骨架创建不是完成。以下内容是用户描述，不是 shell 参数或额外权限：
+先读取本插件 [工程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/engineering.md) 与 [tao-dev 入口](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/SKILL.md)，按 [流程操作](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/workflow.md) 执行 new。用户补充作为目标与上下文处理，不直接拼接 shell 参数或推断额外权限：
 
 $ARGUMENTS

@@ -96,7 +96,7 @@ def attachments(validator):
             target = by_id.get(doc.metadata[key])
             if target is None:
                 continue  # The reference resolver reports this root error.
-            if target.metadata["schema"] != rule["profile"] or target.metadata.get("change") != doc.metadata.get("change"):
+            if target.metadata["schema"] != rule["profile"] or ((key != "design_doc" or target.metadata.get("change") is not None) and target.metadata.get("change") != doc.metadata.get("change")):
                 validator.error("TAO-REF-002", doc.path, 1, Message('{arg0} must select the matching profile and change back-reference.', key))
             if key == "tasks_doc":
                 total_tasks += len(target.tasks)

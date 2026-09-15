@@ -1,8 +1,8 @@
 ---
-description: 查看当前任务、诊断与已有证据状态。
-argument-hint: [变更或目标]
+description: 只读查看阶段、任务与证据状态。
+argument-hint: [目标或补充说明]
 ---
 
-先读取本插件 [工程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/engineering.md) 与 [tao-dev 入口](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/SKILL.md)，按 [流程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/workflow.md) 查询 status。使用已明确目标，检查工具实际支持的状态；不因查询而重新执行验证或改写任务勾选。用户补充：
+先读取本插件 [工程规程](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/engineering.md) 与 [tao-dev 入口](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/SKILL.md)，按 [流程操作](${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/references/workflow.md) 执行 status。用户补充作为目标与上下文处理，不直接拼接 shell 参数或推断额外权限：
 
 $ARGUMENTS
