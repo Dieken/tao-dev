@@ -88,6 +88,25 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 按目标客户端选择所需格式；输出目录必须尚不存在。这些命令只打包，不安装或注册。兼容包的适用版本及组件差异见 [插件设计](plugin-design.md)，客户端验收与当前缺口见 [运行环境记录](../changes/2026-09/20260914-portable-runtime.md)。
 
+### 版本与发布 tag
+
+skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyproject.toml](../../pyproject.toml) 的 `project.version` 为主版本。无需在 SKILL.md 中另设独立版本；[Agent Skills 规范](https://agentskills.io/specification#metadata-field)允许可选的 `metadata.version`，但不要求提供，也不定义安装和更新行为。
+
+开发中的不同内容用完整 commit SHA 区分；无需为每次提交递增版本，也不为支持 GitHub 安装而提前标记正式发布。准备可供用户固定安装的版本时，先完成对应范围的验收、独立审查和支持限制说明，再为该提交创建 `v<版本号>` tag；已经公开的 tag 不移动，修订另发新版本。
+
+修改版本时，同步以下位置；这是一组发布同步步骤，当前没有自动覆盖所有字段的同步工具：
+
+| 位置 | 维护方式 |
+|---|---|
+| `pyproject.toml` 的 `project.version` | 先修改主版本，再更新 `uv.lock` |
+| `plugins/tao-dev/plugin.json` 与 `plugins/tao-dev/.claude-plugin/plugin.json` | 将两个客户端 manifest 的 `version` 同步为主版本 |
+| `plugins/tao-dev/skills/tao-dev/scripts/taolib/__init__.py` | 将 `__version__` 同步为主版本，用于 CLI 报告 |
+| `plugins/tao-dev/skills/tao-dev/scripts/runtime.json` | 运行前述 `scripts/export_dependencies.py` 生成，不手工修改 |
+
+发布前运行依赖导出的 `--check`、相关回归和打包检查，并核对上述版本一致；其中 `--check` 只校验生成的运行策略与依赖清单，不检查全部 manifest 和 CLI 版本。生成的 `codex-legacy` manifest 由打包脚本继承公共 manifest 的版本，无需单独维护。回归与验收脚本中固定旧版本的预期也应核对。
+
+`protocol_version`、文档 schema 的 `/v0.1` 和 `.tao/config.toml` 的格式版本各自表示数据契约，不能随项目发布版本一并替换。
+
 <!-- tao:section troubleshooting -->
 ## 排障
 

@@ -122,7 +122,29 @@ Copy-Item -Path "$TaoSourceDir/plugins/tao-dev/skills/tao-dev/*" -Destination $T
 
 </details>
 
-复制出的 skill 是安装副本，源码仓库的 `git pull` 不会自动更新它。项目副本可纳入版本控制供团队共享；只在本机使用时，将对应的 `/.claude/skills/tao-dev/` 或 `/.agents/skills/tao-dev/` 加入该项目的 `.git/info/exclude`。
+项目副本可纳入版本控制供团队共享；只在本机使用时，将对应的 `/.claude/skills/tao-dev/` 或 `/.agents/skills/tao-dev/` 加入该项目的 `.git/info/exclude`。
+
+#### 从 GitHub 直接安装（可选）
+
+**Codex CLI 支持通过内置 `$skill-installer` 从其他仓库下载 skill。** 完成第 1 节准备后，可在 Codex 会话中使用以下任一提示，替代上面的克隆和复制步骤。来源是 [GitHub 上的完整 skill 目录](https://github.com/Dieken/tao-dev/tree/main/plugins/tao-dev/skills/tao-dev)，不是单个 SKILL.md。见 [Codex 安装说明](https://developers.openai.com/codex/skills/#install-curated-skills-for-local-use)。
+
+用户级：
+
+> $skill-installer 请先将 Dieken/tao-dev 的 main 分支解析为完整 commit SHA，再按该 SHA 安装 plugins/tao-dev/skills/tao-dev，目标为我的用户主目录下 .agents/skills/tao-dev。请下载完整目录并报告来源 SHA；已有同名目录时先报告，不覆盖。
+
+项目本地（在目标项目根启动 Codex）：
+
+> $skill-installer 请先将 Dieken/tao-dev 的 main 分支解析为完整 commit SHA，再按该 SHA 安装 plugins/tao-dev/skills/tao-dev，目标为当前项目根目录下 .agents/skills/tao-dev。仅安装到此项目，不写入用户级 skill 目录。请下载完整目录并报告来源 SHA；已有同名目录时先报告，不覆盖。
+
+安装器的默认目录可能是 `~/.codex/skills`，所以上面明确指定与本指南一致的目标。安装完成后，在终端按前表设置 TAO_SKILL_DIR（PowerShell 为 TaoSkillDir），指向安装器报告的实际路径，再继续第 3、4 节；无需重复复制。自举练习仍需克隆 tao-dev 源码。若客户端没有提供 `$skill-installer`，使用前面的手动安装步骤。
+
+**Claude Code CLI 的官方 GitHub 安装路径是插件 marketplace。** 它要求仓库提供 `.claude-plugin/marketplace.json`，然后添加 marketplace、安装其中的插件；这与安装一个 skill 目录不同。当前 tao-dev 仓库没有该清单，不能直接使用 `/plugin marketplace add Dieken/tao-dev`。Claude Code 用户沿用上面的克隆、复制方式。见 [Claude Code GitHub 安装说明](https://code.claude.com/docs/en/discover-plugins#add-from-github)。
+
+#### 安装版本与更新
+
+当前没有发布 tag，`main` 指向持续变化的开发内容；这不影响从 GitHub 安装。需要复现同一版本时，指定**完整 commit SHA**：手动安装在源码目录先执行 `git checkout --detach <完整 commit SHA>` 再复制；使用 `$skill-installer` 时把提示中的 `main` 换成该 SHA。安装时记录来源仓库和 SHA，不能只用 CLI 报告的版本号区分不同开发提交。
+
+安装副本不会随源码仓库的 `git pull` 自动更新。更新时先选定来源提交，将已有副本移出 skill 搜索目录，再安装完整的新副本并重新运行 setup、doctor。发布 tag 与版本字段的维护方式见 [开发指南](docs/engineering/development.md)。
 
 ### 3. 准备 tao 的运行环境
 
