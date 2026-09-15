@@ -123,6 +123,8 @@ CHG、EVD 由相应 profile 的 frontmatter 字段定义；DOC 与正文条目�
 
 翻译资源的出版适配优先验证 Sphinx gettext 目录或等价机制；源版本、审校状态与过期检测是需验证的实现能力。该技术选型留在本项目设计中，不作为使用方 agent 的操作指令。
 
+诊断回退的 JSON 协议保留 requested_locale、实际 message_locale、locale_fallback、suggestion_locale 与未翻译 parameters；位置、规则号、退出码和结果不因语言改变。无有效源或无配置的启动错误使用英文，未知外部解析消息保留原文并标记回退。中文质量检查不能套用英文空格计词规则。
+
 ### 校验与升级
 
 新增 profile 或结构字段时，同时修改注册表、运行规程、模板和独立验证夹具。运行调用方读取同包契约，不从开发文档动态推断格式。
