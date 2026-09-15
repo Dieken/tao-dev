@@ -9,15 +9,13 @@ description: 在与用户协作开发软件时使用，适用于业务需求澄�
 
 ## 开始工作
 
-1. 先读取 [工程规程](references/engineering.md)，再读取 [流程操作](references/workflow.md)，按用户动作、项目状态和已有授权推进。
-2. 动作入口为 setup、new、continue、refine、implement、review、debug、status、handoff、docs、finish。Claude 使用 `/tao-dev:<动作>`，Codex 使用 `$tao-dev <动作>`；自然语言也可按同一流程分派。
-3. 先调查已有项目和决定，再澄清必要问题。每阶段写入确认、原生提问与任务 UI、阶段总结和恢复规则统一在流程操作中定义，不另复制一套。
+先读取 [流程操作](references/workflow.md) 的入口与当前动作段，按项目状态和已有授权推进。需求、设计、实现、调试或审查判断还需 [工程规程](references/engineering.md)；只读 status 和单纯构建文档不加载工程全文。动作名称与阶段确认只在流程操作维护。
 
 ## 按任务读取
 
 | 当前工作 | 读取入口 |
 |---|---|
-| 创建、修订或审查正式文档 | [文档规程](references/documents.md)，再读当前需要的模板和组织规则 |
+| 创建、修订或审查正式文档 | [文档规程](references/documents.md)，涉及的章节及当前模板；编写和命名时查相关术语 |
 | 重要取舍或正式审查 | [独立判断与审查](references/review.md) |
 | 调用 CLI 或配置项目 | [工具规程](references/tools.md)，再按操作进入 setup、状态、验证或运行环境接口 |
 
