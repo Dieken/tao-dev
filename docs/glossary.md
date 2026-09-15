@@ -23,7 +23,7 @@ DOC、REQ、UC、ADR、TASK、CHG、EVD 的英文全称、用途及区别在 [�
 <!-- tao:section abbreviations -->
 ## 缩写与使用规则
 
-SDD、VCS、CLI、AST、i18n 等缩写统一见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。本项目自身使用 Git，因此维护提交约定使用 Git 专有术语；面向使用方的流程采用 VCS。
+SDD、VCS、CLI、AST、i18n 等缩写统一见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。当前完整开发流程依赖 Git；独立文档校验不要求版本控制系统。
 
 ### 本项目用语
 

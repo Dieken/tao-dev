@@ -6,17 +6,17 @@
 
 | 用语 | 英文 | 在 tao-dev 中的含义 |
 |---|---|---|
-| 标识符、ID | Identifier | 指向某个对象的固定值。正文可简称“标识”；不用“标志”指代 ID，标志通常用于 flag 等状态表示 |
+| 标识符、ID | Identifier | 指向某个对象的固定值。正文可简称“标识”；不用“身份”或“标志”指代 ID，标志通常用于 flag 等状态表示 |
 | 对象同一性 | Identity | 编辑前后是否仍是同一个对象。ID 表达这种连续性；认证中的“身份”是另一概念 |
 | 条目 | Entity | 可独立引用的需求、用例、决策、任务等对象；普通段落不自动成为条目 |
 | 规格 | Specification / spec | 系统承诺的行为、约束与验收条件；回答“做什么、如何判断满足” |
 | 设计 | Design | 为满足规格选择的结构、契约、状态与机制，以及选择理由 |
-| 变更计划 | Change plan / plan | 一次变更的目标引用、必要设计、执行安排与验证入口；不复制长期规格 |
+| 变更计划 | Change plan / plan | 一次开发事项的规格与设计引用、执行安排和验证入口；不复制长期规格 |
 | 篇、章 | Part / chapter | 篇按读者与职责分组，章按能力、子系统或操作主题分组；章可以是一页，也可以由目录页组织多页，不另设条目类型 |
 | 目录页 | Navigation page | 维护一组内容的导读与显式阅读顺序，使用 DOC ID；页内章节仍按各文档 profile 组织 |
 | 任务 | Task | 一个可独立验证结果的工作单元；任务列表是计划的一部分，不默认另建文档 |
 | 验证、验收 | Verification / acceptance | 前者检查约束和行为；后者按约定判定交付是否满足需求。可包含工具检查和人工判断，不代表把测试交给用户 |
-| 产物、证据 | Artifact / evidence | 产物是执行或构建生成的文件；只有绑定输入、条件和结果并可复核的记录才构成证据 |
+| 产物、证据 | Artifact / evidence | 产物包括编写的文档、代码及执行或构建生成的文件；只有绑定输入、条件和结果并可复核的记录才构成证据 |
 | 文档契约、文档类型 | Schema / profile | schema 约束结构与关系；profile 为某类文档选择必需字段、章节和条目 |
 | 文件头元数据 | Frontmatter | Markdown 开头的结构化元数据；tao-dev 使用 YAML，不把所有正文都转成 YAML |
 | 锚点、永久链接 | Anchor / permalink | 锚点定位页面内对象；永久链接还需保持或解析页面地址，只有稳定锚点不足以抵抗文件移动 |
@@ -54,7 +54,7 @@
 | UUID | Universally Unique Identifier | 通用唯一标识符；设计比较中的备选，tao-dev 使用可读日期加随机串 |
 | ULID | Universally Unique Lexicographically Sortable Identifier | 含编码时间与随机部分的标识符；tao-dev 借鉴其字符集与随机长度，不采用其完整格式 |
 | SDD | Spec-Driven Development | 此处指“规格驱动开发”；不是另一些资料中的 Source-Driven Development（按来源核实技术用法） |
-| VCS | Version Control System | 版本控制系统；通用流程不假定 Git。采用 Git 的项目可在自身开发约定中使用其专有术语 |
+| VCS | Version Control System | 版本控制系统；当前完整开发流程依赖 Git，文档校验等独立能力不要求 Git |
 | CLI | Command-Line Interface | 命令行接口；区分 tao 工具与 Claude Code／Codex 客户端 |
 | CI | Continuous Integration | 持续集成；执行必要检查，不以流水线全绿代替需求验收 |
 | AST | Abstract Syntax Tree | 抽象语法树；识别正式条目与围栏示例，避免全文搜索误判 |
