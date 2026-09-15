@@ -9,8 +9,6 @@
 3. 保存审查者的实际结构化结论与来源，agent 在项目临时目录编写以下记录，调用 `tao review <CHG-ID> --from <项目相对路径>` 导入。未完成、无来源或无结论不得补写成功记录。无法取得受支持的原始输出时报告适配缺口，不改称人工审查。
 4. `tao status <CHG-ID>` 只读显示审查时效；完整 `tao verify <CHG-ID>` 汇总各必需审查。输入变化后旧报告不能直接换 binding 再导入，应按影响进行实际复核；原始结论内的 binding 也必须匹配。
 
-普通使用者无需自行填写这些字段。agent 或已授权适配工具负责格式和调用，人工只承担适用的实际审查与决定。CLI 不调度模型，也不隐式收费或安装工具。
-
 ## 记录格式
 
 UTF-8 JSON 对象，schema 为 `tao.review/v0.1`。下表列出全部必需字段；拒绝未知字段和重复 JSON 键，不提供 passed 字段。结构校验由 [审查模块](../scripts/taolib/reviews.py) 实现。
@@ -35,10 +33,10 @@ blocker 处于 open 或 deferred 时阻断。fixed 需要针对当前输入的�
 
 ## 来源适配及信任边界
 
-human 的 model／provider 必须为 null，审查者 name 必须不同于作者。source.format 为 human-json；来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致。这是具名人工陈述，没有电子签名认证；agent 不得替没有实际审查的人出具记录。
+human 的 model／provider 必须为 null，审查者 name 必须不同于作者。source.format 为 human-json；来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致。仅导入实际具名人工结论。
 
 model 当前支持 claude-stream-json；来源需有恰好一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中，provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider；来源冲突时拒绝，均未提供时只能写 unknown。不能从品牌名推断实际模型，更不能把 CLI 名称当作跨供应商证明。result.structured_output（或可解析为 JSON 的 result.result）必须恰有 binding、summary、findings、limitations，且与记录一致。失败、超时、缺结果或不一致的来源不能导入。其他模型事件格式暂不支持，不得伪装成 Claude 来源。
 
 原始报告和记录默认位于 tmp/tao/，不纳入 VCS。成功导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`，采用已有项目写入锁与原子文件替换。默认保留结构化记录即可，原始日志到期不撤销历史结果；require_logs=true 时，来源缺失或摘要不符阻止当前复用。reuse_seconds 同时限定审查复用时长。当前输入、策略或目标不符标为 stale；缺失、无效、过期和未解决问题分别报告，不自动重审。
 
-本地记录和客户端事件均处于项目的信任边界内；一致性校验不能抵抗能任意改写这些文件的恶意参与者。更强的组织身份认证、签名和受保护 CI 证明应由项目已有系统提供，不在本工具中伪造信任根。导入成功只表示记录已接收，即使有阻断发现也会保存；以完整 verify 的结果和实际语义判断决定是否可交付。
+本地一致性检查不提供防篡改或身份认证。导入成功只表示记录已接收，即使有阻断发现也会保存；以完整 verify 的结果和实际语义判断决定是否可交付。
