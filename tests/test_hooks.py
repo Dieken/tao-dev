@@ -1,11 +1,9 @@
 import json
-from pathlib import Path
 import subprocess
 import sys
 
 from taolib.documents import ASSETS
 from test_documents import spec
-
 
 HOOK = ASSETS.parent / "scripts/hook.py"
 
@@ -90,23 +88,15 @@ def test_hook_without_python_packages_is_quiet_outside_and_diagnostic_inside(tmp
     assert not (tmp_path / "tmp").exists()
 
 
-def test_shell_hook_without_python_is_quiet_outside_and_explains_inside(tmp_path):
-    import os
-    import shutil
-    shell = shutil.which("sh")
-    if shell is None:
-        import pytest
-        pytest.skip("POSIX shell unavailable; this test does not validate PowerShell.")
-    env = os.environ | {"PATH": "", "TAO_PYTHON": str(tmp_path / "absent")}
-    argv = [shell, str(HOOK.parent / "tao-launch.sh"), "hook"]
-    outside = subprocess.run(argv, cwd=tmp_path, env=env, capture_output=True, text=True)
-    assert outside.returncode == 0, outside.stderr
-    assert json.loads(outside.stdout) == {}
-    project(tmp_path)
-    inside = subprocess.run(argv, cwd=tmp_path, env=env, capture_output=True, text=True)
-    assert inside.returncode == 0, inside.stderr
-    assert "Python" in json.loads(inside.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert not (tmp_path / "tmp").exists()
+def test_static_client_hooks_invoke_python_without_platform_launchers():
+    plugin = HOOK.parents[3]
+    claude = json.loads((plugin / "hooks/hooks.json").read_text())["hooks"]["PostToolUse"][0]["hooks"][0]
+    codex = json.loads((plugin / "com.openai/hooks/hooks.json").read_text())["hooks"]["PostToolUse"][0]["hooks"][0]
+    assert claude["command"] == "python3"
+    assert claude["args"] == ["-I", "-B", "${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"]
+    assert codex["command"] == 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+    assert not (HOOK.parent / "tao-launch.sh").exists()
+    assert not (HOOK.parent / "tao-launch.ps1").exists()
 
 
 def test_incomplete_hook_cache_is_rebuilt(tmp_path):

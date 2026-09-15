@@ -1,6 +1,6 @@
 [project]
 name = "tao-dev"
-version = "0.2.0"
+version = "0.2.1"
 requires-python = ">=3.11,<3.15"
 dependencies = ["markdown-it-py>=3,<5", "PyYAML>=6,<7"]
 

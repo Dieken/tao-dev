@@ -6,7 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/tao-launch.sh\" hook",
+            "command": "python3",
+            "args": [
+              "-I",
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"
+            ],
             "timeout": 35
           }
         ]

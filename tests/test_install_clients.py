@@ -1,8 +1,8 @@
 """Native adapter boundaries, with all client state isolated from personal data."""
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -115,6 +115,38 @@ def test_hook_trust_rejects_other_command(state, monkeypatch):
     monkeypatch.setattr(clients, '_write_config', lambda *a, **kw: pytest.fail('Unreviewed hook must not be trusted'))
     with pytest.raises(ValueError, match='hook'):
         clients._trust_hook(project, 'tao-dev@custom', plugin)
+
+
+@pytest.mark.parametrize('client', ['claude', 'codex'])
+def test_complete_install_binds_hook_to_exact_python(state, client):
+    root, _ = state
+    plugin = root / 'plugin with spaces'
+    source = SCRIPTS.parents[2]
+    import shutil
+    shutil.copytree(source, plugin)
+    python = root / 'Python Runtime/python3'
+    clients._bind_hook(client, plugin, python)
+    relative = 'hooks/hooks.json' if client == 'claude' else 'com.openai/hooks/hooks.json'
+    hook = json.loads((plugin / relative).read_text())['hooks']['PostToolUse'][0]['hooks'][0]
+    script = plugin / 'skills/tao-dev/scripts/hook.py'
+    if client == 'claude':
+        assert hook['command'] == str(python)
+        assert hook['args'] == ['-I', '-B', str(script)]
+    else:
+        assert hook['command'] == clients._command_line([python, '-I', '-B', script])
+
+
+def test_complete_install_refuses_extra_hook_behavior(state):
+    root, _ = state
+    plugin = root / 'plugin'
+    import shutil
+    shutil.copytree(SCRIPTS.parents[2], plugin)
+    path = plugin / 'com.openai/hooks/hooks.json'
+    definition = json.loads(path.read_text())
+    definition['hooks']['PostToolUse'][0]['hooks'][0]['async'] = True
+    path.write_text(json.dumps(definition))
+    with pytest.raises(clients.ClientError, match='unexpected'):
+        clients._bind_hook('codex', plugin, root / 'python3')
 
 
 def test_codex_native_add_failure_restores_user_boundary(state, monkeypatch):

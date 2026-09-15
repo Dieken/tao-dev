@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/Dieken/tao-dev/main/install.sh | sh
 & ([scriptblock]::Create((Invoke-RestMethod https://raw.githubusercontent.com/Dieken/tao-dev/main/install.ps1))) -Client codex -Scope project
 ```
 
-当前 hook 需要 Git for Windows 提供的 `sh`；原生 Windows 完整验收尚未完成，也可在 WSL 中按 Linux 方式使用。
+hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `sh`。原生 Windows 完整验收尚未完成，也可在 WSL 中按 Linux 方式使用。
 
 </details>
 

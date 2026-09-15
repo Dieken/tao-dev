@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${PLUGIN_ROOT}/skills/tao-dev/scripts/tao-launch.sh\" hook",
+            "command": "python3 -I -B \"${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py\"",
             "timeout": 35
           }
         ]
