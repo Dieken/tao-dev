@@ -21,7 +21,7 @@ from .project import ConfigurationError, ConflictError, Project, create_file
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
-CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs", "workflow"]
+CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs", "workflow", "project.inspect", "project.configure"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 
@@ -49,6 +49,12 @@ def arguments(argv):
     new.add_argument("--slug", required=True)
     new.add_argument("--locale")
     new.add_argument("--change")
+    setup = commands.add_parser("project", parents=[common])
+    setup_commands = setup.add_subparsers(dest="operation", required=True)
+    setup_commands.add_parser("inspect", parents=[common])
+    configure = setup_commands.add_parser("configure", parents=[common])
+    configure.add_argument("--from", dest="source", required=True)
+    configure.add_argument("--expect")
     workflow = commands.add_parser("workflow", parents=[common])
     operations = workflow.add_subparsers(dest="operation", required=True)
     begin = operations.add_parser("start", parents=[common])
@@ -242,6 +248,10 @@ def dispatch(args):
     if args.command == "doctor":
         report.update(capabilities=CAPABILITIES + (["verify.code", "verify.evidence"] if policy(project) else []), schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
+        return report, 0
+    if args.command == "project":
+        from . import project_setup
+        report['outputs'] = project_setup.inspect(project) if args.operation == 'inspect' else project_setup.configure(project, args.source, args.expect)
         return report, 0
     if args.command == "workflow":
         report["outputs"] = workflows.dispatch(project, args)

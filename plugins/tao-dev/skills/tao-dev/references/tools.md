@@ -23,6 +23,8 @@
 
 工作流阶段、版本批准与 worktree 绑定使用 [工作流状态接口](workflow-state.md)；`tao workflow status` 为只读，写操作要求显式动作和检查点版本。
 
+项目接入使用 [setup 规程](project-setup.md)：`tao project inspect` 只读探测；`tao project configure --from <file>` 应用已确认配置。
+
 ## 一次配置，日常复用
 
 显式 --project 指定根目录；否则从当前目录向上寻找最近的 `.tao/config.toml`。不写全局配置。无配置时，显式项目根内默认管理 docs/ 下的 Markdown；没有匹配文件时验证报未完成，不能以空检查通过。README、运行 prompt 与模板有自己的格式，不因 Markdown 扩展名自动纳入。
