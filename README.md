@@ -106,7 +106,7 @@ review 会让你确认范围和串行／并行方式，默认审查本功能从�
 | `debug` | 调查缺陷、复现和定位，获准后修复 |
 | `handoff` | 保存交接摘要和可直接粘贴的继续输入 |
 
-上述动作沿用 `/tao-dev:<动作>` 或 `$tao-dev <动作>`。也可通过主 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md) 入口提出自然语言请求。完整的澄清、修改、审查选择、中断恢复及收尾示例见 [开发流程使用指南](docs/user/workflow.md)。
+上述动作沿用 `/tao-dev:<动作>` 或 `$tao-dev <动作>`。也可通过主 [skill](plugins/tao-dev/skills/tao-dev/SKILL.md) 入口提出自然语言请求；加载后无需重复动作名。agent 会区分新事项、修订与恢复，复用已有文档，归属不清楚时才询问。完整的澄清、修改、审查选择、中断恢复及收尾示例见 [开发流程使用指南](docs/user/workflow.md)。
 
 ### 卸载
 

@@ -15,7 +15,8 @@ description: 在与用户协作开发软件时使用，适用于业务需求澄�
 
 | 当前工作 | 读取入口 |
 |---|---|
-| 创建、修订或审查正式文档 | [文档规程](references/documents.md)，涉及的章节及当前模板；编写和命名时查相关术语 |
+| 创建、修订或审查正式文档 | [文档规程](references/documents.md)，涉及的章节及当前模板 |
+| 写入涉及术语或代码命名 | [tao 术语](references/glossary.md) 与项目受控词汇中的相关定义 |
 | 重要取舍或正式审查 | [独立判断与审查](references/review.md) |
 | 调用 CLI 或配置项目 | [工具规程](references/tools.md)，再按操作进入 setup、状态、验证或运行环境接口 |
 
