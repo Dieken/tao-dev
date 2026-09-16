@@ -320,5 +320,14 @@
   "Link {arg0} to the approved stage documents before advancing.": "推进前，使用 {arg0} 关联已批准的上游阶段文档。",
   "Plan documents must belong to this workflow change.": "计划文档必须属于当前工作流的开发事项。",
   "Term options must be known, distinct and nonempty.": "术语选项必须受支持、无重复且非空。",
-  "The {arg0} relationship must cover the approved stage documents.": "{arg0} 关联必须覆盖已批准的上游阶段文档。"
+  "The {arg0} relationship must cover the approved stage documents.": "{arg0} 关联必须覆盖已批准的上游阶段文档。",
+  "A Codex review requires one observed thread and successful turn.": "Codex 审查需要一个实际观测的会话及一个成功完成的轮次。",
+  "Codex exec does not attest model or provider; use unknown.": "Codex exec 未证实模型或供应商，请使用 unknown。",
+  "Codex item update has no start.": "Codex 条目更新缺少开始事件。",
+  "Codex output does not match the recorded conclusion and dispositions.": "Codex 输出与记录的结论及处理意见不一致。",
+  "Codex review has unfinished items or no conclusion.": "Codex 审查有未完成条目或缺少结论。",
+  "Inconsistent or repeated Codex item.": "Codex 条目不一致或重复。",
+  "Invalid Codex item identity.": "Codex 条目标识无效。",
+  "Repeated Codex item start.": "Codex 条目重复开始。",
+  "Unexpected, failed or additional Codex review turn.": "Codex 审查包含意外事件、失败或额外轮次。"
 }
