@@ -1,4 +1,5 @@
 ---
+name: tao-new
 description: 从业务需求澄清开始一个开发事项。
 argument-hint: [目标或补充说明]
 ---

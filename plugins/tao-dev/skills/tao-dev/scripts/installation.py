@@ -456,7 +456,7 @@ def install(args):
 
 
 def guide(record):
-    invocation = '/tao-dev:' if record['client'] == 'claude' else '$tao-dev '
+    invocation = '/tao-' if record['client'] == 'claude' else '$tao-dev '
     return [f'Open a new {record["client"]} session in your project.',
             f'Optional project checks: {invocation}setup',
             f'Start a feature: {invocation}new <your business requirement>',

@@ -1,4 +1,5 @@
 ---
+name: tao-docs
 description: 构建本地文档书籍并返回入口。
 argument-hint: [可选补充要求]
 ---
