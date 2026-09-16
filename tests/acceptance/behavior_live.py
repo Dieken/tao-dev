@@ -114,7 +114,7 @@ def _version(client):
 def _setup_runtime(plugin, workspace, env):
     result = subprocess.run(
         [sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
-         "setup", "--wheelhouse", str(ROOT / "tmp/tao/wheels"),
+         "env", "prepare", "--wheelhouse", str(ROOT / "tmp/tao/wheels"),
          "--format", "json"],
         env=env, capture_output=True, text=True, timeout=180, check=False)
     if result.returncode:

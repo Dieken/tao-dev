@@ -1,6 +1,6 @@
 # 项目接入与配置
 
-处理 setup 动作或修改项目配置时读取。用户的 setup 接入业务项目；install 安装插件，底层 `tao setup` 准备 tao 运行环境，见 [运行环境](runtime.md)。项目接入是可选的，用户可直接 new。
+处理 setup 动作或修改项目配置时读取。用户的 setup 接入业务项目；install 安装插件，`tao env prepare` 准备 tao 自身运行环境，见 [运行环境](runtime.md)。项目接入是可选的，用户可直接 new。
 
 ## 接入步骤
 

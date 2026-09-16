@@ -32,7 +32,7 @@ created: "2026-09-16"
 1. 从源码取得整个 `plugins/tao-dev/skills/tao-dev/`，包括 SKILL.md、references、assets、scripts；不要只复制 SKILL.md。
 2. 在目标项目按下表选择一个受客户端支持的目录，放入 `tao-dev/`。同一客户端避免重复发现多个副本。目录是官方文档提供的候选入口，九个新增客户端尚未在本机原生验收。
 3. 启动新会话，用客户端的 skill 选择入口加载 tao-dev，再表达需求，如“只检查当前 Markdown，保存报告”。加载后动作名与自然语言均可使用，完整阶段示例见 [流程指南](workflow.md)。
-4. 需要 CLI 时使用选定 Python 和 skill 实际路径运行 `tao doctor`；若缺依赖，在已有准备授权下显式运行 `tao setup`，再运行约定检查。
+4. 需要 CLI 时使用选定 Python 和 skill 实际路径运行 `tao doctor`；若缺依赖，在已有准备授权下显式运行 `tao env prepare`，再运行约定检查。
 
 | 客户端 | 项目内 skill 根目录（放入 tao-dev/） | 官方入口 |
 |---|---|---|
@@ -52,11 +52,11 @@ created: "2026-09-16"
 
 ```sh
 python3 .agents/skills/tao-dev/scripts/tao.py --project . doctor --format json
-python3 .agents/skills/tao-dev/scripts/tao.py --project . setup
+python3 .agents/skills/tao-dev/scripts/tao.py --project . env prepare
 python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
 ```
 
-`setup` 会安装 tao 自身依赖；离线时加 `--wheelhouse /absolute/path/to/wheels`。普通检查不隐式安装。检查范围以项目配置为准；独立 skill 不提供 `tao install --client <其他客户端>`。运行环境保持在 skill 目录外，诊断及覆盖方式见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+`env prepare` 会安装 tao 自身依赖；离线时加 `--wheelhouse /absolute/path/to/wheels`。普通检查不隐式安装。检查范围以项目配置为准；独立 skill 不提供 `tao install --client <其他客户端>`。运行环境保持在 skill 目录外，诊断及覆盖方式见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
 升级时更新完整 skill，保留项目文档和外部运行数据，再运行 `tao doctor`。删除独立 skill 只取消发现；按归属清理不再使用的运行环境，不能清空共享数据根。完整插件的升级、卸载使用 README 中的安装管理入口。
 

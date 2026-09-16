@@ -112,7 +112,7 @@ def test_nested_owned_errors_translate_without_changing_raw_parameters():
 def test_chinese_diagnostics_preserve_executable_command_names():
     from tao_messages import Message, diagnostic
     runtime = diagnostic(
-        Message('Runtime imports failed; run tao setup to prepare a new environment.'),
+        Message('Runtime imports failed; run tao env prepare for a new environment.'),
         'zh-Hans',
     )
     workflow = diagnostic(
@@ -120,7 +120,7 @@ def test_chinese_diagnostics_preserve_executable_command_names():
         'zh-Hans',
     )
     assert runtime['message_locale'] == workflow['message_locale'] == 'zh-Hans'
-    assert 'tao setup' in runtime['message']
+    assert 'tao env prepare' in runtime['message']
     assert 'tao workflow status' in workflow['message']
 
 

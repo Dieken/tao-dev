@@ -62,7 +62,7 @@ agent 先探测已有技术栈、依赖声明、测试、静态检查、CI 和 `
 
 agent 保留已有配置，在批准范围内生成或更新 `.tao/config.toml`，核对生成目录及 `.worktrees/` 的忽略规则，运行 `tao doctor` 和约定基线。补充工具使用项目自己的依赖环境，不装进 tao 的 venv。空项目不猜技术栈、不预装工具。重复 `setup` 动作用于检查和补充，不重置项目。
 
-这里的 `setup` 是 agent 动作；低层 `tao setup` 仅准备 tao 自身运行环境。你无需另外执行 shell 命令。也可直接使用 `new` 动作，缺少必要配置时 agent 会解释并按已有授权补齐。
+这里的 `setup` 是 agent 动作，接入业务项目；终端里的 `tao env prepare` 只准备 tao 自身运行环境。你无需另外执行 shell 命令。也可直接使用 `new` 动作，缺少必要配置时 agent 会解释并按已有授权补齐。
 
 ### 2. 提业务需求并澄清
 

@@ -66,7 +66,7 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 
 - 卸载用 `tao uninstall --client codex`：列出各份安装的范围与文件，确认后删除；`--list` 只查看。共享配置只清理对应项目，其他安装仍在使用的缓存保留。
 
-`tao install` 完成安装、配置和升级；底层的 `tao setup` 只维护 tao 自身的运行环境，正常使用无需执行，与上表中接入业务项目检查工具的 **setup 动作**不是一回事。离线安装、marketplace 来源、目录归属等完整说明见 [安装管理说明](docs/engineering/installation.md)。
+`tao install` 完成安装、配置和升级；`tao env prepare` 只准备 tao 自身的运行环境，插件安装时自动调用，正常使用无需执行。离线安装、marketplace 来源、目录归属等完整说明见 [安装管理说明](docs/engineering/installation.md)。
 
 其他支持 Agent Skills 的客户端可以接入完整的**独立 skill**，读取相同规程、模板并调用 Python CLI；不要求 Claude／Codex。目录选择、运行准备及能力边界见 [跨客户端接入指南](docs/user/clients.md)。
 
