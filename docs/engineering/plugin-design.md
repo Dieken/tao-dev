@@ -50,7 +50,7 @@ tao-dev/
       .claude-plugin/
         plugin.json                  # Claude Code 兼容 manifest
       agents/                        # 按需：Claude Code 原生角色入口
-      commands/                      # 按需：Claude Code 斜杠命令入口
+      commands/                      # 按需：Claude Code 斜杠命令入口（tao-<动作>.md）
       hooks/hooks.json               # 按需：Claude Code hook 配置
 ```
 
@@ -100,7 +100,7 @@ Codex 原生 reviewer 的 name、description、developer_instructions 与只读 
 |---|---|---|---|
 | skill | `skills/<name>/SKILL.md`；YAML 元数据＋Markdown 正文；必需字段为 `name`、`description` | 通过原生 skill 发现与显式调用使用 | 通过插件 skill 发现及带插件命名空间的入口使用 |
 | agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 可选 com.openai/agents/tao-reviewer.toml，复制到项目 .codex/agents/ 后按原生机制发现 | 按需用 `agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式 |
-| 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/*.md` 提供仅转发操作与参数的斜杠命令包装 |
+| 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/tao-<动作>.md` 提供仅转发操作与参数的斜杠命令包装 |
 | hook | 共享可确定的检查逻辑；事件绑定与输入输出由平台适配 | 使用 Codex hook JSON、受支持事件与执行类型 | 使用 Claude hook JSON、受支持事件与执行类型 |
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 `SKILL.md`、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。

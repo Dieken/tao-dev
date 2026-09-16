@@ -1,4 +1,5 @@
 ---
+name: tao-setup
 description: 探测并接入项目配置和已有检查。
 argument-hint: [目标或补充说明]
 ---

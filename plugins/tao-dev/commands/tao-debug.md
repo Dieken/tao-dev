@@ -1,4 +1,5 @@
 ---
+name: tao-debug
 description: 调查缺陷并按授权复现或修复。
 argument-hint: [目标或补充说明]
 ---

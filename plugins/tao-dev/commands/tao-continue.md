@@ -1,4 +1,5 @@
 ---
+name: tao-continue
 description: 核对实际状态后继续阶段或恢复工作。
 argument-hint: [目标或补充说明]
 ---

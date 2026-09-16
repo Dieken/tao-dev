@@ -1,4 +1,5 @@
 ---
+name: tao-finish
 description: 按选择整理、合入、推送或清理工作。
 argument-hint: [目标或补充说明]
 ---

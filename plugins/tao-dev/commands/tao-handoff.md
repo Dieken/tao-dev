@@ -1,4 +1,5 @@
 ---
+name: tao-handoff
 description: 保存供后续会话恢复的简明交接。
 argument-hint: [目标或补充说明]
 ---

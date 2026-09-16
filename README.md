@@ -18,15 +18,15 @@ tao-dev 是给 coding agent 用的一套**开发协议**——agent skill、共�
 
 | 时机 | Claude Code 输入 | Codex 输入 |
 |---|---|---|
-| 可选的项目接入 | `/tao-dev:setup` | `$tao-dev setup` |
-| 提出业务需求 | `/tao-dev:new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` | `$tao-dev new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` |
+| 可选的项目接入 | `/tao-setup` | `$tao-dev setup` |
+| 提出业务需求 | `/tao-new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` | `$tao-dev new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` |
 | 查看 spec 后推进 | `spec 符合预期，同意开始编写 design。` | 同左 |
 | 查看 design 后推进 | `design 符合预期，同意开始编写 plan 和 tasks。` | 同左 |
-| 查看计划后审查 | `/tao-dev:review` | `$tao-dev review` |
-| 审查完成，开始实现 | `/tao-dev:implement` | `$tao-dev implement` |
-| 实现完成后审查 | `/tao-dev:review` | `$tao-dev review` |
-| 构建 Sphinx HTML book | `/tao-dev:docs` | `$tao-dev docs` |
-| 选择收尾操作 | `/tao-dev:finish` | `$tao-dev finish` |
+| 查看计划后审查 | `/tao-review` | `$tao-dev review` |
+| 审查完成，开始实现 | `/tao-implement` | `$tao-dev implement` |
+| 实现完成后审查 | `/tao-review` | `$tao-dev review` |
+| 构建 Sphinx HTML book | `/tao-docs` | `$tao-dev docs` |
+| 选择收尾操作 | `/tao-finish` | `$tao-dev finish` |
 
 new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写 spec。agent 自动处理文件名、路径和文档语言，逐阶段提供可点击的产物与下一步选择；实现获准后尽量自主完成代码、测试与必要检查。review 会让你确认范围和串行／并行方式，默认审查本功能从分支起点以来的累计修改，明确区分测试结果与审查结论。finish 会列出合入、推送、清理等选择，按你的实际授权执行。
 

@@ -1,4 +1,5 @@
 ---
+name: tao-status
 description: 只读查看阶段、任务与证据状态。
 argument-hint: [目标或补充说明]
 ---

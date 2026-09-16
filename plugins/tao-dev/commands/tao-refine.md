@@ -1,4 +1,5 @@
 ---
+name: tao-refine
 description: 修订规格、设计或实施计划。
 argument-hint: [目标或补充说明]
 ---
