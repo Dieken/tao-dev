@@ -31,7 +31,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践或框架；不能统一声称它们是正式认证标准。tao 的 profile、章节标记、全局 ID、关系字段和 JSONL 退役记录是本项目补充。MyST 承载正文，YAML 承载元数据，GFM 提供 checkbox 写法；这些公开语法并不自动认可 tao 的附加字段或渲染指令。
 
 
-面向消费项目的写法见 [条目规程](../../../plugins/tao-dev/skills/tao-dev/references/document-entries.md)。
+面向消费项目的写法见 [条目写法](../../../plugins/tao-dev/skills/tao-dev/references/document-entries.md)。
 
 <!-- tao:section architecture -->
 ## 解析与索引
@@ -117,7 +117,7 @@ CHG、EVD 由相应 profile 的 frontmatter 字段定义；DOC 与正文条目�
 
 ### 本地化与使用方语言
 
-项目自身的语言取舍见 {need}`ADR_20260914_WX7BFBRXENPN4CT7`。使用方的语言选择、稳定键、显示资源、诊断回退和翻译源一致性统一见 [本地化规程](../../../plugins/tao-dev/skills/tao-dev/references/localization.md)。实现需使用同一套结构和按 locale 选择的资源，不能要求使用方复制本项目的中文正文。
+项目自身的语言取舍见 {need}`ADR_20260914_WX7BFBRXENPN4CT7`。使用方的语言选择、稳定键、显示资源、诊断回退和翻译源一致性统一见 [本地化](../../../plugins/tao-dev/skills/tao-dev/references/localization.md)。实现需使用同一套结构和按 locale 选择的资源，不能要求使用方复制本项目的中文正文。
 
 启动层与核心读取同一份诊断翻译资源，无需为本地化安装依赖。英文完整消息模板保留在调用处，动态值单独传入；翻译占位参数必须与原消息一致。hook 缓存绑定翻译资源，避免翻译更新后继续返回旧消息。
 

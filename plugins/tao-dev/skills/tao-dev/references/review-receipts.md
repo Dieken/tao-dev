@@ -43,6 +43,6 @@ model 支持以下原始输出格式，最终结论均须恰有 binding、summar
 
 其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
 
-导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`。保存原则见 [证据规程](evidence-retention.md)；require_logs=true 时来源缺失或摘要不符阻止复用，reuse_seconds 限定时长。输入、策略或目标不符为 stale；缺失、无效、过期和未解决发现分别报告，不自动重审。
+导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`。保存原则见 [证据保存](evidence-retention.md)；require_logs=true 时来源缺失或摘要不符阻止复用，reuse_seconds 限定时长。输入、策略或目标不符为 stale；缺失、无效、过期和未解决发现分别报告，不自动重审。
 
 本地一致性检查不提供防篡改或身份认证。导入成功只表示记录已接收，即使有阻断发现也会保存；以完整 verify 的结果和实际语义判断决定是否可交付。

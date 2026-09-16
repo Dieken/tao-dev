@@ -12,7 +12,7 @@ created: "2026-09-15"
 <!-- tao:section scope -->
 ## 目标与边界
 
-本文供 tao-dev 维护者准备环境、运行检查、构建手册和生成发布包。消费项目的使用入口见 [README](../../README.md)，运行环境规则见 [插件运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+本文供 tao-dev 维护者准备环境、运行检查、构建手册和生成发布包。消费项目的使用入口见 [README](../../README.md)，运行环境规则见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
 本目录是独立 Git 仓库。遵循 [AGENTS.md](../../AGENTS.md)，使用仓库内的 skill、共享 profile 和模板开发；CLAUDE.md 导入同一维护入口，无需全局安装。文档职责与校验范围见 [文档契约](documentation/contract.md)，分发边界见 [插件设计](plugin-design.md)。
 
@@ -63,7 +63,7 @@ export TAO_PYTHON="$PWD/.venv/bin/python"
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
 ```
 
-`verify --only docs` 检查配置纳入的全部开发文档、跨文档关系和书籍导航。独立校验器的参数及结果范围见 [诊断规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md)。README、运行 prompt 和模板使用各自格式，不套用开发正文 profile。
+`verify --only docs` 检查配置纳入的全部开发文档、跨文档关系和书籍导航。独立校验器的参数及结果范围见 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md)。README、运行 prompt 和模板使用各自格式，不套用开发正文 profile。
 
 需要执行项目策略时，使用同一入口的 `verify --only code`；`status` 只读比较证据。完整 `verify <CHG-ID>` 还汇总目标任务、依赖及必需审查，不能用局部结果代替。结果、日志与缓存保存规则见 [验证规程](../../plugins/tao-dev/skills/tao-dev/references/verification.md)。
 

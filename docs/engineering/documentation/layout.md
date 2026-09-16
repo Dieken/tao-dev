@@ -21,7 +21,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 <!-- tao:section architecture -->
 ## 内容组织
 
-内容归属的权威规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
+内容归属的权威规则见 [文档组织](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。设计依据是让长期规格、实现设计和一次变更各有唯一维护位置；书籍按主题组合阅读，不按流程阶段复制正文。
 
 退役记录是项目自身的追溯数据，默认按退役日期存入 docs/retired/，随源文档保留；.tao/ 保存项目配置和必要工作流检查点；可重建缓存使用生成产物目录。正式任务和交接仍使用受管理文档，文档读取与索引不要求运行某个客户端。日期分组控制文件增长，并不提供跨分支互斥；读取全部日期文件后仍需统一检查 ID 和替代关系。
 
@@ -40,11 +40,11 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 
 ### 拆分规则
 
-任务数量、并行写入与计划总长的阈值只在 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 维护。这些是控制维护负担的操作约定，不是行业质量标准；本项目不维护另一组自举阈值。
+任务数量、并行写入与计划总长的阈值只在 [文档组织](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 维护。这些是控制维护负担的操作约定，不是行业质量标准；本项目不维护另一组自举阈值。
 
 ### 命名规则
 
-变更计划按创建月份分组，默认路径为 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织规程](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
+变更计划按创建月份分组，默认路径为 `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`；附件目录与计划同处该月份，年月与 created 及文件名日期一致。精确规则见 [文档组织](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md)。日期便于浏览，slug 区分同日目标；重名在创建或集成时显式处理，不需要跨开发者协调计数。调整文件名不会改变条目标识符。
 
 <!-- tao:section invariants -->
 ## 自举与唯一来源
@@ -63,7 +63,7 @@ Sphinx 的 toctree 支持嵌套目录，并由文档关系产生前后页导航�
 <!-- tao:section verification -->
 ## 报告与验证
 
-目录示意、报告类型、VCS 归属、持久保存与输入识别边界见 [证据与产物保存](../../../plugins/tao-dev/skills/tao-dev/references/evidence-retention.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保存配置及不可当作缓存丢弃的工作流检查点。普通验证结论随计划保存，原始日志默认不进 VCS；独立摘要与必要报告按需保留。产品实现需分别表示历史结果、原始材料可用性和当前复用资格，不能因日志过期取消历史任务完成状态。
+目录示意、报告类型、VCS 归属、持久保存与输入识别边界见 [证据保存](../../../plugins/tao-dev/skills/tao-dev/references/evidence-retention.md)。默认使用 tmp/tao/，以临时目录表达生成文件的可丢弃性，并允许复用项目已有生成目录；.tao/ 保存配置及不可当作缓存丢弃的工作流检查点。普通验证结论随计划保存，原始日志默认不进 VCS；独立摘要与必要报告按需保留。产品实现需分别表示历史结果、原始材料可用性和当前复用资格，不能因日志过期取消历史任务完成状态。
 
 拆分和移动后重新校验全局 ID、引用及导航关系。出版回归覆盖正文、左侧导航和页内目录的编号一致性、编号重排、标题更新、特殊字符、改名、退役说明及失效删除；实际访问旧稳定入口，不能从 AST 或配置存在推导链接可用。
 

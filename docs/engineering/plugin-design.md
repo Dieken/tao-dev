@@ -105,7 +105,7 @@ Codex 原生 reviewer 的 name、description、developer_instructions 与只读 
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 `SKILL.md`、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。
 
-客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作规程](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
+客户端斜杠命令与终端中的 `tao` CLI 是不同接口。CLI 的能力发现、参数、副作用和退出码集中在 [命令设计](cli-design.md)；运行 skill 的 [流程操作](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 定义调用时机，避免把自然语言阶段名当作已经实现的 CLI 子命令。
 
 new 包装接收自然语言描述并保留会话上下文，调用共享流程规程，由 agent 整理输入并填写草稿；不能仅转发到终端生成器就宣称完成。CLI 使用显式 --slug，不能把描述当作 slug 或 shell 命令；两层契约见 [CLI 设计](cli-design.md)。
 
