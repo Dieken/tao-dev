@@ -52,6 +52,12 @@ Claude 使用原生 user/project/local。Codex 只有 user 和 repo/project 两�
 
 CLI 试验遵循 AGENTS.md：使用独立 CODEX_HOME、CLAUDE_CONFIG_DIR 与 Git 配置，禁止修改个人客户端或认证。必须检查项目内加载及项目外缺席。用户显式 install 包含所选插件及其已核对 hook 的配置授权；不隐式为任意外部 hook 批量写信任。
 
+### 运行定位与数据目录
+
+独立 skill 的入口根据脚本自身位置读取 runtime.json 和依赖清单，不依赖外层插件 manifest。运行数据按 TAO_RUNTIME_DIR、匹配安装记录、CLAUDE_PLUGIN_DATA、平台 tao-dev 数据目录的优先级选择。安装记录位于客户端配置目录的 tao-dev/installations/；配置目录由 CODEX_HOME／CLAUDE_CONFIG_DIR 指定，默认为 ~/.codex／~/.claude。
+
+跨项目显式传 --project；嵌套项目选择最深匹配安装，项目安装优先于 user，Claude 同项目 local 优先于 project。项目安装工具数据位于 `.local/tao-dev/<客户端>/<作用域>/`。运行数据与安装日志不作为项目交付证据，不纳入 VCS；目录和匹配规则由安装实现维护，消费者按安装摘要和 doctor 定位。
+
 <!-- tao:section errors -->
 ## 失败与恢复
 
