@@ -76,10 +76,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 覆盖 E3、E5：只运行已安装且可隔离的 CLI；未发现的九种 CLI 不安装、记录未运行；自动安装扩展按实际需求与验证条件决定。
   - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
-- [ ] `TASK_20260916_J92Y84NZR8X21H60` 完成独立复核、全量回归、打包与交付记录。
+- [x] `TASK_20260916_J92Y84NZR8X21H60` 完成独立复核、全量回归、打包与交付记录。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
   - depends_on: ["TASK_20260916_RMAP7AP1X0A5ZGE0"]
   - verify: 运行 pytest、静态检查、受管理文档与 HTML、两种包；独立审查最终差异与阅读场景，记录未运行范围。
+  - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
 <!-- tao:section verification -->
 ## 验证
@@ -95,9 +96,10 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 5：先观察旧实现对 Codex 来源成功用例失败，再实现 codex-exec-jsonl。39 项审查测试通过，覆盖完成轮次、截断、失败、混合会话、重复键、未结束 item、结论改写、来源摘要、输入过期及未证实模型／供应商声明；Claude 与人工来源回归通过。
 任务 6：提供可选 com.openai/agents/tao-reviewer.toml，复用共享审查规程、继承模型、read-only sandbox。Codex 0.154.0 项目内具名委派一次并复现样例除零错误，项目外 skill 与角色缺席；原始 exec 输出通过来源解析。文档说明显式项目注册、升级与撤销，安装器不自动改 agent 配置。
 任务 7：Codex 0.154.0 原生项目内外探针完成，具名 reviewer 与原始输出解析通过。Claude 2.1.270 临时项目调用收到服务端 403，个人配置未变；不重登、不更改全局安装。其余九种 CLI 在 PATH 不存在，原生验收未运行；按条件暂不扩展 install --client。授权网络重试与受限沙箱的失败尝试分别记录，临时 Codex 认证已移除。
+任务 8：全量 coverage 回归 381 passed、1 failed、5 skipped，耗时 579.06 秒；唯一失败是新增诊断缺中文翻译，补齐后 11 项语言测试通过，pytest --last-failed 再跑 1 passed。独立审查发现并复核修复两处 Markdown 围栏，另跑 21 项 Codex 测试通过，无未解决的重要发现。39 份受管理文档、213 个本地链接、HTML 与稳定链接、两种发布包及字节比对、Ruff 和依赖导出检查通过。按实测将测试上限调为 720 秒、总预算 750 秒，检查内容不变且独立复核通过。未执行全量 tao verify 或发布验收，不声称所有必需门禁、原生客户端或平台均已通过；真实审查记录与可导入回执继续区分。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
 ## 未决问题
 
-其他客户端原生验收需要相应 CLI 与隔离配置。Codex reviewer 发布形态与发现结果在任务 6 记录；安装管理扩展不与格式兼容混为一谈。
+其他客户端原生验收需要相应 CLI 与隔离配置；Claude 本次模型探针还需可用的服务端认证。Codex reviewer 已作为可选 TOML 分发并验证显式项目注册；安装管理暂不扩展其他客户端。共享 skill 与规程从最初 63,979 字符精简至 38,548 字符（约减少 39.7%）；跨客户端说明和工程验收细节保留在 docs。
