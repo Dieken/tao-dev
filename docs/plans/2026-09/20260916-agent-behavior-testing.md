@@ -62,10 +62,11 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
   - verify: 先覆盖模型自评分无效、证据缺失、双评审分歧、校准不足及严重度门槛，再实现 `tests/acceptance/behavior_judgment.py`；定向测试确认 pass、fail、review、blocked 分离。
   - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
-- [ ] `TASK_20260916_3MS6AF05Z6TQWE9P` 实现违规变异、行为向量和汇总／可疑队列报告。
+- [x] `TASK_20260916_3MS6AF05Z6TQWE9P` 实现违规变异、行为向量和汇总／可疑队列报告。
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "REQ_20260914_4GKT5JRVBJNCQ05X", "CHG_20260916_JT1P74T8YB727X82"]
   - depends_on: ["TASK_20260916_TGDQX3JKZVGFHHCR"]
   - verify: 对八类已知违规逐项注入并要求检出，验证契约覆盖、mutation detection rate、客户端矩阵、置信度和人工队列摘要；定向 pytest 与 replay 测试通过。
+  - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
 - [ ] `TASK_20260916_X73FES5FJJNJF7Z0` 完成双 CLI 真实行为验收、全量回归和维护说明。
   - relates: ["REQ_20260914_BWAY1ZF6HNPM855Y", "REQ_20260914_4CS6P421MGW68PME", "CHG_20260916_JT1P74T8YB727X82"]
@@ -86,6 +87,7 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 任务 3：新增 Claude／Codex JSONL 标准事件、保守的真实资源读取判定、workspace 哈希差异和八类确定性 oracle；路径存在性检查只记为提及，命令生命周期去重，遥测不完整统一阻断。21 项轨迹、契约与既有 reference 读取回归通过，定向 Ruff 无诊断。
 任务 4：新增仅支持 Claude Code 与 Codex 的命令适配、显式会话接续、条件式确定用户回复和有界进程组清理；真实会话 ID 缺失／变化、条件不匹配、超时和退出失败统一阻断，逐轮文件差异进入同一 trace。29 项运行器、轨迹、契约与兼容回归通过，定向 Ruff 无诊断。
 任务 5：新增严格语义评审 schema、双评审一致性、事件证据校验和按评审器／规则来源去重的 Wilson 置信下界；模型自评分不参与决策，样本不足、低于严重度门槛、分歧、未知项、伪造证据和非法输出均进入人工复核，遥测缺失保持阻断。38 项行为回归通过，定向 Ruff 无诊断。
+任务 6：新增八类已知违规变异与自动检出率门禁，并输出双客户端场景矩阵、逐规则置信度、完整 catalog 观察覆盖、机器 JSON 和人工摘要；确定性失败直接失败，低置信度语义项与基础设施阻断进入注意队列，覆盖缺口不能伪装为通过。43 项行为回归通过，变异检出率 8/8，定向 Ruff 无诊断。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
