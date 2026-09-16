@@ -30,4 +30,5 @@ created: "2026-09-14"
 20260916-document-workflow.md
 20260916-skill-docs.md
 20260916-client-portability.md
+20260916-agent-behavior-testing.md
 ```
