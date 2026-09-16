@@ -1,6 +1,6 @@
 # 工具入口与操作索引
 
-优先使用安装摘要中已验证的 tao 启动器绝对路径，也可用安装选定的 Python 调用本 skill 的 [scripts/tao.py](../scripts/tao.py)。下文 tao 表示该入口，不从 PATH 猜同名程序。环境未准备或不可用时读 [运行环境](runtime.md)。
+已有安装使用摘要中已验证的 tao 启动器；独立 skill 使用可用的受支持 Python 调用本 skill 的 [scripts/tao.py](../scripts/tao.py)。从当前已加载 skill 的实际位置定位脚本，以 `--project` 指定业务项目；资源 URI 按客户端提供的读取方式访问。只有 URI 且客户端未提供本地脚本或执行入口时，CLI 能力不可用，仍可读取规程。下文 tao 表示该入口，不从 PATH 猜同名程序。环境未准备或不可用时读 [运行环境](runtime.md)。
 
 首次调用运行 `tao --project <目录> doctor --format json`，按 capabilities 使用可用操作；入口、项目配置和环境未变时复用结果，失败或变化后重查。通用 `--project`、`--format text|json`、`--diagnostic-locale <语言>` 可放在操作前后。
 
