@@ -5,7 +5,7 @@ title: 工程设计
 locale: zh-Hans
 status: draft
 created: "2026-09-14"
-updated: "2026-09-15"
+updated: "2026-09-16"
 ---
 
 # 工程设计
@@ -26,6 +26,7 @@ development.md
 installation.md
 client-compatibility.md
 protocol-design.md
+agent-behavior-testing.md
 documentation/index.md
 cli-design.md
 plugin-design.md
