@@ -31,7 +31,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践或框架；不能统一声称它们是正式认证标准。tao 的 profile、章节标记、全局 ID、关系字段和 JSONL 退役记录是本项目补充。MyST 承载正文，YAML 承载元数据，GFM 提供 checkbox 写法；这些公开语法并不自动认可 tao 的附加字段或渲染指令。
 
 
-面向消费项目的写法见 [条目写法](../../../plugins/tao-dev/skills/tao-dev/references/document-entries.md)。
+面向消费项目的写法见 [正文写法](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)。
 
 <!-- tao:section architecture -->
 ## 解析与索引
