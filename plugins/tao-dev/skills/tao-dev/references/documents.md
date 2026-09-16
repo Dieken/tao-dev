@@ -51,7 +51,7 @@
 
 plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
-模板的 heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写。
+模板的 heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写；生成后仍需检查是否是真实内容。
 
 ## 标识符与引用
 
