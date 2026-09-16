@@ -207,7 +207,7 @@ def main():
     env['TAO_RUNTIME_DIR'] = str(args.workspace.resolve() / 'runtime')
     if plugin:
         setup = subprocess.run([sys.executable, str(plugin / 'skills/tao-dev/scripts/tao.py'),
-                                'setup', '--wheelhouse', str(ROOT / 'tmp/tao/wheels'), '--format', 'json'],
+                                'env', 'prepare', '--wheelhouse', str(ROOT / 'tmp/tao/wheels'), '--format', 'json'],
                                env=env, capture_output=True, text=True, timeout=180, check=False)
         if setup.returncode:
             raise RuntimeError('Isolated offline runtime preparation failed: ' + setup.stdout + setup.stderr)

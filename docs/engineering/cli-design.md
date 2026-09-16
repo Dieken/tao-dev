@@ -51,7 +51,7 @@ Claude 按插件名注册命令，正式名恒为 `/tao-dev:tao-<动作>`。每�
 
 agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、创建隔离 worktree 并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
 
-CLI 与 agent 动作有意区分职责：`tao setup` 准备工具运行环境，setup 动作接入业务项目；`tao review` 导入实际来源记录，review 动作调度有界审查；finish 动作处理用户选中的集成与清理，没有同名底层命令。handoff 由 agent 整理内容、CLI 验证并保存，不停止会话或转交执行权。
+CLI 与 agent 动作有意区分职责：`tao env prepare` 准备 tao 自身运行环境，setup 动作接入业务项目；`tao review` 导入实际来源记录，review 动作调度有界审查；finish 动作处理用户选中的集成与清理，没有同名底层命令。handoff 由 agent 整理内容、CLI 验证并保存，不停止会话或转交执行权。
 
 <!-- tao:section architecture -->
 ## 流程接入
@@ -79,7 +79,7 @@ hook 仅在已验证的平台事件上触发预算内的短检查，例如 `veri
 | `tao show <ID>` | 展示正式条目、定义位置、退役信息及可用的发布入口 | 首批；只读，类型从 ID 得到，不要求用户另选；未构建站点时 URL 可为空 |
 | `tao handoff [CHG-ID] --from <file>` | 保存 agent 提供的目标、决定、阻碍和下一步，并附实际状态与证据索引；不总结整段原始会话 | 恢复阶段；原子更新变更附件中的 `handoff.md`，不停止会话、创建快照或自动移交执行，不提交或推送 |
 | `tao doctor` | 检测项目根、配置、工具、schema 与命令能力 | 首批；只读，不安装依赖、不修复配置、不主动试跑构建 |
-| `tao setup [--wheelhouse <目录>]` | 在已有安装授权内显式准备相互隔离的核心与出版环境 | 标准库入口；不依赖 uv，不向插件源码或业务 Python 安装依赖 |
+| `tao env prepare [--wheelhouse <目录>]` | 在已有安装授权内显式准备相互隔离的核心与出版环境 | 标准库入口；不依赖 uv，不向插件源码或业务 Python 安装依赖。独立 skill 接入没有可用的 `tao install --client`，这是其准备运行环境的唯一入口 |
 | `tao id new <TYPE>` | 为已支持的条目类型生成本地日期＋80 位安全随机部分的 ID，检查当前索引与退役记录是否重复 | 首批辅助命令；只输出 ID；正常生成文档由生成器自动分配，用户不逐项选号 |
 | `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记到 `docs/retired/<yyyymmdd>.jsonl`，日期取退役的本地日期 | 已实现默认预览，显式 `--apply` 才写入；不把退役叫作 deprecate 或 archive，以免混淆弃用通知、删除承诺与归档已完成工作 |
 | `tao docs build` | 生成书籍、条目索引与永久链接入口 | 出版阶段；只写配置的生成目录，默认 `tmp/tao/book/`，不部署网站 |

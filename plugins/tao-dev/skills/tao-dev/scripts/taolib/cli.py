@@ -259,7 +259,7 @@ def dispatch(args):
     report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                   status="passed", diagnostics=[], outputs={})
     if args.command == "doctor" and args.project is None and not any((p / ".tao/config.toml").is_file() for p in [Path.cwd(), *Path.cwd().parents]):
-        report.update(capabilities=CAPABILITIES + ["setup"], schemas=list(registry["profiles"]))
+        report.update(capabilities=CAPABILITIES + ["env.prepare"], schemas=list(registry["profiles"]))
         return report, 0
     project = Project(args.project)
     project.diagnostic_locale = args.diagnostic_locale or project.diagnostic_locale
@@ -353,8 +353,8 @@ def main(argv=None, runtime_context=None):
     report["duration_seconds"] = round(time.monotonic() - started, 6)
     if args.command == "doctor" and runtime_context:
         report["outputs"]["runtime"] = runtime_context
-        if "setup" not in report.get("capabilities", []):
-            report.setdefault("capabilities", []).append("setup")
+        if "env.prepare" not in report.get("capabilities", []):
+            report.setdefault("capabilities", []).append("env.prepare")
         if runtime_context.get("publication", {}).get("state") == "ready" and "docs.build" not in report["capabilities"]:
             report["capabilities"].append("docs.build")
     if args.command == "verify" and "coverage" not in report:

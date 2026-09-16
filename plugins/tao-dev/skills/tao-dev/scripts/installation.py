@@ -214,7 +214,7 @@ def clean_environment():
 def prepare(plugin, python, runtime_dir, project, wheelhouse):
     env = clean_environment() | {'TAO_PYTHON': str(python), 'TAO_RUNTIME_DIR': str(runtime_dir)}
     entry = plugin / 'skills/tao-dev/scripts/tao.py'
-    argv = [python, '-I', '-B', entry, 'setup', '--format', 'json']
+    argv = [python, '-I', '-B', entry, 'env', 'prepare', '--format', 'json']
     if wheelhouse:
         argv += ['--wheelhouse', wheelhouse]
     result = json.loads(run(argv, cwd=project, env=env, timeout=300))

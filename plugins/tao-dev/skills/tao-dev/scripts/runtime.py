@@ -98,7 +98,7 @@ def probe(python, mode):
     completed = subprocess.run([str(python), "-I", "-c", code], env=environment(),
                                capture_output=True, text=True, timeout=10)
     if completed.returncode:
-        raise RuntimeFailure("Runtime imports failed; run tao setup to prepare a new environment.",
+        raise RuntimeFailure("Runtime imports failed; run tao env prepare for a new environment.",
                              "TAO-RUNTIME-003", "broken")
     return json.loads(completed.stdout)
 
@@ -143,7 +143,7 @@ def atomic_json(path, value):
         Path(temporary).unlink(missing_ok=True)
 
 
-def setup(ctx, wheelhouse=None):
+def prepare(ctx, wheelhouse=None):
     if wheelhouse is not None and not wheelhouse.is_dir():
         raise RuntimeFailure("Offline wheelhouse must be an existing directory.")
     slot = ctx["slot"]
@@ -169,7 +169,7 @@ def setup(ctx, wheelhouse=None):
             return directory
         # A venv contains absolute paths. Create it at its permanent location.
         directory = Path(tempfile.mkdtemp(prefix="env-", dir=slot))
-        log = directory / "setup.log"
+        log = directory / "prepare.log"
         command = [ctx["base_python"], "-I", "-m", "venv", str(directory)]
         pip = [str(python_in(directory)), "-I", "-m", "pip"]
         install = pip + ["install", "--disable-pip-version-check", "--no-input", "--require-hashes",
@@ -206,7 +206,7 @@ def emit(command, outputs, error=None, json_output=True, locale=None):
               "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
                                                        **diagnostic(error, locale)}]}
     if command == "doctor":
-        result["capabilities"] = ["doctor", "setup", "install", "uninstall"]
+        result["capabilities"] = ["doctor", "env.prepare", "install", "uninstall"]
     if command == "verify":
         result.update(coverage="unknown", readiness="blocked")
     if json_output:
@@ -261,22 +261,23 @@ def main(argv=None, entry="tao.py"):
             return subprocess.run([python, "-I", "-B", str(native_entry), *argv],
                                   env=environment(), check=False).returncode
         ctx = context(mode, project)
-        if command == "setup":
-            parser = argparse.ArgumentParser(prog="tao setup")
+        if command == "env":
+            parser = argparse.ArgumentParser(prog="tao env")
+            parser.add_argument("operation", choices=("prepare",))
             parser.add_argument("--project", type=Path)
             parser.add_argument("--wheelhouse", type=Path)
             parser.add_argument("--format", choices=("text", "json"), default="text")
             parser.add_argument("--diagnostic-locale")
             args = parser.parse_args(argv[position + 1:])
-            directory = setup(ctx, args.wheelhouse)
+            directory = prepare(ctx, args.wheelhouse)
             runtime = description(ctx, directory)
             ctx = context("publication", project)
-            publication = setup(ctx, args.wheelhouse)
+            publication = prepare(ctx, args.wheelhouse)
             runtime["publication"] = description(ctx, publication)
             return emit(command, {"runtime": runtime}, json_output=json_output)
         directory = selected(ctx)
         if directory is None:
-            raise RuntimeFailure(Message('The {arg0} runtime is not prepared. Run tao setup; ordinary commands do not install dependencies.', mode), "TAO-RUNTIME-002", "missing")
+            raise RuntimeFailure(Message('The {arg0} runtime is not prepared. Run tao env prepare; ordinary commands do not install dependencies.', mode), "TAO-RUNTIME-002", "missing")
         if Path(sys.prefix).resolve() != directory.resolve():
             child_env = environment() | {"TAO_PYTHON": ctx["base_python"]}
             return subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / entry), *argv], env=child_env).returncode
@@ -329,7 +330,7 @@ def hook_main():
         ctx = context("core")
         directory = selected(ctx)
         if directory is None:
-            raise RuntimeFailure("Core runtime missing; run tao setup explicitly.", "TAO-RUNTIME-002")
+            raise RuntimeFailure("Core runtime missing; run tao env prepare explicitly.", "TAO-RUNTIME-002")
         if Path(sys.prefix).resolve() == directory.resolve():
             from taolib.hook import run
             response = run(payload)

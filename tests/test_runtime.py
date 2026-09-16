@@ -33,7 +33,7 @@ def invoke(python, data, *args, scripts=SCRIPTS, cwd=None, extra=None):
 
 def prepare(python, data, *args, scripts=SCRIPTS):
     assert WHEELS.is_dir(), "Prepare locked wheels using tests/acceptance/runtime.py --download."
-    completed = invoke(python, data, "setup", "--wheelhouse", str(WHEELS), *args, scripts=scripts)
+    completed = invoke(python, data, "env", "prepare", "--wheelhouse", str(WHEELS), *args, scripts=scripts)
     assert completed.returncode == 0, completed.stdout + completed.stderr
     return json.loads(completed.stdout)["outputs"]["runtime"]
 
@@ -79,7 +79,7 @@ def test_failed_complete_setup_keeps_existing_core_and_does_not_implicitly_insta
     requirements.write_text(requirements.read_text() + "\n# New publication inventory\n")
     empty = tmp_path / "empty-wheels"
     empty.mkdir()
-    failed = invoke(bare_python, data, "setup", "--wheelhouse", str(empty), scripts=scripts)
+    failed = invoke(bare_python, data, "env", "prepare", "--wheelhouse", str(empty), scripts=scripts)
     assert failed.returncode == 2
     assert json.loads(failed.stdout)["status"] == "not_run"
     assert Path(info["python"]).is_file()
@@ -93,8 +93,8 @@ def test_failed_complete_setup_keeps_existing_core_and_does_not_implicitly_insta
     assert sorted(str(p.relative_to(data)) for p in data.rglob("*")) == before
 
 
-def test_setup_rejects_removed_publication_option(bare_python, tmp_path):
-    completed = invoke(bare_python, tmp_path / "data", "setup", "--publication")
+def test_env_prepare_rejects_removed_publication_option(bare_python, tmp_path):
+    completed = invoke(bare_python, tmp_path / "data", "env", "prepare", "--publication")
     assert completed.returncode == 2
     assert "unrecognized arguments: --publication" in completed.stderr
 
@@ -119,7 +119,7 @@ def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
     data = tmp_path / "claude data"
     env = os.environ | {"CLAUDE_PLUGIN_DATA": str(data), "TAO_PYTHON": str(bare_python)}
     env.pop("TAO_RUNTIME_DIR", None)
-    completed = subprocess.run([str(bare_python), str(plugin / "tao.py"), "setup", "--wheelhouse", str(WHEELS), "--format", "json"],
+    completed = subprocess.run([str(bare_python), str(plugin / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"],
                                env=env, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stdout + completed.stderr
     runtime = json.loads(completed.stdout)["outputs"]["runtime"]
@@ -132,7 +132,7 @@ def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
 def test_concurrent_preparation_publishes_one_complete_environment(bare_python, tmp_path):
     data = tmp_path / "data"
     env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)}
-    argv = [str(bare_python), str(SCRIPTS / "tao.py"), "setup", "--wheelhouse", str(WHEELS), "--format", "json"]
+    argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"]
     processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
     outputs = [process.communicate(timeout=60) for process in processes]
     assert all(p.returncode == 0 for p in processes), outputs
@@ -159,7 +159,7 @@ def test_corrupt_environment_requires_explicit_repair(bare_python, tmp_path):
 
 def test_explicit_missing_interpreter_never_falls_back(bare_python, tmp_path):
     data = tmp_path / "data"
-    completed = invoke(bare_python, data, "setup", extra={"TAO_PYTHON": str(tmp_path / "absent")})
+    completed = invoke(bare_python, data, "env", "prepare", extra={"TAO_PYTHON": str(tmp_path / "absent")})
     assert completed.returncode == 2
     assert json.loads(completed.stdout)["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-001"
     assert not data.exists()
@@ -170,7 +170,7 @@ def test_symlinked_runtime_slot_never_writes_outside_data(bare_python, tmp_path)
     data.mkdir()
     outside.mkdir()
     (data / "runtimes").symlink_to(outside, target_is_directory=True)
-    failed = invoke(bare_python, data, "setup", "--wheelhouse", str(WHEELS))
+    failed = invoke(bare_python, data, "env", "prepare", "--wheelhouse", str(WHEELS))
     assert failed.returncode == 2
     assert list(outside.iterdir()) == []
 

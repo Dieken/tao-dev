@@ -169,7 +169,7 @@ def test_cli_binding_uses_project_argument_and_reexecutes_without_tao_variables(
     env = dict(os.environ) | {"TAO_RUNTIME_DIR": str(managed), "TAO_PYTHON": sys.executable}
     wheels = Path(os.environ.get("TAO_TEST_WHEELHOUSE", SCRIPTS.parents[4] / "tmp/tao/wheels"))
     setup = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
-                            "setup", "--wheelhouse", str(wheels), "--format", "json"],
+                            "env", "prepare", "--wheelhouse", str(wheels), "--format", "json"],
                            env=env, capture_output=True, text=True, check=False)
     assert setup.returncode == 0, setup.stdout + setup.stderr
     registry.save_record(record)
@@ -178,7 +178,7 @@ def test_cli_binding_uses_project_argument_and_reexecutes_without_tao_variables(
     clean_env.pop("TAO_PYTHON", None)
     clean_env["CLAUDE_PLUGIN_DATA"] = str(tmp_path / "wrong-data")
     reuse = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
-                            "setup", *project_args(project), "--format", "json"],
+                            "env", "prepare", *project_args(project), "--format", "json"],
                            cwd=tmp_path, env=clean_env, capture_output=True, text=True, timeout=30, check=False)
     assert reuse.returncode == 0, reuse.stdout + reuse.stderr
     result = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
@@ -213,7 +213,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
         row = receipt(registry, tmp_path, client=client, scope="project", project=project)
         row.update(plugin_path=str(native), plugin_base=str(native.parent))
         setup = subprocess.run([sys.executable, str(native / "skills/tao-dev/scripts/tao.py"),
-                                "setup", "--wheelhouse", str(wheels), "--format", "json"],
+                                "env", "prepare", "--wheelhouse", str(wheels), "--format", "json"],
                                env=clean | {"TAO_RUNTIME_DIR": row["runtime_dir"], "TAO_PYTHON": sys.executable},
                                capture_output=True, text=True, check=False)
         assert setup.returncode == 0, setup.stdout + setup.stderr
@@ -228,7 +228,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
                                 cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
         assert result.returncode == 0, result.stdout + result.stderr
         assert json.loads(result.stdout)["outputs"]["runtime"]["data_directory"] == row["runtime_dir"]
-        reuse = subprocess.run([str(launcher), "setup", "--project", row["project"],
+        reuse = subprocess.run([str(launcher), "env", "prepare", "--project", row["project"],
                                 "--wheelhouse", str(wheels), "--format", "json"],
                                cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
         assert reuse.returncode == 0, reuse.stdout + reuse.stderr
