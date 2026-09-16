@@ -41,7 +41,7 @@ blocker 处于 open 或 deferred 时阻断。fixed 需要针对当前输入的�
 | claude-stream-json | `claude` 的原始 stream-json | 取自来源实际观测值；来源冲突时拒绝，均未提供时只能写 unknown |
 | codex-exec-jsonl | `codex exec --json` 的原始 JSONL | 该格式不携带这两项，只能为 unknown |
 
-不能从品牌名、CLI 名称、配置、角色名或模型自述推断实际模型或供应商；TOML reviewer 不改变这一限制。其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
+来源差异的判定见 [审查规程](review.md)；配置、角色名、TOML reviewer 或模型自述都不能补全这两项。其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
 
 导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`。保存原则见 [证据保存](evidence-retention.md)；require_logs=true 时来源缺失或摘要不符阻止复用，reuse_seconds 限定时长。输入、策略或目标不符为 stale；缺失、无效、过期和未解决发现分别报告，不自动重审。
 
