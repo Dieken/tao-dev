@@ -24,8 +24,8 @@ created: "2026-09-16"
 
 | 客户端 | Skill／资源文档依据 | 本机原生状态 | tao 安装管理 | 平台扩展 |
 |---|---|---|---|---|
-| Claude Code 2.1.270 | 原生 skills、插件根变量 | 已有隔离安装／hook 验收；本次探针另记 | 已实现 | Claude commands、Markdown reviewer、hook |
-| Codex 0.154.0 | 原生 skills、显式资源路径 | 已有兼容 manifest 安装／hook 验收；本次探针另记 | 已实现 | hook；TOML reviewer 验证中 |
+| Claude Code 2.1.270 | 原生 skills、插件根变量 | 已有隔离安装／hook 验收；本次模型调用被服务端 403 阻断 | 已实现 | Claude commands、Markdown reviewer、hook |
+| Codex 0.154.0 | 原生 skills、显式资源路径 | 本次项目内 skill／TOML 角色发现与委派通过，项目外均缺席 | 已实现 | hook；可选 TOML reviewer |
 | Cursor | SKILL.md、配套文件、项目目录 | 未运行：无 CLI | 未实现 | 不复制 Claude 原生包装作为支持承诺 |
 | Oh My Pi | SKILL.md；skill URI 只接受归一化的根内资源路径 | 未运行：无 CLI | 未实现 | 使用本机能力，单独验收 |
 | Crush | SKILL.md、配套文件、可配置目录 | 未运行：无 CLI | 未实现 | 同上 |
@@ -35,6 +35,8 @@ created: "2026-09-16"
 | OpenCode | SKILL.md、资源工具和权限配置 | 未运行：无 CLI | 未实现 | 同上 |
 | Qoder | 官方 Skills 页面检索；正文抓取不可用 | 未运行：无 CLI | 未实现 | 同上 |
 | CodeBuddy | SKILL.md、配套资源、原生占位符 | 未运行：无 CLI | 未实现 | 同上 |
+
+本次 Codex 0.154.0 原生探针实际委派 tao_reviewer 一次，读取共享审查规程并复现样例缺陷；原始输出通过 codex-exec-jsonl 解析，模型和供应商保持 unknown。项目外会话未发现 skill 或角色。Claude Code 2.1.270 复用已有认证时收到 `403 Request not allowed`，本次加载后的行为未验收；个人配置摘要保持不变，未重新登录。
 
 本次 PATH 探测仅发现 codex 和 claude。其他客户端有文档依据的接入候选，尚无原生运行保证。Python 的独立 skill 回归覆盖共同脚本边界，不能证明各客户端一定允许执行这些脚本。
 

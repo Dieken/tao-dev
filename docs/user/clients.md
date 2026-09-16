@@ -62,9 +62,21 @@ python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
 
 ### 原生入口与独立审查
 
-Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 的注册方式在完成原生验证后于本节记录。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
+Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 需按下节显式注册。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
 
 真实审查报告可以保存；机器回执还需来源格式适配和当前输入绑定。支持格式以 [审查证据](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md) 为准，不能将未支持来源改写为人工审查来通过门禁。
+
+### 可选：Codex 原生 reviewer
+
+包内 [tao-reviewer.toml](../../plugins/tao-dev/com.openai/agents/tao-reviewer.toml) 定义 `tao_reviewer`，与 Claude reviewer 复用相同审查和工程规程。它继承主会话的模型选择，采用 read-only sandbox；需要写入的复现由主 agent 在已授权的隔离环境执行。结论返回主 agent 保存，角色本身不重新调度审查。
+
+在需要此入口的项目中：
+
+1. 先接入 tao-dev skill，使父子会话能够发现；主 agent 委派时传递实际 skill 路径及审查材料。
+2. 将完整插件中的 `com.openai/agents/tao-reviewer.toml` 复制到项目 `.codex/agents/tao-reviewer.toml`。独立 skill 不包含此平台适配文件，可从上面的源码入口取得。已有同名文件或角色时先检查冲突，不覆盖。
+3. 确认项目 `.codex/config.toml` 属于当前受信任的配置层。若尚无该文件，可创建空文件；若原生 agents 被关闭，在该项目现有配置中合并 `[agents]` 的 `enabled = true`，不覆盖已有配置。启动新会话，确认可用角色中有 `tao_reviewer` 后再委派。[Codex 原生子代理文档](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+插件安装器只分发此 TOML，不自动复制或注册角色；Codex 不会仅因文件位于插件的 `com.openai/agents/` 就加载它。升级插件后按需更新项目中的角色副本。取消角色时只移除自己添加的文件及专用配置，不删除整个 `.codex/agents/`。普通 `$tao-dev review` 使用共享流程，不要求注册此角色。上述发现与具名委派已在 Codex 0.154.0 的临时受信任项目验证，项目外角色缺席；其他版本仍需核对原生行为。
 
 <!-- tao:section troubleshooting -->
 ## 排查
