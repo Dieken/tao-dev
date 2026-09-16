@@ -1,11 +1,10 @@
 """Load and validate executable tao-dev behavior contracts."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 import yaml
-
 
 SUPPORTED_CLIENTS = ("claude", "codex")
 SEVERITIES = ("critical", "normal", "advisory")

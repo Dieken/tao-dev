@@ -170,5 +170,6 @@ def test_adapters_build_real_cli_commands_without_other_agents(tmp_path):
 
     assert claude.command[0] == "claude"
     assert "--session-id" in claude.command
-    assert codex.command[:2] == ("codex", "exec")
+    assert codex.command[0] == "codex"
+    assert "exec" in codex.command
     assert {claude.client, codex.client} == {"claude", "codex"}

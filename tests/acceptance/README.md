@@ -13,6 +13,8 @@
 .venv/bin/python tests/acceptance/clients.py --client codex --case recover --isolated-codex --reuse-codex-auth --codex-legacy --trust-test-hook --disable-hooks --workspace /tmp/tao-codex-recover
 .venv/bin/python tests/acceptance/clients.py --client codex --case routing --isolated-codex --reuse-codex-auth --codex-legacy --workspace /tmp/tao-codex-routing
 .venv/bin/python tests/acceptance/lifecycle.py --codex-legacy --workspace /tmp/tao-codex-lifecycle
+PYTHONPATH=tests .venv/bin/python -m acceptance.behavior_live --client claude --workspace /tmp/tao-claude-behavior
+PYTHONPATH=tests .venv/bin/python -m acceptance.behavior_live --client codex --workspace /tmp/tao-codex-behavior
 ```
 
 模型试验必须明确选择独立客户端状态；省略隔离参数时，两端均在启动客户端前返回 blocked，不回退个人配置模式。Codex 选择 --isolated-codex：每个案例使用新的独立 workspace，CODEX_HOME、XDG_CONFIG_HOME、Git 配置位置和安装缓存均留在该工作区；仅试验项目启用插件，客户端默认禁用。安装后用原生 app-server 查询技能边界，项目外空列表之外仍须模型对照。0.154.0 的调用级 trust override 不能阻止其持久化项目信任，不能把它当作配置隔离。
@@ -30,6 +32,8 @@ inside 核对实际发现、引用定位、doctor/status；outside 不使用工�
 plan 在明确授权的非 Git 微型维护样例中通过主 skill 创建计划，再调用 handoff；此例使用简化路径，不代表完整 feature 的阶段推进验收。产出完整计划及相同 CHG 的交接，校验实际文档，保留未实现任务。该微型场景的 Claude 调用明确使用低推理强度与简短文档指导，避免把大篇幅写作混入加载验收；不是对默认推理强度的耗时保证。verify 使用真实失败基线，通过 review 动作只运行确定性验证，预期如实报告失败而不修复代码或勾选任务。Claude 要核对真实 Skill 工具调用，不能仅凭命令出现在初始化列表就算验收。lifecycle.py 的 --client claude 与 --claude-scope 组合检查原生启停、版本更新及卸载；这些不调用模型的检查仍不能替代流程行为。
 
 routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev 并只读取工程与流程规程，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不相信模型自报；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有 prompt 都会采用相同读取路径，也不能充当修改前后的因果基线。
+
+behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用夹具只说明导出保留策略尚未决定，不在 prompt 或文件中泄漏 30 天及失败处理答案。首轮必须提出材料性问题且零写入；脚本仅在该可观察条件命中时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证编排，不启动模型。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 

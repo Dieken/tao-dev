@@ -2,11 +2,10 @@
 
 import json
 import os
-from pathlib import Path
 import time
+from pathlib import Path
 
 import pytest
-
 from acceptance import isolated_claude as adapter
 
 
@@ -38,32 +37,53 @@ def test_access_is_child_only_and_refresh_is_not_forwarded(tmp_path, monkeypatch
 
 def test_expired_access_never_starts_a_probe(tmp_path, monkeypatch):
     credentials(tmp_path, monkeypatch, seconds=150)
-    with pytest.raises(RuntimeError, match='no refresh'):
-        with adapter.access_environment(tmp_path, 90):
-            pytest.fail('Access would expire during this probe.')
+    with (pytest.raises(RuntimeError, match='no refresh'),
+          adapter.access_environment(tmp_path, 90)):
+        pytest.fail('Access would expire during this probe.')
 
 
 def test_personal_credential_change_invalidates_probe_without_rollback(tmp_path, monkeypatch):
     raw = credentials(tmp_path, monkeypatch)
     values = iter([raw, raw + ' '])
     monkeypatch.setattr(adapter, 'read_credentials', lambda: next(values))
-    with pytest.raises(RuntimeError, match='no restoration'):
-        with adapter.access_environment(tmp_path, 90) as (env, _):
-            pass
+    with (pytest.raises(RuntimeError, match='no restoration'),
+          adapter.access_environment(tmp_path, 90) as (env, _)):
+        pass
     assert 'CLAUDE_CODE_OAUTH_TOKEN' not in env
 
 
 def test_custom_route_is_not_silently_replaced(tmp_path, monkeypatch):
     credentials(tmp_path, monkeypatch)
     monkeypatch.setenv('ANTHROPIC_BASE_URL', 'https://example.invalid')
-    with pytest.raises(RuntimeError, match='provider routing'):
-        with adapter.access_environment(tmp_path, 90):
-            pytest.fail('Configured routing must not be replaced.')
+    with (pytest.raises(RuntimeError, match='provider routing'),
+          adapter.access_environment(tmp_path, 90)):
+        pytest.fail('Configured routing must not be replaced.')
+
+
+def test_malformed_personal_model_override_is_not_forwarded(tmp_path, monkeypatch):
+    credentials(tmp_path, monkeypatch)
+    settings = tmp_path / '.claude/settings.json'
+    settings.parent.mkdir()
+    settings.write_text(json.dumps({'model': 'opus[1m'}))
+
+    with adapter.access_environment(tmp_path / 'experiment', 90) as (env, _):
+        assert 'ANTHROPIC_MODEL' not in env
+
+
+def test_valid_personal_model_override_is_forwarded(tmp_path, monkeypatch):
+    credentials(tmp_path, monkeypatch)
+    settings = tmp_path / '.claude/settings.json'
+    settings.parent.mkdir()
+    settings.write_text(json.dumps({'model': 'claude-sonnet-4-5'}))
+
+    with adapter.access_environment(tmp_path / 'experiment', 90) as (env, _):
+        assert env['ANTHROPIC_MODEL'] == 'claude-sonnet-4-5'
 
 
 @pytest.mark.parametrize('client', ['claude', 'codex'])
 def test_personal_state_probe_is_rejected_before_starting_client(tmp_path, monkeypatch, client):
     import sys
+
     from acceptance import clients
     monkeypatch.setattr(sys, 'argv', ['clients.py', '--client', client, '--case', 'inside',
                                      '--workspace', str(tmp_path / 'experiment')])
@@ -76,12 +96,13 @@ def test_expiring_credentials_produce_a_structured_runner_failure(tmp_path, monk
     import importlib
     from contextlib import contextmanager
     from types import SimpleNamespace
+
     from acceptance import clients
     monkeypatch.syspath_prepend(str(Path(__file__).parent / 'acceptance'))
     native = importlib.import_module('isolated_claude')
     monkeypatch.setattr(clients, 'ROOT', tmp_path / 'source')
     monkeypatch.setattr(Path, 'home', lambda: tmp_path / 'home')
-    monkeypatch.setattr(clients, 'global_configuration', lambda: {})
+    monkeypatch.setattr(clients, 'global_configuration', dict)
     monkeypatch.setattr(clients, 'prepare', lambda *args, **kwargs: tmp_path / 'plugin')
     monkeypatch.setattr(native, 'configure', lambda *args: None)
     monkeypatch.setattr(clients.subprocess, 'run', lambda *args, **kwargs:
