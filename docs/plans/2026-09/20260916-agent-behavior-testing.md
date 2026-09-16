@@ -44,10 +44,11 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
   - verify: 先新增缺规则、重复 ID、非法 oracle 和无场景覆盖的失败测试，再实现 `tests/acceptance/behavior_contract.py`、契约与场景 YAML；定向 pytest 全部通过。
   - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
-- [ ] `TASK_20260916_1B81NB6QNKZE2GAA` 实现标准事件、真实读取证据和确定性工作流 oracle。
+- [x] `TASK_20260916_1B81NB6QNKZE2GAA` 实现标准事件、真实读取证据和确定性工作流 oracle。
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "REQ_20260914_4CS6P421MGW68PME", "CHG_20260916_JT1P74T8YB727X82"]
   - depends_on: ["TASK_20260916_GPHMFW1YFH133KHB"]
   - verify: 先用授权前写入、仅提及路径、漏读／多读、验证后修改和不支持完成声明的合成 trace 观察失败，再实现 `tests/acceptance/behavior_trace.py` 并通过定向回归。
+  - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
 - [ ] `TASK_20260916_KQBQCS7VV58XQ2CG` 实现确定性多轮场景运行器和 Claude／Codex 会话适配。
   - relates: ["REQ_20260914_BFNMKT34JF1BSGW2", "REQ_20260914_BWAY1ZF6HNPM855Y", "CHG_20260916_JT1P74T8YB727X82"]
@@ -80,6 +81,7 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 基线：在隔离 worktree 中准备锁定 wheelhouse 与独立运行环境；完整 pytest 为 382 passed、5 skipped，耗时 593.18 秒。5 项 skip 均为需显式开启的既有原生安装探针，基线无失败。
 任务 1：新增行为测试设计、七项实施计划及工程／计划导航入口；41 份受管理文档通过结构、ID、关系和导航检查，无诊断。
 任务 2：新增 12 条行为规则、9 个自然场景及严格 catalog loader；重复规则、非法严重度／oracle、未知客户端／规则、单客户端覆盖缺口和 prompt 泄漏均在模型启动前拒绝。13 项契约与既有 reference 读取回归通过。
+任务 3：新增 Claude／Codex JSONL 标准事件、保守的真实资源读取判定、workspace 哈希差异和八类确定性 oracle；路径存在性检查只记为提及，命令生命周期去重，遥测不完整统一阻断。21 项轨迹、契约与既有 reference 读取回归通过，定向 Ruff 无诊断。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
