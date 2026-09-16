@@ -64,10 +64,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 覆盖 E4：先成功与拒绝测试并观察旧实现失败，再适配原始 exec JSONL；未知身份不得虚构，保留输入、会话和结果绑定。
   - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
-- [ ] `TASK_20260916_C0KRGK3MSRTX5HCA` 评估并提供可验证的 Codex 原生 reviewer 入口。
+- [x] `TASK_20260916_C0KRGK3MSRTX5HCA` 评估并提供可验证的 Codex 原生 reviewer 入口。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
   - depends_on: ["TASK_20260916_RMAP7AP1X0A5ZGE0"]
   - verify: 按 0.154.0 原生发现机制提供复用共享规程的 TOML；避免覆盖已有角色、不固化模型；验证项目内发现与项目外缺席。
+  - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
 - [ ] `TASK_20260916_Z2FM1RBCPRZN06RX` 执行可用客户端探针并记录安装扩展决策。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
@@ -91,6 +92,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 3：新增用户接入指南与 11 客户端分层矩阵，合并流程指南重复示例，保留原生包装和 hook 所需变量；README 与内部设计同步。39 份受管理文档校验通过，211 个本地链接无缺失；新增九种 CLI 不伪报原生通过。
 任务 4：新增两项独立 skill 回归并通过：完整 skill 资源引用不越界；含空格和中文路径、无外层 manifest、另一 cwd、空 PATH、未准备依赖诊断与显式离线 setup、docs/show/status 运行及资源字节未变。
 任务 5：先观察旧实现对 Codex 来源成功用例失败，再实现 codex-exec-jsonl。39 项审查测试通过，覆盖完成轮次、截断、失败、混合会话、重复键、未结束 item、结论改写、来源摘要、输入过期及未证实模型／供应商声明；Claude 与人工来源回归通过。
+任务 6：提供可选 com.openai/agents/tao-reviewer.toml，复用共享审查规程、继承模型、read-only sandbox。Codex 0.154.0 项目内具名委派一次并复现样例除零错误，项目外 skill 与角色缺席；原始 exec 输出通过来源解析。文档说明显式项目注册、升级与撤销，安装器不自动改 agent 配置。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

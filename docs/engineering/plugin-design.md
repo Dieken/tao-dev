@@ -46,6 +46,7 @@ tao-dev/
           scripts/                   # 被实际调用的公共检查逻辑
       com.openai/
         hooks/hooks.json             # Codex hook 配置，显式声明路径
+        agents/tao-reviewer.toml      # 可选原生角色，需项目单独注册
       .claude-plugin/
         plugin.json                  # Claude Code 兼容 manifest
       agents/                        # 按需：Claude Code 原生角色入口
@@ -80,6 +81,8 @@ Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook
 
 Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；其 manifest 的名称、版本和描述与 Codex manifest 检查一致；公共格式由打包器派生。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 
+Codex 原生 reviewer 的 name、description、developer_instructions 与只读 sandbox 由 TOML 定义，不固化模型；正文只定位共享审查规程并限定受委派角色的职责。插件 manifest 没有原生角色注册字段，安装器不写用户 agent 配置。注册、更新和撤销方式见 [接入指南](../user/clients.md)；`agents/openai.yaml` 仍仅是 skill 的界面元数据，不能替代 TOML 角色。
+
 公共版本需要 MCP 时才增加根 `mcp.json`；Claude 兼容配置按其原生格式生成并单独验收。初版不为符合目录示意而引入 MCP 服务。
 
 发布前核对实际包内容：必要的运行引用、脚本、模板及许可证信息齐全，内部 `docs/`、开发指导、研究材料、缓存和验收凭据已排除。包内文件路径和符号链接解析后必须留在插件根；安装目录改变后仍能运行。组件注册、市场发布及用户全局配置的修改是独立操作，不随文档构建自动执行。
@@ -96,7 +99,7 @@ Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；其 m
 | 组件 | 公共定义与格式 | Codex CLI | Claude Code CLI |
 |---|---|---|---|
 | skill | `skills/<name>/SKILL.md`；YAML 元数据＋Markdown 正文；必需字段为 `name`、`description` | 通过原生 skill 发现与显式调用使用 | 通过插件 skill 发现及带插件命名空间的入口使用 |
-| agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 复用角色规程，按原生子代理能力执行；具名 agent 配置须按目标版本另行验证 | 按需用 `agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式 |
+| agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 可选 com.openai/agents/tao-reviewer.toml，复制到项目 .codex/agents/ 后按原生机制发现 | 按需用 `agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式 |
 | 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/*.md` 提供仅转发操作与参数的斜杠命令包装 |
 | hook | 共享可确定的检查逻辑；事件绑定与输入输出由平台适配 | 使用 Codex hook JSON、受支持事件与执行类型 | 使用 Claude hook JSON、受支持事件与执行类型 |
 
