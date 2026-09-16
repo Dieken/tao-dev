@@ -33,15 +33,15 @@ blocker 处于 open 或 deferred 时阻断。fixed 需要针对当前输入的�
 
 ## 来源适配及信任边界
 
-human 的 model／provider 必须为 null，审查者 name 必须不同于作者。source.format 为 human-json；来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致。仅导入实际具名人工结论。
+来源必须是审查者实际产生的原始输出，最终结论恰有 binding、summary、findings、limitations 四个字段，且与记录一致。校验由 [审查模块](../scripts/taolib/reviews.py) 执行，失败、超时、截断、会话或轮次不匹配、结论被改写的来源一律拒绝，不能改写来源迎合记录。
 
-model 支持以下原始输出格式，最终结论均须恰有 binding、summary、findings、limitations，且与记录一致。
+| source.format | 来源 | 模型与供应商 |
+|---|---|---|
+| human-json | 具名人工审查者写的结论文件 | 必须为 null，且 name 不同于作者 |
+| claude-stream-json | `claude` 的原始 stream-json | 取自来源实际观测值；来源冲突时拒绝，均未提供时只能写 unknown |
+| codex-exec-jsonl | `codex exec --json` 的原始 JSONL | 该格式不携带这两项，只能为 unknown |
 
-**claude-stream-json**：来源需有恰好一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中，provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider；来源冲突时拒绝，均未提供时只能写 unknown。不能从品牌名推断实际模型，更不能把 CLI 名称当作跨供应商证明。result.structured_output（或可解析为 JSON 的 result.result）必须恰有 binding、summary、findings、limitations，且与记录一致。失败、超时、缺结果或不一致的来源不能导入。
-
-**codex-exec-jsonl**：使用 `codex exec --json` 的原始 JSONL；恰有一个 thread.started，thread_id 与 reviewer.context 一致，随后是单个 turn.started 至 turn.completed，所有已开始的 item 均完成。最后一个已完成的 agent_message 必须是上述结论 JSON。失败、截断、重复或混合会话／轮次、结论被改写均拒绝。该格式没有观测模型和供应商字段，两者只能为 unknown，不能从配置、角色名或模型自述补全；TOML reviewer 不改变这一限制。
-
-其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
+不能从品牌名、CLI 名称、配置、角色名或模型自述推断实际模型或供应商；TOML reviewer 不改变这一限制。其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
 
 导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`。保存原则见 [证据保存](evidence-retention.md)；require_logs=true 时来源缺失或摘要不符阻止复用，reuse_seconds 限定时长。输入、策略或目标不符为 stale；缺失、无效、过期和未解决发现分别报告，不自动重审。
 
