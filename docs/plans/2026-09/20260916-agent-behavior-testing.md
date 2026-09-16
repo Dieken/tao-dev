@@ -50,10 +50,11 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
   - verify: 先用授权前写入、仅提及路径、漏读／多读、验证后修改和不支持完成声明的合成 trace 观察失败，再实现 `tests/acceptance/behavior_trace.py` 并通过定向回归。
   - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
-- [ ] `TASK_20260916_KQBQCS7VV58XQ2CG` 实现确定性多轮场景运行器和 Claude／Codex 会话适配。
+- [x] `TASK_20260916_KQBQCS7VV58XQ2CG` 实现确定性多轮场景运行器和 Claude／Codex 会话适配。
   - relates: ["REQ_20260914_BFNMKT34JF1BSGW2", "REQ_20260914_BWAY1ZF6HNPM855Y", "CHG_20260916_JT1P74T8YB727X82"]
   - depends_on: ["TASK_20260916_1B81NB6QNKZE2GAA"]
   - verify: 先以伪进程证明会话 ID 丢失、独立调用冒充接续、意外写入和用户脚本条件不匹配会失败，再实现 `tests/acceptance/behavior_clients.py` 与 `behavior_runner.py`；普通测试不启动真实模型。
+  - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
 - [ ] `TASK_20260916_TGDQX3JKZVGFHHCR` 实现 LLM 语义评审、校准置信度和人工升级决策。
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "REQ_20260914_M05MAGDARWBY5D44", "CHG_20260916_JT1P74T8YB727X82"]
@@ -82,6 +83,7 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 任务 1：新增行为测试设计、七项实施计划及工程／计划导航入口；41 份受管理文档通过结构、ID、关系和导航检查，无诊断。
 任务 2：新增 12 条行为规则、9 个自然场景及严格 catalog loader；重复规则、非法严重度／oracle、未知客户端／规则、单客户端覆盖缺口和 prompt 泄漏均在模型启动前拒绝。13 项契约与既有 reference 读取回归通过。
 任务 3：新增 Claude／Codex JSONL 标准事件、保守的真实资源读取判定、workspace 哈希差异和八类确定性 oracle；路径存在性检查只记为提及，命令生命周期去重，遥测不完整统一阻断。21 项轨迹、契约与既有 reference 读取回归通过，定向 Ruff 无诊断。
+任务 4：新增仅支持 Claude Code 与 Codex 的命令适配、显式会话接续、条件式确定用户回复和有界进程组清理；真实会话 ID 缺失／变化、条件不匹配、超时和退出失败统一阻断，逐轮文件差异进入同一 trace。29 项运行器、轨迹、契约与兼容回归通过，定向 Ruff 无诊断。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

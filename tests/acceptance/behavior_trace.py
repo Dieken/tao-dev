@@ -102,6 +102,8 @@ def _record_command(events, command, exit_code=None, started=True,
         opened, mentioned = _command_resources(command)
         for resource in opened:
             events.add("resource.opened", resource=resource, command=command)
+            if resource == "SKILL.md":
+                events.add("skill.invoked", skill="tao-dev")
         for resource in mentioned:
             events.add("resource.mentioned", resource=resource, command=command)
     if exit_code is not None:
@@ -122,6 +124,9 @@ def _normalize_claude(rows, events):
             continue
         content = row.get("message", {}).get("content", [])
         for block in content if isinstance(content, list) else []:
+            if block.get("type") == "text":
+                events.add("message.assistant", text=block.get("text", ""))
+                continue
             if block.get("type") != "tool_use":
                 continue
             name = block.get("name")
@@ -139,6 +144,10 @@ def _normalize_codex(rows, events):
     pending = {}
     for row in rows:
         item = row.get("item") or {}
+        if (row.get("type") == "item.completed"
+                and item.get("type") == "agent_message"):
+            events.add("message.assistant", text=item.get("text", ""))
+            continue
         if item.get("type") != "command_execution":
             continue
         command = item.get("command", "")
