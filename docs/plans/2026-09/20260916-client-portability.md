@@ -46,10 +46,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 覆盖 D1–D7：修改 SKILL.md、workflow、tools、runtime、review、review-receipts；链接检查与独立阅读复核。
   - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
-- [ ] `TASK_20260916_WCDPVEKSQQYXWFDD` 整理接入指南、安装设计与客户端兼容矩阵。
+- [x] `TASK_20260916_WCDPVEKSQQYXWFDD` 整理接入指南、安装设计与客户端兼容矩阵。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
   - depends_on: ["TASK_20260916_RMAP7AP1X0A5ZGE0"]
   - verify: 覆盖 M1–M6、A1–A6：README、用户流程、plugin-design、cli-design、installation 与新指南、矩阵；文档与导航验证。
+  - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
 - [ ] `TASK_20260916_2546R68CR02ZCDV4` 验证独立 skill 的资源、Python 运行与项目定位。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
@@ -85,6 +86,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 本机 PATH 仅发现 codex 和 claude；额外九种客户端均未发现，不执行全局安装。基线独立阅读确认无 CHG 局部审查、无安装摘要的解释器定位、通用报告与机器证据边界需要澄清；不是原生失败结果。原始输出位于忽略的 tmp/tao/portability/。
 任务 1：21 项打包和审查来源基线测试通过；37 份受管理文档通过。已完成独立阅读基线，PATH 只有 Codex／Claude，新增客户端不伪报验收。
 任务 2：共享入口消除客户端动作依赖，区分文件链接、脚本路径和资源 URI；明确无 CHG 报告、独立能力缺失与回执边界。独立阅读复核完成并修复普通报告和 URI-only 执行限制；200 个本地链接无缺失，受管理文档校验通过。
+任务 3：新增用户接入指南与 11 客户端分层矩阵，合并流程指南重复示例，保留原生包装和 hook 所需变量；README 与内部设计同步。39 份受管理文档校验通过，211 个本地链接无缺失；新增九种 CLI 不伪报原生通过。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

@@ -43,7 +43,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 ### 本项目的命名规则
 
-Claude command 包装使用 `/tao-dev:<动作>`，Codex 使用 `$tao-dev <动作>`；包装只传递动作与完整请求，共用 skill 中的流程规程。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
+客户端入口只选择动作并传递完整请求，共用 skill 中的流程规程；原生调用语法集中在 [接入指南](../user/clients.md)。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
 
 agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、隔离工作副本并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
 

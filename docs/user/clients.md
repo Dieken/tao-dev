@@ -1,0 +1,78 @@
+---
+schema: tao.project.user-guide/v0.1
+id: DOC_20260916_J7HZD61YYQTTYBW0
+title: 在不同 coding agent 中接入 tao-dev
+locale: zh-Hans
+status: draft
+created: "2026-09-16"
+---
+
+# 在不同 coding agent 中接入 tao-dev
+
+<!-- tao:section scope -->
+## 选择接入方式
+
+| 方式 | 获得的能力 | 入口 |
+|---|---|---|
+| Claude／Codex 完整插件 | 共享 skill、CLI、模板、对应客户端 hook 与安装管理 | [README](../../README.md) |
+| 独立 skill | 同一份规程、模板与 Python CLI；客户端原生扩展另行接入 | 下文 |
+
+共享 skill 不依赖 Claude command、子代理或根目录变量。客户端能读懂 SKILL.md，不代表已验证脚本执行、独立审查、hook 或自动安装；各层的依据见 [兼容矩阵](../engineering/client-compatibility.md)。
+
+<!-- tao:section prerequisites -->
+## 准备条件
+
+只读规程需要客户端支持 Agent Skills 及配套资源读取。运行 tao CLI 还需要本地完整 skill、shell 执行能力，以及 Python 3.11–3.14（含 venv、ensurepip）。完整 feature 流程使用 Git；普通文档检查可无 Git。依赖准备需要网络或预先取得的锁定 wheelhouse。
+
+如果客户端只提供资源 URI，先按它的资源接口读取规程；没有本地脚本或客户端执行接口时，只能使用规程，不能宣称 CLI 已可运行。远程会话需在远程环境配置资源与 Python，本机安装不自动同步。
+
+<!-- tao:section steps -->
+## 独立 skill 接入
+
+1. 从源码取得整个 `plugins/tao-dev/skills/tao-dev/`，包括 SKILL.md、references、assets、scripts；不要只复制 SKILL.md。
+2. 在目标项目按下表选择一个受客户端支持的目录，放入 `tao-dev/`。同一客户端避免重复发现多个副本。目录是官方文档提供的候选入口，九个新增客户端尚未在本机原生验收。
+3. 启动新会话，用客户端的 skill 选择入口加载 tao-dev，再表达需求，如“只检查当前 Markdown，保存报告”。加载后动作名与自然语言均可使用，完整阶段示例见 [流程指南](workflow.md)。
+4. 需要 CLI 时使用选定 Python 和 skill 实际路径运行 doctor；若缺依赖，在已有准备授权下显式 setup，再运行约定检查。
+
+| 客户端 | 项目内 skill 根目录（放入 tao-dev/） | 官方入口 |
+|---|---|---|
+| Codex | `.agents/skills/` | [Skills](https://developers.openai.com/codex/skills) |
+| Claude Code | `.claude/skills/` | [Skills](https://code.claude.com/docs/en/skills) |
+| Cursor | `.cursor/skills/` 或 `.agents/skills/` | [Skills](https://cursor.com/docs/skills) |
+| Oh My Pi | `.omp/skills/` 或 `.agents/skills/` | [Skills](https://github.com/can1357/oh-my-pi/blob/main/docs/skills.md) |
+| Crush | `.crush/skills/` 或 `.agents/skills/` | [Agent Skills](https://github.com/charmbracelet/crush#agent-skills) |
+| Kiro | `.kiro/skills/`；自定义 agent 的资源配置另见原生文档 | [Skills](https://kiro.dev/docs/skills/) |
+| Qwen Code | `.qwen/skills/` | [Skills](https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/) |
+| Kimi Code | `.agents/skills/` | [Skills](https://moonshotai.github.io/kimi-code/en/customization/skills) |
+| OpenCode | `.opencode/skills/` 或 `.agents/skills/` | [Skills](https://opencode.ai/docs/skills/) |
+| Qoder | `.qoder/skills/` | [Skills](https://docs.qoder.com/cli/Skills) |
+| CodeBuddy | `.codebuddy/skills/` | [Skills](https://www.codebuddy.ai/docs/cli/skills) |
+
+下面以项目根目录的 `.agents/skills/tao-dev/` 为例，在项目根执行；Python 名称按本机实际替换。agent 从已加载 skill 的位置确定路径，不依赖当前工作目录：
+
+```sh
+python3 .agents/skills/tao-dev/scripts/tao.py --project . doctor --format json
+python3 .agents/skills/tao-dev/scripts/tao.py --project . setup
+python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
+```
+
+`setup` 会安装 tao 自身依赖；离线时加 `--wheelhouse /absolute/path/to/wheels`。普通检查不隐式安装。检查范围以项目配置为准；独立 skill 不提供 `tao install --client <其他客户端>`。运行环境保持在 skill 目录外，诊断及覆盖方式见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+
+升级时更新完整 skill，保留项目文档和外部运行数据，再运行 doctor。删除独立 skill 只取消发现；按归属清理不再使用的运行环境，不能清空共享数据根。完整插件的升级、卸载使用 README 中的安装管理入口。
+
+### 原生入口与独立审查
+
+Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 的注册方式在完成原生验证后于本节记录。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
+
+真实审查报告可以保存；机器回执还需来源格式适配和当前输入绑定。支持格式以 [审查证据](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md) 为准，不能将未支持来源改写为人工审查来通过门禁。
+
+<!-- tao:section troubleshooting -->
+## 排查
+
+| 现象 | 检查 |
+|---|---|
+| 找不到 skill | 当前会话的发现目录、项目范围、重启要求和重复副本；不要直接改全局配置 |
+| references 或脚本失踪 | 是否复制了完整目录；Markdown 链接按所在文件解析，不按业务项目根解析 |
+| URI 拒绝 `..` | 将文件相对目标归一化为 skill 内资源，再用该客户端 URI 接口访问；不要全局重写 Markdown 链接 |
+| Python 或依赖缺失 | 运行 doctor；无安装授权时继续可用检查并记录 not_run |
+| 没有 hook／reviewer／斜杠命令 | 这些是原生扩展；独立 skill 的发现不代表安装了它们 |

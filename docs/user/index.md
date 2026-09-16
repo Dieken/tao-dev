@@ -22,4 +22,5 @@ created: "2026-09-16"
 :titlesonly:
 
 workflow.md
+clients.md
 ```
