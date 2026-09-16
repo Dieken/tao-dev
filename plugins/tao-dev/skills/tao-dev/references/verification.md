@@ -36,7 +36,7 @@ inputs 是调用方声明的完整行为输入范围，包含相关配置、测�
 metrics = {format = "coverage-json", path = "tmp/tao/coverage/coverage.json"}
 ```
 
-当前解析 Coverage.py JSON 的覆盖率、语句及分支计数，以及 `ruff-json` 的诊断数量。报告必须位于配置的 temporary 目录；执行前删除该项旧报告，缺失或无效报告不能算通过。阈值由原生命令执行，例如已有的 coverage fail-under，tao 不另造“综合质量分”。未设阈值的覆盖率是观察值，不是质量承诺；测试数量、覆盖率和无 lint 错误都不能证明需求满足。其他工具仍可按退出码接入。
+当前支持 `coverage-json` 与 `ruff-json` 两种格式。报告必须位于配置的 temporary 目录；执行前删除该项旧报告，缺失或无效报告不能算通过。阈值由原生命令执行，例如已有的 coverage fail-under，tao 不另造“综合质量分”。未设阈值的覆盖率是观察值，不是质量承诺；测试数量、覆盖率和无 lint 错误都不能证明需求满足。其他工具仍可按退出码接入。
 
 usage_reports 可指向 Claude stream-json 或 Codex JSONL 事件文件，统计已完成事件的用量；缺文件、未完成、无法解析或累计值有歧义时保持未知。
 

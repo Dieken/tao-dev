@@ -94,6 +94,16 @@ doctor 返回当前已实现能力。能力列表区分 `verify.docs`、`verify.
 - review-preview 以固定分支起点计算累计修改，显式覆盖工作树与 index；review-begin 固定所选输入和上下文快照并登记预算，review-end 记录实际报告。并行调度仍由 agent 执行，CLI 不调用模型；调度记录不代替来源校验的正式审查记录。
 - 完整隔离流程当前依赖 Git；基本文档校验和配置检查保持独立，不预建其他 VCS 适配框架。
 
+#### 审查来源适配
+
+导入器按 source.format 校验原始输出，运行参考只声明支持哪些格式和模型／供应商能否证实；事件级规则由 `taolib/reviews.py` 实现并在此维护：
+
+- `human-json`：来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致；model 与 provider 必须为 null，reviewer.name 不同于作者。
+- `claude-stream-json`：恰有一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中；provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider，来源冲突时拒绝，均未提供时写 unknown。result.structured_output，或可解析为 JSON 的 result.result，必须是上述四字段结论且与记录一致。
+- `codex-exec-jsonl`：恰有一个 thread.started，thread_id 与 reviewer.context 一致，随后是单个 turn.started 至 turn.completed，所有已开始的 item 均完成；最后一个已完成的 agent_message 是上述结论 JSON。该事件格式没有模型和供应商字段，两者只能为 unknown，不从配置、角色名或模型自述补全。
+
+失败、超时、缺结果、截断、重复或混合会话与轮次、结论被改写均拒绝导入。新增适配器须同时提供损坏样例的回归，并保持“不能从品牌名或 CLI 名称推断来源差异”的约束。
+
 ### 自动选择与公共执行契约
 
 #### 默认选择，特殊情况才覆盖
