@@ -153,6 +153,10 @@ uv run --no-config --locked --extra publication python -m pytest
 
 本仓库通过 [AGENTS.md](AGENTS.md) 使用自身的 skill；运行材料在 `plugins/tao-dev/`，仅供维护的资料在 `docs/`。
 
+## 许可
+
+[Apache License 2.0](LICENSE)。使用、修改和再分发请保留版权声明与许可证文本。
+
 ## 深入阅读
 
 - [使用指南](docs/user/workflow.md)：完整功能开发周期、审查与会话恢复。
