@@ -14,7 +14,9 @@ tao-dev 包含 **agent skill、共享文档模板和确定性 CLI**。
 
 ## 安装与快速开始
 
-需要 **Python 3.11–3.14（含 pip、venv）、Git**，以及已安装并登录的 Claude Code 或 Codex CLI。安装器会准备 tao 的全部 Python 依赖（含 HTML 出版），配置插件与 hook，最后自动执行 doctor；无需设置 TAO 环境变量。
+以下为 Claude／Codex **完整插件**安装，需要 **Python 3.11–3.14（含 pip、venv）、Git**，以及已安装并登录的相应 CLI。安装器会准备 tao 的全部 Python 依赖（含 HTML 出版），配置插件与 hook，最后自动执行 doctor；无需设置 TAO 环境变量。
+
+其他支持 Agent Skills 的客户端可以接入完整的独立 skill，读取相同规程、模板并调用 Python CLI；不要求 Claude／Codex。目录选择、运行准备及能力边界见 [跨客户端接入指南](docs/user/clients.md)。
 
 ### 从 GitHub 安装
 
@@ -131,6 +133,7 @@ $HOME/.local/bin/tao uninstall --client claude
 |---|---|
 | macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.270 的安装、升级、回滚和卸载已在隔离环境验证；其他场景见验收记录 |
 | Codex 原生 hook | 安装器使用兼容 manifest，并检查 skill、hook 与信任状态 |
+| 其他 coding agent | 独立 skill 接入指南覆盖九种客户端；本机缺少对应 CLI，尚未原生验收，见 [兼容矩阵](docs/engineering/client-compatibility.md) |
 | 其他平台与版本 | 原生 Windows 验收未完成；Python 运行环境的测试矩阵不等于客户端兼容矩阵 |
 | 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
 
