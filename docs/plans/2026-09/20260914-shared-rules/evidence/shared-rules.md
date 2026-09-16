@@ -23,7 +23,7 @@ coverage: partial
 ## 输入与环境
 
 <!-- tao:field fingerprint -->
-**受检输入:** 本仓库版本 `1a22ec3beb311be6d3abba49c28167419be654c5` 的文档、入口及插件源码，排除证据目录；原清单 39 个文件均已核对与该版本相同，不表示执行时已提交。
+**受检输入引用:** 本仓库版本 `1a22ec3beb311be6d3abba49c28167419be654c5` 的文档、入口及插件源码，排除证据目录；原清单 39 个文件均已核对与该版本相同，不表示执行时已提交。
 
 <!-- tao:field environment -->
 **环境:** Darwin 24.6.0、Python 3.14.7、PyYAML 6.0.3。

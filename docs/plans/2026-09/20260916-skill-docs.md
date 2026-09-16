@@ -55,7 +55,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 - [x] `TASK_20260916_ERK5P7RVBS65CDPN` 归并项目配置，移出工具与运行环境内部细节。
   - relates: ["CHG_20260916_XBKXDAF7KNN3Q0X3"]
   - depends_on: ["TASK_20260916_2QKPJMGCDAZ6ZPHT"]
-  - verify: 核对启动入口、配置键、依赖准备与故障恢复仍可操作；运行运行环境和项目接入测试。
+  - verify: 核对启动入口、配置键、依赖准备与故障恢复仍可操作；运行环境和项目接入测试。
   - evidence: [验证记录](#DOC_20260916_VDYK8KF5Q3665DQY--verification)
 
 - [x] `TASK_20260916_GJ2QQMABGAWAKJBG` 去重阶段授权、恢复与审查流程。

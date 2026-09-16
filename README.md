@@ -76,7 +76,7 @@ $HOME/.local/bin/tao install --client codex --scope project
 $HOME/.local/bin/tao install --client claude --scope local --source /path/to/tao-dev
 ```
 
-未重新指定来源时，沿用该客户端和范围已有的安装来源。无需手工重新打包、修改客户端配置或运行 setup。离线机器需要提前准备源码、客户端、Python 与对应平台的锁定 wheel，详见 [安装管理说明](docs/engineering/installation.md)。
+未重新指定来源时，沿用该客户端和范围已有的安装来源。无需手工重新打包、修改客户端配置或运行 `tao setup`。离线机器需要提前准备源码、客户端、Python 与对应平台的锁定 wheel，详见 [安装管理说明](docs/engineering/installation.md)。
 
 ### 在 agent 中完成一次开发
 
@@ -96,7 +96,7 @@ $HOME/.local/bin/tao install --client claude --scope local --source /path/to/tao
 | 构建 Sphinx HTML book | `/tao-dev:docs` | `$tao-dev docs` |
 | 选择收尾操作 | `/tao-dev:finish` | `$tao-dev finish` |
 
-new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写 spec。默认工作副本在项目根的 `.worktrees/`。agent 自动处理文件名、路径和文档语言，逐阶段提供可点击的产物与下一步选择；spec、design、plan 各有明确入口，tasks 默认在 plan 内。实现获准后尽量自主完成代码、测试与必要检查。
+new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写 spec。默认 worktree 在项目根的 `.worktrees/`。agent 自动处理文件名、路径和文档语言，逐阶段提供可点击的产物与下一步选择；spec、design、plan 各有明确入口，tasks 默认在 plan 内。实现获准后尽量自主完成代码、测试与必要检查。
 
 review 会让你确认范围和串行／并行方式，默认审查本功能从分支起点以来的累计修改；文档阶段审查文档，实现后对照文档审查代码。通常一轮初审加最多一轮定向复核，明确区分测试结果与审查结论。finish 会列出合入、推送、清理等选择，按你的实际授权执行。
 
@@ -155,7 +155,7 @@ uv run --no-config --locked --extra publication python -m pytest
 
 ## 深入阅读
 
-- [使用指南](docs/user/workflow.md)：完整 feature 周期、审查与会话恢复。
+- [使用指南](docs/user/workflow.md)：完整功能开发周期、审查与会话恢复。
 - [项目手册](docs/index.md)：产品需求、工程设计、长期决定与计划记录。
 - [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)：需求、设计、编码、验证和演进的判断原则。
 - [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md)：模板、格式、稳定 ID 与文档组织。

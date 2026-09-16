@@ -24,5 +24,5 @@ created: "2026-09-14"
 **选择：** 采用 MyST、Sphinx 与 sphinx-book-theme，薄扩展复用源校验器的显式 ID、关系索引与永久链接；文档检查和普通开发命令可独立运行。
 
 <!-- tao:field consequences -->
-**代价：** 需要可选的 Python 构建依赖和小型 Sphinx 扩展。现有校验器已覆盖任务、元数据与章节键，引入 Sphinx-Needs 会重复建立索引，因此当前直接复用既有索引；不宣称已验收 Sphinx-Needs 或 PDF。HTML 的固定入口、侧栏锚点、改名及退役由实际构建回归测试检查。
+**影响与后果：** 需要可选的 Python 构建依赖和小型 Sphinx 扩展。现有校验器已覆盖任务、元数据与章节键，引入 Sphinx-Needs 会重复建立索引，因此当前直接复用既有索引；不宣称已验收 Sphinx-Needs 或 PDF。HTML 的固定入口、侧栏锚点、改名及退役由实际构建回归测试检查。
 ```

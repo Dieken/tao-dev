@@ -10,7 +10,7 @@
 |---|---|
 | `tao doctor` / `tao doctor --publication` | 只读诊断核心／出版环境，缺依赖也可运行 |
 | `tao setup` | 显式准备核心与出版两套环境，复用已匹配且完整的环境 |
-| setup 的 `--wheelhouse <目录>` | 仅从本地锁定 wheel 准备依赖 |
+| `tao setup` 的 `--wheelhouse <目录>` | 仅从本地锁定 wheel 准备依赖 |
 
 setup 需要已有依赖准备授权；单纯检查或审查请求不隐含该授权。普通命令和 hook 只使用已准备环境，不隐式安装。依赖锁定安装，失败时不改用源码构建或未锁定包，也不自动安装系统软件。缺环境时继续可用的项目检查并说明 tao 检查未运行。
 
@@ -25,18 +25,18 @@ setup 需要已有依赖准备授权；单纯检查或审查请求不隐含该�
 
 | 操作 | 用途 |
 |---|---|
-| `tao install --client claude\|codex --scope <作用域>` | 安装／更新完整插件，准备两套环境，配置客户端并检查 doctor |
-| install 的 `--source <目录或 Git 来源>` / `--marketplace <目录或 Git 来源>` | 选择完整插件／仓库或 marketplace 来源，两者互斥 |
-| install 的 `--wheelhouse <目录>` | 限制 Python 依赖来源，不限制 Git 来源或客户端联网 |
+| `tao install --client claude\|codex --scope <作用域>` | 安装／更新完整插件，准备两套环境，配置客户端并检查 `tao doctor` |
+| `tao install` 的 `--source <目录或 Git 来源>` / `--marketplace <目录或 Git 来源>` | 选择完整插件／仓库或 marketplace 来源，两者互斥 |
+| `tao install` 的 `--wheelhouse <目录>` | 限制 Python 依赖来源，不限制 Git 来源或客户端联网 |
 | `tao uninstall --client claude\|codex --list` | 只读列出安装与资源 |
 | `tao uninstall --client claude\|codex` | 选择并确认所删安装；自动化必须同时提供 --id 与 --yes |
 
-显式 install 授权所选作用域的插件及两套依赖准备，完成后无需 TAO 变量。Claude 的 scope 为 user、project、local；Codex 为 user、project，repo/local 归一为 project。客户端决定启用范围，切换 cwd 或运行目录不能代替范围隔离。
+显式运行 `tao install` 即授权所选作用域的插件及两套依赖准备，完成后无需 TAO 变量。Claude 的 `scope` 为 `user`、`project`、`local`；Codex 为 `user`、`project`，`repo`/`local` 归一为 `project`。客户端决定启用范围，切换 `cwd` 或运行目录不能代替范围隔离。
 
 ## 更新与故障处理
 
-同一客户端与作用域重复 install 更新并复用安装标识；未指定来源时沿用原来源。独立 skill 更新整个目录，保留外部运行数据；依赖、解释器或平台变化后先 doctor，再在已有授权内 install 或 setup。
+同一客户端与作用域重复运行 `tao install` 可更新并复用安装标识；未指定来源时沿用原来源。独立 skill 更新整个目录，保留外部运行数据；依赖、解释器或平台变化后先运行 `tao doctor`，再在已有授权内运行 `tao install` 或 `tao setup`。
 
-TAO-RUNTIME-001 至 005 分别表示配置／解释器、未准备、损坏、准备锁繁忙、准备失败；按诊断及日志定位。缺 Python、venv、依赖或网络时报告 not_run，完整 verify 启动失败保持 blocked。显式 setup 可准备新代次，失败保留已有完整环境；中断后确认无活跃准备者再处理本次锁和未完成目录，不删除共享数据。
+`TAO-RUNTIME-001` 至 `TAO-RUNTIME-005` 分别表示配置／解释器、未准备、损坏、准备锁繁忙、准备失败；按诊断及日志定位。缺 Python、venv、依赖或网络时报告 `not_run`，完整 `verify` 启动失败保持 `blocked`。显式运行 `tao setup` 可准备新代次，失败保留已有完整环境；中断后确认无活跃准备者再处理本次锁和未完成目录，不删除共享数据。
 
-uninstall 只处理所选安装及归属明确的资源，保留其他安装仍使用的缓存、未知文件及共享 CLI。取消、无选择或输入结束均不删除；--yes 不表示全部安装。
+`tao uninstall` 只处理所选安装及归属明确的资源，保留其他安装仍使用的缓存、未知文件及共享 CLI。取消、无选择或输入结束均不删除；`--yes` 不表示全部安装。

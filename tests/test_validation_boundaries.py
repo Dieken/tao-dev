@@ -56,6 +56,15 @@ def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
         assert result.valid, result.to_dict()
 
 
+def test_chinese_evidence_template_labels_the_input_reference():
+    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text())
+    template = (ASSETS / "templates/evidence.md").read_text()
+    rendered = template.replace(
+        "{{label.fingerprint}}", labels["label.fingerprint"]
+    )
+    assert "**受检输入引用:**" in rendered
+
+
 def test_split_task_attachment_requires_matching_change_and_no_duplicate_collection(tmp_path):
     task_doc = "DOC_20260914_0000000000000008"
     source = change().replace(f"change: {CHG}", f"change: {CHG}\ntasks_doc: {task_doc}")
