@@ -18,18 +18,18 @@ tao workflow review-begin <CHG-ID> --expect <revision> --from <preview.json> --m
 
 开始前重新核对预览，输入变化即拒绝。登记成功后返回工作区与暂存区各自的受检 ZIP 快照、摘要和记录，agent 才派发审查。输入同时绑定工作区内容、文件模式及暂存区 blob/mode；暂存区与工作区不同也必须检查。快照包含受检文件及未修改上下文，删除项由范围与 Git 基准解释；只读检查快照和固定 Git 版本，不让子 agent 修改被审查文件。必要复现使用独立临时目录。
 
-每轮记录 reviewers 个审查者，serial 为一人，parallel 最多三人；各自先独立形成判断，再由主 agent 合并重复发现并核实跨范围问题。多名并行审查者属于同一轮。审查者来源与授权按 [审查规程](review.md) 处理。
+每轮记录 reviewers 个审查者，serial 为一个，parallel 最多三个；各自先独立形成判断，再由主 agent 合并重复发现并核实跨范围问题。多个并行审查者属于同一轮。审查者来源与授权按 [审查规程](review.md) 处理。
 
 已登记为 running 的轮次必须先核对进程和实际结果，不再次派发。失败尝试也占用轮次。每个审查批次保存阶段、确认内容、开始时间和已用轮次；换会话、修复后复核或中断恢复不清零。用户明确发起新的阶段或范围审查时，重新确认并传 `--new-batch`，旧批次完整保留在 review_history，新批次独立计时计轮次；不因失败或预算耗尽自动新建批次。确有新证据、范围扩展或用户新预算时，可显式传 --max-rounds 与 --budget-seconds 调整累计上限，记录决定；不能由 agent 为了继续尝试自行增加。
 
 ## 汇总与停止
 
-每位完成的审查者保存实际报告，主 agent 逐项裁决发现。用 JSON 写入 outcome（passed、changes-requested 或 failed）、reports（不同报告的项目相对路径数组）和 summary，再调用：
+每个完成的审查者保存实际报告，主 agent 逐项裁决发现。用 JSON 写入 outcome（passed、changes-requested 或 failed）、reports（不同报告的项目相对路径数组）和 summary，再调用：
 
 ```text
 tao workflow review-end <CHG-ID> --expect <revision> --from <result.json>
 ```
 
-非失败结果必须有对应人数的非空报告；输入改变会记为 stale，超出时间预算记为 budget-exceeded。这些记录不自动满足 required_reviews，也不证明报告结论正确。历史变化或其他输入错误不阻止登记失败，错误原因随记录保留。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
+非失败结果必须有对应数量的非空报告；输入改变会记为 stale，超出时间预算记为 budget-exceeded。这些记录不自动满足 required_reviews，也不证明报告结论正确。历史变化或其他输入错误不阻止登记失败，错误原因随记录保留。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
 
 修复、复核及新增范围按 [审查规程](review.md) 处理；原始快照与报告按 [证据保存](evidence-retention.md) 管理。

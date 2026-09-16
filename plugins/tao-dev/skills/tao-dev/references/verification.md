@@ -28,7 +28,7 @@ inputs 是调用方声明的完整行为输入范围，包含相关配置、测�
 
 ## 实际运行与预算
 
-每项结果包含实际 argv、退出码、耗时和日志位置。CLI 的 duration_seconds 是本次实际耗时；复用 receipt 中的检查耗时属于原执行，不能算成本次重新执行。单项 timeout_seconds 与总 budget_seconds 共同约束检查进程；超时终止该进程组，预算耗尽后的检查记为 not_run，不能用跳过换通过。文件枚举和输入识别也有开销，当前不提供硬实时的整个 CLI 截止保证。
+每项结果包含实际 argv、退出码、耗时和日志位置。CLI 的 duration_seconds 是本次实际耗时；复用检查回执中的检查耗时属于原执行，不能算成本次重新执行。单项 timeout_seconds 与总 budget_seconds 共同约束检查进程；超时终止该进程组，预算耗尽后的检查记为 not_run，不能用跳过换通过。文件枚举和输入识别也有开销，当前不提供硬实时的整个 CLI 截止保证。
 
 可在 check 中声明工具产生的度量报告：
 
@@ -44,9 +44,9 @@ usage_reports 可指向 Claude stream-json 或 Codex JSONL 事件文件，统计
 
 ## 复用与过期
 
-原始输出及 latest.json 位于默认 tmp/tao/verification/，均不纳入 VCS。receipt 保存合并指纹及执行摘要；Git 修订与 clean／dirty 为补充信息，持久输入引用按 [证据保存](evidence-retention.md) 记录。
+原始输出及 latest.json 位于默认 tmp/tao/verification/，均不纳入 VCS。检查回执保存输入指纹及执行摘要；Git 修订与 clean／dirty 为补充信息，持久输入引用按 [证据保存](evidence-retention.md) 记录。
 
-复用必须同时满足：输入、策略、工具与环境一致；检查集合完整且全部通过；未超过 reuse_seconds；策略要求的日志仍在。源码变化、新增纳入范围的文件、同一修订下的未提交修改、配置变化均会使结果过期。提交未改变受检内容时不因修订号改变而无意义重跑，原始 receipt 的修订引用仍保留。检查前后输入不同标为 stale；完整验证另外检查管理文档是否在运行中变化。检查结果只说明这些观察时点，不保证工作区之后无人修改，也无法发现先改后还原的并发输入；需要更强保证时在不可变快照或受控 CI 中运行。
+复用必须同时满足：输入、策略、工具与环境一致；检查集合完整且全部通过；未超过 reuse_seconds；策略要求的日志仍在。源码变化、新增纳入范围的文件、同一修订下的未提交修改、配置变化均会使结果过期。提交未改变受检内容时不因修订号改变而无意义重跑，原始检查回执的修订引用仍保留。检查前后输入不同标为 stale；完整验证另外检查管理文档是否在运行中变化。检查结果只说明这些观察时点，不保证工作区之后无人修改，也无法发现先改后还原的并发输入；需要更强保证时在不可变快照或受控 CI 中运行。
 
 status 只读比较当前证据。require_logs=true 时缺日志阻止复用，否则结构化结果仍可满足材料条件。缓存损坏或清空后须重跑，不能从文字结论补造通过缓存；缓存不提供防篡改证明。
 
@@ -54,6 +54,6 @@ status 只读比较当前证据。require_logs=true 时缺日志阻止复用，�
 
 ## 完整交付判定
 
-`tao verify` 检查 docs、code、evidence，自动选择唯一变更；多个候选时由 agent 根据当前上下文传 CHG ID。目标任务及其依赖必须完成，当前证据可复用，配置要求不得缺失，才返回 complete／checks-satisfied。`--only` 始终 partial／not-evaluated，dry-run 不执行、不生成证据。
+`tao verify` 检查 docs、code、evidence，自动选择唯一开发事项；多个候选时由 agent 根据当前上下文传 CHG ID。目标任务及其依赖必须完成，当前证据可复用，配置要求不得缺失，才返回 complete／checks-satisfied。`--only` 始终 partial／not-evaluated，dry-run 不执行、不生成证据。
 
 required_reviews 声明不能省略的独立审查条件；按 [审查记录](review-receipts.md) 取得输入绑定、导入实际结果。完整验证逐项报告 satisfied、changes-requested、missing、invalid、stale、expired 或 materials-missing；只有全部 satisfied 才满足审查门槛。不能用报告存在、角色名称或任意 passed 字段满足它，也不能为了通过清空已要求的审查。发布、合入和用户风险接受仍由已有授权和实际判断决定。
