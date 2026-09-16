@@ -22,7 +22,7 @@ RESOURCE_PATH = re.compile(
 DOCUMENT_RESOURCES = {
     'references/documents.md',
     'references/document-layout.md',
-    'references/document-entries.md',
+    'references/document-content.md',
     'references/retirement.md',
     'references/evidence-retention.md',
     'references/glossary.md',
