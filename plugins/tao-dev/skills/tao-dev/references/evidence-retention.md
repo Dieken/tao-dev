@@ -7,7 +7,7 @@
 | 内容 | 默认位置与处理 |
 |---|---|
 | 普通验证结论 | 计划 verification，随计划保留 |
-| 独立摘要 | 需要跨变更引用、报告较长或周期不同时用 `<plan-stem>/evidence/`；无开发事项用 docs/evidence/ |
+| 独立摘要 | 需要跨开发事项引用、报告较长或周期不同时用 `<plan-stem>/evidence/`；无开发事项用 docs/evidence/ |
 | 原始输出、日志、覆盖率、截图和临时输入清单 | tmp/tao/ 或 CI 产物，不纳入 VCS，按既定期限清理 |
 | 本地书籍 | temporary 下 book/ |
 | 可重建索引与短期锁 | temporary 下 cache/ |
