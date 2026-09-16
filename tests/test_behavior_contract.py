@@ -4,13 +4,11 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from acceptance.behavior_contract import (
     CatalogError,
     load_catalog,
     validate_catalog,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "tests/acceptance/behavior-contract.yaml"

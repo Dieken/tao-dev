@@ -39,7 +39,7 @@ class ClientAdapter:
                 requested_session_id = str(uuid.uuid4())
                 command.extend(("--session-id", requested_session_id))
         else:
-            command = ["codex", "exec"]
+            command = ["codex", "-a", "never", "exec"]
             if resume:
                 command.extend(("resume", "--json", "--skip-git-repo-check",
                                 session_id, "-"))

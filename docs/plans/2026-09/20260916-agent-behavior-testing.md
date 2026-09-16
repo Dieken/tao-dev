@@ -68,10 +68,11 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
   - verify: 对八类已知违规逐项注入并要求检出，验证契约覆盖、mutation detection rate、客户端矩阵、置信度和人工队列摘要；定向 pytest 与 replay 测试通过。
   - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
-- [ ] `TASK_20260916_X73FES5FJJNJF7Z0` 完成双 CLI 真实行为验收、全量回归和维护说明。
+- [x] `TASK_20260916_X73FES5FJJNJF7Z0` 完成双 CLI 真实行为验收、全量回归和维护说明。
   - relates: ["REQ_20260914_BWAY1ZF6HNPM855Y", "REQ_20260914_4CS6P421MGW68PME", "CHG_20260916_JT1P74T8YB727X82"]
   - depends_on: ["TASK_20260916_3MS6AF05Z6TQWE9P"]
   - verify: 在全新隔离 workspace 中分别运行 Claude Code CLI 2.1.270 与 Codex CLI 0.154.0 的关键自然／多轮场景，保存实际版本、事件、差异、费用、置信度和结论；再运行全量 pytest、Ruff、文档、链接、HTML 与包验证。
+  - evidence: [验证记录](#DOC_20260916_02VZ80J4JY1C51GT--verification)
 
 <!-- tao:section verification -->
 ## 验证
@@ -88,6 +89,7 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 任务 4：新增仅支持 Claude Code 与 Codex 的命令适配、显式会话接续、条件式确定用户回复和有界进程组清理；真实会话 ID 缺失／变化、条件不匹配、超时和退出失败统一阻断，逐轮文件差异进入同一 trace。29 项运行器、轨迹、契约与兼容回归通过，定向 Ruff 无诊断。
 任务 5：新增严格语义评审 schema、双评审一致性、事件证据校验和按评审器／规则来源去重的 Wilson 置信下界；模型自评分不参与决策，样本不足、低于严重度门槛、分歧、未知项、伪造证据和非法输出均进入人工复核，遥测缺失保持阻断。38 项行为回归通过，定向 Ruff 无诊断。
 任务 6：新增八类已知违规变异与自动检出率门禁，并输出双客户端场景矩阵、逐规则置信度、完整 catalog 观察覆盖、机器 JSON 和人工摘要；确定性失败直接失败，低置信度语义项与基础设施阻断进入注意队列，覆盖缺口不能伪装为通过。43 项行为回归通过，变异检出率 8/8，定向 Ruff 无诊断。
+任务 7：在最终 skill 版本上真实运行 Claude Code CLI 2.1.270 与 Codex CLI 0.154.0。两端 routing 均只加载 SKILL、workflow 与 engineering，修复语法后编译通过且保护文件／全局配置未变；两端材料未知场景均在首轮零写入时提问，以同一 session 完成第二轮且未重复询问，确定性置信度 1.0。Claude 两例使用 claude-sonnet-5，CLI 估算合计 0.276885 美元，真实账单未知；Codex 配置模型为 gpt-5.6-sol，CLI 未报告费用，真实账单未知。最终通过日志前缀为 `claude-routing-1789526019765521000`、`codex-routing-1789525951170035000`、`claude-material-interaction-1789526354902018000` 与 `codex-material-interaction-1789526444820991000`，均保存在忽略版本控制的 `tmp/tao/client-acceptance/`。完整 pytest 为 428 passed、5 skipped；项目配置的 Ruff 致命规则、全部本次新增／修改 Python 文件、文档与稳定链接、HTML 构建、依赖清单以及 public／codex-legacy 打包均通过。额外执行未纳入项目门禁的全仓 Ruff 全规则扫描仍报告 218 项既有诊断，本次未以大范围格式化掩盖该基线。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

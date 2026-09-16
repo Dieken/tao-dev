@@ -1,14 +1,15 @@
 """Reuse existing Claude access credentials only within explicit experiments."""
 
-from contextlib import contextmanager
 import hashlib
 import json
 import os
-from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,7 +50,8 @@ def access_environment(workspace, timeout):
     env.pop('CLAUDE_CODE_OAUTH_REFRESH_TOKEN', None)
     env.pop('CLAUDE_CODE_OAUTH_SCOPES', None)
     env['CLAUDE_CODE_OAUTH_TOKEN'] = data['accessToken']
-    if settings.get('model'):
+    if (isinstance(settings.get('model'), str)
+            and re.fullmatch(r'[A-Za-z0-9._-]+', settings['model'])):
         env['ANTHROPIC_MODEL'] = settings['model']
     try:
         yield env, [value for key, value in data.items() if key.endswith('Token') and isinstance(value, str)]
