@@ -52,10 +52,11 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
   - verify: 覆盖 M1–M6、A1–A6：README、用户流程、plugin-design、cli-design、installation 与新指南、矩阵；文档与导航验证。
   - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
-- [ ] `TASK_20260916_2546R68CR02ZCDV4` 验证独立 skill 的资源、Python 运行与项目定位。
+- [x] `TASK_20260916_2546R68CR02ZCDV4` 验证独立 skill 的资源、Python 运行与项目定位。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
   - depends_on: ["TASK_20260916_RMAP7AP1X0A5ZGE0"]
   - verify: 覆盖 E1–E2：完整 skill 复制到含空格目录，不复制插件入口；不同 cwd 下 doctor、未准备诊断、显式 setup 和局部检查，资源无写入。
+  - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
 - [ ] `TASK_20260916_JH1M9NSTB2FYRM46` 增加 Codex 原始审查输出适配并验证拒绝边界。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
@@ -87,6 +88,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 1：21 项打包和审查来源基线测试通过；37 份受管理文档通过。已完成独立阅读基线，PATH 只有 Codex／Claude，新增客户端不伪报验收。
 任务 2：共享入口消除客户端动作依赖，区分文件链接、脚本路径和资源 URI；明确无 CHG 报告、独立能力缺失与回执边界。独立阅读复核完成并修复普通报告和 URI-only 执行限制；200 个本地链接无缺失，受管理文档校验通过。
 任务 3：新增用户接入指南与 11 客户端分层矩阵，合并流程指南重复示例，保留原生包装和 hook 所需变量；README 与内部设计同步。39 份受管理文档校验通过，211 个本地链接无缺失；新增九种 CLI 不伪报原生通过。
+任务 4：新增两项独立 skill 回归并通过：完整 skill 资源引用不越界；含空格和中文路径、无外层 manifest、另一 cwd、空 PATH、未准备依赖诊断与显式离线 setup、docs/show/status 运行及资源字节未变。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
