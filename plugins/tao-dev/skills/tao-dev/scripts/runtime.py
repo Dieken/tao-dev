@@ -98,7 +98,7 @@ def probe(python, mode):
     completed = subprocess.run([str(python), "-I", "-c", code], env=environment(),
                                capture_output=True, text=True, timeout=10)
     if completed.returncode:
-        raise RuntimeFailure("Runtime imports failed; run setup to prepare a new environment.",
+        raise RuntimeFailure("Runtime imports failed; run tao setup to prepare a new environment.",
                              "TAO-RUNTIME-003", "broken")
     return json.loads(completed.stdout)
 

@@ -109,6 +109,21 @@ def test_nested_owned_errors_translate_without_changing_raw_parameters():
     assert zh['parameters'] == en['parameters']
 
 
+def test_chinese_diagnostics_preserve_executable_command_names():
+    from tao_messages import Message, diagnostic
+    runtime = diagnostic(
+        Message('Runtime imports failed; run tao setup to prepare a new environment.'),
+        'zh-Hans',
+    )
+    workflow = diagnostic(
+        Message('Workflow checkpoint changed; run tao workflow status and reconcile before retrying.'),
+        'zh-Hans',
+    )
+    assert runtime['message_locale'] == workflow['message_locale'] == 'zh-Hans'
+    assert 'tao setup' in runtime['message']
+    assert 'tao workflow status' in workflow['message']
+
+
 def test_localization_has_no_process_global_language_state(tmp_path):
     broken(tmp_path)
     def run_one(locale):
@@ -148,6 +163,7 @@ def test_hook_uses_ui_language_and_invalidates_cached_translations(tmp_path, mon
     config.write_text('version = 1\n[ui]\nlocale = "zh-Hans"\n[hooks]\ntimeout_seconds = 30\n')
     monkeypatch.chdir(tmp_path)
     first = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']
+    assert first.startswith('tao docs 反馈')
     assert '仅检查文档' in first and '期望字段' in first
     config.write_text(config.read_text().replace('zh-Hans', 'en'))
     second = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']

@@ -45,7 +45,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 客户端入口只选择动作并传递完整请求，共用 skill 中的流程规程；原生调用语法集中在 [接入指南](../user/clients.md)。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
 
-agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、隔离工作副本并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
+agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、创建隔离 worktree 并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
 
 CLI 与 agent 动作有意区分职责：`tao setup` 准备工具运行环境，setup 动作接入业务项目；`tao review` 导入实际来源记录，review 动作调度有界审查；finish 动作处理用户选中的集成与清理，没有同名底层命令。handoff 由 agent 整理内容、CLI 验证并保存，不停止会话或转交执行权。
 

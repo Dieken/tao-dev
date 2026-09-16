@@ -25,12 +25,12 @@ created: '2026-09-14'
 
 ### ID 类型前缀
 
-DOC、REQ、UC、ADR、TASK、CHG、EVD 的英文全称、用途及区别在 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md) 定义；精确语法在文档规程与格式注册表定义，不在这里重复。
+DOC、REQ、UC、ADR、TASK、CHG、EVD 的英文全称、用途及区别在 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md) 定义；精确语法由 [文档规程](../plugins/tao-dev/skills/tao-dev/references/documents.md) 与 [格式注册表](../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义，不在这里重复。
 
 <!-- tao:section abbreviations -->
 ## 缩写与使用规则
 
-SDD、VCS、CLI、AST、i18n 等缩写统一见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。当前完整开发流程依赖 Git；独立文档校验不要求版本控制系统。
+SDD 的项目特定含义见 [术语表](../plugins/tao-dev/skills/tao-dev/references/glossary.md)。VCS（版本控制系统）、CLI（命令行接口）、AST（抽象语法树）与 i18n（国际化）沿用通常技术含义。当前完整开发流程依赖 Git；独立文档校验不要求版本控制系统。
 
 ### 本项目用语
 

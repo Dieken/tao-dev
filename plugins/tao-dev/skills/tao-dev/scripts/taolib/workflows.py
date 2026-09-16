@@ -197,7 +197,7 @@ def mutate(project, identity, expected, edit):
         before = path.read_bytes()
         state = read(project, identity)
         if type(expected) is not int or state['revision'] != expected:
-            raise ConflictError('Workflow checkpoint changed; read status and reconcile before retrying.')
+            raise ConflictError('Workflow checkpoint changed; run tao workflow status and reconcile before retrying.')
         edit(project, state)
         state['revision'] += 1
         state['updated_at'] = datetime.now().astimezone().isoformat()

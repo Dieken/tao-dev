@@ -55,7 +55,7 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 - [x] `TASK_20260916_2546R68CR02ZCDV4` 验证独立 skill 的资源、Python 运行与项目定位。
   - relates: ["CHG_20260916_6ZAC0XQF0ZNGC2CZ"]
   - depends_on: ["TASK_20260916_RMAP7AP1X0A5ZGE0"]
-  - verify: 覆盖 E1–E2：完整 skill 复制到含空格目录，不复制插件入口；不同 cwd 下 doctor、未准备诊断、显式 setup 和局部检查，资源无写入。
+  - verify: 覆盖 E1–E2：完整 skill 复制到含空格目录，不复制插件入口；不同 `cwd` 下运行 `tao doctor`、检查未准备诊断、显式运行 `tao setup` 和局部检查，资源无写入。
   - evidence: [验证记录](#DOC_20260916_0YR9S9FD7ZJSA155--verification)
 
 - [x] `TASK_20260916_JH1M9NSTB2FYRM46` 增加 Codex 原始审查输出适配并验证拒绝边界。

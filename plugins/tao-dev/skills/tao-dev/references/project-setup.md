@@ -9,7 +9,7 @@
 3. 在确认范围内使用项目依赖管理器和锁文件准备选中的工具，保留已有门槛；业务工具不装入 tao venv，不自动全局安装或新增 CI 平台。检查命令及参数来自核实过的入口，配置方式见 [验证规程](verification.md)。
 4. 在项目临时目录编写最小 TOML 草稿。已有配置先完整读取，保留无关约定；历史文档按需要逐步接入，空项目可暂用 include=[]，但这不构成检查通过。
 5. 执行 `tao project configure --from <项目相对草稿路径>`，已有配置加 `--expect <inspect 返回的 config_digest>`。冲突时读取新配置再协调；configure 本身不安装依赖或执行检查。
-6. 核对生成目录与 `/.worktrees/` 的忽略规则，保留 `.tao/config.toml`、工作流状态和正式 handoff；运行 doctor 与获准基线检查，报告写入及结果，已有事项接 continue，否则接 new。重复 setup 只检查、补充。
+6. 核对生成目录与 `/.worktrees/` 的忽略规则，保留 `.tao/config.toml`、工作流状态和正式 handoff；运行 `tao doctor` 与获准基线检查，报告写入及结果，已有事项接 `continue` 动作，否则接 `new` 动作。重复 `setup` 动作只检查、补充。
 
 ## 配置格式
 
