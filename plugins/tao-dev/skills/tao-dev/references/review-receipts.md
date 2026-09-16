@@ -35,7 +35,13 @@ blocker 处于 open 或 deferred 时阻断。fixed 需要针对当前输入的�
 
 human 的 model／provider 必须为 null，审查者 name 必须不同于作者。source.format 为 human-json；来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致。仅导入实际具名人工结论。
 
-model 当前支持 claude-stream-json；来源需有恰好一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中，provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider；来源冲突时拒绝，均未提供时只能写 unknown。不能从品牌名推断实际模型，更不能把 CLI 名称当作跨供应商证明。result.structured_output（或可解析为 JSON 的 result.result）必须恰有 binding、summary、findings、limitations，且与记录一致。失败、超时、缺结果或不一致的来源不能导入。其他模型事件格式暂不支持，不得伪装成 Claude 来源。
+model 支持以下原始输出格式，最终结论均须恰有 binding、summary、findings、limitations，且与记录一致。
+
+**claude-stream-json**：来源需有恰好一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中，provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider；来源冲突时拒绝，均未提供时只能写 unknown。不能从品牌名推断实际模型，更不能把 CLI 名称当作跨供应商证明。result.structured_output（或可解析为 JSON 的 result.result）必须恰有 binding、summary、findings、limitations，且与记录一致。失败、超时、缺结果或不一致的来源不能导入。
+
+**codex-exec-jsonl**：使用 `codex exec --json` 的原始 JSONL；恰有一个 thread.started，thread_id 与 reviewer.context 一致，随后是单个 turn.started 至 turn.completed，所有已开始的 item 均完成。最后一个已完成的 agent_message 必须是上述结论 JSON。失败、截断、重复或混合会话／轮次、结论被改写均拒绝。该格式没有观测模型和供应商字段，两者只能为 unknown，不能从配置、角色名或模型自述补全；TOML reviewer 不改变这一限制。
+
+其他事件格式暂不支持，保留报告并说明未导入，不伪装为上述来源。
 
 导入后保存到 `tmp/tao/reviews/<CHG-ID>/<requirement>.json`。保存原则见 [证据规程](evidence-retention.md)；require_logs=true 时来源缺失或摘要不符阻止复用，reuse_seconds 限定时长。输入、策略或目标不符为 stale；缺失、无效、过期和未解决发现分别报告，不自动重审。
 

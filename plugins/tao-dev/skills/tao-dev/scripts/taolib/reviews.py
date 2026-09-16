@@ -7,17 +7,11 @@ import re
 
 from .project import ConfigurationError, ConflictError, contained, mutation_lock, create_file, replace_file
 from .verification import snapshot, file_digest
+from .review_sources import decode, confirm_codex
 
 
 def load(path):
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError('Duplicate JSON key.')
-            result[key] = value
-        return result
-    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique)
+    return decode(path.read_text(encoding='utf-8'))
 
 
 def fields(value, keys):
@@ -74,8 +68,8 @@ def validate(value):
         raise ValueError('Review source must be project-relative.')
     if not isinstance(value['source']['sha256'], str) or not re.fullmatch('[0-9a-f]{64}', value['source']['sha256']):
         raise ValueError('Invalid review source digest.')
-    expected_format = 'human-json' if reviewer['kind'] == 'human' else 'claude-stream-json'
-    if value['source']['format'] != expected_format:
+    formats = ('human-json',) if reviewer['kind'] == 'human' else ('claude-stream-json', 'codex-exec-jsonl')
+    if value['source']['format'] not in formats:
         raise ValueError('Unsupported reviewer source adapter.')
     if not isinstance(value['limitations'], list) or not isinstance(value['findings'], list):
         raise ValueError('Review findings and limitations must be arrays.')
@@ -114,7 +108,10 @@ def confirm_source(project, value):
         if load(source) != conclusion:
             raise ValueError('Human attestation does not match the recorded conclusion.')
         return
-    events = [json.loads(line) for line in source.read_text(encoding='utf-8').splitlines() if line.strip()]
+    events = [decode(line) for line in source.read_text(encoding='utf-8').splitlines() if line.strip()]
+    if value['source']['format'] == 'codex-exec-jsonl':
+        confirm_codex(events, value['reviewer'], conclusion)
+        return
     results = [event for event in events if event.get('type') == 'result']
     initial = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']
     if len(results) != 1 or len(initial) != 1:
@@ -131,7 +128,7 @@ def confirm_source(project, value):
         raise ValueError('Reviewer model or provider is not supported by client events.')
     observed = result.get('structured_output')
     if observed is None:
-        observed = json.loads(result.get('result', ''))
+        observed = decode(result.get('result', ''))
     if observed != conclusion:
         raise ValueError('Model output does not match the recorded conclusion and dispositions.')
 
