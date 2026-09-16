@@ -2,7 +2,7 @@
 
 创建、修改、审查 tao 管理文档时，读取本文涉及的规则段及当前 profile 模板；同一任务确实修改多类文档时才读取多个模板。普通代码、测试或配置修改没有文档同步职责时不读取本文。文档格式由同包的 [格式注册表](../assets/document-profiles.json) 和模板提供。
 
-按任务读取：[文档组织](document-layout.md) 处理位置与拆分；[条目写法](document-entries.md) 处理 REQ／UC／ADR；[退役](retirement.md) 处理正式删除；[证据保存](evidence-retention.md) 处理记录与报告；[本地化](localization.md) 处理翻译；[出版](publication.md) 处理书籍导航、构建和稳定链接。只读取当前任务涉及的小节和模板。
+按任务读取：[文档组织](document-layout.md) 处理位置与拆分；[条目写法](document-entries.md) 处理 REQ／UC／ADR；[退役规程](retirement.md) 处理正式删除；[证据保存](evidence-retention.md) 处理记录与报告；[本地化](localization.md) 处理翻译；[出版规程](publication.md) 处理书籍导航、构建和稳定链接。只读取当前任务涉及的小节和模板。
 
 ## 受控术语
 
@@ -53,7 +53,7 @@ UTF-8 Markdown 以 YAML frontmatter 开始。共同必需字段为 `schema`、`i
 
 章节键与字段键均匹配 `[a-z][a-z0-9-]*`，不依赖标题翻译或序号。二级章节不能增删或改序，细节放在三级及以下且不跳级。必需章节确实不适用时写一句具体依据，不留空或复制模板提示；规格的术语章节优先链接项目术语表，不重复定义。
 
-plan profile 的 `change` 定义一个 CHG ID，生成计划前由工作流状态提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
+plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
 模板中的 `{{TOKEN}}` 是待替换变量。heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。
 
@@ -65,7 +65,7 @@ plan profile 的 `change` 定义一个 CHG ID，生成计划前由工作流状�
 
 正文正式引用用 `{need}` 后接反引号包围的完整 ID；代码注释也使用完整 ID。不要把标题序号、文件内的“需求 2.1”或属性编号作为跨文档引用。需要独立引用的验收承诺拆成 REQ；可复用的验证场景或性质使用 UC，不另增局部 Property ID。
 
-标题或文件移动保持 ID；拆成新对象或更改类型时分配新 ID 并保留关系。删除正式对象使用 [退役流程](retirement.md)。
+标题或文件移动保持 ID；拆成新对象或更改类型时分配新 ID 并保留关系。删除正式对象使用 [退役规程](retirement.md)。
 
 同一版本的正式索引只允许一个定义；示例、档案和测试夹具不注册当前定义，多版本出版分别建索引。退役记录纳入 VCS 并参与查重，无法恢复历史基线时不能宣称查出了所有历史删除。外部项目的正式引用需显式导入索引，无可用索引时报告 unresolved。
 
@@ -77,7 +77,7 @@ plan profile 的 `change` 定义一个 CHG ID，生成计划前由工作流状�
 
 ## 设计与验证内容
 
-设计文档的固定章节区分边界与架构、接口与数据、不变量、失败处理、验证。完整流程中设计独立维护，plan.design 引用适用设计；具体组织见文档组织。确实无变化的方面可用一句说明，不复制整段代码充当设计。
+设计文档的固定章节区分边界与架构、接口与数据、不变量、失败处理、验证。完整流程中设计独立维护，plan.design 引用适用设计；具体组织见 [文档组织](document-layout.md)。确实无变化的方面可用一句说明，不复制整段代码充当设计。
 
 明确系统边界与数据流、公开接口和调用方、数据约束和所有者、状态转换、失败后的状态与恢复。只记录影响决定的签名、模型、公式或图；详细实现由代码承担。已有基线时说明保持哪些可观察行为，避免把“优化”默认解释为允许语义变化。
 

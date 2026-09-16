@@ -163,4 +163,4 @@ uv run --no-config --locked --extra publication python -m pytest
 - [项目手册](docs/index.md)：产品需求、工程设计、长期决定与计划记录。
 - [工程规程](plugins/tao-dev/skills/tao-dev/references/engineering.md)：需求、设计、编码、验证和演进的判断原则。
 - [文档规程](plugins/tao-dev/skills/tao-dev/references/documents.md)：模板、格式、稳定 ID 与文档组织。
-- [独立判断与审查](plugins/tao-dev/skills/tao-dev/references/review.md)：审查强度、证据裁决与停止条件。
+- [审查规程](plugins/tao-dev/skills/tao-dev/references/review.md)：审查强度、证据裁决与停止条件。
