@@ -26,6 +26,16 @@ class RuntimeFailure(ValueError):
         self.state = state
 
 
+def isolated(python, *options):
+    """Run a child interpreter without inherited configuration.
+
+    Isolated mode also ignores PYTHONUTF8, so a child that prints a Chinese
+    path (pip echoes the inventory it reads) would encode its own output with
+    the legacy Windows code page and fail. The command line restores UTF-8.
+    """
+    return [str(python), "-I", "-X", "utf8", *options]
+
+
 def environment():
     # Do not let inherited pip configuration redirect writes out of our venv.
     result = {key: value for key, value in os.environ.items()
@@ -60,7 +70,7 @@ def inspect_python(python):
             "platform=sys.platform, machine=platform.machine(),"
             "executable=os.path.realpath(sys.executable))))")
     try:
-        completed = subprocess.run([str(python), "-I", "-c", code],
+        completed = subprocess.run(isolated(python, "-c", code),
                                    capture_output=True, text=True, encoding="utf-8", timeout=10, env=environment())
         if completed.returncode:
             # Keep the interpreter's own reason: without it a broken or
@@ -99,7 +109,7 @@ def probe(python, mode):
             f"[importlib.import_module(n) for n in {IMPORTS[mode]!r}]; "
             "print(json.dumps({'prefix':sys.prefix,'packages':"
             "sorted((d.metadata['Name'].lower(),d.version) for d in m.distributions())}))")
-    completed = subprocess.run([str(python), "-I", "-c", code], env=environment(),
+    completed = subprocess.run(isolated(python, "-c", code), env=environment(),
                                capture_output=True, text=True, encoding="utf-8", timeout=10)
     if completed.returncode:
         raise RuntimeFailure("Runtime imports failed; run tao env prepare for a new environment.",
@@ -174,8 +184,8 @@ def prepare(ctx, wheelhouse=None):
         # A venv contains absolute paths. Create it at its permanent location.
         directory = Path(tempfile.mkdtemp(prefix="env-", dir=slot))
         log = directory / "prepare.log"
-        command = [ctx["base_python"], "-I", "-m", "venv", str(directory)]
-        pip = [str(python_in(directory)), "-I", "-m", "pip"]
+        command = isolated(ctx["base_python"], "-m", "venv", str(directory))
+        pip = isolated(python_in(directory), "-m", "pip")
         install = pip + ["install", "--disable-pip-version-check", "--no-input", "--require-hashes",
                          "--only-binary=:all:", "--no-cache-dir", "-r", ctx["inventory"]]
         if wheelhouse:
