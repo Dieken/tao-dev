@@ -31,6 +31,14 @@ DOCUMENT_RESOURCES = {
 }
 
 
+def terminate(process, number):
+    """os.killpg is POSIX only; Windows has no process group to signal."""
+    if os.name == 'posix':
+        os.killpg(process.pid, number)
+    else:
+        process.kill()
+
+
 def reference_reads(path, client):
     """Return tao-dev resources named by actual client tool invocations."""
     invocations = []
@@ -290,11 +298,11 @@ def main():
                 timed_out = True
             finally:
                 if process.poll() is None:
-                    os.killpg(process.pid, signal.SIGTERM)
+                    terminate(process, signal.SIGTERM)
                     try:
                         process.wait(timeout=10)
                     except subprocess.TimeoutExpired:
-                        os.killpg(process.pid, signal.SIGKILL)
+                        terminate(process, signal.SIGKILL)
                         process.wait()
     except RuntimeError as exc:
         execution_error = str(exc)
