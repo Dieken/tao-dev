@@ -18,6 +18,8 @@ DEFAULT_MARKETPLACE = 'Dieken/tao-dev'
 SCRIPTS = Path(__file__).resolve().parent
 PLUGIN = SCRIPTS.parents[2]
 MARKER = '.tao-owned.json'
+ACTIONS = {'delete': 'removed by tao', 'modify': 'entry removed, file kept',
+           'keep': 'left unchanged', 'client': "removed by the client's own plugin removal"}
 
 
 class InstallError(ValueError):
@@ -556,9 +558,40 @@ def remove_owned(row):
     return [str(root)], []
 
 
+def planned_actions(row, rows):
+    """Say what removal does with each recorded path before it is confirmed.
+
+    The recorded list mixes resources tao owns with client metadata it only
+    edits and resources it deliberately retains, so paths alone overstate what
+    a confirmation is about to delete.
+    """
+    shared = any(other['id'] != row['id'] and other['plugin_id'] == row['plugin_id'] for other in rows)
+    delete, keep = set(), set()
+    if not row.get('native'):
+        delete.add(state.record_path(row['client'], row['id']).absolute())
+        delete.add(Path(row['managed_root']).absolute())
+        keep.update(Path(row[name]).absolute() for name in ('cli_path', 'launcher') if row.get(name))
+    cache = Path(row.get('plugin_base') or Path(row['plugin_path']).parent).absolute()
+    actions = {}
+    for path in row.get('files', []):
+        target = Path(path).absolute()
+        if target in delete:
+            actions[path] = 'delete'
+        elif target == cache:
+            actions[path] = 'keep' if shared else 'client'
+        elif (target in keep or target.name == 'known_marketplaces.json'
+                or target.parts[-2:] == ('info', 'exclude')):
+            actions[path] = 'keep'
+        else:
+            actions[path] = 'modify'
+    return actions
+
+
 def uninstall(args):
     import install_clients as clients
     rows = discover(args.client, args.project)
+    for row in rows:
+        row['file_actions'] = planned_actions(row, rows)
     if args.format != 'json' or not args.list and not args.yes:
         print_inventory(rows)
     if args.list or not rows:
@@ -600,15 +633,21 @@ def print_inventory(rows):
         print('No tao-dev installations found.')
     for number, row in enumerate(rows, 1):
         print(f'{number}. {row["id"]}: {row["scope"]} | {row.get("project") or "all projects"} | {row.get("version", "unknown")}')
+        actions = row.get('file_actions', {})
         for path in row.get('files', []):
-            print('   ' + path)
+            note = actions.get(path)
+            print('   ' + path + (f'  [{note}]' if note else ''))
+    if any(row.get('file_actions') for row in rows):
+        print('Legend: ' + '; '.join(f'{name} = {meaning}' for name, meaning in ACTIONS.items()) + '.')
 
 
 def main(argv=None):
     args = arguments(list(sys.argv[1:] if argv is None else argv))
     try:
         result = install(args) if args.command == 'install' else uninstall(args)
-        report = dict(tool='tao-dev', command=args.command, status='passed', outputs=result, diagnostics=[])
+        report = dict(tool='tao-dev', command=args.command,
+                      status='cancelled' if result.get('cancelled') else 'passed',
+                      outputs=result, diagnostics=[])
         code = 0
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         report = dict(tool='tao-dev', command=args.command, status='not_run',
@@ -637,7 +676,8 @@ def main(argv=None):
         elif result.get('removed'):
             print('Removed or updated:')
             for path in result['removed']:
-                print('  ' + path)
+                # Report what the filesystem shows now, not what was intended.
+                print(f'  {path}  [{"removed" if not Path(path).exists() else "updated"}]')
         for warning in report['outputs'].get('warnings', []):
             print('Note: ' + warning)
     return code

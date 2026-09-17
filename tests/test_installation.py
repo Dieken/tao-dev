@@ -208,6 +208,57 @@ def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch)
     assert launcher.read_bytes() == original and (cli / 'previous').read_text(encoding='utf-8') == 'keep'
 
 
+def receipt(tmp_path, monkeypatch):
+    home = tmp_path / 'client'
+    project = tmp_path / 'project'
+    monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(home))
+    identifier = 'claude-local-abcdef0123456789'
+    cache = home / 'plugins/cache' / f'tao-dev-{identifier}' / 'tao-dev'
+    return {
+        'id': identifier, 'client': 'claude', 'scope': 'local', 'project': str(project),
+        'plugin_id': f'tao-dev@tao-dev-{identifier}', 'version': '0.5.0',
+        'managed_root': str(project / '.local/tao-dev/claude/local'),
+        'plugin_path': str(cache / '0.5.0'), 'plugin_base': str(cache),
+        'cli_path': str(home / 'tao-dev/cli'), 'launcher': str(tmp_path / 'bin/tao'),
+        'files': [str(home / 'plugins/installed_plugins.json'),
+                  str(home / 'plugins/known_marketplaces.json'),
+                  str(home / 'tao-dev/cli'), str(tmp_path / 'bin/tao'),
+                  str(home / f'tao-dev/installations/{identifier}.json'),
+                  str(project / '.claude/settings.local.json'), str(cache),
+                  str(project / '.git/info/exclude'),
+                  str(project / '.local/tao-dev/claude/local')],
+    }
+
+
+def test_planned_actions_separate_owned_edited_and_retained_paths(tmp_path, monkeypatch):
+    row = receipt(tmp_path, monkeypatch)
+    actions = install.planned_actions(row, [row])
+    assert [actions[path] for path in row['files']] == [
+        'modify', 'keep', 'keep', 'keep', 'delete', 'modify', 'client', 'keep', 'delete']
+    shared = dict(row, id='claude-project-0123456789abcdef')
+    assert install.planned_actions(row, [row, shared])[row['plugin_base']] == 'keep'
+
+
+def test_inventory_annotates_every_listed_path_with_a_legend(tmp_path, monkeypatch, capsys):
+    row = receipt(tmp_path, monkeypatch)
+    row['file_actions'] = install.planned_actions(row, [row])
+    install.print_inventory([row])
+    printed = capsys.readouterr().out
+    assert all(f'{path}  [{action}]' in printed for path, action in row['file_actions'].items())
+    assert printed.rstrip().splitlines()[-1].startswith('Legend: delete = ')
+
+
+def test_cancelled_removal_is_reported_as_cancelled(tmp_path, monkeypatch, capsys):
+    row = receipt(tmp_path, monkeypatch)
+    monkeypatch.setattr(install, 'discover', lambda *_args: [row])
+    monkeypatch.setattr('builtins.input', lambda *_args: '')
+    code = install.main(['uninstall', '--client', 'claude', '--project', str(tmp_path)])
+    printed = capsys.readouterr().out
+    assert code == 0
+    assert 'tao uninstall: cancelled' in printed
+    assert 'Removed or updated' not in printed
+
+
 def test_child_diagnostic_survives_the_installer_layer():
     report = {'status': 'not_run', 'outputs': {},
               'diagnostics': [{'message': 'Preparation exceeded its time limit; raise --timeout.'}]}
