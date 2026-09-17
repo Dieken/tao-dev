@@ -338,3 +338,33 @@ def test_shared_cli_lives_outside_every_client_home(tmp_path, monkeypatch):
     assert str(root) in launcher.read_text(encoding='utf-8')
     assert state.shared_cli(root / 'skills/tao-dev/scripts')
 
+
+def test_shared_cli_replaces_itself_while_running_from_inside_it(tmp_path, monkeypatch):
+    """An upgrade runs from the very directory it replaces.
+
+    Windows refuses to rename a directory that holds an open file, so a
+    swap that works on POSIX can still fail there. The child process loads
+    the installer from the shared copy, as the launcher does.
+    """
+    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
+    bin_dir = tmp_path / 'bin'
+    launcher, root = install.install_cli(Path(sys.executable), bin_dir, install.PLUGIN)
+    (root / 'generation').write_text('first', encoding='utf-8')
+    driver = root / 'upgrade-probe.py'
+    driver.write_text(
+        'import sys\n'
+        'from pathlib import Path\n'
+        "sys.path.insert(0, str(Path(__file__).resolve().parent / 'skills/tao-dev/scripts'))\n"
+        'import installation\n'
+        'print(installation.install_cli(Path(sys.executable), Path(sys.argv[1]), Path(sys.argv[2]))[1])\n',
+        encoding='utf-8')
+    replaced = subprocess.run([sys.executable, '-I', '-B', str(driver), str(bin_dir), str(install.PLUGIN)],
+                              capture_output=True, text=True, encoding='utf-8', timeout=180)
+    assert replaced.returncode == 0, replaced.stdout + replaced.stderr
+    assert replaced.stdout.strip().endswith(str(root))
+    assert not (root / 'generation').exists() and not driver.exists()
+    assert not (tmp_path / 'shared/.cli-previous').exists()
+    assert not list((tmp_path / 'shared').glob('.cli-*'))
+    served = subprocess.run([str(launcher), '--version'], capture_output=True, text=True,
+                            encoding='utf-8', timeout=120)
+    assert served.returncode == 0 and 'tao-dev ' in served.stdout
