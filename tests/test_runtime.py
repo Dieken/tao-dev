@@ -1,5 +1,6 @@
 """Exercise preparation with real locked wheels and an empty Python environment."""
 
+import io
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,8 @@ import sys
 import tomllib
 
 import pytest
+
+import runtime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -206,3 +209,64 @@ def test_failed_interpreter_probe_reports_exit_failure_before_decoding(monkeypat
     monkeypatch.setattr(runtime.subprocess, 'run', lambda *a, **kw: subprocess.CompletedProcess(a[0], 1, '', ''))
     with pytest.raises(runtime.RuntimeFailure, match='Interpreter probe failed'):
         runtime.inspect_python('/unavailable/python')
+
+
+def test_personal_index_is_reused_without_inheriting_install_locations(bare_python, tmp_path, monkeypatch):
+    config = tmp_path / "pip.conf"
+    config.write_text("[global]\nindex-url = https://mirror.example/simple\n"
+                      "target = /elsewhere\n[install]\nprefix = /elsewhere\n", encoding="utf-8")
+    monkeypatch.setenv("PIP_CONFIG_FILE", str(config))
+    monkeypatch.setenv("PIP_EXTRA_INDEX_URL", "https://extra.example/simple https://other.example/simple")
+    monkeypatch.setenv("PIP_USER", "1")
+    options = runtime.package_source(bare_python)
+    assert options[:2] == ["--index-url", "https://mirror.example/simple"]
+    assert options.count("--extra-index-url") == 2
+    assert "https://other.example/simple" in options
+    assert not any("elsewhere" in value or "user" in value for value in options)
+    prepared = runtime.environment()
+    assert prepared["PIP_CONFIG_FILE"] == os.devnull
+    assert not [key for key in prepared if key.startswith("PIP_") and key != "PIP_CONFIG_FILE"]
+
+
+def test_progress_names_each_package_with_its_source_and_measured_rate():
+    stream = io.StringIO()
+    progress = runtime.Progress("core", stream)
+    progress.line("Collecting mdurl==0.1.2\n")
+    progress.line("  Downloading https://mirror.example/packages/ab/mdurl-0.1.2-py3-none-any.whl (10.0 kB)\n")
+    progress.line("  Using cached pyyaml-6.0.3-cp312-cp312-macosx_10_13_x86_64.whl (182 kB)\n")
+    progress.summary()
+    reported = stream.getvalue()
+    assert "mdurl 0.1.2" in reported and "https://mirror.example/packages/ab/" in reported
+    assert "10.0 kB" in reported and "/s" in reported
+    assert "pyyaml 6.0.3" in reported and "cached" in reported
+    assert "downloaded 10.0 kB" in reported
+
+
+def test_preparation_time_limit_covers_the_whole_command_and_rejects_a_negative_value(bare_python, tmp_path):
+    data = tmp_path / "data"
+    timed_out = invoke(bare_python, data, "env", "prepare", "--wheelhouse", str(WHEELS), "--timeout", "0.001")
+    assert timed_out.returncode == 2
+    report = json.loads(timed_out.stdout)
+    assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-005"
+    assert not list(data.rglob("prepare.lock"))
+    rejected = invoke(bare_python, data, "env", "prepare", "--timeout", "-1")
+    assert rejected.returncode == 2 and "--timeout" in rejected.stderr
+
+
+def test_time_limit_advice_mentions_an_index_only_when_none_is_configured(tmp_path, monkeypatch):
+    def refuse(argv, log, progress, deadline):
+        if "venv" in argv:
+            return 0
+        raise subprocess.TimeoutExpired(argv[0], 0)
+
+    monkeypatch.setattr(runtime, "observed", refuse)
+    ctx = {"mode": "core", "base_python": sys.executable, "key": "k",
+           "inventory": str(SCRIPTS / "requirements.txt"), "root": tmp_path, "slot": tmp_path / "slot"}
+    monkeypatch.setattr(runtime, "package_source", lambda _python: [])
+    with pytest.raises(runtime.RuntimeFailure) as unmirrored:
+        runtime.prepare(ctx)
+    monkeypatch.setattr(runtime, "package_source", lambda _python: ["--index-url", "https://mirror.example/simple"])
+    with pytest.raises(runtime.RuntimeFailure) as mirrored:
+        runtime.prepare(ctx)
+    assert "index-url" in str(unmirrored.value) and "--timeout" in str(unmirrored.value)
+    assert "index-url" not in str(mirrored.value) and "--timeout" in str(mirrored.value)

@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -42,6 +43,7 @@ def test_dependency_preparation_invokes_one_complete_setup(monkeypatch, tmp_path
     prepared = install.prepare(install.PLUGIN, Path(sys.executable), tmp_path / 'runtime', tmp_path, None)
     assert len(calls) == 1
     assert '--publication' not in calls[0]
+    assert calls[0][calls[0].index('--timeout') + 1] == '300'
     assert [item['mode'] for item in prepared] == ['core', 'publication']
     assert 'publication' not in prepared[0]
 
@@ -204,3 +206,12 @@ def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch)
     with pytest.raises(OSError, match='injected'):
         install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     assert launcher.read_bytes() == original and (cli / 'previous').read_text(encoding='utf-8') == 'keep'
+
+
+def test_child_diagnostic_survives_the_installer_layer():
+    report = {'status': 'not_run', 'outputs': {},
+              'diagnostics': [{'message': 'Preparation exceeded its time limit; raise --timeout.'}]}
+    completed = subprocess.CompletedProcess([], 2, json.dumps(report), None)
+    assert install.detail(completed) == report['diagnostics'][0]['message']
+    assert install.detail(subprocess.CompletedProcess([], 2, 'plain', 'stderr text')) == 'stderr text'
+

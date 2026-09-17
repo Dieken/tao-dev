@@ -1,13 +1,16 @@
 """Standard-library bootstrap; never install from a normal command or hook."""
 
 import argparse
+import ast
 import hashlib
 import json
 import os
+import queue
 import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -17,6 +20,18 @@ from tao_messages import Message, configured_locale, diagnostic
 SCRIPTS = Path(__file__).resolve().parent
 IMPORTS = {"core": ["markdown_it", "yaml"],
            "publication": ["markdown_it", "yaml", "sphinx", "myst_parser", "sphinx_book_theme"]}
+# Package sources, never install locations: these decide where a wheel is
+# fetched from, and the locked hashes still decide whether it is accepted.
+SOURCE_KEYS = ("index-url", "extra-index-url", "trusted-host", "proxy", "cert",
+               "client-cert", "retries", "timeout")
+REPEATED_KEYS = ("extra-index-url", "trusted-host")
+UNITS = {"bytes": 1, "kB": 1000, "MB": 1000 ** 2, "GB": 1000 ** 3}
+TIMED_OUT = ('Preparation exceeded its time limit; inspect {arg0}. '
+             'Raise or remove the limit with --timeout <seconds>.')
+TIMED_OUT_UNMIRRORED = ('Preparation exceeded its time limit; inspect {arg0}. '
+                        'Raise or remove the limit with --timeout <seconds>, or configure a nearer '
+                        'package index, for example pip config set global.index-url <url>.')
+TRANSFER = re.compile(r"\s*(Downloading|Using cached) (\S+)(?: \(([^()]*)\))?\s*")
 
 
 class RuntimeFailure(ValueError):
@@ -42,6 +57,161 @@ def environment():
               if not key.startswith("PIP_") and key not in ("PYTHONPATH", "PYTHONHOME")}
     result.update(PIP_CONFIG_FILE=os.devnull, PYTHONDONTWRITEBYTECODE="1", PYTHONUTF8="1")
     return result
+
+
+def package_source(python):
+    """Keep the caller's package source without inheriting where it installs.
+
+    A personal pip configuration can redirect writes into a business
+    environment through target, prefix or user, so preparation still runs
+    against an empty configuration. An index only says where a wheel comes
+    from and every wheel is still matched against the locked hashes, so a
+    caller behind a blocked or slow default index keeps their own mirror
+    instead of losing the ability to install at all.
+    """
+    values = {}
+    # pip config list reports only the variables once any PIP_ variable is
+    # set, so the files are read without them and the variables are read here.
+    probe = {key: value for key, value in os.environ.items()
+             if not key.startswith("PIP_") or key == "PIP_CONFIG_FILE"}
+    try:
+        completed = subprocess.run(isolated(python, "-m", "pip", "config", "list"),
+                                   capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                   timeout=30, env=probe | {"PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"})
+        listed = completed.stdout if completed.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        listed = ""
+    # A command section overrides the global one, as it does for pip itself.
+    for section in ("global", "install"):
+        for line in listed.splitlines():
+            name, separator, value = line.partition("=")
+            scope, _, key = name.strip().rpartition(".")
+            if separator and scope == section and key in SOURCE_KEYS:
+                try:
+                    values[key] = ast.literal_eval(value.strip())
+                except (ValueError, SyntaxError):
+                    continue
+    values.update({key: os.environ["PIP_" + key.upper().replace("-", "_")] for key in SOURCE_KEYS
+                   if "PIP_" + key.upper().replace("-", "_") in os.environ})
+    options = []
+    for key, value in values.items():
+        if not isinstance(value, str):
+            continue
+        for item in (value.split() if key in REPEATED_KEYS else [value.strip()]):
+            if item and item.isprintable():
+                options += ["--" + key, item]
+    return options
+
+
+def readable(size):
+    if size >= 1000 ** 2:
+        return f"{size / 1000 ** 2:.1f} MB"
+    if size >= 1000:
+        return f"{size / 1000:.1f} kB"
+    return f"{size:.0f} bytes"
+
+
+def measured(text):
+    match = re.fullmatch(r"\s*([0-9.]+) (bytes|kB|MB|GB)\s*", text or "")
+    return float(match.group(1)) * UNITS[match.group(2)] if match else None
+
+
+def named(target):
+    """Report the distribution, not the index path it happens to live under."""
+    filename = target.rsplit("/", 1)[-1].split("?", 1)[0]
+    parts = filename.split("-")
+    return f"{parts[0]} {parts[1]}" if filename.endswith(".whl") and len(parts) > 2 else filename
+
+
+class Progress:
+    """Name every package, where it came from and how fast it arrived.
+
+    pip publishes no machine-readable progress, so its own output is the only
+    source: a transfer starts on its Downloading line and has finished by the
+    time pip prints anything else.
+    """
+
+    def __init__(self, mode, stream=None):
+        self.mode = mode
+        self.stream = stream
+        self.started = False
+        self.pending = None
+        self.total = 0.0
+        self.seconds = 0.0
+
+    def line(self, text):
+        match = TRANSFER.fullmatch(text.rstrip("\r\n"))
+        if self.pending and (match or text.strip()):
+            self.settle()
+        if match and match.group(1) == "Downloading":
+            self.pending = (match.group(2), measured(match.group(3)), time.monotonic())
+        elif match:
+            self.report(f"{named(match.group(2))}  {match.group(3) or 'unknown size'}  cached  {match.group(2)}")
+
+    def settle(self):
+        target, size, started = self.pending
+        self.pending = None
+        seconds = max(time.monotonic() - started, 0.001)
+        self.seconds += seconds
+        self.total += size or 0.0
+        rate = f"{readable(size / seconds)}/s" if size else "rate unknown"
+        self.report(f"{named(target)}  {readable(size) if size else 'unknown size'}  "
+                    f"{seconds:.1f}s  {rate}  {target}")
+
+    def summary(self):
+        if self.pending:
+            self.settle()
+        if self.total:
+            self.report(f"downloaded {readable(self.total)} in {self.seconds:.1f}s")
+
+    def report(self, text):
+        if self.stream is None:
+            return
+        if not self.started:
+            print(f"Preparing the {self.mode} runtime.", file=self.stream, flush=True)
+            self.started = True
+        print("  " + text, file=self.stream, flush=True)
+
+
+def remaining(deadline):
+    return None if deadline is None else max(0.0, deadline - time.monotonic())
+
+
+def observed(argv, log, progress, deadline):
+    """Run one preparation step, recording and reporting its output as it arrives.
+
+    A single deadline covers the whole preparation: a per-process limit turns
+    a slow but healthy download into a failure and cannot express the budget
+    the caller actually has. The reader thread keeps that bound portable to
+    Windows, where a pipe cannot be polled.
+    """
+    process = subprocess.Popen(argv, env=environment(), stdin=subprocess.DEVNULL,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               text=True, encoding="utf-8", errors="replace")
+    lines = queue.Queue()
+
+    def read():
+        try:
+            for line in process.stdout:
+                lines.put(line)
+        finally:
+            lines.put(None)
+
+    threading.Thread(target=read, daemon=True).start()
+    try:
+        while True:
+            try:
+                line = lines.get(timeout=remaining(deadline))
+            except queue.Empty:
+                raise subprocess.TimeoutExpired(argv[0], 0) from None
+            if line is None:
+                return process.wait(timeout=30)
+            log.write(line)
+            progress.line(line)
+    finally:
+        process.kill()
+        process.wait()
+        process.stdout.close()
 
 
 def data_root(installed=None):
@@ -157,7 +327,7 @@ def atomic_json(path, value):
         Path(temporary).unlink(missing_ok=True)
 
 
-def prepare(ctx, wheelhouse=None):
+def prepare(ctx, wheelhouse=None, deadline=None, stream=None):
     if wheelhouse is not None and not wheelhouse.is_dir():
         raise RuntimeFailure("Offline wheelhouse must be an existing directory.")
     slot = ctx["slot"]
@@ -165,13 +335,13 @@ def prepare(ctx, wheelhouse=None):
         raise RuntimeFailure("Runtime slot escapes data directory.")
     slot.mkdir(parents=True, exist_ok=True)
     lock = slot / "prepare.lock"
-    deadline = time.monotonic() + 120
+    waiting = time.monotonic() + 120 if deadline is None else min(time.monotonic() + 120, deadline)
     while True:
         try:
             lock.mkdir()
             break
         except FileExistsError:
-            if time.monotonic() >= deadline:
+            if time.monotonic() >= waiting:
                 raise RuntimeFailure("Another preparation owns the lock; retry after it finishes. Inspect interrupted operations before removing a stale lock.", "TAO-RUNTIME-004", "busy")
             time.sleep(0.1)
     try:
@@ -184,23 +354,28 @@ def prepare(ctx, wheelhouse=None):
         # A venv contains absolute paths. Create it at its permanent location.
         directory = Path(tempfile.mkdtemp(prefix="env-", dir=slot))
         log = directory / "prepare.log"
-        command = isolated(ctx["base_python"], "-m", "venv", str(directory))
-        pip = isolated(python_in(directory), "-m", "pip")
-        install = pip + ["install", "--disable-pip-version-check", "--no-input", "--require-hashes",
-                         "--only-binary=:all:", "--no-cache-dir", "-r", ctx["inventory"]]
-        if wheelhouse:
-            install += ["--no-index", "--find-links", str(wheelhouse.resolve())]
-        else:
-            install += ["--index-url", "https://pypi.org/simple"]
+        progress = Progress(ctx["mode"], stream)
+
+        def step(argv, timed_out=TIMED_OUT):
+            try:
+                code = observed(argv, output, progress, deadline)
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeFailure(Message(timed_out, log), "TAO-RUNTIME-005") from exc
+            if code:
+                raise RuntimeFailure(Message('Preparation failed; inspect {arg0}. Python must include venv and ensurepip; dependency installation must match the locked inventory.', log), "TAO-RUNTIME-005")
+
         with log.open("w", encoding="utf-8", newline="\n") as output:
-            for argv in (command, install, pip + ["check"]):
-                try:
-                    completed = subprocess.run(argv, env=environment(), stdin=subprocess.DEVNULL,
-                                               stdout=output, stderr=subprocess.STDOUT, timeout=120)
-                except subprocess.TimeoutExpired as exc:
-                    raise RuntimeFailure(Message('Preparation timed out; inspect {arg0}', log), "TAO-RUNTIME-005") from exc
-                if completed.returncode:
-                    raise RuntimeFailure(Message('Preparation failed; inspect {arg0}. Python must include venv and ensurepip; dependency installation must match the locked inventory.', log), "TAO-RUNTIME-005")
+            step(isolated(ctx["base_python"], "-m", "venv", str(directory)))
+            # Unbuffered output turns pip's own lines into live progress.
+            pip = isolated(python_in(directory), "-u", "-m", "pip")
+            install = pip + ["install", "--disable-pip-version-check", "--no-input", "--require-hashes",
+                             "--only-binary=:all:", "-r", ctx["inventory"]]
+            source = ["--no-index", "--find-links", str(wheelhouse.resolve())] if wheelhouse \
+                else package_source(python_in(directory))
+            step(install + source,
+                 TIMED_OUT if wheelhouse or "--index-url" in source else TIMED_OUT_UNMIRRORED)
+            step(pip + ["check"])
+        progress.summary()
         actual = probe(python_in(directory), ctx["mode"])
         atomic_json(directory / "ready.json", {"key": ctx["key"], "probe": actual})
         atomic_json(slot / "active.json", {"generation": directory.name})
@@ -292,13 +467,20 @@ def main(argv=None, entry="tao.py"):
             parser.add_argument("operation", choices=("prepare",))
             parser.add_argument("--project", type=Path)
             parser.add_argument("--wheelhouse", type=Path)
+            parser.add_argument("--timeout", type=float, default=300,
+                                help="Seconds allowed for the whole preparation; 0 removes the limit.")
             parser.add_argument("--format", choices=("text", "json"), default="text")
             parser.add_argument("--diagnostic-locale")
             args = parser.parse_args(argv[position + 1:])
-            directory = prepare(ctx, args.wheelhouse)
+            if args.timeout < 0:
+                parser.error("--timeout must not be negative.")
+            # One budget for the whole command; progress belongs on stderr so
+            # that --format json stays a single machine-readable document.
+            deadline = time.monotonic() + args.timeout if args.timeout else None
+            directory = prepare(ctx, args.wheelhouse, deadline, sys.stderr)
             runtime = description(ctx, directory)
             ctx = context("publication", project)
-            publication = prepare(ctx, args.wheelhouse)
+            publication = prepare(ctx, args.wheelhouse, deadline, sys.stderr)
             runtime["publication"] = description(ctx, publication)
             return emit(command, {"runtime": runtime}, json_output=json_output)
         directory = selected(ctx)
