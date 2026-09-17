@@ -47,12 +47,12 @@ def test_approval_tracks_content_and_requires_new_decision_after_edits(tmp_path,
     from taolib.workflows import checkpoint, advance, observe
     from taolib.project import Project, ConflictError
     from test_documents import spec
-    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(); p.write_text(spec())
+    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(); p.write_text(spec(), encoding='utf-8')
     project = Project(tmp_path)
     state = checkpoint(project, state['change'], 1, {'artifacts': {'spec': ['docs/spec.md']}})
     state = advance(project, state['change'], 2, 'Spec accepted; write design')
     assert state['phase'] == 'design'
-    p.write_text(p.read_text()+'\nChanged requirement interpretation.\n')
+    p.write_text(p.read_text(encoding='utf-8')+'\nChanged requirement interpretation.\n', encoding='utf-8')
     view = observe(project, state)
     assert view['stale_approvals'] == ['spec']
     with pytest.raises(ConflictError):
@@ -66,7 +66,7 @@ def git(root, *args):
 def test_worktree_records_fork_and_parent_can_find_workflow(tmp_path, capsys):
     git(tmp_path, 'init', '-b', 'main')
     git(tmp_path, 'config', 'user.email', 'test@example.test'); git(tmp_path, 'config', 'user.name', 'Test')
-    (tmp_path / '.gitignore').write_text('/.worktrees/\n')
+    (tmp_path / '.gitignore').write_text('/.worktrees/\n', encoding='utf-8')
     git(tmp_path, 'add', '.gitignore'); git(tmp_path, 'commit', '-m', 'Initial')
     base = git(tmp_path, 'rev-parse', 'HEAD')
     state = start(tmp_path, capsys, '--worktree')
@@ -101,9 +101,9 @@ def test_missing_stage_document_does_not_advance(tmp_path, capsys):
 
 def test_dirty_source_is_not_silently_left_out_of_worktree(tmp_path, capsys):
     git(tmp_path, 'init', '-b', 'main'); git(tmp_path, 'config', 'user.email', 'test@example.test'); git(tmp_path, 'config', 'user.name', 'Test')
-    (tmp_path / '.gitignore').write_text('/.worktrees/\n')
+    (tmp_path / '.gitignore').write_text('/.worktrees/\n', encoding='utf-8')
     git(tmp_path, 'add', '.gitignore'); git(tmp_path, 'commit', '-m', 'Initial')
-    (tmp_path / '.gitignore').write_text('/.worktrees/\n/build/\n')
+    (tmp_path / '.gitignore').write_text('/.worktrees/\n/build/\n', encoding='utf-8')
     code, report = call(tmp_path, capsys, 'workflow', 'start', '--slug', 'filter', '--summary', 'Filter', '--locale', 'en', '--decision', 'Write', '--worktree')
     assert code == 1, report
     assert not (tmp_path / '.worktrees/filter').exists()

@@ -58,7 +58,7 @@ def test_blocked_runner_cannot_pass_interaction_acceptance():
 def test_material_fixture_removes_unrelated_overwrite_requirement(tmp_path):
     prepare_material_fixture(tmp_path)
 
-    requirement = (tmp_path / "requirements.txt").read_text()
+    requirement = (tmp_path / "requirements.txt").read_text(encoding='utf-8')
     assert "retention policy has not been decided" in requirement
     assert "overwrite" not in requirement
     assert "30 days" not in requirement
@@ -72,11 +72,11 @@ def test_usage_summary_uses_observed_client_events(tmp_path):
             "input_tokens": 10, "cache_read_input_tokens": 8,
             "output_tokens": 4,
             "output_tokens_details": {"thinking_tokens": 2}}}),
-    )) + "\n")
+    )) + "\n", encoding='utf-8')
     codex = tmp_path / "codex.jsonl"
     codex.write_text(json.dumps({"type": "turn.completed", "usage": {
         "input_tokens": 20, "cached_input_tokens": 5,
-        "output_tokens": 7, "reasoning_output_tokens": 2}}) + "\n")
+        "output_tokens": 7, "reasoning_output_tokens": 2}}) + "\n", encoding='utf-8')
 
     claude_usage = summarize_usage((claude,), "claude")
     codex_usage = summarize_usage((codex,), "codex")

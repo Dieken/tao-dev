@@ -64,7 +64,7 @@ def test_malformed_personal_model_override_is_not_forwarded(tmp_path, monkeypatc
     credentials(tmp_path, monkeypatch)
     settings = tmp_path / '.claude/settings.json'
     settings.parent.mkdir()
-    settings.write_text(json.dumps({'model': 'opus[1m'}))
+    settings.write_text(json.dumps({'model': 'opus[1m'}), encoding='utf-8')
 
     with adapter.access_environment(tmp_path / 'experiment', 90) as (env, _):
         assert 'ANTHROPIC_MODEL' not in env
@@ -74,7 +74,7 @@ def test_valid_personal_model_override_is_forwarded(tmp_path, monkeypatch):
     credentials(tmp_path, monkeypatch)
     settings = tmp_path / '.claude/settings.json'
     settings.parent.mkdir()
-    settings.write_text(json.dumps({'model': 'claude-sonnet-4-5'}))
+    settings.write_text(json.dumps({'model': 'claude-sonnet-4-5'}), encoding='utf-8')
 
     with adapter.access_environment(tmp_path / 'experiment', 90) as (env, _):
         assert env['ANTHROPIC_MODEL'] == 'claude-sonnet-4-5'
@@ -122,4 +122,4 @@ def test_expiring_credentials_produce_a_structured_runner_failure(tmp_path, monk
     assert result['status'] == 'blocked' and result['exit_code'] is None
     assert 'no refresh' in result['reason']
     saved = next((tmp_path / 'source/tmp/tao/client-acceptance').glob('*.summary.json'))
-    assert json.loads(saved.read_text()) == result
+    assert json.loads(saved.read_text(encoding='utf-8')) == result

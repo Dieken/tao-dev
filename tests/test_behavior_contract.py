@@ -16,7 +16,7 @@ SCENARIOS = ROOT / "tests/acceptance/behavior-scenarios.yaml"
 
 
 def write_yaml(path, value):
-    path.write_text(yaml.safe_dump(value, sort_keys=False))
+    path.write_text(yaml.safe_dump(value, sort_keys=False), encoding='utf-8')
 
 
 def minimal_contract():

@@ -20,32 +20,32 @@ def run(workspace, *, codex_legacy=False):
     initial = isolated_codex.check_boundary(workspace, inside)
     initial_hook = isolated_codex.trust_test_hook(workspace, inside, plugin) if codex_legacy else None
     config = inside / '.codex/config.toml'
-    enabled = config.read_text()
-    config.write_text(enabled.replace('enabled = true', 'enabled = false'))
+    enabled = config.read_text(encoding='utf-8')
+    config.write_text(enabled.replace('enabled = true', 'enabled = false'), encoding='utf-8')
     disabled = isolated_codex.skills(workspace, [inside, workspace / 'codex/outside'])
     if any(disabled.values()):
         raise RuntimeError('Disabled plugin still exposes a native skill.')
     if codex_legacy and any(row['hooks'] for row in isolated_codex.hook_inventory(workspace, inside)):
         raise RuntimeError('Disabled plugin still exposes a hook.')
-    config.write_text(enabled)
+    config.write_text(enabled, encoding='utf-8')
     isolated_codex.check_boundary(workspace, inside)
     manifest = plugin / ('.codex-plugin/plugin.json' if codex_legacy else 'plugin.json')
-    value = json.loads(manifest.read_text())
+    value = json.loads(manifest.read_text(encoding='utf-8'))
     value['version'] = '0.3.1'
-    manifest.write_text(json.dumps(value))
+    manifest.write_text(json.dumps(value), encoding='utf-8')
     skill = plugin / 'skills/tao-dev/SKILL.md'
-    skill.write_text(skill.read_text().replace('description: ', 'description: Acceptance update marker. ', 1))
+    skill.write_text(skill.read_text(encoding='utf-8').replace('description: ', 'description: Acceptance update marker. ', 1), encoding='utf-8')
     if codex_legacy:
         hooks_file = plugin / 'com.openai/hooks/hooks.json'
-        definition = json.loads(hooks_file.read_text())
+        definition = json.loads(hooks_file.read_text(encoding='utf-8'))
         definition['hooks']['PostToolUse'][0]['hooks'][0]['timeout'] = 34
-        hooks_file.write_text(json.dumps(definition))
+        hooks_file.write_text(json.dumps(definition), encoding='utf-8')
     state_config = workspace / 'client-state/config.toml'
-    default_disabled = state_config.read_text()
+    default_disabled = state_config.read_text(encoding='utf-8')
     updated = subprocess.run(['codex', 'plugin', 'add', isolated_codex.PLUGIN_ID, '--json'],
                              cwd=inside, env=isolated_codex.environment(workspace),
                              capture_output=True, text=True, timeout=45, check=True)
-    state_config.write_text(default_disabled)
+    state_config.write_text(default_disabled, encoding='utf-8')
     update_result = json.loads(updated.stdout)
     latest = isolated_codex.check_boundary(workspace, inside)
     found = latest[str(inside)][0]

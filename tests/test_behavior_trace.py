@@ -21,7 +21,7 @@ CATALOG = load_catalog(
 
 
 def write_events(path, *events):
-    path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+    path.write_text("\n".join(json.dumps(event) for event in events) + "\n", encoding='utf-8')
 
 
 def kinds(trace, kind):
@@ -85,14 +85,14 @@ def test_codex_deduplicates_command_lifecycle_and_preserves_completion(tmp_path)
 
 
 def test_workspace_snapshot_reports_created_modified_and_deleted_files(tmp_path):
-    (tmp_path / "keep.py").write_text("before\n")
-    (tmp_path / "delete.py").write_text("remove\n")
+    (tmp_path / "keep.py").write_text("before\n", encoding='utf-8')
+    (tmp_path / "delete.py").write_text("remove\n", encoding='utf-8')
     (tmp_path / ".git").mkdir()
-    (tmp_path / ".git/config").write_text("ignored\n")
+    (tmp_path / ".git/config").write_text("ignored\n", encoding='utf-8')
     before = snapshot_workspace(tmp_path)
-    (tmp_path / "keep.py").write_text("after\n")
+    (tmp_path / "keep.py").write_text("after\n", encoding='utf-8')
     (tmp_path / "delete.py").unlink()
-    (tmp_path / "new.py").write_text("new\n")
+    (tmp_path / "new.py").write_text("new\n", encoding='utf-8')
     after = snapshot_workspace(tmp_path)
 
     changes = workspace_events(before, after, client="synthetic", turn=2)

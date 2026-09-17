@@ -20,7 +20,7 @@ def setup_project(root):
     block = source[start:end]
     source = source[:end] + '\n\n' + block.replace(REQ, OTHER_REQ) + source[end:]
     path = root / 'docs/spec.md'
-    path.write_text(source)
+    path.write_text(source, encoding='utf-8')
     return path
 
 
@@ -41,16 +41,16 @@ def test_preview_is_read_only_and_apply_preserves_formal_references(tmp_path):
     assert not (tmp_path / 'docs/retired').exists()
     code, applied = retire(tmp_path, REQ, '--replaced-by', OTHER_REQ, '--apply')
     assert code == 0, applied
-    assert f':id: {REQ}' not in path.read_text()
-    assert f':id: {OTHER_REQ}' in path.read_text()
+    assert f':id: {REQ}' not in path.read_text(encoding='utf-8')
+    assert f':id: {OTHER_REQ}' in path.read_text(encoding='utf-8')
     ledger = tmp_path / 'docs/retired' / (date.today().strftime('%Y%m%d') + '.jsonl')
-    row = json.loads(ledger.read_text())
+    row = json.loads(ledger.read_text(encoding='utf-8'))
     assert row == {'id': REQ, 'retired_on': date.today().isoformat(), 'reason': 'Replaced by the maintained requirement.', 'replaced_by': [OTHER_REQ]}
     result = validate(tmp_path, [path])
     assert result.valid, result.diagnostics
     assert result.definitions[REQ].status == 'retired'
     assert retire(tmp_path, REQ, '--replaced-by', OTHER_REQ, '--apply')[0] == 0
-    assert len(ledger.read_text().splitlines()) == 1
+    assert len(ledger.read_text(encoding='utf-8').splitlines()) == 1
 
 
 def test_invalid_replacement_or_remaining_document_does_not_write(tmp_path):
@@ -60,7 +60,7 @@ def test_invalid_replacement_or_remaining_document_does_not_write(tmp_path):
     assert code != 0, result
     assert path.read_bytes() == before
     assert not (tmp_path / 'docs/retired').exists()
-    path.write_text(spec())
+    path.write_text(spec(), encoding='utf-8')
     before = path.read_bytes()
     code, result = retire(tmp_path, REQ, '--apply')
     assert code != 0, result
@@ -71,11 +71,11 @@ def test_invalid_replacement_or_remaining_document_does_not_write(tmp_path):
 def test_document_retirement_includes_owned_ids_and_rejects_broken_file_links(tmp_path):
     path = setup_project(tmp_path)
     another = tmp_path / 'docs/another.md'
-    another.write_text(spec().replace(DOC, 'DOC_20260914_0000000000000020').replace(REQ, 'REQ_20260914_0000000000000021').replace(UC, 'UC_20260914_0000000000000022') + '\n[old document](spec.md)\n')
+    another.write_text(spec().replace(DOC, 'DOC_20260914_0000000000000020').replace(REQ, 'REQ_20260914_0000000000000021').replace(UC, 'UC_20260914_0000000000000022') + '\n[old document](spec.md)\n', encoding='utf-8')
     code, result = retire(tmp_path, DOC, '--apply')
     assert code != 0, result
     assert path.exists()
-    another.write_text(another.read_text().replace('[old document](spec.md)', 'No file dependency.'))
+    another.write_text(another.read_text(encoding='utf-8').replace('[old document](spec.md)', 'No file dependency.'), encoding='utf-8')
     code, preview = retire(tmp_path, DOC)
     assert code == 0, preview
     assert {DOC, REQ, OTHER_REQ} <= set(preview['outputs']['retired_ids'])
@@ -95,11 +95,11 @@ def test_task_removal_preserves_neighbor_and_document_contract(tmp_path):
     end = source.index('<!-- tao:section verification -->')
     source = source[:end] + source[start:end].replace(TASK, TASK_TWO) + source[end:]
     path = folder / '20260914-export.md'
-    path.write_text(source)
+    path.write_text(source, encoding='utf-8')
     code, result = retire(tmp_path, TASK, '--apply')
     assert code == 0, result
-    assert f'`{TASK}`' not in path.read_text()
-    assert f'`{TASK_TWO}`' in path.read_text()
+    assert f'`{TASK}`' not in path.read_text(encoding='utf-8')
+    assert f'`{TASK_TWO}`' in path.read_text(encoding='utf-8')
     assert validate(tmp_path, list((tmp_path / 'docs').rglob('*.md'))).valid
     code, preview = retire(tmp_path, CHG)
     assert code == 0, preview
@@ -131,8 +131,8 @@ def test_interrupted_source_update_keeps_id_and_can_resume(tmp_path, monkeypatch
         pass
     else:
         raise AssertionError('Expected the simulated interruption')
-    assert f':id: {REQ}' in path.read_text()
-    assert REQ in next((tmp_path / 'docs/retired').glob('*.jsonl')).read_text()
+    assert f':id: {REQ}' in path.read_text(encoding='utf-8')
+    assert REQ in next((tmp_path / 'docs/retired').glob('*.jsonl')).read_text(encoding='utf-8')
     assert not validate(tmp_path, [path]).valid
     monkeypatch.setattr(retirement, 'replace_file', original)
     code, result = retire(tmp_path, REQ, '--replaced-by', OTHER_REQ, '--apply')
@@ -145,7 +145,7 @@ def test_malformed_existing_record_returns_diagnostics_without_removing_source(t
     before = path.read_bytes()
     ledger = tmp_path / 'docs/retired' / (date.today().strftime('%Y%m%d') + '.jsonl')
     ledger.parent.mkdir(parents=True)
-    ledger.write_text(json.dumps({'id': REQ}) + '\n')
+    ledger.write_text(json.dumps({'id': REQ}) + '\n', encoding='utf-8')
     code, result = retire(tmp_path, REQ, '--apply')
     assert code == 2, result
     assert result['diagnostics']
@@ -158,8 +158,8 @@ def test_append_keeps_preexisting_records_intact(tmp_path):
     ledger.parent.mkdir(parents=True)
     row = {'id': 'REQ_20260913_0000000000000030', 'retired_on': date.today().isoformat(), 'reason': 'Earlier retirement.', 'replaced_by': []}
     original = json.dumps(row) + '\n'
-    ledger.write_text(original)
+    ledger.write_text(original, encoding='utf-8')
     code, result = retire(tmp_path, REQ, '--replaced-by', OTHER_REQ, '--apply')
     assert code == 0, result
-    assert ledger.read_text().startswith(original)
-    assert len(ledger.read_text().splitlines()) == 2
+    assert ledger.read_text(encoding='utf-8').startswith(original)
+    assert len(ledger.read_text(encoding='utf-8').splitlines()) == 2

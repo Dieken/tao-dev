@@ -48,7 +48,7 @@ class FakeExecutor:
                     "type": "agent_message", "text": text}},
             ]
         request.log_path.write_text(
-            "\n".join(json.dumps(row) for row in rows) + "\n")
+            "\n".join(json.dumps(row) for row in rows) + "\n", encoding='utf-8')
         if self.mutation:
             self.mutation(request)
         return InvocationResult(
@@ -111,7 +111,7 @@ def test_claude_must_report_the_explicitly_requested_initial_session(tmp_path):
 def test_missing_session_id_cannot_be_treated_as_a_continuation(tmp_path):
     log = tmp_path / "codex.jsonl"
     log.write_text(json.dumps({"type": "item.completed", "item": {
-        "type": "agent_message", "text": "How many days?"}}) + "\n")
+        "type": "agent_message", "text": "How many days?"}}) + "\n", encoding='utf-8')
 
     assert adapter_for("codex").session_id(log) is None
 
@@ -130,11 +130,11 @@ def test_scripted_reply_is_not_sent_when_condition_does_not_match(tmp_path):
 
 
 def test_workspace_changes_are_captured_for_each_turn(tmp_path):
-    (tmp_path / "example.py").write_text("before\n")
+    (tmp_path / "example.py").write_text("before\n", encoding='utf-8')
 
     def mutate(request):
         if request.turn == 1:
-            (request.workspace / "example.py").write_text("after\n")
+            (request.workspace / "example.py").write_text("after\n", encoding='utf-8')
 
     executor = FakeExecutor(
         "codex", [{"session_id": "session-1", "text": "Done."}], mutation=mutate)

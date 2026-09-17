@@ -168,7 +168,7 @@ def normalize_client_log(path, client):
     rows = []
     complete = True
     try:
-        for line in Path(path).read_text().splitlines():
+        for line in Path(path).read_text(encoding='utf-8').splitlines():
             if line.strip():
                 rows.append(json.loads(line))
     except (OSError, json.JSONDecodeError):

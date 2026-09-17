@@ -142,10 +142,10 @@ def test_report_writes_stable_json_and_reviewable_markdown(tmp_path):
 
     write_report(report, json_path, markdown_path)
 
-    payload = json.loads(json_path.read_text())
+    payload = json.loads(json_path.read_text(encoding='utf-8'))
     assert payload["status"] == "passed"
     assert payload["mutation_detection_rate"] == 1.0
-    text = markdown_path.read_text()
+    text = markdown_path.read_text(encoding='utf-8')
     assert "Claude Code" in text
     assert "Codex CLI" in text
     assert "100.0%" in text

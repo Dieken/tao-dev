@@ -38,7 +38,7 @@ def reference_reads(path, client):
     seen = set()
     if not path.is_file():
         return {'skill_invoked': False, 'resources': [], 'broad_scans': []}
-    for line in path.read_text(errors='replace').splitlines():
+    for line in path.read_text(errors='replace', encoding='utf-8').splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -122,10 +122,10 @@ def prepare(directory, client, *, native_plugin=False, codex_legacy=False):
     else:
         shutil.copytree(PLUGIN, target, dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__'))
     (directory / '.tao').mkdir(exist_ok=True)
-    (directory / '.tao/config.toml').write_text('version = 1\nlocale = "en"\n')
+    (directory / '.tao/config.toml').write_text('version = 1\nlocale = "en"\n', encoding='utf-8')
     (directory / 'docs').mkdir(exist_ok=True)
-    (directory / 'example.py').write_text('from pathlib import Path\n\ndef export(path, value):\n    Path(path).write_text(value)\n')
-    (directory / 'requirements.txt').write_text('Export must refuse to overwrite an existing file and preserve its bytes.\n')
+    (directory / 'example.py').write_text('from pathlib import Path\n\ndef export(path, value):\n    Path(path).write_text(value)\n', encoding='utf-8')
+    (directory / 'requirements.txt').write_text('Export must refuse to overwrite an existing file and preserve its bytes.\n', encoding='utf-8')
     if client == 'codex' and not native_plugin:
         skill = directory / '.agents/skills/tao-dev'
         if not skill.exists():
@@ -170,7 +170,7 @@ def main():
     plugin = None if args.case == 'outside' else prepare(directory, args.client, native_plugin=args.isolated_codex, codex_legacy=args.codex_legacy)
     if args.case == 'routing':
         (directory / 'example.py').write_text(
-            'from pathlib import Path\n\ndef export(path, value)\n    Path(path).write_text(value)\n')
+            'from pathlib import Path\n\ndef export(path, value)\n    Path(path).write_text(value)\n', encoding='utf-8')
     routing_before = ({name: (directory / name).read_bytes()
                        for name in ('requirements.txt', '.tao/config.toml')}
                       if args.case == 'routing' else None)
@@ -188,7 +188,7 @@ def main():
             isolated_codex.trust_test_hook(workspace, inside, plugin)
         if args.disable_hooks:
             config = inside / '.codex/config.toml'
-            config.write_text(config.read_text().replace('hooks = true', 'hooks = false'))
+            config.write_text(config.read_text(encoding='utf-8').replace('hooks = true', 'hooks = false'), encoding='utf-8')
         env = isolated_codex.environment(workspace)
     if args.claude_scope:
         import isolated_claude
@@ -200,9 +200,9 @@ def main():
         env = isolated_claude.environment(workspace)
         if args.disable_hooks:
             settings = workspace / 'client-config/settings.json'
-            value = json.loads(settings.read_text()) if settings.exists() else {}
+            value = json.loads(settings.read_text(encoding='utf-8')) if settings.exists() else {}
             value['disableAllHooks'] = True
-            settings.write_text(json.dumps(value))
+            settings.write_text(json.dumps(value), encoding='utf-8')
     env['TAO_PYTHON'] = sys.executable
     env['TAO_RUNTIME_DIR'] = str(args.workspace.resolve() / 'runtime')
     if plugin:
@@ -262,7 +262,7 @@ def main():
     else:
         command = ['codex', '-c', 'projects.' + json.dumps(str(directory)) + '.trust_level="trusted"', '-a', 'never', 'exec', '--ephemeral', '--json', '--skip-git-repo-check', '--sandbox', 'workspace-write']
     config_file = Path.home() / '.codex/config.toml'
-    codex_before = tomllib.loads(config_file.read_text()) if config_file.exists() else {}
+    codex_before = tomllib.loads(config_file.read_text(encoding='utf-8')) if config_file.exists() else {}
     logdir = ROOT / 'tmp/tao/client-acceptance'
     logdir.mkdir(parents=True, exist_ok=True)
     name = args.client + '-' + args.case + '-' + str(time.time_ns())
@@ -305,7 +305,7 @@ def main():
             from isolated_codex import redact
             redact([p for p in logs if p.exists()], secrets)
     after = global_configuration()
-    codex_after = tomllib.loads(config_file.read_text()) if config_file.exists() else {}
+    codex_after = tomllib.loads(config_file.read_text(encoding='utf-8')) if config_file.exists() else {}
     report = {'log_prefix': name, 'client': args.client, 'case': args.case, 'exit_code': process.returncode if process else None,
               'timed_out': timed_out, 'elapsed_seconds': round(time.monotonic() - start, 3),
               'global_configuration_unchanged': before == after,
@@ -321,7 +321,7 @@ def main():
         reads = reference_reads(logs[0], args.client)
         routing = assess_routing(reads)
         try:
-            compile((directory / 'example.py').read_text(), 'example.py', 'exec')
+            compile((directory / 'example.py').read_text(encoding='utf-8'), 'example.py', 'exec')
             syntax_valid = True
         except (OSError, SyntaxError, UnicodeError):
             syntax_valid = False
@@ -340,7 +340,7 @@ def main():
         report['reference_routing'] = routing
     if execution_error:
         report.update(status='blocked', reason=execution_error)
-    (logdir / (name + '.summary.json')).write_text(json.dumps(report, indent=2) + '\n')
+    (logdir / (name + '.summary.json')).write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
     if execution_error:
         return 2

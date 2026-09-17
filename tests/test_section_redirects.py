@@ -21,10 +21,10 @@ NEW_SECTION = DOC + '--requirements'
 def configured(root, target=NEW_SECTION):
     project(root)
     path = root / '.tao/config.toml'
-    path.write_text(path.read_text() + f'\n[documents.section_redirects]\n"{OLD_SECTION}" = "{target}"\n')
+    path.write_text(path.read_text(encoding='utf-8') + f'\n[documents.section_redirects]\n"{OLD_SECTION}" = "{target}"\n', encoding='utf-8')
     retired = root / 'docs/retired'
     retired.mkdir()
-    (retired / '20260914.jsonl').write_text(json.dumps({'id': OLD_DOC, 'retired_on': '2026-09-14', 'reason': 'Content moved to the current specification.', 'replaced_by': [DOC]}) + '\n')
+    (retired / '20260914.jsonl').write_text(json.dumps({'id': OLD_DOC, 'retired_on': '2026-09-14', 'reason': 'Content moved to the current specification.', 'replaced_by': [DOC]}) + '\n', encoding='utf-8')
     return Project(root)
 
 
@@ -47,7 +47,7 @@ def test_old_retired_section_redirects_and_has_a_readable_fallback(tmp_path):
     config = configured(tmp_path)
     output = build(config)
     root = tmp_path / output['directory']
-    page = (root / f'refs/{OLD_DOC}.html').read_text()
+    page = (root / f'refs/{OLD_DOC}.html').read_text(encoding='utf-8')
     target = '../docs/spec.html#' + NEW_SECTION
     assert resolve(page, '#' + OLD_SECTION) == [target]
     assert resolve(page, '#' + OLD_SECTION.replace('_', '%5F')) == [target]
@@ -56,9 +56,9 @@ def test_old_retired_section_redirects_and_has_a_readable_fallback(tmp_path):
     assert '需求' in link['text']
     (tmp_path / 'docs/spec.md').rename(tmp_path / 'docs/current.md')
     nav = tmp_path / 'docs/index.md'
-    nav.write_text(nav.read_text().replace('spec.md', 'current.md'))
+    nav.write_text(nav.read_text(encoding='utf-8').replace('spec.md', 'current.md'), encoding='utf-8')
     build(config)
-    page = (root / f'refs/{OLD_DOC}.html').read_text()
+    page = (root / f'refs/{OLD_DOC}.html').read_text(encoding='utf-8')
     assert resolve(page, '#' + OLD_SECTION) == ['../docs/current.html#' + NEW_SECTION]
 
 
@@ -69,7 +69,7 @@ def test_bad_redirect_cannot_pass_docs_or_replace_the_previous_book(tmp_path, ta
     resolver = tmp_path / output['directory'] / f'refs/{OLD_DOC}.html'
     before = resolver.read_bytes()
     path = tmp_path / '.tao/config.toml'
-    path.write_text(path.read_text().replace('= "' + NEW_SECTION + '"', '= "' + target + '"'))
+    path.write_text(path.read_text(encoding='utf-8').replace('= "' + NEW_SECTION + '"', '= "' + target + '"'), encoding='utf-8')
     result = run(tmp_path, 'verify', '--only', 'docs')
     assert result.returncode == 1, result.stdout
     assert json.loads(result.stdout)['diagnostics']
@@ -81,7 +81,7 @@ def test_bad_redirect_cannot_pass_docs_or_replace_the_previous_book(tmp_path, ta
 def test_redirects_must_point_directly_to_the_final_section(tmp_path):
     configured(tmp_path)
     path = tmp_path / '.tao/config.toml'
-    path.write_text(path.read_text() + f'"{NEW_SECTION}" = "{DOC}--scope"\n')
+    path.write_text(path.read_text(encoding='utf-8') + f'"{NEW_SECTION}" = "{DOC}--scope"\n', encoding='utf-8')
     result = run(tmp_path, 'verify', '--only', 'docs')
     assert result.returncode == 1, result.stdout
 
@@ -89,7 +89,7 @@ def test_redirects_must_point_directly_to_the_final_section(tmp_path):
 def test_retirement_cannot_delete_a_redirect_destination(tmp_path):
     configured(tmp_path)
     config = tmp_path / '.tao/config.toml'
-    config.write_text(config.read_text().replace('book_root = \"docs/index.md\"\n', ''))
+    config.write_text(config.read_text(encoding='utf-8').replace('book_root = \"docs/index.md\"\n', ''), encoding='utf-8')
     (tmp_path / 'docs/index.md').unlink()
     source = tmp_path / 'docs/spec.md'
     before = source.read_bytes()
@@ -101,9 +101,9 @@ def test_retirement_cannot_delete_a_redirect_destination(tmp_path):
 def test_active_document_keeps_default_routes_and_redirects_selected_sections(tmp_path):
     configured(tmp_path)
     config = tmp_path / '.tao/config.toml'
-    config.write_text(config.read_text() + f'"{DOC}--terms" = "{NEW_SECTION}"\n')
+    config.write_text(config.read_text(encoding='utf-8') + f'"{DOC}--terms" = "{NEW_SECTION}"\n', encoding='utf-8')
     output = build(Project(tmp_path))
-    page = (tmp_path / output['directory'] / f'refs/{DOC}.html').read_text()
+    page = (tmp_path / output['directory'] / f'refs/{DOC}.html').read_text(encoding='utf-8')
     assert resolve(page, '#' + DOC + '--terms') == ['../docs/spec.html#' + NEW_SECTION]
     assert resolve(page, '#' + DOC + '--scope') == ['../docs/spec.html#' + DOC + '--scope']
     assert resolve(page, '#%ZZ') == ['../docs/spec.html#%ZZ']
