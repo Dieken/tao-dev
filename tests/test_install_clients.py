@@ -117,6 +117,36 @@ def test_hook_trust_rejects_other_command(state, monkeypatch):
         clients._trust_hook(project, 'tao-dev@custom', plugin)
 
 
+def test_hook_trust_accepts_the_reported_path_spelling(state, monkeypatch):
+    root, project = state
+    plugin = cache(root)
+    script = plugin / 'skills/tao-dev/scripts/hook.py'
+    script.parent.mkdir(parents=True)
+    script.write_text('', encoding='utf-8')
+    # Codex substitutes ${PLUGIN_ROOT} in place, so the command keeps the
+    # portable tail's separators instead of the platform's own spelling. The
+    # duplicated separator stands in for the mixed separators a Windows
+    # installation reports, which no POSIX path can reproduce.
+    hook = {'pluginId': 'tao-dev@custom', 'sourcePath': str(plugin/'com.openai/hooks/hooks.json'),
+            'command': f'python3 -I -B "{plugin}//skills/tao-dev/scripts/hook.py"',
+            'key': 'tao-dev@custom:com.openai/hooks/hooks.json:post_tool_use:0:0',
+            'currentHash': 'sha256:abc', 'eventName': 'postToolUse', 'handlerType': 'command',
+            'matcher': 'Write|Edit|apply_patch', 'timeoutSec': 35, 'enabled': True, 'isManaged': False}
+    calls = []
+
+    def listed(method, params, cwd, **options):
+        calls.append(method)
+        trusted = dict(hook, trustStatus='trusted' if len(calls) > 1 else 'untrusted')
+        return {'data': [{'cwd': str(project), 'hooks': [trusted], 'errors': [], 'warnings': []}]}
+
+    edits = []
+    monkeypatch.setattr(clients, '_rpc', listed)
+    monkeypatch.setattr(clients, '_write_config', lambda path, values: edits.append((path, values)))
+    config = clients._home('codex') / 'config.toml'
+    assert clients._trust_hook(project, 'tao-dev@custom', plugin) == [str(config)]
+    assert edits == [(config, [(clients._key('hooks', 'state', hook['key'], 'trusted_hash'), 'sha256:abc')])]
+
+
 @pytest.mark.parametrize('client', ['claude', 'codex'])
 def test_complete_install_binds_hook_to_exact_python(state, client):
     root, _ = state

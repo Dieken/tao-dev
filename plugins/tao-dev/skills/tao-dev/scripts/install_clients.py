@@ -327,6 +327,19 @@ def discover(client, project):
     return result
 
 
+def _runs_owned_script(command, script, python):
+    """Accept the installed command whatever path spelling the client reports."""
+    if python is not None:
+        return command == _command_line([python, '-I', '-B', script])
+    prefix = 'python3 -I -B "'
+    if not isinstance(command, str) or not command.startswith(prefix) or not command.endswith('"'):
+        return False
+    # Codex substitutes ${PLUGIN_ROOT} in place, so a Windows installation keeps
+    # the portable tail's separators inside an otherwise native path. Compare the
+    # path itself, but lexically: a link to the script is not the owned script.
+    return Path(command[len(prefix):-1]) == script
+
+
 def _trust_hook(project, plugin_id, plugin, python=None):
     rows = _rpc('hooks/list', {'cwds': [str(project)]}, project).get('data', [])
     hooks = [hook for row in rows for hook in row.get('hooks', []) if hook.get('pluginId') == plugin_id]
@@ -334,16 +347,22 @@ def _trust_hook(project, plugin_id, plugin, python=None):
         raise ClientError('Cannot verify the exact installed tao-dev hook inventory')
     hook = hooks[0]
     script = plugin / 'skills/tao-dev/scripts/hook.py'
-    expected = (_command_line([python, '-I', '-B', script]) if python is not None else
-                f'python3 -I -B "{script}"')
-    source = Path(hook.get('sourcePath', '')).resolve()
-    if (not source.is_relative_to(plugin.resolve()) or not script.is_file() or
-            not script.resolve().is_relative_to(plugin.resolve()) or hook.get('command') != expected or
-            hook.get('eventName') != 'postToolUse' or hook.get('handlerType') != 'command' or
-            hook.get('matcher') != 'Write|Edit|apply_patch' or hook.get('timeoutSec') != 35 or
-            not hook.get('enabled') or hook.get('isManaged') or not hook.get('currentHash') or
-            not str(hook.get('key', '')).startswith(plugin_id + ':')):
-        raise ClientError('Installed tao-dev hook differs from the expected owned hook; trust was not changed')
+    checks = {
+        'source': Path(hook.get('sourcePath', '')).resolve().is_relative_to(plugin.resolve()),
+        'script': script.is_file() and script.resolve().is_relative_to(plugin.resolve()),
+        'command': _runs_owned_script(hook.get('command'), script, python),
+        'event': hook.get('eventName') == 'postToolUse',
+        'handler': hook.get('handlerType') == 'command',
+        'matcher': hook.get('matcher') == 'Write|Edit|apply_patch',
+        'timeout': hook.get('timeoutSec') == 35,
+        'ownership': bool(hook.get('enabled')) and not hook.get('isManaged'),
+        'hash': bool(hook.get('currentHash')),
+        'key': str(hook.get('key', '')).startswith(plugin_id + ':'),
+    }
+    differing = [name for name, holds in checks.items() if not holds]
+    if differing:
+        raise ClientError('Installed tao-dev hook differs from the expected owned hook; '
+                          f'trust was not changed: {", ".join(differing)}')
     path = _home('codex') / 'config.toml'
     _write_config(path, [(_key('hooks', 'state', hook['key'], 'trusted_hash'), hook['currentHash'])])
     after = _rpc('hooks/list', {'cwds': [str(project)]}, project).get('data', [])
