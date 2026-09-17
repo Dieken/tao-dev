@@ -198,6 +198,9 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
 def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch):
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
     launcher, cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    # The rollback is only reachable when the launcher content actually changes.
+    with launcher.open('a', encoding='utf-8', newline='') as stream:
+        stream.write('# stale\n')
     original = launcher.read_bytes()
     (cli / 'previous').write_text('keep', encoding='utf-8')
     def fail(*_args):
@@ -266,3 +269,13 @@ def test_child_diagnostic_survives_the_installer_layer():
     assert install.detail(completed) == report['diagnostics'][0]['message']
     assert install.detail(subprocess.CompletedProcess([], 2, 'plain', 'stderr text')) == 'stderr text'
 
+
+def test_unchanged_launcher_is_not_rewritten_during_an_upgrade(tmp_path, monkeypatch):
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    launcher, _cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    before = launcher.stat().st_mtime_ns, launcher.read_bytes()
+    def refuse(*_args, **_kwargs):
+        raise AssertionError('a running launcher must not be replaced without a change')
+    monkeypatch.setattr(install.tempfile, 'mkstemp', refuse)
+    install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    assert (launcher.stat().st_mtime_ns, launcher.read_bytes()) == before

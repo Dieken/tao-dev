@@ -298,14 +298,22 @@ def install_cli(client, python, bin_dir, source_plugin):
         else:
             text = f'#!/bin/sh\n# {marker}\nexec {shlex.quote(str(python))} -I -B {shlex.quote(str(entry))} "$@"\n'
         bin_dir.mkdir(parents=True, exist_ok=True)
-        descriptor, temporary = tempfile.mkstemp(prefix='.tao-', dir=bin_dir)
-        try:
-            with os.fdopen(descriptor, 'w') as stream:
-                stream.write(text)
-            Path(temporary).chmod(0o755)
-            os.replace(temporary, launcher)
-        finally:
-            Path(temporary).unlink(missing_ok=True)
+        current = None
+        if launcher.exists():
+            with launcher.open(encoding='utf-8', newline='') as stream:
+                current = stream.read()
+        # An upgrade usually runs through this launcher, and Windows reads a
+        # command file while executing it. Leave an identical launcher alone;
+        # newline='' keeps the written bytes exactly what was compared.
+        if current != text:
+            descriptor, temporary = tempfile.mkstemp(prefix='.tao-', dir=bin_dir)
+            try:
+                with os.fdopen(descriptor, 'w', encoding='utf-8', newline='') as stream:
+                    stream.write(text)
+                Path(temporary).chmod(0o755)
+                os.replace(temporary, launcher)
+            finally:
+                Path(temporary).unlink(missing_ok=True)
     except Exception:
         if replaced:
             shutil.rmtree(root)
