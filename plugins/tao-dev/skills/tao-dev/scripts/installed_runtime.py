@@ -52,18 +52,6 @@ def cli_root():
     return _unlinked(root / "cli", root)
 
 
-def legacy_cli_roots():
-    """Earlier releases kept the shared CLI under one client's own home."""
-    roots = []
-    for client in CLIENTS:
-        try:
-            home = client_home(client)
-            roots.append(_unlinked(home / "tao-dev/cli", home))
-        except (OSError, ValueError, RuntimeError):
-            continue
-    return roots
-
-
 def _unlinked(path, boundary):
     """Reject symlinks in owned path components beneath a trusted boundary."""
     if not path.is_relative_to(boundary):
@@ -159,16 +147,8 @@ def _validate(record, client=None):
     if any(boundary.is_relative_to(base.resolve()) for boundary in boundaries):
         raise ValueError("Plugin cache base is too broad.")
     _absolute(record["python"])
-    if "cli_path" in record:
-        # A receipt written before the CLI moved out of a client home stays
-        # readable; reinstalling is what repoints it.
-        allowed = [client_home(client) / "tao-dev/cli"]
-        try:
-            allowed.append(cli_root())
-        except (OSError, ValueError, RuntimeError):
-            pass
-        if _absolute(record["cli_path"]) not in allowed:
-            raise ValueError("CLI binding must point to the shared tao CLI.")
+    if "cli_path" in record and _absolute(record["cli_path"]) != cli_root():
+        raise ValueError("CLI binding must point to the shared tao CLI.")
     if record["status"] not in ("ready", "preparing"):
         raise ValueError("Invalid installation status.")
     if not all(isinstance(record[key], str) and record[key] for key in ("plugin_id", "version")):
@@ -223,13 +203,10 @@ def save_record(record):
 
 def shared_cli(scripts):
     """Recognize the managed CLI copy without depending on a receipt."""
-    scripts = Path(scripts).resolve()
-    roots = legacy_cli_roots()
     try:
-        roots.append(cli_root())
+        return Path(scripts).resolve().is_relative_to(cli_root())
     except (OSError, ValueError, RuntimeError):
-        pass
-    return any(scripts.is_relative_to(root) for root in roots)
+        return False
 
 
 def binding(scripts, cwd=None):
