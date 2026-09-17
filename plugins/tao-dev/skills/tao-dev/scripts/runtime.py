@@ -230,7 +230,19 @@ def operation(argv):
     return "unknown", len(argv)
 
 
+def utf8_streams():
+    """Reports carry Chinese titles, paths and diagnostics, and JSON output keeps
+    them unescaped. A Windows console or pipe defaults to a legacy code page and
+    raises while printing them, so own the encoding instead of depending on the
+    caller's environment."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main(argv=None, entry="tao.py"):
+    utf8_streams()
     argv = list(sys.argv[1:] if argv is None else argv)
     command, position = operation(argv)
     if entry == "tao.py" and command in ("install", "uninstall"):
@@ -303,6 +315,7 @@ def main(argv=None, entry="tao.py"):
 
 def hook_main():
     """Check project activation before inspecting or creating any tool data."""
+    utf8_streams()
     started = time.monotonic()
     try:
         payload = json.loads(sys.stdin.read(1_000_001))
