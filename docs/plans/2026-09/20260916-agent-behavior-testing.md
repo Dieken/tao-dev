@@ -8,6 +8,7 @@ created: "2026-09-16"
 change: CHG_20260916_JT1P74T8YB727X82
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
+updated: "2026-09-17"
 ---
 
 # Agent 工作流行为测试实施计划
@@ -18,6 +19,8 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 实现可执行行为契约、多轮场景、确定性 oracle、LLM 语义置信度、变异测试和汇总报告，并通过真实 Claude Code CLI 与 Codex CLI 验收 tao-dev 的文档加载、工作流和交互行为。其他 coding agent CLI 暂不实现。
 
 每个任务采用测试先行，完成相称验证后单独提交。普通 pytest 不调用模型；真实 CLI 运行保持显式、隔离、限时、可计费并保存脱敏证据。工作分支为 `codex/agent-behavior-testing`，基线为 `1dd6d47`，基线回归为 382 passed、5 skipped。
+
+人工复核默认仅处理低置信度、评审分歧、未知事件和持续基础设施阻断；高风险授权与写入规则必须优先确定性化。
 
 <!-- tao:section references -->
 ## 规格依据
@@ -93,6 +96,6 @@ design_docs: ["DOC_20260916_9JTJ8914RCDARFGJ"]
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
-## 未决问题
+## 待确认事项
 
-无。人工复核默认仅处理低置信度、评审分歧、未知事件和持续基础设施阻断；高风险授权与写入规则必须优先确定性化。
+无。

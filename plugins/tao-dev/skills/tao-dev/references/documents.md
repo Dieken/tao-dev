@@ -67,7 +67,7 @@ plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状
 
 ## 检查与修正
 
-填写当前模板、替换全部变量并分配新 ID 后，运行 `tao verify --only docs`。普通局部文档维护以相称的文档检查结束；已接入完整交付流程的事项按 [流程操作](workflow.md) 执行交付检查。
+填写当前模板、替换全部变量并分配新 ID 后，运行 `tao verify --only docs`。普通局部文档维护检查受影响内容；已接入完整交付流程的事项按 [流程操作](workflow.md) 执行交付检查。
 
 独立 [源校验器](../scripts/validate_documents.py) 也接受 `--project <根目录>`、项目相对 Markdown 路径，以及可选 `--format json`、`--book-root <导航文件>`、`--diagnostic-locale <语言>`；使用已准备的核心环境。
 

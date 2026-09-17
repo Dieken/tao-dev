@@ -8,6 +8,7 @@ created: "2026-09-14"
 change: "CHG_20260914_MPNFR3H9WQ7KHFAD"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_Y5RR8BVF6065JTYP"]
+updated: "2026-09-17"
 ---
 
 # 共享文档规则归位
@@ -43,7 +44,9 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_Y5RR8BVF6065JTYP"]
 
 执行现有临时文档检查、共享模板正反例检查、skill 元数据检查、独立复制包的引用与边界检查，以及 git diff --check。检查记录引用已有独立摘要，保留受检版本与关键结果，不保留详细输出；临时检查不冒充正式 AST 或真实 CLI 验收。
 
-<!-- tao:section questions -->
-## 未决问题
+源格式校验、本地 HTML 出版及相关自动检查已有实现；完整双 CLI 行为仍待验收。当前进展与限制见 [交付记录](20260914-bootstrap.md)，本节仅记录本计划当时的检查结果。
 
-源格式校验、本地 HTML 出版及相关自动检查已有实现；完整双 CLI 行为仍待验收。当前进展与限制见 [交付记录](20260914-bootstrap.md)，上节仅记录本计划当时的检查结果。
+<!-- tao:section questions -->
+## 待确认事项
+
+无。
