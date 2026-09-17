@@ -126,7 +126,10 @@ def snapshot(project, config):
             except (OSError, subprocess.TimeoutExpired):
                 return None
             return p.stdout.strip() if p.returncode == 0 else None
-        if git('rev-parse', '--show-toplevel') == str(project.root):
+        # Git reports a posix path even on Windows, and a temporary root may
+        # arrive in its short form, so compare resolved paths, not strings.
+        toplevel = git('rev-parse', '--show-toplevel')
+        if toplevel and Path(toplevel).resolve() == project.root.resolve():
             revision = git('rev-parse', 'HEAD')
             state = git('status', '--porcelain', '--untracked-files=all')
             result['input_ref'] = 'git:' + revision if revision else None
