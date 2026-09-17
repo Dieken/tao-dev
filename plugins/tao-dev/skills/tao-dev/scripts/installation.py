@@ -41,6 +41,8 @@ def arguments(argv):
             sources.add_argument('--source')
             command.add_argument('--ref')
             command.add_argument('--wheelhouse', type=Path)
+            command.add_argument('--timeout', type=float, default=300,
+                                 help='Seconds allowed for each dependency preparation; 0 removes the limit.')
             command.add_argument('--bin-dir', type=Path,
                                  help='CLI launcher directory; defaults to ~/.local/bin.')
         else:
@@ -58,15 +60,30 @@ def arguments(argv):
         parser.error('--project must be an existing directory.')
     if args.command == 'uninstall' and args.yes and not args.id:
         parser.error('--yes requires an explicit --id; it never selects all installations.')
+    if args.command == 'install' and args.timeout < 0:
+        parser.error('--timeout must not be negative.')
     return args
 
 
-def run(argv, *, cwd=None, env=None, timeout=180):
+def detail(completed):
+    """Prefer a child's own diagnostic, so its advice survives this layer."""
+    try:
+        message = json.loads(completed.stdout)['diagnostics'][0]['message']
+        if isinstance(message, str) and message:
+            return message
+    except (ValueError, TypeError, KeyError, IndexError):
+        pass
+    return (completed.stderr or '').strip() or completed.stdout.strip()
+
+
+def run(argv, *, cwd=None, env=None, timeout=180, stream_errors=False):
+    """Run a helper command; stream_errors lets a child report its own progress."""
     completed = subprocess.run([str(arg) for arg in argv], cwd=cwd, env=env,
-                               stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding='utf-8', errors='replace',
-                               timeout=timeout)
+                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               stderr=None if stream_errors else subprocess.PIPE,
+                               text=True, encoding='utf-8', errors='replace', timeout=timeout)
     if completed.returncode:
-        raise InstallError(f'{argv[0]} failed: {completed.stderr.strip() or completed.stdout.strip()}')
+        raise InstallError(f'{argv[0]} failed: {detail(completed)}')
     return completed.stdout
 
 
@@ -212,13 +229,16 @@ def clean_environment():
             } | {'PYTHONUTF8': '1'}
 
 
-def prepare(plugin, python, runtime_dir, project, wheelhouse):
+def prepare(plugin, python, runtime_dir, project, wheelhouse, timeout=300):
     env = clean_environment() | {'TAO_PYTHON': str(python), 'TAO_RUNTIME_DIR': str(runtime_dir)}
     entry = plugin / 'skills/tao-dev/scripts/tao.py'
-    argv = [python, '-I', '-B', entry, 'env', 'prepare', '--format', 'json']
+    argv = [python, '-I', '-B', entry, 'env', 'prepare', '--format', 'json', '--timeout', str(timeout)]
     if wheelhouse:
         argv += ['--wheelhouse', wheelhouse]
-    result = json.loads(run(argv, cwd=project, env=env, timeout=300))
+    # The child owns the limit and reports package progress on its stderr;
+    # the margin only covers process startup and its own reporting.
+    result = json.loads(run(argv, cwd=project, env=env, stream_errors=True,
+                            timeout=timeout + 60 if timeout else None))
     runtime = dict(result.get('outputs', {}).get('runtime', {}))
     publication = runtime.pop('publication', {})
     if (result.get('status') != 'passed' or runtime.get('state') != 'ready'
@@ -352,7 +372,7 @@ def install(args):
                     plugin, plugin_id = local_catalog(candidate, staged, args.client, identifier)
                 else:
                     plugin, plugin_id = catalog_plugin(origin, args.client)
-                runtimes = prepare(plugin, python, root / 'runtime', args.project, wheels)
+                runtimes = prepare(plugin, python, root / 'runtime', args.project, wheels, args.timeout)
                 snapshot = clients.snapshot_activation(args.client, plugin_id, args.scope, args.project)
                 prior_caches = set(snapshot.get('cache_paths', []))
                 if previous:
@@ -398,7 +418,7 @@ def install(args):
                     if previous is None:
                         state.save_record(receipt)
                     # The native client may fetch a newer inventory than the staged source.
-                    runtimes = prepare(cached, python, root / 'runtime', args.project, wheels)
+                    runtimes = prepare(cached, python, root / 'runtime', args.project, wheels, args.timeout)
                     receipt['status'] = 'ready'
                     state.save_record(receipt)
                     checked = doctor(cached, python, args.project)

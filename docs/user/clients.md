@@ -56,7 +56,7 @@ python3 .agents/skills/tao-dev/scripts/tao.py --project . env prepare
 python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
 ```
 
-`env prepare` 会安装 tao 自身依赖；离线时加 `--wheelhouse /absolute/path/to/wheels`。普通检查不隐式安装。检查范围以项目配置为准；独立 skill 不提供 `tao install --client <其他客户端>`。运行环境保持在 skill 目录外，诊断及覆盖方式见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+`env prepare` 会安装 tao 自身依赖；离线时加 `--wheelhouse /absolute/path/to/wheels`。它沿用你为 pip 配置的包来源（如镜像 index-url），但不沿用会改写安装位置的配置；默认 300 秒的总时限可用 `--timeout <秒数>` 调整，0 表示不限。普通检查不隐式安装。检查范围以项目配置为准；独立 skill 不提供 `tao install --client <其他客户端>`。运行环境保持在 skill 目录外，诊断及覆盖方式见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
 升级时更新完整 skill，保留项目文档和外部运行数据，再运行 `tao doctor`。删除独立 skill 只取消发现；按归属清理不再使用的运行环境，不能清空共享数据根。完整插件的升级、卸载使用 README 中的安装管理入口。
 

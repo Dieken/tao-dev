@@ -5,7 +5,7 @@ title: 插件安装与卸载管理
 locale: zh-Hans
 status: draft
 created: "2026-09-15"
-updated: "2026-09-15"
+updated: "2026-09-18"
 spec_docs: ["DOC_20260914_E1B61A3F8V1TYAZB"]
 ---
 
@@ -34,12 +34,12 @@ install 是用户安装与升级的唯一完整入口。setup 一次准备相互
 
 静态 hook 使用 python3 -I -B 调用 hook.py，Claude 使用插件根和独立 args，Codex 使用插件根与带引号的命令字符串；安装器固定已验证解释器和脚本的绝对路径。事件从 stdin 输入，普通 hook 只选核心环境，不调用 setup。外层 handler 超时为 35 秒；短检查缓存绑定源、运行代码、契约、配置与依赖版本，仅保留合并指纹和有限诊断。
 
-安装屏蔽可重定向写入的 pip 配置；启动时检查实际包版本和必要导入。项目匹配和卸载归属回归须覆盖共享 CLI、嵌套项目、无效记录和并发准备。
+安装屏蔽可重定向写入的 pip 配置（target、prefix、user 等），只沿用调用者配置的包来源（index-url、extra-index-url、trusted-host、代理与证书），锁定哈希仍决定接受哪个 wheel；下载缓存沿用 pip 默认用户缓存，失败重试复用已取得的 wheel。启动时检查实际包版本和必要导入。项目匹配和卸载归属回归须覆盖共享 CLI、嵌套项目、无效记录和并发准备。
 
 <!-- tao:section contracts -->
 ## 接口与使用
 
-`tao install --client claude|codex --scope user|project|local` 默认使用 GitHub marketplace。`--source <插件目录、仓库目录或 Git URL>` 直接使用明确来源，生成仅本机使用的目录清单，不访问在线 marketplace。`--marketplace <目录或 GitHub 来源>` 显式选择 marketplace；与 --source 互斥。`--project <目录>` 默认当前目录；`--wheelhouse <目录>` 仅使用离线锁定 wheel。文本默认输出路径、版本、范围、写入文件与使用指南；--format json 提供同一信息。
+`tao install --client claude|codex --scope user|project|local` 默认使用 GitHub marketplace。`--source <插件目录、仓库目录或 Git URL>` 直接使用明确来源，生成仅本机使用的目录清单，不访问在线 marketplace。`--marketplace <目录或 GitHub 来源>` 显式选择 marketplace；与 --source 互斥。`--project <目录>` 默认当前目录；`--wheelhouse <目录>` 仅使用离线锁定 wheel；`--timeout <秒数>` 为每次依赖准备设定总时限，默认 300，0 取消上限。依赖准备逐包在 stderr 报告名称、版本、来源 URL、大小与实测速度，stdout 仍只有报告文档。文本默认输出路径、版本、范围、写入文件与使用指南；--format json 提供同一信息。
 
 `tao uninstall --client claude|codex` 列出已管理及可发现的原生安装并交互选择；--list 只读列出。自动化可用 --id 与 --yes 删除明确的一份，不能以 --yes 隐式删除全部。未选择或输入结束不删除。
 
