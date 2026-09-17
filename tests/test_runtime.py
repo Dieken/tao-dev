@@ -31,10 +31,16 @@ def invoke(python, data, *args, scripts=SCRIPTS, cwd=None, extra=None):
                           cwd=cwd or data.parent, env=env, capture_output=True, text=True, encoding='utf-8')
 
 
+def preparation_log(data):
+    """The adapter only reports where it logged, which a CI failure cannot read."""
+    return "".join(f"\n--- {log} ---\n{log.read_text(encoding='utf-8', errors='replace')}"
+                   for log in sorted(data.glob("runtimes/*/env-*/prepare.log")))
+
+
 def prepare(python, data, *args, scripts=SCRIPTS):
     assert WHEELS.is_dir(), "Prepare locked wheels using tests/acceptance/runtime.py --download."
     completed = invoke(python, data, "env", "prepare", "--wheelhouse", str(WHEELS), *args, scripts=scripts)
-    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert completed.returncode == 0, completed.stdout + completed.stderr + preparation_log(data)
     return json.loads(completed.stdout)["outputs"]["runtime"]
 
 
