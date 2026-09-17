@@ -93,6 +93,25 @@ def stage_sources(project, result, source):
     return raw_files
 
 
+def search_stemmer(output):
+    """Sphinx names the stemmer after the search language, so a language whose
+    bundled code defines a differently named class ships a script that throws
+    while loading. Nothing reports that: the build succeeds, every page keeps
+    its search box, and no query ever returns a result. Fail here instead."""
+    path = output / "_static/language_data.js"
+    if not path.is_file():
+        return
+    code = path.read_text(encoding="utf-8")
+    assignment = re.search(r"window\.Stemmer\s*=\s*(\w+)\s*;", code)
+    if not assignment:
+        raise ConfigurationError("Generated search data names no stemmer.")
+    symbol = assignment.group(1)
+    if not re.search(rf"(?:var|let|const|function)\s+{symbol}\b|\b{symbol}\s*=\s*function\b", code):
+        raise ConfigurationError(Message(
+            'Generated search data assigns the undefined stemmer {arg0}; the book would publish with search disabled.',
+            symbol))
+
+
 def resolver_pages(result, output):
     directory = output / "refs"
     directory.mkdir()
@@ -201,6 +220,7 @@ def build(project):
             log = project.output("temporary", "book-build.log")
             log.write_text(completed.stdout + completed.stderr, encoding="utf-8")
             raise ConfigurationError(Message('Sphinx build failed; inspect {arg0}: {arg1}', log.relative_to(project.root), completed.stderr[-1500:]))
+        search_stemmer(output)
         for relative in raw_files:
             target = output / relative
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,10 +1,64 @@
 """Render tao entities, stable targets, and book section numbers."""
 
+import re
+
 from docutils import nodes
 from . import publication_links as links
 from docutils.parsers.rst import directives
 from sphinx import addnodes
+from sphinx.search.zh import SearchChinese
 from sphinx.util.docutils import SphinxDirective
+
+CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")
+
+# Mirrors CharacterPairs.split so a query resolves against the stored terms.
+QUERY_SPLITTER = """
+var splitQuery = (query) => {
+  const terms = [];
+  for (const run of query.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g) || []) {
+    if (run.length === 1) terms.push(run);
+    else for (let i = 0; i + 1 < run.length; i += 1) terms.push(run.substr(i, 2));
+  }
+  for (const term of query.split(/[^a-zA-Z0-9_]+/)) if (term) terms.push(term);
+  return terms;
+};
+"""
+
+
+def character_pairs(text):
+    """Adjacent character pairs; a character standing alone represents itself."""
+    terms = []
+    for run in CJK.findall(text):
+        if len(run) == 1:
+            terms.append(run)
+        else:
+            terms.extend(run[index:index + 2] for index in range(len(run) - 1))
+    return terms
+
+
+class CharacterPairs(SearchChinese):
+    """Chinese search that needs neither jieba nor a stemmer Sphinx never ships.
+
+    Sphinx writes ``window.Stemmer = <language_name>Stemmer`` but bundles the
+    English stemmer for Chinese, so the generated language_data.js raises a
+    ReferenceError for ChineseStemmer and every query, Chinese or Latin, comes
+    back empty. Reporting the language the bundled stemmer actually defines
+    makes that assignment resolve.
+
+    Upstream segmentation also needs jieba, which publishes no wheel and so
+    cannot enter the hash-pinned offline inventory. Without it the upstream
+    splitter silently drops every Chinese token. Indexing adjacent character
+    pairs keeps Chinese searchable with no added dependency, and the browser
+    splits a query the same way.
+    """
+
+    language_name = "English"
+    js_splitter_code = QUERY_SPLITTER
+
+    def split(self, input):
+        latin1 = [term.strip() for term in self.latin1_letters.findall(input)]
+        self.latin_terms.update(latin1)
+        return character_pairs(input) + latin1
 
 
 class Entity(SphinxDirective):
@@ -192,6 +246,7 @@ def setup(app):
         app.add_directive(kind, Entity)
     app.add_directive("term", Term)
     app.add_role("need", need_role)
+    app.add_search_language(CharacterPairs)
     app.connect("doctree-read", targets, priority=400)
     app.connect("env-get-updated", section_numbers, priority=600)
     app.connect("missing-reference", missing_reference)

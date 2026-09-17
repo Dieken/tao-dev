@@ -4,6 +4,8 @@ from pathlib import Path
 import re
 import pytest
 
+from py_mini_racer import MiniRacer
+
 from taolib.project import Project
 from taolib.project import ConfigurationError
 from taolib.publication import build
@@ -53,6 +55,34 @@ def project(root):
     (root / "docs/index.md").write_text(navigation("spec.md"), encoding='utf-8')
     (root / "docs/spec.md").write_text(spec() + f'\n[Requirement section](#{DOC}--requirements)\n', encoding='utf-8')
     return Project(root)
+
+
+def chinese_project(root):
+    (root / ".tao").mkdir()
+    (root / ".tao/config.toml").write_text(
+        'version = 1\nlocale = "zh-Hans"\n[documents]\nbook_root = "docs/index.md"\n', encoding='utf-8')
+    (root / "docs").mkdir()
+    (root / "docs/index.md").write_text(navigation("spec.md"), encoding='utf-8')
+    (root / "docs/spec.md").write_text(spec(), encoding='utf-8')
+    return Project(root)
+
+
+def test_chinese_book_search_loads_and_finds_body_text(tmp_path):
+    """A published book whose script throws still renders its search box."""
+    output = build(chinese_project(tmp_path))
+    directory = tmp_path / output["directory"]
+
+    with MiniRacer() as engine:
+        engine.eval("var window = {};")
+        engine.eval((directory / "_static/language_data.js").read_text(encoding='utf-8'))
+        assert engine.eval("typeof window.Stemmer") == "function"
+        query = engine.eval('JSON.stringify(splitQuery("\u4fdd\u7559\u5df2\u6709\u6587\u4ef6"))')
+
+    payload = (directory / "searchindex.js").read_text(encoding='utf-8')
+    terms = json.loads(payload[payload.index("(") + 1:payload.rindex(")")])["terms"]
+    # The browser must ask for exactly the terms the index stored.
+    assert json.loads(query) == ["\u4fdd\u7559", "\u7559\u5df2", "\u5df2\u6709", "\u6709\u6587", "\u6587\u4ef6"]
+    assert all(term in terms for term in json.loads(query))
 
 
 def test_book_has_stable_heading_and_entity_links_that_survive_moves(tmp_path):
