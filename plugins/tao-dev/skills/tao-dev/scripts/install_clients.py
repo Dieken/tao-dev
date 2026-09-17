@@ -390,17 +390,35 @@ def _source_identity(value):
     return value.rstrip('/').removesuffix('.git')
 
 
+def _same_directory(configured, source):
+    """Compare local sources by identity rather than by spelling.
+
+    A client records the path in its own canonical form. Windows
+    canonicalization returns the extended-length form, which pathlib reads as
+    another drive, so no string comparison recognizes the directory just
+    registered.
+    """
+    if not str(configured).strip():
+        return False
+    left, right = Path(configured).expanduser(), Path(source).expanduser()
+    try:
+        return left.samefile(right)
+    except OSError:
+        return left.resolve() == right.resolve()
+
+
 def _check_codex_source(catalog, source):
     if not catalog:
         return
     configured = catalog.get('source', '')
     if catalog.get('source_type') == 'local':
-        matches = Path(configured).expanduser().resolve() == Path(source).expanduser().resolve()
+        matches = _same_directory(configured, source)
     else:
         matches = _source_identity(configured) == _source_identity(source)
     if not matches:
         raise ClientError('The Codex marketplace name is already registered to a different source; '
-                          'use a distinct marketplace name or update the native registration explicitly')
+                          'use a distinct marketplace name or update the native registration '
+                          f'explicitly: registered {configured!r}, requested {source!r}')
 
 
 def _snapshot(path):
@@ -415,13 +433,14 @@ def _check_claude_source(known, source, ref):
     configured = known.get('source', {})
     kind = configured.get('source')
     if kind in ('directory', 'file'):
-        matches = Path(configured.get('path', '')).expanduser().resolve() == Path(source).expanduser().resolve()
+        matches = _same_directory(configured.get('path', ''), source)
     else:
         prior = configured.get('repo') or configured.get('url')
         matches = bool(prior) and _source_identity(prior) == _source_identity(source)
     if not matches or (ref is not None and configured.get('ref') != ref):
         raise ClientError('The Claude marketplace name is already registered to a different source/ref; '
-                          'use a distinct marketplace name or update the native registration explicitly')
+                          'use a distinct marketplace name or update the native registration '
+                          f'explicitly: registered {configured!r}, requested {source!r}')
 
 
 def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None):
