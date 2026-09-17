@@ -21,7 +21,7 @@ from .project import ConfigurationError, ConflictError, Project, create_file
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
-CAPABILITIES = ["doctor", "install", "uninstall", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs", "workflow", "project.inspect", "project.configure"]
+CAPABILITIES = ["doctor", "install", "upgrade", "uninstall", "list", "id.new", "show", "new", "status", "handoff", "review", "retire", "verify.docs", "workflow", "project.inspect", "project.configure"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
 

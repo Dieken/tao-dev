@@ -24,7 +24,7 @@
 
 ## Claude／Codex 完整插件
 
-完整插件安装器仅支持以下客户端；其他客户端按其 skill 接入方式加载目录，再准备上述运行环境。`tao install --client claude|codex --scope <作用域>` 安装或更新完整插件、准备两套环境、配置客户端并检查 `tao doctor`；`tao uninstall --client claude|codex` 选择并确认所删安装，`--list` 只读列出，自动化必须同时提供 `--id` 与 `--yes`。来源、离线 wheel 等参数见 `tao install --help`。
+完整插件安装器仅支持以下客户端；其他客户端按其 skill 接入方式加载目录，再准备上述运行环境。`tao install --client claude|codex --scope <作用域>` 安装或更新完整插件、准备两套环境、配置客户端并检查 `tao doctor`；`tao upgrade --client claude|codex` 按安装记录就地更新，不新建安装；`tao list --client claude|codex` 只读列出安装；`tao uninstall --client claude|codex` 选择并确认所删安装，`--list` 只读列出，自动化必须同时提供 `--id` 与 `--yes`。来源、离线 wheel 等参数见 `tao install --help`。
 
 显式运行 `tao install` 即授权所选作用域的插件及两套依赖准备，完成后无需 TAO 变量。Claude 的 `scope` 为 `user`、`project`、`local`；Codex 为 `user`、`project`，`repo`/`local` 归一为 `project`。客户端决定启用范围，切换 `cwd` 或运行目录不能代替范围隔离。
 

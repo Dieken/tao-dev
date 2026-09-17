@@ -406,7 +406,9 @@ def usage():
         "  tao --version                   Show the tool version",
         "  tao doctor                      Diagnose the runtime, read-only",
         "  tao env prepare                 Prepare the core and publication runtimes",
-        "  tao install --client <client>   Install or update the complete plugin",
+        "  tao install --client <client>   Install the complete plugin",
+        "  tao upgrade --client <client>   Renew a recorded installation in place",
+        "  tao list --client <client>      Show installations and what removal would touch",
         "  tao uninstall --client <client> Select and remove an installation",
         "",
         "Every other command runs inside the prepared runtime; see tao <command> --help once it exists.",
@@ -421,7 +423,7 @@ def emit(command, outputs, error=None, json_output=True, locale=None):
               "diagnostics": [] if error is None else [{"rule_id": error.rule, "severity": "error",
                                                        **diagnostic(error, locale)}]}
     if command == "doctor":
-        result["capabilities"] = ["doctor", "env.prepare", "install", "uninstall"]
+        result["capabilities"] = ["doctor", "env.prepare", "install", "upgrade", "uninstall", "list"]
     if command == "verify":
         result.update(coverage="unknown", readiness="blocked")
     if json_output:
@@ -460,7 +462,7 @@ def main(argv=None, entry="tao.py"):
     utf8_streams()
     argv = list(sys.argv[1:] if argv is None else argv)
     command, position = operation(argv)
-    if entry == "tao.py" and command in ("install", "uninstall"):
+    if entry == "tao.py" and command in ("install", "upgrade", "uninstall", "list"):
         from installation import main as installation_main
         return installation_main([command, *argv[:position], *argv[position + 1:]])
     json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
