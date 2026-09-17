@@ -77,7 +77,8 @@ def test_review_uses_child_access_and_redacts_logs(tmp_path, monkeypatch):
     assert result['credentials_unchanged'] and result['error'] is None
     assert 'CLAUDE_CODE_OAUTH_TOKEN' not in observed['env']
     assert 'secret-test' not in (tmp_path / 'events.jsonl').read_text(encoding='utf-8')
-    assert (tmp_path / 'client-config').stat().st_mode & 0o777 == 0o700
+    if os.name == 'posix':
+        assert (tmp_path / 'client-config').stat().st_mode & 0o777 == 0o700
     assert not list(tmp_path.rglob('.credentials.json'))
 
 
