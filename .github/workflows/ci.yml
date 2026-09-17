@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      - name: Sync locked environment
+        run: uv sync --no-config --locked --extra publication
+
+      # Wheels are interpreter- and platform-specific, so each matrix cell
+      # downloads its own set instead of reusing another cell's wheelhouse.
+      - name: Prepare locked wheels
+        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
+
+      # Same entry point as the project's own python-tests check in
+      # .tao/config.toml, so CI and `tao verify --only code` cannot diverge.
+      - name: Run maintained regression
+        run: uv run --no-config --locked --extra publication python tests/acceptance/quality.py
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ matrix.os }}-py${{ matrix.python }}
+          path: tmp/tao/
+          if-no-files-found: ignore
+
+  native-clients:
+    name: Native clients / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # Floating versions: a client release that breaks plugin installation
+      # should surface here. The printed versions record what was tested.
+      - name: Install coding-agent CLIs
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          npm install -g @openai/codex
+          claude --version
+          codex --version
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked environment
+        run: uv sync --no-config --locked --extra publication
+
+      - name: Prepare locked wheels
+        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
+
+      # The runner starts with no claude or codex installation and no personal
+      # client state, so these probes need no extra isolation. They drive plugin
+      # install, scope and removal only; no model call and no credential.
+      - name: Run isolated native client probes
+        env:
+          TAO_TEST_NATIVE_CLIENTS: "1"
+        run: uv run --no-config --locked --extra publication python -m pytest tests/test_install_clients.py -k native -q
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-diagnostics-${{ matrix.os }}
+          path: tmp/tao/
+          if-no-files-found: ignore
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked environment
+        run: uv sync --no-config --locked --extra publication
+
+      # Same argv as the project's own python-lint check in .tao/config.toml.
+      - name: Run configured lint check
+        run: |
+          mkdir -p tmp/tao
+          uv run --no-config --locked --extra publication python -m ruff check \
+            --select E9,F63,F7,F82 --output-format json --output-file tmp/tao/ruff.json \
+            plugins/tao-dev/skills/tao-dev/scripts tests

@@ -1,0 +1,72 @@
+name: Book
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked environment
+        run: uv sync --no-config --locked --extra publication
+
+      - name: Prepare locked wheels
+        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
+
+      # Source bootstrap keeps the runtime inside the project temporary root,
+      # exactly as docs/engineering/development.md describes it.
+      - name: Build the development book
+        env:
+          TAO_RUNTIME_DIR: ${{ github.workspace }}/tmp/tao/runtime
+          TAO_PYTHON: ${{ github.workspace }}/.venv/bin/python
+        run: |
+          tao=plugins/tao-dev/skills/tao-dev/scripts/tao.py
+          .venv/bin/python "$tao" env prepare --wheelhouse tmp/tao/wheels
+          .venv/bin/python "$tao" docs build --format json | tee tmp/tao/docs-build.json
+
+      # The configured book root is docs/index.md, so the built tree carries no
+      # index.html at its own root. Forward the published root to the index the
+      # builder reported rather than assuming that path stays the same.
+      - name: Add the published entry point
+        run: |
+          target=$(python3 -c "import json; print(json.load(open('tmp/tao/docs-build.json'))['outputs']['index'].removeprefix('tmp/tao/book/'))")
+          test -f "tmp/tao/book/$target"
+          printf '<!doctype html>\n<meta charset="utf-8">\n<title>tao-dev</title>\n<meta http-equiv="refresh" content="0; url=%s">\n<link rel="canonical" href="%s">\n<p><a href="%s">tao-dev</a></p>\n' "$target" "$target" "$target" > tmp/tao/book/index.html
+
+      - uses: actions/configure-pages@v6
+
+      # Artifact deployment serves the directory as-is; no Jekyll pass runs, so
+      # the theme's _static/ assets survive and nothing is written back to Git.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: tmp/tao/book
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
