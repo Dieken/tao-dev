@@ -63,7 +63,7 @@ def _run(args, project, *, json_output=True):
     name, *rest = args
     try:
         result = subprocess.run([_executable(name), *rest], cwd=project, stdin=subprocess.DEVNULL,
-                                capture_output=True, text=True, timeout=180)
+                                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ClientError(f'{name} native command failed: {exc}') from exc
     if result.returncode:

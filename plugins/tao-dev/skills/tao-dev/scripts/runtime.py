@@ -30,7 +30,7 @@ def environment():
     # Do not let inherited pip configuration redirect writes out of our venv.
     result = {key: value for key, value in os.environ.items()
               if not key.startswith("PIP_") and key not in ("PYTHONPATH", "PYTHONHOME")}
-    result.update(PIP_CONFIG_FILE=os.devnull, PYTHONDONTWRITEBYTECODE="1")
+    result.update(PIP_CONFIG_FILE=os.devnull, PYTHONDONTWRITEBYTECODE="1", PYTHONUTF8="1")
     return result
 
 
@@ -61,7 +61,7 @@ def inspect_python(python):
             "executable=os.path.realpath(sys.executable))))")
     try:
         completed = subprocess.run([str(python), "-I", "-c", code],
-                                   capture_output=True, text=True, timeout=10, env=environment())
+                                   capture_output=True, text=True, encoding="utf-8", timeout=10, env=environment())
         if completed.returncode:
             raise ValueError("Interpreter probe failed")
         info = json.loads(completed.stdout)
@@ -96,7 +96,7 @@ def probe(python, mode):
             "print(json.dumps({'prefix':sys.prefix,'packages':"
             "sorted((d.metadata['Name'].lower(),d.version) for d in m.distributions())}))")
     completed = subprocess.run([str(python), "-I", "-c", code], env=environment(),
-                               capture_output=True, text=True, timeout=10)
+                               capture_output=True, text=True, encoding="utf-8", timeout=10)
     if completed.returncode:
         raise RuntimeFailure("Runtime imports failed; run tao env prepare for a new environment.",
                              "TAO-RUNTIME-003", "broken")
@@ -108,13 +108,13 @@ def selected(ctx):
     if not pointer.exists():
         return None
     try:
-        name = json.loads(pointer.read_text())["generation"]
+        name = json.loads(pointer.read_text(encoding="utf-8"))["generation"]
         if not isinstance(name, str) or not re.fullmatch(r"env-[a-z0-9_]+", name):
             raise ValueError("Invalid runtime generation")
         directory = ctx["slot"] / name
         if directory.is_symlink() or not directory.resolve().is_relative_to(ctx["root"].resolve()):
             raise ValueError("Runtime generation escapes data directory")
-        ready = json.loads((directory / "ready.json").read_text())
+        ready = json.loads((directory / "ready.json").read_text(encoding="utf-8"))
         actual = probe(python_in(directory), ctx["mode"])
         if ready["key"] != ctx["key"] or ready["probe"] != actual or Path(actual["prefix"]).resolve() != directory.resolve():
             raise ValueError("Runtime environment changed since preparation")
@@ -317,7 +317,7 @@ def hook_main():
         config_path = project / ".tao/config.toml"
         if not config_path.resolve().is_relative_to(project.resolve()):
             raise ValueError("Project configuration escapes its root.")
-        config = tomllib.loads(config_path.read_text())
+        config = tomllib.loads(config_path.read_text(encoding="utf-8"))
         hooks = config.get("hooks", {})
         if not isinstance(hooks, dict):
             raise ValueError("Invalid hooks configuration.")
@@ -341,7 +341,7 @@ def hook_main():
                 raise ValueError("Hook time budget exceeded during runtime inspection.")
             completed = subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / "hook.py")],
                                        env=child_env, input=json.dumps(payload), capture_output=True,
-                                       text=True, timeout=remaining)
+                                       text=True, encoding="utf-8", timeout=remaining)
             if completed.returncode:
                 raise ValueError("Hook process could not complete.")
             response = json.loads(completed.stdout)

@@ -195,7 +195,8 @@ def build(project):
                 "tao_index = json.loads(Path('_tao-index.json').read_text(encoding='utf-8'))\n")
         # Sphinx executes conf.py from its source directory.
         (source / "conf.py").write_text(conf, encoding="utf-8")
-        completed = subprocess.run([sys.executable, "-m", "sphinx", "-W", "--keep-going", "-b", "html", str(source), str(output)], capture_output=True, text=True)
+        completed = subprocess.run([sys.executable, "-m", "sphinx", "-W", "--keep-going", "-b", "html", str(source), str(output)], capture_output=True,
+                                   text=True, encoding="utf-8", env=os.environ | {"PYTHONUTF8": "1"})
         if completed.returncode:
             log = project.output("temporary", "book-build.log")
             log.write_text(completed.stdout + completed.stderr, encoding="utf-8")
@@ -206,7 +207,7 @@ def build(project):
             shutil.copyfile(source / relative, target)
         resolver_pages(result, output)
         stable_links(result, output)
-        (output / ".tao-book").write_text("generated\n")
+        (output / ".tao-book").write_text("generated\n", encoding="utf-8")
         with mutation_lock(project):
             if destination.exists() and not (destination / ".tao-book").is_file():
                 raise ConflictError("Book destination changed ownership during the build.")

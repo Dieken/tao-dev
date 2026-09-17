@@ -7,7 +7,7 @@ from docutils import nodes
 
 @lru_cache(maxsize=2)
 def catalog(locale):
-    return json.loads((Path(__file__).resolve().parents[2]/'assets/locales'/f'{locale}.json').read_text())
+    return json.loads((Path(__file__).resolve().parents[2]/'assets/locales'/f'{locale}.json').read_text(encoding='utf-8'))
 
 
 def label(app, key):

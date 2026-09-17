@@ -43,7 +43,7 @@ def run_review(command, prompt, output, timeout):
         with access_environment(output, timeout) as (env, secrets):
             with private_log(logs[0]) as stdout, private_log(logs[1]) as stderr:
                 process = subprocess.Popen(command, cwd=output, env=env, stdin=subprocess.PIPE,
-                                           stdout=stdout, stderr=stderr, text=True, start_new_session=True)
+                                           stdout=stdout, stderr=stderr, text=True, encoding='utf-8', errors='replace', start_new_session=True)
                 try:
                     process.communicate(prompt, timeout=timeout)
                 except subprocess.TimeoutExpired:
@@ -89,10 +89,10 @@ def main():
         parser.error('Review execution requires explicit isolated access reuse; personal-state mode is disabled.')
     if args.timeout <= 0 or not math.isfinite(args.budget_usd) or args.budget_usd <= 0:
         parser.error('timeout and budget-usd must be positive, finite bounds.')
-    request = json.loads(args.request.read_text())['outputs']['request']
+    request = json.loads(args.request.read_text(encoding='utf-8'))['outputs']['request']
     if args.requirement not in request['required_reviews']:
         parser.error('The requirement must be present in the input request.')
-    tree = subprocess.check_output(['git', 'rev-parse', '--verify', args.tree + '^{tree}'], cwd=ROOT, text=True).strip()
+    tree = subprocess.check_output(['git', 'rev-parse', '--verify', args.tree + '^{tree}'], cwd=ROOT, text=True, encoding='utf-8', errors='replace').strip()
     project = Project(ROOT)
     if binding(project, policy(project), request['binding']['change']) != request['binding']:
         parser.error('The input request is stale; prepare it again before review.')
@@ -103,7 +103,7 @@ def main():
     for name in args.files:
         if Path(name).is_absolute() or '..' in Path(name).parts:
             parser.error('Review files must be repository-relative.')
-        content = subprocess.check_output(['git', 'show', tree + ':' + name], cwd=ROOT, text=True)
+        content = subprocess.check_output(['git', 'show', tree + ':' + name], cwd=ROOT, text=True, encoding='utf-8', errors='replace')
         documents.append({'path': name, 'content': content})
     conclusion_schema = {
         'type': 'object', 'additionalProperties': False,
@@ -135,14 +135,14 @@ def main():
     output = ROOT / 'tmp/tao/review-runs' / str(time.time_ns())
     output.mkdir(parents=True, mode=0o700)
     events_path = output / 'events.jsonl'
-    (output / 'input.json').write_text(json.dumps({'tree': tree, 'binding': request['binding'], 'files': args.files}, indent=2) + '\n')
+    (output / 'input.json').write_text(json.dumps({'tree': tree, 'binding': request['binding'], 'files': args.files}, indent=2) + '\n', encoding='utf-8')
     command = ['claude', '-p', '--safe-mode', '--effort', 'low', '--no-session-persistence',
                '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--tools', '',
                '--max-turns', '3', '--max-budget-usd', str(args.budget_usd), '--json-schema', json.dumps(conclusion_schema)]
     result = run_review(command, prompt, output, args.timeout)
     result.update(tree=tree, output=output.relative_to(ROOT).as_posix(), billed_usd=None)
     if review_succeeded(result):
-        events = [json.loads(line) for line in events_path.read_text().splitlines() if line.strip()]
+        events = [json.loads(line) for line in events_path.read_text(encoding='utf-8').splitlines() if line.strip()]
         initial = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']
         completed = [event for event in events if event.get('type') == 'result']
         if len(initial) == len(completed) == 1 and completed[0].get('is_error') is False and completed[0].get('subtype') == 'success':
@@ -170,10 +170,10 @@ def main():
                 except ValueError as exc:
                     result['record_error'] = str(exc)
                 else:
-                    receipt.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n')
+                    receipt.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
                     result.update(attestation=receipt.relative_to(ROOT).as_posix(), reviewer=record['reviewer'],
                                   findings=record['findings'])
-    (output / 'summary.json').write_text(json.dumps(result, indent=2) + '\n')
+    (output / 'summary.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(result, indent=2))
     return 0 if 'attestation' in result else 2
 

@@ -20,7 +20,7 @@ def main():
     environment = os.environ | {"UV_CACHE_DIR": str(ROOT / "tmp/tao/uv-cache"),
                                 "UV_PYTHON_DOWNLOADS": "never"}
     stale = []
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     bounds = re.fullmatch(r">=(\d+)\.(\d+),<(\d+)\.(\d+)", project["requires-python"])
     if bounds is None:
         raise ValueError("Update the runtime policy exporter for the new Python constraint.")
@@ -29,7 +29,7 @@ def main():
     policy_path = SCRIPTS / "runtime.json"
     policy_text = json.dumps(policy, indent=2) + "\n"
     if args.check:
-        if not policy_path.exists() or policy_path.read_text() != policy_text:
+        if not policy_path.exists() or policy_path.read_text(encoding="utf-8") != policy_text:
             stale.append("runtime.json")
     else:
         policy_path.write_text(policy_text, encoding="utf-8")
@@ -38,13 +38,13 @@ def main():
         command = ["uv", "export", "--no-config", "--locked", "--offline", "--no-dev",
                    "--no-emit-project", "--no-header", "--no-annotate", *extras]
         completed = subprocess.run(command, cwd=ROOT, env=environment,
-                                   capture_output=True, text=True, check=True)
+                                   capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
         text = ("# Generated from pyproject.toml and uv.lock; do not edit.\n"
                 "# Regenerate: uv run --locked python scripts/export_dependencies.py\n"
                 + completed.stdout)
         path = SCRIPTS / name
         if args.check:
-            if not path.exists() or path.read_text() != text:
+            if not path.exists() or path.read_text(encoding="utf-8") != text:
                 stale.append(name)
         else:
             path.write_text(text, encoding="utf-8")

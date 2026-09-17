@@ -68,7 +68,7 @@ def run(payload):
             return feedback(display(Message('tao docs feedback (unchanged inputs): {arg0}', previous['message'])))
         command = [sys.executable, str(scripts / "tao.py"), "--project", str(project.root), "verify", "--only", "docs", "--format", "json"]
         try:
-            completed = subprocess.run(command, capture_output=True, text=True, timeout=max(0.001, deadline - time.monotonic()))
+            completed = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=max(0.001, deadline - time.monotonic()))
             report = json.loads(completed.stdout)
             details = "; ".join(f"{d.get('path', '')}:{d.get('line', 1)} {d['rule_id']}: {d['message']}" for d in report["diagnostics"][:8])
             message = display(Message('{arg0} (docs only, partial; not delivery acceptance). {arg1}', report['status'], details))[:3000]
