@@ -70,16 +70,24 @@ class SubprocessExecutor:
                     timed_out = True
                 finally:
                     if process.poll() is None:
-                        os.killpg(process.pid, signal.SIGTERM)
+                        terminate(process, signal.SIGTERM)
                         try:
                             process.wait(timeout=10)
                         except subprocess.TimeoutExpired:
-                            os.killpg(process.pid, signal.SIGKILL)
+                            terminate(process, signal.SIGKILL)
                             process.wait()
         except OSError as exc:
             error = str(exc)
         return InvocationResult(
             process.returncode if process is not None else None, timed_out, error)
+
+
+def terminate(process, number):
+    """os.killpg is POSIX only; Windows has no process group to signal."""
+    if os.name == 'posix':
+        os.killpg(process.pid, number)
+    else:
+        process.kill()
 
 
 def _renumber(events, turn, client, start):

@@ -61,7 +61,7 @@ def fixture_runner(tmp_path, monkeypatch, *, changed=False, expired=False, timeo
     observed['timeout'] = timeout
     monkeypatch.setattr(runner, 'access_environment', access)
     monkeypatch.setattr(runner.subprocess, 'Popen', Process)
-    monkeypatch.setattr(runner.os, 'killpg', lambda pid, sig: observed.update(killed=pid))
+    monkeypatch.setattr(runner, 'terminate', lambda process, number: observed.update(killed=process.pid))
     return observed
 
 

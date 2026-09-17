@@ -28,6 +28,14 @@ from taolib.project import Project  # noqa: E402
 from taolib.verification import policy  # noqa: E402
 
 
+def terminate(process, number):
+    """os.killpg is POSIX only; Windows has no process group to signal."""
+    if os.name == 'posix':
+        os.killpg(process.pid, number)
+    else:
+        process.kill()
+
+
 def run_review(command, prompt, output, timeout):
     """Bound the child process and preserve isolation failures as failures."""
     output.chmod(0o700)
@@ -50,11 +58,11 @@ def run_review(command, prompt, output, timeout):
                     timed_out = True
                 finally:
                     if process.poll() is None:
-                        os.killpg(process.pid, signal.SIGTERM)
+                        terminate(process, signal.SIGTERM)
                         try:
                             process.wait(timeout=5)
                         except subprocess.TimeoutExpired:
-                            os.killpg(process.pid, signal.SIGKILL)
+                            terminate(process, signal.SIGKILL)
                             process.wait()
         credentials_unchanged = True
     except (OSError, RuntimeError, ValueError) as exc:
