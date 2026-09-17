@@ -63,7 +63,7 @@ def arguments(argv):
 
 def run(argv, *, cwd=None, env=None, timeout=180):
     completed = subprocess.run([str(arg) for arg in argv], cwd=cwd, env=env,
-                               stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                               stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding='utf-8', errors='replace',
                                timeout=timeout)
     if completed.returncode:
         raise InstallError(f'{argv[0]} failed: {completed.stderr.strip() or completed.stdout.strip()}')
@@ -153,19 +153,19 @@ def local_catalog(source, destination, client, identifier):
     manifest_paths = [plugin / '.codex-plugin/plugin.json', plugin / '.claude-plugin/plugin.json']
     public = plugin / 'plugin.json'
     if client == 'codex' and public.exists():
-        manifest = json.loads(public.read_text())
+        manifest = json.loads(public.read_text(encoding='utf-8'))
         codex = {key: manifest[key] for key in ('name', 'version', 'description')}
         codex['hooks'] = manifest.get('extensions', {}).get('com.openai', {}).get(
             'hooks', './com.openai/hooks/hooks.json')
         manifest_paths[0].parent.mkdir(exist_ok=True)
-        manifest_paths[0].write_text(json.dumps(codex, indent=2) + '\n')
+        manifest_paths[0].write_text(json.dumps(codex, indent=2) + '\n', encoding='utf-8')
         public.unlink()
     for path in [*manifest_paths, public]:
         if path.exists():
-            manifest = json.loads(path.read_text())
+            manifest = json.loads(path.read_text(encoding='utf-8'))
             original = manifest.get('version', '0.0.0').split('+')[0]
             manifest['version'] = original + '+local.' + build
-            path.write_text(json.dumps(manifest, indent=2) + '\n')
+            path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     name = 'tao-dev-' + identifier
     entry = {'name': 'tao-dev', 'source': './plugins/tao-dev'}
     catalog = {'name': name, 'plugins': [entry]}
@@ -177,7 +177,7 @@ def local_catalog(source, destination, client, identifier):
         catalog['owner'] = {'name': 'tao-dev'}
         path = destination / '.claude-plugin/marketplace.json'
     path.parent.mkdir(parents=True)
-    path.write_text(json.dumps(catalog, indent=2) + '\n')
+    path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8')
     return plugin, 'tao-dev@' + name
 
 
@@ -186,11 +186,11 @@ def owned_root(root, identifier):
         raise InstallError('Installation root must not be a symbolic link.')
     marker = root / MARKER
     if root.exists():
-        if marker.is_symlink() or not marker.is_file() or json.loads(marker.read_text()).get('id') != identifier:
+        if marker.is_symlink() or not marker.is_file() or json.loads(marker.read_text(encoding='utf-8')).get('id') != identifier:
             raise InstallError(f'Refusing to reuse a directory without tao-dev ownership: {root}')
     else:
         root.mkdir(parents=True)
-        marker.write_text(json.dumps({'schema': 1, 'id': identifier}) + '\n')
+        marker.write_text(json.dumps({'schema': 1, 'id': identifier}) + '\n', encoding='utf-8')
 
 
 @contextmanager
@@ -208,7 +208,8 @@ def installation_lock(root):
 
 def clean_environment():
     return {key: value for key, value in os.environ.items()
-            if not key.startswith('TAO_') and key not in ('CLAUDE_PLUGIN_DATA', 'PYTHONPATH', 'PYTHONHOME')}
+            if not key.startswith('TAO_') and key not in ('CLAUDE_PLUGIN_DATA', 'PYTHONPATH', 'PYTHONHOME')
+            } | {'PYTHONUTF8': '1'}
 
 
 def prepare(plugin, python, runtime_dir, project, wheelhouse):
@@ -253,7 +254,7 @@ def install_cli(client, python, bin_dir, source_plugin):
     bin_dir = bin_dir.expanduser().absolute() if bin_dir else Path.home() / '.local/bin'
     launcher = bin_dir / ('tao.cmd' if os.name == 'nt' else 'tao')
     marker = 'tao-dev managed CLI'
-    if launcher.is_symlink() or launcher.exists() and marker not in launcher.read_text():
+    if launcher.is_symlink() or launcher.exists() and marker not in launcher.read_text(encoding='utf-8'):
         raise InstallError(f'Refusing to replace an existing command: {launcher}')
     root.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix='.cli-', dir=root.parent))
@@ -264,7 +265,7 @@ def install_cli(client, python, bin_dir, source_plugin):
     replaced = False
     try:
         copy_plugin(source_plugin, stage / 'plugin')
-        (stage / 'plugin' / MARKER).write_text(json.dumps({'schema': 1, 'component': 'cli'}) + '\n')
+        (stage / 'plugin' / MARKER).write_text(json.dumps({'schema': 1, 'component': 'cli'}) + '\n', encoding='utf-8')
         if root.exists():
             root.rename(backup)
         (stage / 'plugin').rename(root)
@@ -300,18 +301,18 @@ def install_cli(client, python, bin_dir, source_plugin):
 def ignore_runtime(project):
     """Keep private runtime files out of Git without changing team ignore rules."""
     completed = subprocess.run(['git', '-C', str(project), 'rev-parse', '--git-path', 'info/exclude'],
-                               capture_output=True, text=True)
+                               capture_output=True, text=True, encoding='utf-8', errors='replace')
     if completed.returncode:
         return []
     path = Path(completed.stdout.strip())
     if not path.is_absolute():
         path = project / path
     path = path.resolve()
-    current = path.read_text() if path.exists() else ''
+    current = path.read_text(encoding='utf-8') if path.exists() else ''
     pattern = '/.local/tao-dev/'
     if pattern not in current.splitlines():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(current + ('\n' if current and not current.endswith('\n') else '') + pattern + '\n')
+        path.write_text(current + ('\n' if current and not current.endswith('\n') else '') + pattern + '\n', encoding='utf-8')
         return [str(path)]
     return []
 
@@ -514,7 +515,7 @@ def remove_owned(row):
     if not root.exists():
         return [], []
     marker = root / MARKER
-    if not marker.is_file() or marker.is_symlink() or json.loads(marker.read_text()).get('id') != row['id']:
+    if not marker.is_file() or marker.is_symlink() or json.loads(marker.read_text(encoding='utf-8')).get('id') != row['id']:
         raise InstallError('Ownership marker does not match; no runtime files were removed.')
     if (root / 'install.lock').exists():
         raise InstallError('Installation is busy; no runtime files were removed.')

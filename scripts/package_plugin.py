@@ -14,7 +14,7 @@ def build(output, *, codex_legacy=False):
         raise ValueError('Package output must be new and outside the source plugin.')
     if any(path.is_symlink() for path in SOURCE.rglob('*')):
         raise ValueError('Package sources must not contain symbolic links.')
-    manifest = json.loads((SOURCE / '.codex-plugin/plugin.json').read_text())
+    manifest = json.loads((SOURCE / '.codex-plugin/plugin.json').read_text(encoding='utf-8'))
     output.mkdir(parents=True)
     names = ('skills', 'com.openai', '.codex-plugin') if codex_legacy else tuple(
         p.name for p in SOURCE.iterdir() if p.name != '.codex-plugin')
@@ -28,7 +28,7 @@ def build(output, *, codex_legacy=False):
         portable = {'$schema': 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
                     **{key: manifest[key] for key in ('name', 'version', 'description')},
                     'extensions': {'com.openai': {'hooks': manifest['hooks']}}}
-        (output / 'plugin.json').write_text(json.dumps(portable, indent=2) + '\n')
+        (output / 'plugin.json').write_text(json.dumps(portable, indent=2) + '\n', encoding='utf-8')
     return output
 
 

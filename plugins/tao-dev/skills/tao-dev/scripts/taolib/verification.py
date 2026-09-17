@@ -122,7 +122,7 @@ def snapshot(project, config):
     if shutil.which('git'):
         def git(*args):
             try:
-                p = subprocess.run(['git', '-C', str(project.root), *args], capture_output=True, text=True, timeout=5)
+                p = subprocess.run(['git', '-C', str(project.root), *args], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=5)
             except (OSError, subprocess.TimeoutExpired):
                 return None
             return p.stdout.strip() if p.returncode == 0 else None

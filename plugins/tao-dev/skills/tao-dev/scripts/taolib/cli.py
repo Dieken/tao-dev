@@ -153,9 +153,9 @@ def skeleton(project, args, registry, result):
     for kind in ("DOC", "CHG", "TASK"):
         ids[kind + "_ID"] = workflow["change"] if workflow and kind == "CHG" else new_id(kind, registry, existing, today=day)
         existing.add(ids[kind + "_ID"])
-    labels = json.loads((ASSETS / f"locales/{locale}.json").read_text())
+    labels = json.loads((ASSETS / f"locales/{locale}.json").read_text(encoding='utf-8'))
     values = ids | labels | {"LOCALE": locale, "CREATED": day.isoformat()}
-    template = (ASSETS / registry["profiles"]["tao.project.plan/v0.1"]["template"]).read_text()
+    template = (ASSETS / registry["profiles"]["tao.project.plan/v0.1"]["template"]).read_text(encoding='utf-8')
     rendered = re.sub(r"\{\{([^}]+)\}\}", lambda m: values.get(m[1], m[0]), template)
     # Template metadata remains a draft with a TITLE placeholder. No user
     # description is interpolated into YAML or a shell command.
@@ -255,7 +255,7 @@ def verify(project, args, report):
 
 
 def dispatch(args):
-    registry = json.loads((ASSETS / "document-profiles.json").read_text())
+    registry = json.loads((ASSETS / "document-profiles.json").read_text(encoding='utf-8'))
     report = dict(tool="tao-dev", protocol_version="0.1", tool_version=__version__, command=args.command,
                   status="passed", diagnostics=[], outputs={})
     if args.command == "doctor" and args.project is None and not any((p / ".tao/config.toml").is_file() for p in [Path.cwd(), *Path.cwd().parents]):

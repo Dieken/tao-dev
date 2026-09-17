@@ -174,7 +174,7 @@ def start(project, slug, summary, locale, decision, worktree=False):
     owner, info = git_workflow.prepare(project, slug) if worktree else (project, git_workflow.context(project.root))
     from .documents import ASSETS, validate
     from .identifiers import new_id
-    registry = json.loads((ASSETS / 'document-profiles.json').read_text())
+    registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
     existing = set(validate(owner.root, owner.sources()).definitions) | {s['change'] for s in local(owner)}
     identity = new_id('CHG', registry, existing)
     day = date.today()
@@ -249,7 +249,7 @@ def advance(project, identity, expected, decision, doc_review=None):
             if not result.valid:
                 raise ConflictError('Managed documents must validate before stage approval.')
             from .documents import ASSETS
-            registry = json.loads((ASSETS / 'document-profiles.json').read_text())
+            registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
             expected_schema = f'tao.project.{phase}/v0.1'
             if any(name not in result.documents or result.documents[name].metadata['schema'] != expected_schema for name in names):
                 raise ConflictError('Stage artifacts must use the matching document profile.')

@@ -78,7 +78,7 @@ def labelled_paragraph(token):
 class Validator:
     def __init__(self, root):
         self.root = Path(root).resolve()
-        self.registry = json.loads((ASSETS / "document-profiles.json").read_text())
+        self.registry = json.loads((ASSETS / "document-profiles.json").read_text(encoding="utf-8"))
         self.result = Result()
         self.md = parser()
         self.file_links = []
