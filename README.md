@@ -106,5 +106,5 @@ uv run --no-config --locked --extra publication python -m pytest
 
 - [使用指南](docs/user/workflow.md)：完整功能开发周期、审查与会话恢复。
 - [跨客户端接入指南](docs/user/clients.md)：在 Claude／Codex 之外的 agent 中使用。
-- [项目手册](docs/index.md)：产品需求、工程设计、长期决定与计划记录。
+- [项目手册](https://dieken.github.io/tao-dev/)：产品需求、工程设计、长期决定与计划记录；由 main 分支自动构建的 HTML 版本，源文件在 [docs/index.md](docs/index.md)。
 - [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md)：agent 实际读取的规程总入口。
