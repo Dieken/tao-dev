@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import stat
 import time
 from pathlib import Path
@@ -35,7 +36,8 @@ def test_access_copy_excludes_refresh_and_cleans_up_after_failure(tmp_path, monk
     copy = workspace / 'client-state/auth.json'
     with pytest.raises(RuntimeError, match='probe failed'):
         with adapter.access_snapshot(workspace, 90):
-            assert stat.S_IMODE(copy.stat().st_mode) == 0o600
+            if os.name == 'posix':
+                assert stat.S_IMODE(copy.stat().st_mode) == 0o600
             assert json.loads(copy.read_text(encoding='utf-8'))['tokens']['refresh_token'] == ''
             assert 'must-never-be-copied' not in copy.read_text(encoding='utf-8')
             raise RuntimeError('probe failed')

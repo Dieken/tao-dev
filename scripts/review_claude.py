@@ -36,6 +36,12 @@ def terminate(process, number):
         process.kill()
 
 
+def restricted(path):
+    """POSIX permission bits do not restrict anything on Windows, so report
+    what the platform actually enforces instead of implying a protection."""
+    return os.name == 'posix' and path.stat().st_mode & 0o777 == 0o700
+
+
 def run_review(command, prompt, output, timeout):
     """Bound the child process and preserve isolation failures as failures."""
     output.chmod(0o700)
@@ -74,7 +80,8 @@ def run_review(command, prompt, output, timeout):
             'elapsed_seconds': round(time.monotonic() - started, 3),
             'personal_configuration_unchanged': before == after,
             'changed_files': [key for key in before if before[key] != after[key]],
-            'credentials_unchanged': credentials_unchanged, 'error': error}
+            'credentials_unchanged': credentials_unchanged, 'error': error,
+            'workspace_restricted': restricted(output)}
 
 
 def review_succeeded(result):

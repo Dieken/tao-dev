@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 
@@ -40,9 +41,10 @@ def fixture_runner(tmp_path, monkeypatch, *, changed=False, expired=False, timeo
             assert kwargs['env']['CLAUDE_CODE_OAUTH_TOKEN'] == 'secret-test'
             assert kwargs['env']['CLAUDE_CONFIG_DIR'] == str(tmp_path / 'client-config')
             assert kwargs['cwd'] == tmp_path and kwargs['start_new_session']
-            assert tmp_path.stat().st_mode & 0o777 == 0o700
-            for stream in (kwargs['stdout'], kwargs['stderr']):
-                assert runner.os.fstat(stream.fileno()).st_mode & 0o777 == 0o600
+            if os.name == 'posix':
+                assert tmp_path.stat().st_mode & 0o777 == 0o700
+                for stream in (kwargs['stdout'], kwargs['stderr']):
+                    assert runner.os.fstat(stream.fileno()).st_mode & 0o777 == 0o600
             kwargs['stdout'].write('secret-test\n')
 
         def communicate(self, prompt, timeout):
@@ -69,6 +71,8 @@ def test_review_uses_child_access_and_redacts_logs(tmp_path, monkeypatch):
     observed = fixture_runner(tmp_path, monkeypatch)
     tmp_path.chmod(0o755)
     result = runner.run_review(['fake-review'], 'synthetic fixture only', tmp_path, 30)
+    # The workspace restriction is only claimed where the platform enforces it.
+    assert result['workspace_restricted'] == (os.name == 'posix')
     assert result['exit_code'] == 0 and result['personal_configuration_unchanged']
     assert result['credentials_unchanged'] and result['error'] is None
     assert 'CLAUDE_CODE_OAUTH_TOKEN' not in observed['env']

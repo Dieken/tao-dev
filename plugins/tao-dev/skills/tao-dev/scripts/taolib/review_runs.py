@@ -76,7 +76,10 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
         if path.is_dir():
             raise ConfigurationError('Review submodule contents in an explicit scope: '+name)
         exists = path.is_file()
-        rows.append([name, file_digest(path) if exists else None, path.stat().st_mode & 0o777 if exists else None, index.get(name)])
+        # Only POSIX carries permission bits; elsewhere record that the mode
+        # is unknown rather than storing a value that restricts nothing.
+        mode = path.stat().st_mode & 0o777 if exists and os.name == 'posix' else None
+        rows.append([name, file_digest(path) if exists else None, mode, index.get(name)])
         if exists:
             total += path.stat().st_size
     selected &= files
