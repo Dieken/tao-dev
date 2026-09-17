@@ -123,7 +123,7 @@ def resolver_pages(result, output):
                 continue
             doc_id, section = current.split('--')
             document = result.documents[result.definitions[doc_id].path]
-            target = '../' + str(Path(document.path).with_suffix('.html')) + '#' + current
+            target = '../' + Path(document.path).with_suffix('.html').as_posix() + '#' + current
             redirects['#' + old] = target
             label = document.metadata['title'] + ' / ' + (document.section_titles.get(section) or section)
             fallback.append(f'<li id="{old}"><a href="{html.escape(target)}">{html.escape(label)}</a></li>')
@@ -140,7 +140,7 @@ def resolver_pages(result, output):
             if redirects:
                 body += '<script>' + redirect_script + 'if(sectionRedirects[fragment])location.replace(sectionRedirects[fragment]);</script>'
         else:
-            target = "../" + str(Path(definition.path).with_suffix(".html")) + "#" + identity
+            target = "../" + Path(definition.path).with_suffix(".html").as_posix() + "#" + identity
             # Preserve section fragments when the DOC resolver is used.
             base = target.split("#")[0]
             quoted_base = json.dumps(base).replace("<", "\\u003c")
@@ -206,7 +206,7 @@ def build(project):
         conf = (f"import sys, json\nfrom pathlib import Path\nsys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
                 "extensions = ['myst_parser', 'taolib.sphinx_ext']\n"
                 "source_suffix = {'.md': 'markdown'}\nhtml_theme = 'sphinx_book_theme'\n"
-                f"root_doc = {str(Path(project.book_root).with_suffix(''))!r}\n"
+                f"root_doc = {Path(project.book_root).with_suffix('').as_posix()!r}\n"
                 f"project = {title!r}\nhtml_title = {title!r}\n"
                 f"language = {'zh_CN' if project.locale == 'zh-Hans' else 'en'!r}\n"
                 "myst_enable_extensions = ['colon_fence']\n"
