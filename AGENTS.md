@@ -45,8 +45,10 @@ review remain incomplete; partial checks do not establish delivery readiness.
 
 # CLI experiments
 
-Use the existing `claude` and `codex` commands and their configured
-authentication. Do not reinstall or reconfigure either CLI for testing.
+These constraints govern experiments on a maintainer machine, where they
+exist to protect personal client state. Use the existing `claude` and
+`codex` commands and their configured authentication; do not reinstall
+or reconfigure either CLI for testing.
 
 Enable tao-dev only inside an isolated experiment project, using a
 verified project-local or invocation-local loading mechanism. Changing
@@ -59,6 +61,10 @@ Verify both activation inside the experiment and absence outside it.
 Keep test configuration and cleanup within the experiment scope. If the
 selected CLI cannot provide the required isolation, report that test as
 blocked rather than falling back to a global installation.
+
+An ephemeral CI runner starts with neither CLI installed and holds no
+personal state or credentials, so these constraints do not bind it. Its
+workflow installs both CLIs and defines its own scope.
 
 # Commits
 

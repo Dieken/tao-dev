@@ -52,6 +52,12 @@ uv run --no-config --locked --extra publication python -m pytest
 
 这些测试覆盖记录与作用域选择、无 TAO 环境变量的运行入口、原生客户端适配、安装更新与卸载边界；模拟客户端的测试不能替代真实客户端验收。运行资料和客户端配置使用临时目录，依赖使用离线 wheel。原生试验必须另外遵循 AGENTS.md，使用独立 CODEX_HOME、CLAUDE_CONFIG_DIR、Git 配置与实验项目，不修改个人客户端、认证或全局插件配置，并检查项目内加载与项目外缺席。
 
+### 持续集成
+
+`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台分别安装当前版本的 Claude Code 与 Codex CLI，以 `TAO_TEST_NATIVE_CLIENTS=1` 执行原生安装与卸载探测。CI 不调用模型，也不使用任何客户端凭据；runner 上本来就没有这两个 CLI 的安装和个人状态，不适用本机实验的隔离约束。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
+
+本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。原生探测覆盖插件安装、启用范围与卸载，不覆盖真实会话行为；后者仍按 [验收说明](../../tests/acceptance/README.md) 单独执行。
+
 ### 在本仓库使用 tao
 
 通过 install 安装的用户直接使用安装器提供的 tao 命令，无需设置 TAO 环境变量。维护本仓库的源码入口不要求注册插件；以下 POSIX shell 示例用显式覆盖将源码自举环境限定在项目临时目录，后续命令在同一 shell 中运行。Windows 在 PowerShell 中设置对应环境变量，并使用 `.venv/Scripts/python.exe`。
