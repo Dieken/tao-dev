@@ -107,7 +107,7 @@ def summarize_usage(log_paths, client):
 def _version(client):
     result = subprocess.run(
         [client, "--version"], capture_output=True, text=True, timeout=15,
-        check=False)
+        check=False, encoding='utf-8')
     return (result.stdout or result.stderr).strip()
 
 
@@ -116,7 +116,7 @@ def _setup_runtime(plugin, workspace, env):
         [sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
          "env", "prepare", "--wheelhouse", str(ROOT / "tmp/tao/wheels"),
          "--format", "json"],
-        env=env, capture_output=True, text=True, timeout=180, check=False)
+        env=env, capture_output=True, text=True, timeout=180, check=False, encoding='utf-8')
     if result.returncode:
         raise RuntimeError(
             "Isolated offline runtime preparation failed: "

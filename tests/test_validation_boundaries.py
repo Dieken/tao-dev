@@ -107,11 +107,11 @@ def test_runtime_copy_works_without_development_repository(tmp_path):
     project.mkdir()
     (project / "spec.md").write_text(spec(), encoding="utf-8")
     command = [sys.executable, str(package / "scripts/validate_documents.py"), "--project", str(project), "--format", "json", "spec.md"]
-    run = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True)
+    run = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, encoding="utf-8")
     assert run.returncode == 0, run.stderr
     report = json.loads(run.stdout)
     assert report["valid"] and report["deletion_checked"] is False
     (project / "spec.md").write_text("# No schema\n", encoding="utf-8")
-    run = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True)
+    run = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, encoding="utf-8")
     assert run.returncode == 1
     assert json.loads(run.stdout)["diagnostics"][0]["rule_id"] == "TAO-DOC-001"

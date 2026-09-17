@@ -60,7 +60,7 @@ def test_approval_tracks_content_and_requires_new_decision_after_edits(tmp_path,
 
 
 def git(root, *args):
-    return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
+    return subprocess.check_output(['git', '-C', str(root), *args], text=True, encoding='utf-8').strip()
 
 
 def test_worktree_records_fork_and_parent_can_find_workflow(tmp_path, capsys):

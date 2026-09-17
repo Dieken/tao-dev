@@ -166,7 +166,7 @@ def test_same_vcs_revision_with_dirty_inputs_is_stale(tmp_path):
     import subprocess
     configured(tmp_path)
     def git(*args):
-        return subprocess.run(['git', '-C', str(tmp_path), *args], check=True, capture_output=True, text=True)
+        return subprocess.run(['git', '-C', str(tmp_path), *args], check=True, capture_output=True, text=True, encoding='utf-8')
     git('init')
     (tmp_path / '.gitignore').write_text('tmp/\n', encoding='utf-8')
     git('add', '.')

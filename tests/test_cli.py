@@ -14,7 +14,7 @@ ENTRY = ASSETS.parent / "scripts/tao.py"
 
 
 def run(root, *args):
-    return subprocess.run([sys.executable, str(ENTRY), "--project", str(root), "--format", "json", *args], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(ENTRY), "--project", str(root), "--format", "json", *args], capture_output=True, text=True, encoding="utf-8")
 
 
 def project(root):
@@ -117,7 +117,7 @@ def test_project_config_is_local_and_determines_managed_scope(tmp_path):
     (tmp_path / "manual").mkdir()
     (tmp_path / "manual/spec.md").write_text(spec(), encoding="utf-8")
     (tmp_path / "README.md").write_text("# Not managed\n", encoding="utf-8")
-    completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--only", "docs", "--format", "json"], cwd=tmp_path, text=True, capture_output=True)
+    completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--only", "docs", "--format", "json"], cwd=tmp_path, text=True, capture_output=True, encoding="utf-8")
     assert completed.returncode == 0, completed.stderr
     assert list(json.loads(completed.stdout)["outputs"]["documents"]["documents"]) == ["manual/spec.md"]
 
@@ -142,7 +142,7 @@ def test_id_allocation_does_not_ignore_unreadable_index_scope(tmp_path):
 
 def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
     command = [sys.executable, str(ENTRY), "--project", str(tmp_path), "--format", "json", "new", "--slug", "same", "--locale", "en"]
-    processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+    processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8") for _ in range(2)]
     results = [(p.communicate(), p.returncode) for p in processes]
     assert sorted(code for _, code in results) == [0, 1]
     assert len(list((tmp_path / "docs").rglob("*.md"))) == 1
@@ -207,7 +207,7 @@ change: {CHG}
 
 
 def test_equals_json_format_is_preserved_on_parser_failure(tmp_path):
-    completed = subprocess.run([sys.executable, str(ENTRY), '--project', str(tmp_path), '--format=json', 'unknown-operation'], capture_output=True, text=True)
+    completed = subprocess.run([sys.executable, str(ENTRY), '--project', str(tmp_path), '--format=json', 'unknown-operation'], capture_output=True, text=True, encoding="utf-8")
     assert completed.returncode == 2
     result = json.loads(completed.stdout)
     assert result['status'] == 'not_run'

@@ -10,7 +10,7 @@ import sys
 def prepare(directory, plugin, env=None):
     entry = plugin / 'skills/tao-dev/scripts/tao.py'
     def tao(*arguments):
-        p = subprocess.run([sys.executable, str(entry), '--project', str(directory), '--format', 'json', *arguments], env=env, capture_output=True, text=True)
+        p = subprocess.run([sys.executable, str(entry), '--project', str(directory), '--format', 'json', *arguments], env=env, capture_output=True, text=True, encoding='utf-8')
         if p.returncode:
             raise RuntimeError(p.stdout + p.stderr)
         return json.loads(p.stdout)
@@ -42,7 +42,7 @@ print("Existing bytes preserved; new file exported.")
               'TASK_TITLE':'Implement and verify refusal of existing targets', 'TASK_VERIFY':'Run the configured export regression and validate documentation.',
               'VERIFICATION':'The initial check fails because export overwrites an existing file.', 'QUESTIONS':'None.'}
     path.write_text(re.sub(r'\{\{([^}]+)\}\}', lambda m: values[m[1]], path.read_text(encoding='utf-8')), encoding='utf-8')
-    failure = subprocess.run([sys.executable, str(entry), '--project', str(directory), 'verify', '--only', 'code', '--format', 'json'], env=env, capture_output=True, text=True)
+    failure = subprocess.run([sys.executable, str(entry), '--project', str(directory), 'verify', '--only', 'code', '--format', 'json'], env=env, capture_output=True, text=True, encoding='utf-8')
     if failure.returncode != 1:
         raise RuntimeError('Expected a real failing baseline: ' + failure.stdout)
     labels = json.loads((plugin / 'skills/tao-dev/assets/locales/en.json').read_text(encoding='utf-8'))

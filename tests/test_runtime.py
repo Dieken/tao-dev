@@ -28,7 +28,7 @@ def invoke(python, data, *args, scripts=SCRIPTS, cwd=None, extra=None):
     if extra:
         env.update(extra)
     return subprocess.run([str(python), str(scripts / "tao.py"), *args, "--format", "json"],
-                          cwd=cwd or data.parent, env=env, capture_output=True, text=True)
+                          cwd=cwd or data.parent, env=env, capture_output=True, text=True, encoding='utf-8')
 
 
 def prepare(python, data, *args, scripts=SCRIPTS):
@@ -48,7 +48,7 @@ def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tm
     assert report["outputs"]["runtime"]["state"] == "missing"
     joined = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), "doctor", "--format=json"],
                             env=os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)},
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     assert json.loads(joined.stdout)["tool_version"] == report["tool_version"]
     assert not data.exists()
 
@@ -84,7 +84,7 @@ def test_failed_complete_setup_keeps_existing_core_and_does_not_implicitly_insta
     assert json.loads(failed.stdout)["status"] == "not_run"
     assert Path(info["python"]).is_file()
     core = subprocess.run([info["python"], "-I", "-c", "import markdown_it, yaml"],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding='utf-8')
     assert core.returncode == 0, core.stdout + core.stderr
     before = sorted(str(p.relative_to(data)) for p in data.rglob("*"))
     missing = invoke(bare_python, data, "docs", "build", "--project", str(tmp_path), scripts=scripts)
@@ -120,7 +120,7 @@ def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
     env = os.environ | {"CLAUDE_PLUGIN_DATA": str(data), "TAO_PYTHON": str(bare_python)}
     env.pop("TAO_RUNTIME_DIR", None)
     completed = subprocess.run([str(bare_python), str(plugin / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"],
-                               env=env, capture_output=True, text=True)
+                               env=env, capture_output=True, text=True, encoding='utf-8')
     assert completed.returncode == 0, completed.stdout + completed.stderr
     runtime = json.loads(completed.stdout)["outputs"]["runtime"]
     selected = Path(runtime["python"])
@@ -133,7 +133,7 @@ def test_concurrent_preparation_publishes_one_complete_environment(bare_python, 
     data = tmp_path / "data"
     env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)}
     argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"]
-    processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+    processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8') for _ in range(2)]
     outputs = [process.communicate(timeout=60) for process in processes]
     assert all(p.returncode == 0 for p in processes), outputs
     reports = [json.loads(stdout)["outputs"]["runtime"] for stdout, _ in outputs]

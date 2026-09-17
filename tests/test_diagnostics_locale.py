@@ -58,7 +58,7 @@ def test_standard_library_bootstrap_localizes_without_preparing_runtime(tmp_path
     env = os.environ | {'TAO_RUNTIME_DIR': str(tmp_path / 'unprepared')}
     result = subprocess.run([sys.executable, str(ASSETS.parent / 'scripts/tao.py'),
                              '--diagnostic-locale=zh-Hans', 'verify', '--format=json'],
-                            capture_output=True, text=True, env=env)
+                            capture_output=True, text=True, env=env, encoding='utf-8')
     report = json.loads(result.stdout)
     assert result.returncode == 2 and report['command'] == 'verify'
     assert report['diagnostics'][0]['message_locale'] == 'zh-Hans'
@@ -78,7 +78,7 @@ runpy.run_path(sys.argv[0], run_name="__main__")
 '''
     env = os.environ | {'TAO_PYTHON': str(tmp_path / 'missing-python')}
     result = subprocess.run([sys.executable, '-I', '-c', code, str(entry)],
-                            capture_output=True, text=True, env=env)
+                            capture_output=True, text=True, env=env, encoding='utf-8')
     assert result.returncode == 2, result.stderr
     assert json.loads(result.stdout)['diagnostics'][0]['rule_id'] == 'TAO-RUNTIME-001'
 
@@ -87,7 +87,7 @@ def test_standalone_validator_accepts_diagnostic_language(tmp_path):
     broken(tmp_path)
     result = subprocess.run([sys.executable, str(ASSETS.parent / 'scripts/validate_documents.py'),
                              '--project', str(tmp_path), '--format', 'json',
-                             '--diagnostic-locale', 'en', 'docs/spec.md'], capture_output=True, text=True)
+                             '--diagnostic-locale', 'en', 'docs/spec.md'], capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 1, result.stderr
     assert json.loads(result.stdout)['diagnostics'][0]['message_locale'] == 'en'
 
