@@ -329,5 +329,7 @@
   "Inconsistent or repeated Codex item.": "Codex 条目不一致或重复。",
   "Invalid Codex item identity.": "Codex 条目标识无效。",
   "Repeated Codex item start.": "Codex 条目重复开始。",
+  "Generated search data names no stemmer.": "生成的搜索数据未声明 stemmer。",
+  "Generated search data assigns the undefined stemmer {arg0}; the book would publish with search disabled.": "生成的搜索数据引用了未定义的 stemmer {arg0}；这样发布的书籍搜索会静默失效。",
   "Unexpected, failed or additional Codex review turn.": "Codex 审查包含意外事件、失败或额外轮次。"
 }
