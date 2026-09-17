@@ -40,8 +40,13 @@ validate only explicitly managed sources against supported profiles.
 Use the bundled tao.py doctor output to identify available CLI commands.
 Local HTML publication, configured code checks and evidence freshness
 checks are available. Input-bound review imports are available. Native macOS client acceptance is recorded for the tested versions and
-package formats. Native Windows acceptance and the current independent
-review remain incomplete; partial checks do not establish delivery readiness.
+package formats. CI runs the maintained regression on Linux, macOS and
+Windows across Python 3.11 to 3.14, and the native install probes with
+the current Claude Code and Codex CLIs on the same three platforms.
+Those probes drive installation, scope and removal only: no model call,
+no client credential and no PowerShell launcher. Native Windows client
+behavior acceptance and the current independent review therefore remain
+incomplete; partial checks do not establish delivery readiness.
 
 # CLI experiments
 

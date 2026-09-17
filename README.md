@@ -47,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/Dieken/tao-dev/main/install.sh | sh
 & ([scriptblock]::Create((Invoke-RestMethod https://raw.githubusercontent.com/Dieken/tao-dev/main/install.ps1))) -Client codex -Scope project
 ```
 
-hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `sh`。原生 Windows 完整验收尚未完成，也可在 WSL 中按 Linux 方式使用。
+hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `sh`。CI 已在 windows-latest 上跑通回归与原生安装探针，但 PowerShell 安装器与真实客户端会话尚未验收，也可在 WSL 中按 Linux 方式使用。
 
 </details>
 
@@ -79,10 +79,10 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 | macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.270 的安装、升级、回滚和卸载已在隔离环境验证；其他场景见验收记录 |
 | Codex 原生 hook | 安装器使用兼容 manifest，并检查 skill、hook 与信任状态 |
 | 其他 coding agent | 独立 skill 接入指南覆盖九种客户端；本机缺少对应 CLI，尚未原生验收，见 [兼容矩阵](docs/engineering/client-compatibility.md) |
-| 其他平台与版本 | 原生 Windows 验收未完成；Python 运行环境的测试矩阵不等于客户端兼容矩阵 |
+| 其他平台与版本 | CI 在 Linux、macOS、Windows 上按 Python 3.11–3.14 跑同一套回归，并在三个平台执行原生安装探针；探针不调用模型，原生 Windows 客户端行为验收仍未完成 |
 | 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
 
-具体受检版本、环境、结果和剩余工作以 [运行环境验收记录](docs/plans/2026-09/20260914-portable-runtime.md) 为准。HTML 构建不包含外部站点部署，当前未实现 PDF 出版。
+具体受检版本、环境、结果和剩余工作以 [运行环境验收记录](docs/plans/2026-09/20260914-portable-runtime.md) 为准。`tao docs build` 只产出本地 HTML，不包含站点部署——本仓库自己的手册由本仓库 CI 发布到 GitHub Pages；当前未实现 PDF 出版。
 
 ## 参与开发
 
