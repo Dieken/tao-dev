@@ -178,7 +178,7 @@ def prepare(ctx, wheelhouse=None):
             install += ["--no-index", "--find-links", str(wheelhouse.resolve())]
         else:
             install += ["--index-url", "https://pypi.org/simple"]
-        with log.open("w", encoding="utf-8") as output:
+        with log.open("w", encoding="utf-8", newline="\n") as output:
             for argv in (command, install, pip + ["check"]):
                 try:
                     completed = subprocess.run(argv, env=environment(), stdin=subprocess.DEVNULL,

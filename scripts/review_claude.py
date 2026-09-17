@@ -143,7 +143,7 @@ def main():
     output = ROOT / 'tmp/tao/review-runs' / str(time.time_ns())
     output.mkdir(parents=True, mode=0o700)
     events_path = output / 'events.jsonl'
-    (output / 'input.json').write_text(json.dumps({'tree': tree, 'binding': request['binding'], 'files': args.files}, indent=2) + '\n', encoding='utf-8')
+    (output / 'input.json').write_text(json.dumps({'tree': tree, 'binding': request['binding'], 'files': args.files}, indent=2) + '\n', encoding='utf-8', newline='\n')
     command = ['claude', '-p', '--safe-mode', '--effort', 'low', '--no-session-persistence',
                '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--tools', '',
                '--max-turns', '3', '--max-budget-usd', str(args.budget_usd), '--json-schema', json.dumps(conclusion_schema)]
@@ -178,10 +178,10 @@ def main():
                 except ValueError as exc:
                     result['record_error'] = str(exc)
                 else:
-                    receipt.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+                    receipt.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
                     result.update(attestation=receipt.relative_to(ROOT).as_posix(), reviewer=record['reviewer'],
                                   findings=record['findings'])
-    (output / 'summary.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    (output / 'summary.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(json.dumps(result, indent=2))
     return 0 if 'attestation' in result else 2
 

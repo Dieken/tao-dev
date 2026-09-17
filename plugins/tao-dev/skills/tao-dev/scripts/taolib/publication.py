@@ -89,7 +89,7 @@ def stage_sources(project, result, source):
         # Make the source document explicit so its stable slug map applies.
         text = re.sub(r"\]\(#((?:DOC|REQ|UC|ADR|TASK|CHG|EVD)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}(?:--[a-z-]+)?)\)",
                       lambda m: "](" + path.name + "#" + m[1] + ")", text)
-        destination.write_text(text, encoding="utf-8")
+        destination.write_text(text, encoding="utf-8", newline="\n")
     return raw_files
 
 
@@ -150,7 +150,7 @@ def resolver_pages(result, output):
                     f'({quoted_base} + (location.hash || {json.dumps("#" + identity)})));</script>')
         if fallback:
             body += '<ul>' + ''.join(fallback) + '</ul>'
-        (directory / f"{identity}.html").write_text('<!doctype html><meta charset="utf-8"><title>' + identity + '</title>' + body, encoding="utf-8")
+        (directory / f"{identity}.html").write_text('<!doctype html><meta charset="utf-8"><title>' + identity + '</title>' + body, encoding="utf-8", newline="\n")
 
 
 def stable_links(result, output):
@@ -167,7 +167,7 @@ def stable_links(result, output):
             return match[0]
 
         text = re.sub(r'(<a class="headerlink" href=")#([^"<>]+)(")', replace, text)
-        page_path.write_text(text, encoding="utf-8")
+        page_path.write_text(text, encoding="utf-8", newline="\n")
         parsed = Page(text)
         required = {d.id for d in result.definitions.values() if d.path == path}
         required.update(doc.metadata["id"] + "--" + key for key in doc.sections)
@@ -201,7 +201,7 @@ def build(project):
         source, output = work / "source", work / "html"
         source.mkdir()
         raw_files = stage_sources(project, result, source)
-        (source / "_tao-index.json").write_text(json.dumps(result.to_dict(), ensure_ascii=False), encoding="utf-8")
+        (source / "_tao-index.json").write_text(json.dumps(result.to_dict(), ensure_ascii=False), encoding="utf-8", newline="\n")
         title = result.documents[project.book_root].metadata["title"]
         conf = (f"import sys, json\nfrom pathlib import Path\nsys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
                 "extensions = ['myst_parser', 'taolib.sphinx_ext']\n"
@@ -213,12 +213,12 @@ def build(project):
                 "html_copy_source = False\nhtml_show_sourcelink = False\n"
                 "tao_index = json.loads(Path('_tao-index.json').read_text(encoding='utf-8'))\n")
         # Sphinx executes conf.py from its source directory.
-        (source / "conf.py").write_text(conf, encoding="utf-8")
+        (source / "conf.py").write_text(conf, encoding="utf-8", newline="\n")
         completed = subprocess.run([sys.executable, "-m", "sphinx", "-W", "--keep-going", "-b", "html", str(source), str(output)], capture_output=True,
                                    text=True, encoding="utf-8", env=os.environ | {"PYTHONUTF8": "1"})
         if completed.returncode:
             log = project.output("temporary", "book-build.log")
-            log.write_text(completed.stdout + completed.stderr, encoding="utf-8")
+            log.write_text(completed.stdout + completed.stderr, encoding="utf-8", newline="\n")
             raise ConfigurationError(Message('Sphinx build failed; inspect {arg0}: {arg1}', log.relative_to(project.root), completed.stderr[-1500:]))
         search_stemmer(output)
         for relative in raw_files:
@@ -227,7 +227,7 @@ def build(project):
             shutil.copyfile(source / relative, target)
         resolver_pages(result, output)
         stable_links(result, output)
-        (output / ".tao-book").write_text("generated\n", encoding="utf-8")
+        (output / ".tao-book").write_text("generated\n", encoding="utf-8", newline="\n")
         with mutation_lock(project):
             if destination.exists() and not (destination / ".tao-book").is_file():
                 raise ConflictError("Book destination changed ownership during the build.")

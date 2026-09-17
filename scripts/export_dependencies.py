@@ -32,7 +32,7 @@ def main():
         if not policy_path.exists() or policy_path.read_text(encoding="utf-8") != policy_text:
             stale.append("runtime.json")
     else:
-        policy_path.write_text(policy_text, encoding="utf-8")
+        policy_path.write_text(policy_text, encoding="utf-8", newline="\n")
     for name, extras in (("requirements.txt", []),
                          ("requirements-publication.txt", ["--extra", "publication"])):
         command = ["uv", "export", "--no-config", "--locked", "--offline", "--no-dev",
@@ -47,7 +47,7 @@ def main():
             if not path.exists() or path.read_text(encoding="utf-8") != text:
                 stale.append(name)
         else:
-            path.write_text(text, encoding="utf-8")
+            path.write_text(text, encoding="utf-8", newline="\n")
     if stale:
         print("Stale release dependencies: " + ", ".join(stale))
         return 1
