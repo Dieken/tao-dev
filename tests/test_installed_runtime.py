@@ -170,7 +170,7 @@ def test_cli_binding_uses_project_argument_and_reexecutes_without_tao_variables(
     wheels = Path(os.environ.get("TAO_TEST_WHEELHOUSE", SCRIPTS.parents[4] / "tmp/tao/wheels"))
     setup = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
                             "env", "prepare", "--wheelhouse", str(wheels), "--format", "json"],
-                           env=env, capture_output=True, text=True, check=False)
+                           env=env, capture_output=True, text=True, check=False, encoding='utf-8')
     assert setup.returncode == 0, setup.stdout + setup.stderr
     registry.save_record(record)
     clean_env = dict(os.environ)
@@ -179,18 +179,18 @@ def test_cli_binding_uses_project_argument_and_reexecutes_without_tao_variables(
     clean_env["CLAUDE_PLUGIN_DATA"] = str(tmp_path / "wrong-data")
     reuse = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
                             "env", "prepare", *project_args(project), "--format", "json"],
-                           cwd=tmp_path, env=clean_env, capture_output=True, text=True, timeout=30, check=False)
+                           cwd=tmp_path, env=clean_env, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert reuse.returncode == 0, reuse.stdout + reuse.stderr
     result = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/tao.py"),
                              "doctor", *project_args(project), "--format", "json"],
-                            cwd=tmp_path, env=clean_env, capture_output=True, text=True, timeout=30, check=False)
+                            cwd=tmp_path, env=clean_env, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["outputs"]["runtime"]["data_directory"] == str(managed)
     from test_hooks import project as configure_project
     configure_project(project)
     hook = subprocess.run([sys.executable, str(plugin / "skills/tao-dev/scripts/hook.py")],
                           cwd=project, env=clean_env, input='{"hook_event_name":"PostToolUse"}',
-                          capture_output=True, text=True, timeout=30, check=False)
+                          capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert hook.returncode == 0, hook.stdout + hook.stderr
     assert "passed" in json.loads(hook.stdout)["hookSpecificOutput"]["additionalContext"]
 
@@ -215,7 +215,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
         setup = subprocess.run([sys.executable, str(native / "skills/tao-dev/scripts/tao.py"),
                                 "env", "prepare", "--wheelhouse", str(wheels), "--format", "json"],
                                env=clean | {"TAO_RUNTIME_DIR": row["runtime_dir"], "TAO_PYTHON": sys.executable},
-                               capture_output=True, text=True, check=False)
+                               capture_output=True, text=True, check=False, encoding='utf-8')
         assert setup.returncode == 0, setup.stdout + setup.stderr
         launcher, shared = installation.install_cli(client, sys.executable, tmp_path / "bin", native)
         row["cli_path"] = str(shared)
@@ -225,27 +225,27 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
     # first client's original package and its different dependency inventory.
     for row in installed:
         result = subprocess.run([str(launcher), "doctor", "--project", row["project"], "--format", "json"],
-                                cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
+                                cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
         assert result.returncode == 0, result.stdout + result.stderr
         assert json.loads(result.stdout)["outputs"]["runtime"]["data_directory"] == row["runtime_dir"]
         reuse = subprocess.run([str(launcher), "env", "prepare", "--project", row["project"],
                                 "--wheelhouse", str(wheels), "--format", "json"],
-                               cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
+                               cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
         assert reuse.returncode == 0, reuse.stdout + reuse.stderr
         assert (json.loads(reuse.stdout)["outputs"]["runtime"]["python"]
                 == json.loads(result.stdout)["outputs"]["runtime"]["python"])
     outside = subprocess.run([str(launcher), "doctor", "--format", "json"],
-                             cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
+                             cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert outside.returncode == 2
     assert "tao install" in outside.stdout
     override = tmp_path / "explicit-missing-runtime"
     explicit = subprocess.run([str(launcher), "doctor", "--project", installed[0]["project"], "--format", "json"],
                               cwd=tmp_path, env=clean | {"TAO_RUNTIME_DIR": str(override)},
-                              capture_output=True, text=True, timeout=30, check=False)
+                              capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert explicit.returncode == 2
     assert json.loads(explicit.stdout)["outputs"]["runtime"]["data_directory"] == str(override)
     shutil.rmtree(installed[0]["plugin_path"])
     missing = subprocess.run([str(launcher), "doctor", "--project", installed[0]["project"], "--format", "json"],
-                             cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False)
+                             cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert missing.returncode == 2
     assert "tao install" in missing.stdout

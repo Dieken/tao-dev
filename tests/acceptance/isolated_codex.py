@@ -47,7 +47,7 @@ def configure(workspace, inside, plugin):
               ']\ntrust_level = "trusted"\n')
     (state / 'config.toml').write_text(config, encoding='utf-8')
     installed = subprocess.run(['codex', 'plugin', 'add', PLUGIN_ID, '--json'], cwd=inside,
-                               env=environment(workspace), capture_output=True, text=True, timeout=45, check=False)
+                               env=environment(workspace), capture_output=True, text=True, timeout=45, check=False, encoding='utf-8')
     if installed.returncode:
         raise RuntimeError('Isolated plugin installation failed: ' + installed.stderr)
     result = json.loads(installed.stdout)

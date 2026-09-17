@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_release_requirements_are_current_locked_exports():
     completed = subprocess.run(
         [sys.executable, str(ROOT / "scripts/export_dependencies.py"), "--check"],
-        cwd=ROOT, capture_output=True, text=True)
+        cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
 

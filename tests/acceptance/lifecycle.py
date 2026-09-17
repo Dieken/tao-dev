@@ -44,7 +44,7 @@ def run(workspace, *, codex_legacy=False):
     default_disabled = state_config.read_text(encoding='utf-8')
     updated = subprocess.run(['codex', 'plugin', 'add', isolated_codex.PLUGIN_ID, '--json'],
                              cwd=inside, env=isolated_codex.environment(workspace),
-                             capture_output=True, text=True, timeout=45, check=True)
+                             capture_output=True, text=True, timeout=45, check=True, encoding='utf-8')
     state_config.write_text(default_disabled, encoding='utf-8')
     update_result = json.loads(updated.stdout)
     latest = isolated_codex.check_boundary(workspace, inside)
@@ -59,7 +59,7 @@ def run(workspace, *, codex_legacy=False):
             raise RuntimeError('Updated hook must use the new cache and require fresh trust.')
     removed = subprocess.run(['codex', 'plugin', 'remove', isolated_codex.PLUGIN_ID, '--json'],
                              cwd=inside, env=isolated_codex.environment(workspace),
-                             capture_output=True, text=True, timeout=45, check=True)
+                             capture_output=True, text=True, timeout=45, check=True, encoding='utf-8')
     after_removal = isolated_codex.skills(workspace, [inside, workspace / 'codex/outside'])
     if any(after_removal.values()):
         raise RuntimeError('Removed plugin still exposes a native skill.')

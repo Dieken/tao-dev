@@ -9,7 +9,7 @@ HOOK = ASSETS.parent / "scripts/hook.py"
 
 
 def invoke(root, event="PostToolUse"):
-    return subprocess.run([sys.executable, str(HOOK)], cwd=root, input=json.dumps({"hook_event_name": event, "cwd": str(root), "tool_name": "Write", "tool_input": {"file_path": str(root / "docs/spec.md")}}), capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(HOOK)], cwd=root, input=json.dumps({"hook_event_name": event, "cwd": str(root), "tool_name": "Write", "tool_input": {"file_path": str(root / "docs/spec.md")}}), capture_output=True, text=True, encoding="utf-8")
 
 
 def project(root):
@@ -55,7 +55,7 @@ def test_timeout_never_creates_a_pass_cache(tmp_path):
     shutil.copytree(ASSETS.parent, package, ignore=shutil.ignore_patterns("__pycache__"))
     (package / "scripts/tao.py").write_text('import time\ntime.sleep(5)\n', encoding="utf-8")
     completed = subprocess.run([sys.executable, str(package / "scripts/hook.py")], cwd=tmp_path,
-                               input='{"hook_event_name":"PostToolUse"}', capture_output=True, text=True, timeout=4)
+                               input='{"hook_event_name":"PostToolUse"}', capture_output=True, text=True, timeout=4, encoding="utf-8")
     assert "not_run" in json.loads(completed.stdout)["hookSpecificOutput"]["additionalContext"]
     assert not (tmp_path / "tmp/tao/cache/hook.json").exists()
 
@@ -76,7 +76,7 @@ def test_hook_without_python_packages_is_quiet_outside_and_diagnostic_inside(tmp
     env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(python)}
     def call():
         return subprocess.run([str(python), str(HOOK)], cwd=tmp_path, env=env,
-                              input='{"hook_event_name":"PostToolUse"}', capture_output=True, text=True)
+                              input='{"hook_event_name":"PostToolUse"}', capture_output=True, text=True, encoding="utf-8")
     outside = call()
     assert outside.returncode == 0, outside.stderr
     assert json.loads(outside.stdout) == {}

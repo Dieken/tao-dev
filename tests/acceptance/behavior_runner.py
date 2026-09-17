@@ -62,6 +62,7 @@ class SubprocessExecutor:
                     stderr=stderr,
                     text=True,
                     start_new_session=True,
+                    encoding='utf-8',
                 )
                 try:
                     process.communicate(request.prompt, timeout=self.timeout)

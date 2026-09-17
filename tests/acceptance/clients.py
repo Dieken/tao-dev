@@ -208,7 +208,7 @@ def main():
     if plugin:
         setup = subprocess.run([sys.executable, str(plugin / 'skills/tao-dev/scripts/tao.py'),
                                 'env', 'prepare', '--wheelhouse', str(ROOT / 'tmp/tao/wheels'), '--format', 'json'],
-                               env=env, capture_output=True, text=True, timeout=180, check=False)
+                               env=env, capture_output=True, text=True, timeout=180, check=False, encoding='utf-8')
         if setup.returncode:
             raise RuntimeError('Isolated offline runtime preparation failed: ' + setup.stdout + setup.stderr)
     recovery = None
@@ -283,7 +283,7 @@ def main():
                 env = scoped | {key: env[key] for key in ('TAO_RUNTIME_DIR', 'TAO_PYTHON')}
             else:
                 secrets = values
-            process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, text=True, start_new_session=True)
+            process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, text=True, start_new_session=True, encoding='utf-8')
             try:
                 process.communicate(prompt, timeout=args.timeout)
             except subprocess.TimeoutExpired:

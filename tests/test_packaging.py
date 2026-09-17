@@ -34,7 +34,7 @@ def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format)
     output = tmp_path / 'marketplace with spaces'
     command = [sys.executable, str(ROOT / 'scripts/package_plugin.py'),
                '--format', package_format, '--marketplace', '--output', str(output)]
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = subprocess.run(command, capture_output=True, text=True, check=False, encoding='utf-8')
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report['installed'] is False
@@ -65,6 +65,6 @@ def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format)
         assert (plugin / portable['extensions']['com.openai']['hooks']).is_file()
         assert not (plugin / '.codex-plugin').exists()
     previous = catalog_path.read_bytes()
-    repeated = subprocess.run(command, capture_output=True, text=True, check=False)
+    repeated = subprocess.run(command, capture_output=True, text=True, check=False, encoding='utf-8')
     assert repeated.returncode != 0
     assert catalog_path.read_bytes() == previous
