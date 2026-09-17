@@ -28,7 +28,7 @@ def build(output, *, codex_legacy=False):
         portable = {'$schema': 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
                     **{key: manifest[key] for key in ('name', 'version', 'description')},
                     'extensions': {'com.openai': {'hooks': manifest['hooks']}}}
-        (output / 'plugin.json').write_text(json.dumps(portable, indent=2) + '\n', encoding='utf-8')
+        (output / 'plugin.json').write_text(json.dumps(portable, indent=2) + '\n', encoding='utf-8', newline='\n')
     return output
 
 
@@ -48,7 +48,7 @@ def build_marketplace(output, *, codex_legacy=False):
                    'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]}
         path = output / '.claude-plugin/marketplace.json'
     path.parent.mkdir(parents=True)
-    path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8')
+    path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8', newline='\n')
     return plugin
 
 

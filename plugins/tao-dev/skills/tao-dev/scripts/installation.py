@@ -158,14 +158,14 @@ def local_catalog(source, destination, client, identifier):
         codex['hooks'] = manifest.get('extensions', {}).get('com.openai', {}).get(
             'hooks', './com.openai/hooks/hooks.json')
         manifest_paths[0].parent.mkdir(exist_ok=True)
-        manifest_paths[0].write_text(json.dumps(codex, indent=2) + '\n', encoding='utf-8')
+        manifest_paths[0].write_text(json.dumps(codex, indent=2) + '\n', encoding='utf-8', newline='\n')
         public.unlink()
     for path in [*manifest_paths, public]:
         if path.exists():
             manifest = json.loads(path.read_text(encoding='utf-8'))
             original = manifest.get('version', '0.0.0').split('+')[0]
             manifest['version'] = original + '+local.' + build
-            path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+            path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     name = 'tao-dev-' + identifier
     entry = {'name': 'tao-dev', 'source': './plugins/tao-dev'}
     catalog = {'name': name, 'plugins': [entry]}
@@ -177,7 +177,7 @@ def local_catalog(source, destination, client, identifier):
         catalog['owner'] = {'name': 'tao-dev'}
         path = destination / '.claude-plugin/marketplace.json'
     path.parent.mkdir(parents=True)
-    path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8')
+    path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8', newline='\n')
     return plugin, 'tao-dev@' + name
 
 
@@ -190,7 +190,7 @@ def owned_root(root, identifier):
             raise InstallError(f'Refusing to reuse a directory without tao-dev ownership: {root}')
     else:
         root.mkdir(parents=True)
-        marker.write_text(json.dumps({'schema': 1, 'id': identifier}) + '\n', encoding='utf-8')
+        marker.write_text(json.dumps({'schema': 1, 'id': identifier}) + '\n', encoding='utf-8', newline='\n')
 
 
 @contextmanager
@@ -265,7 +265,7 @@ def install_cli(client, python, bin_dir, source_plugin):
     replaced = False
     try:
         copy_plugin(source_plugin, stage / 'plugin')
-        (stage / 'plugin' / MARKER).write_text(json.dumps({'schema': 1, 'component': 'cli'}) + '\n', encoding='utf-8')
+        (stage / 'plugin' / MARKER).write_text(json.dumps({'schema': 1, 'component': 'cli'}) + '\n', encoding='utf-8', newline='\n')
         if root.exists():
             root.rename(backup)
         (stage / 'plugin').rename(root)
@@ -312,7 +312,7 @@ def ignore_runtime(project):
     pattern = '/.local/tao-dev/'
     if pattern not in current.splitlines():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(current + ('\n' if current and not current.endswith('\n') else '') + pattern + '\n', encoding='utf-8')
+        path.write_text(current + ('\n' if current and not current.endswith('\n') else '') + pattern + '\n', encoding='utf-8', newline='\n')
         return [str(path)]
     return []
 

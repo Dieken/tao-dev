@@ -104,7 +104,7 @@ def create_file(root, path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(prefix=".tao-new-", dir=path.parent)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
             stream.write(text)
             stream.flush()
             os.fsync(stream.fileno())
@@ -136,7 +136,7 @@ def replace_file(root, path, text, expected):
         raise ConflictError("The destination changed during preparation; reload it before retrying.")
     descriptor, temporary = tempfile.mkstemp(prefix=".tao-update-", dir=path.parent)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
             stream.write(text)
             stream.flush()
             os.fsync(stream.fileno())
