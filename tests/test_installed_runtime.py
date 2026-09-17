@@ -139,7 +139,17 @@ def test_runtime_prefers_receipt_over_claude_data_and_keeps_explicit_overrides(r
     import runtime
     record = receipt(registry, tmp_path)
     recorded_python = tmp_path / "recorded-python"
-    recorded_python.symlink_to(sys.executable)
+    if os.name == "nt":
+        # A symlinked python.exe cannot locate the runtime files beside it, so
+        # link the interpreter's directory and address the executable inside.
+        home = tmp_path / "recorded-home"
+        try:
+            home.symlink_to(Path(sys.executable).parent, target_is_directory=True)
+        except OSError as exc:
+            pytest.skip(f"Creating a Windows symlink needs privilege: {exc}")
+        recorded_python = home / Path(sys.executable).name
+    else:
+        recorded_python.symlink_to(sys.executable)
     record["python"] = str(recorded_python)
     record.update(plugin_path=str(SCRIPTS.parent.parent.parent), plugin_base=str(SCRIPTS.parent.parent.parent))
     registry.save_record(record)
