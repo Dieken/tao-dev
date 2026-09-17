@@ -135,6 +135,7 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
     import install_clients as clients
     import runtime
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
     args = install.arguments(['install', '--client', 'codex', '--scope', 'project',
                               '--project', str(tmp_path), '--source', str(install.PLUGIN),
                               '--bin-dir', str(tmp_path / 'bin')])
@@ -146,7 +147,7 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
     base = tmp_path / 'codex/plugins/cache' / plugin_id.split('@')[1] / 'tao-dev'
     old_cache, new_cache = base / 'old', base / 'new'
     install.copy_plugin(install.PLUGIN, old_cache)
-    launcher, cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', old_cache)
+    launcher, cli, _retired = install.install_cli(Path(sys.executable), tmp_path / 'bin', old_cache)
     old_launcher = launcher.read_bytes()
     (cli / 'old-cli').write_text('previous CLI', encoding='utf-8')
     previous = dict(schema=1, id=identifier, client='codex', scope='project', project=str(tmp_path),
@@ -196,8 +197,8 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
 
 
 def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    launcher, cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
+    launcher, cli, _retired = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     # The rollback is only reachable when the launcher content actually changes.
     with launcher.open('a', encoding='utf-8', newline='') as stream:
         stream.write('# stale\n')
@@ -207,7 +208,7 @@ def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch)
         raise OSError('injected launcher failure')
     monkeypatch.setattr(install.os, 'replace', fail)
     with pytest.raises(OSError, match='injected'):
-        install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+        install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     assert launcher.read_bytes() == original and (cli / 'previous').read_text(encoding='utf-8') == 'keep'
 
 
@@ -271,11 +272,39 @@ def test_child_diagnostic_survives_the_installer_layer():
 
 
 def test_unchanged_launcher_is_not_rewritten_during_an_upgrade(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    launcher, _cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
+    launcher, _cli, _retired = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     before = launcher.stat().st_mtime_ns, launcher.read_bytes()
     def refuse(*_args, **_kwargs):
         raise AssertionError('a running launcher must not be replaced without a change')
     monkeypatch.setattr(install.tempfile, 'mkstemp', refuse)
-    install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     assert (launcher.stat().st_mtime_ns, launcher.read_bytes()) == before
+
+
+def stored(tmp_path, scope='project', project=None):
+    identifier = state.install_id('codex', scope, project)
+    root = state.managed_root('codex', scope, project)
+    base = tmp_path / 'cache/tao-dev'
+    return dict(schema=1, id=identifier, client='codex', scope=scope,
+                project=str(project) if project else None, managed_root=str(root),
+                plugin_id='tao-dev@test', plugin_path=str(base / '1.0'), plugin_base=str(base),
+                python=sys.executable, runtime_dir=str(root / 'runtime'), version='1.0',
+                source={'kind': 'source', 'location': str(tmp_path / 'origin')}, status='ready', files=[])
+
+
+def test_shared_cli_leaves_client_homes_and_retires_earlier_copies(tmp_path, monkeypatch):
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(tmp_path / 'claude'))
+    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
+    legacy = tmp_path / 'claude/tao-dev/cli'
+    legacy.mkdir(parents=True)
+    (legacy / install.MARKER).write_text('{"schema": 1, "component": "cli"}\n', encoding='utf-8')
+    row = stored(tmp_path, 'user')
+    state.save_record(row | {'cli_path': str(tmp_path / 'codex/tao-dev/cli'), 'files': [str(legacy)]})
+    launcher, root, retired = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
+    assert root == (tmp_path / 'shared/cli').resolve() and not legacy.exists()
+    assert retired == [str(legacy)] and str(root) in launcher.read_text(encoding='utf-8')
+    assert state.shared_cli(root / 'skills/tao-dev/scripts')
+    renewed = state.records('codex')[0]
+    assert renewed['cli_path'] == str(root) and renewed['files'] == [str(root)]
