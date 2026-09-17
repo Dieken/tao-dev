@@ -384,11 +384,37 @@ def prepare(ctx, wheelhouse=None, deadline=None, stream=None):
         lock.rmdir()
 
 
-def emit(command, outputs, error=None, json_output=True, locale=None):
+def tool_version():
     try:
-        version = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))["version"]
+        return json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))["version"]
     except (OSError, ValueError, KeyError):
-        version = "unknown"
+        return "unknown"
+
+
+def usage():
+    """Describe the entry point without the dependencies it exists to install.
+
+    Naming the tool must not require a prepared runtime or a recorded
+    installation: after an uninstall, help and version are exactly what a
+    caller needs to find their way back.
+    """
+    return "\n".join([
+        f"tao-dev {tool_version()}",
+        "Usage: tao [--project <directory>] [--format text|json] [--diagnostic-locale <tag>] <command>",
+        "",
+        "Available without prepared dependencies:",
+        "  tao --version                   Show the tool version",
+        "  tao doctor                      Diagnose the runtime, read-only",
+        "  tao env prepare                 Prepare the core and publication runtimes",
+        "  tao install --client <client>   Install or update the complete plugin",
+        "  tao uninstall --client <client> Select and remove an installation",
+        "",
+        "Every other command runs inside the prepared runtime; see tao <command> --help once it exists.",
+    ])
+
+
+def emit(command, outputs, error=None, json_output=True, locale=None):
+    version = tool_version()
     result = {"tool": "tao-dev", "protocol_version": "0.1", "command": command,
               "tool_version": version,
               "status": "not_run" if error else "passed", "outputs": outputs,
@@ -437,12 +463,17 @@ def main(argv=None, entry="tao.py"):
     if entry == "tao.py" and command in ("install", "uninstall"):
         from installation import main as installation_main
         return installation_main([command, *argv[:position], *argv[position + 1:]])
+    json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
+                      for index, value in enumerate(argv))
+    if entry == "tao.py" and command in ("--version", "-V"):
+        if json_output:
+            return emit("version", {"version": tool_version()}, json_output=True)
+        print(f"tao-dev {tool_version()}")
+        return 0
     if entry == "validate_documents.py":
         command = "validate"
     mode = "publication" if command == "docs" or (command == "doctor" and "--publication" in argv) else "core"
     ctx = None
-    json_output = any(value == "--format=json" or argv[index:index + 2] == ["--format", "json"]
-                      for index, value in enumerate(argv))
     try:
         project = None
         for index, value in enumerate(argv):
@@ -505,6 +536,11 @@ def main(argv=None, entry="tao.py"):
         return cli_main([a for a in argv if a != "--publication"], runtime_context=runtime_context)
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
         error = exc if isinstance(exc, RuntimeFailure) else RuntimeFailure(str(exc))
+        if entry == "tao.py" and not json_output and command in ("--help", "-h"):
+            print(usage())
+            print("Detailed command help is unavailable: "
+                  + diagnostic(error, configured_locale(argv))["message"])
+            return 0
         outputs = {"runtime": description(ctx, state=error.state)} if ctx else {}
         return emit(command, outputs, error, json_output, configured_locale(argv))
 
