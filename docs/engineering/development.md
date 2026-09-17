@@ -36,6 +36,12 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 <!-- tao:section steps -->
 ## 操作步骤
 
+### 常用入口
+
+安装 [just](https://github.com/casey/just) 后，`just --list` 展示维护入口：`check` 执行配置的检查策略、依赖导出核对与原生客户端探测，`docs` 检查受管文档并构建手册，`package` 生成两种插件格式，`tao` 转发源码自举的 CLI，`bump-version` 同步发布版本。它们都自动准备运行环境。
+
+这些 recipe 只是把下文的命令收拢起来；检查内容仍以 `.tao/config.toml` 的策略为准，未安装 just 时按下文直接执行。
+
 ### 日常回归
 
 ```sh
