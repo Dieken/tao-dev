@@ -63,7 +63,11 @@ def inspect_python(python):
         completed = subprocess.run([str(python), "-I", "-c", code],
                                    capture_output=True, text=True, encoding="utf-8", timeout=10, env=environment())
         if completed.returncode:
-            raise ValueError("Interpreter probe failed")
+            # Keep the interpreter's own reason: without it a broken or
+            # unusable Python is indistinguishable from an absent one.
+            detail = (completed.stderr or completed.stdout).strip().splitlines()
+            raise ValueError(Message('Interpreter probe failed: {arg0}',
+                                     detail[-1] if detail else f'exit {completed.returncode}'))
         info = json.loads(completed.stdout)
         policy = json.loads((SCRIPTS / "runtime.json").read_text(encoding="utf-8"))
         if not policy["python_min"] <= info["version"][:2] < policy["python_max"]:
