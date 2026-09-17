@@ -1,6 +1,6 @@
 {
   "name": "tao-dev",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Evidence-based workflows for human-agent development.",
   "hooks": "./com.openai/hooks/hooks.json"
 }
