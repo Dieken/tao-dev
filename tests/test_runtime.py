@@ -1,5 +1,6 @@
 """Exercise preparation with real locked wheels and an empty Python environment."""
 
+from concurrent.futures import ThreadPoolExecutor
 import io
 import json
 import os
@@ -143,7 +144,13 @@ def test_concurrent_preparation_publishes_one_complete_environment(bare_python, 
     env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)}
     argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"]
     processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8') for _ in range(2)]
-    outputs = [process.communicate(timeout=60) for process in processes]
+    # Drain both children at once: reading them in turn stalls whichever one
+    # fills a pipe while the other is waited on. The budget clears the 120
+    # second lock wait, which is the bound preparation actually promises, so
+    # the loser of the race has time to wait out the winner.
+    with ThreadPoolExecutor(max_workers=len(processes)) as pool:
+        pending = [pool.submit(process.communicate, timeout=180) for process in processes]
+        outputs = [result.result() for result in pending]
     assert all(p.returncode == 0 for p in processes), outputs
     reports = [json.loads(stdout)["outputs"]["runtime"] for stdout, _ in outputs]
     selected = [report["python"] for report in reports]
