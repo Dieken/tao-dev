@@ -286,6 +286,19 @@ def test_source_conflict_is_rejected_before_native_update(state, monkeypatch, cl
         clients.install_plugin(client, str(root/'new'), 'tao-dev@custom', 'project', project)
 
 
+def test_registered_source_is_recognized_through_another_spelling(state):
+    root, _ = state
+    source = root / 'catalog'
+    source.mkdir()
+    # A client records its own canonical spelling of the same directory.
+    recorded = root / 'recorded-catalog'
+    recorded.symlink_to(source, target_is_directory=True)
+    clients._check_codex_source({'source_type': 'local', 'source': str(recorded)}, str(source))
+    clients._check_claude_source({'source': {'source': 'directory', 'path': str(recorded)}}, str(source), None)
+    with pytest.raises(clients.ClientError, match='different source'):
+        clients._check_codex_source({'source_type': 'local', 'source': str(root)}, str(source))
+
+
 def test_failed_native_command_reports_partial_config_write(state, monkeypatch):
     root, project = state
     def native(*a, **kw):
