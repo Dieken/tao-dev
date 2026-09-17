@@ -41,7 +41,7 @@ install 是用户安装与升级的唯一完整入口。setup 一次准备相互
 
 `tao install --client claude|codex --scope user|project|local` 默认使用 GitHub marketplace。`--source <插件目录、仓库目录或 Git URL>` 直接使用明确来源，生成仅本机使用的目录清单，不访问在线 marketplace。`--marketplace <目录或 GitHub 来源>` 显式选择 marketplace；与 --source 互斥。`--project <目录>` 默认当前目录；`--wheelhouse <目录>` 仅使用离线锁定 wheel；`--timeout <秒数>` 为每次依赖准备设定总时限，默认 300，0 取消上限。依赖准备逐包在 stderr 报告名称、版本、来源 URL、大小与实测速度，stdout 仍只有报告文档。文本默认输出路径、版本、范围、写入文件与使用指南；--format json 提供同一信息。
 
-`tao uninstall --client claude|codex` 列出已管理及可发现的原生安装并交互选择；--list 只读列出。自动化可用 --id 与 --yes 删除明确的一份，不能以 --yes 隐式删除全部。未选择或输入结束不删除。
+`tao uninstall --client claude|codex` 列出已管理及可发现的原生安装并交互选择；--list 只读列出。确认前的清单按路径标注 delete、modify、keep 或 client（由客户端自身的插件移除处理），并附含义说明；取消时报告 status 为 cancelled。自动化可用 --id 与 --yes 删除明确的一份，不能以 --yes 隐式删除全部。未选择或输入结束不删除。
 
 Claude 使用原生 user/project/local。Codex 只有 user 和 repo/project 两级；repo 与 local 参数均归一化为 project，不创建第三种范围。多个范围可共享原生缓存，移除一个范围不能卸载仍被另一范围使用的缓存。
 
