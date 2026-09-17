@@ -269,32 +269,6 @@ def collapse_paths(paths):
     return result
 
 
-def retire_legacy_cli(root):
-    """Remove the per-client CLI copies an earlier release installed.
-
-    Keeping the shared CLI under one client's home meant that removing that
-    client broke the launcher for every other one. The copies are tao-owned,
-    so they are removed once the neutral copy is in place, and the receipts
-    that named them are repointed.
-    """
-    retired = [legacy for legacy in state.legacy_cli_roots()
-               if legacy != root and legacy.is_dir() and not legacy.is_symlink()
-               and (legacy / MARKER).is_file()]
-    for legacy in retired:
-        shutil.rmtree(legacy, ignore_errors=True)
-    for client in state.CLIENTS:
-        for record in state.records(client):
-            files = [str(root) if Path(path) in retired else path for path in record.get('files', [])]
-            stale = record.get('cli_path') and Path(record['cli_path']) in retired
-            if not stale and files == record.get('files', []):
-                continue
-            try:
-                state.save_record(record | {'cli_path': str(root), 'files': collapse_paths(files)})
-            except (OSError, ValueError):
-                continue
-    return [str(legacy) for legacy in retired]
-
-
 def install_cli(python, bin_dir, source_plugin):
     """Keep a shared CLI outside per-install and per-client roots, so the last
     uninstall and a removed client both leave the command working."""
@@ -353,10 +327,9 @@ def install_cli(python, bin_dir, source_plugin):
     else:
         if backup.exists():
             shutil.rmtree(backup, ignore_errors=True)
-        retired = retire_legacy_cli(root)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
-    return launcher, root, retired
+    return launcher, root
 
 
 def ignore_runtime(project):
@@ -477,7 +450,7 @@ def install(args):
                     receipt.update(launcher=str(launcher), cli_path=str(cli_root), files=collapse_paths(files))
                     state.save_record(receipt)
                     # This atomic update is the final fallible step of the transaction.
-                    retired = install_cli(python, bin_dir, cached)[2]
+                    install_cli(python, bin_dir, cached)
                 except Exception as failure:
                     rollback_errors = []
                     try:
@@ -505,7 +478,6 @@ def install(args):
                 if old_moved:
                     shutil.rmtree(old, ignore_errors=True)
                 warnings = installed.get('warnings', [])
-                warnings.extend(f'Removed an earlier per-client CLI copy: {path}' for path in retired)
                 if previous and previous['plugin_id'] != plugin_id:
                     other = [row for row in state.records(args.client) if row['id'] != identifier]
                     try:

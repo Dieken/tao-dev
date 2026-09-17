@@ -233,7 +233,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
                                env=clean | {"TAO_RUNTIME_DIR": row["runtime_dir"], "TAO_PYTHON": sys.executable},
                                capture_output=True, text=True, check=False, encoding='utf-8')
         assert setup.returncode == 0, setup.stdout + setup.stderr
-        launcher, shared, _retired = installation.install_cli(sys.executable, tmp_path / "bin", native)
+        launcher, shared = installation.install_cli(sys.executable, tmp_path / "bin", native)
         row["cli_path"] = str(shared)
         registry.save_record(row)
         installed.append(row)
