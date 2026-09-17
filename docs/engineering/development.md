@@ -5,6 +5,7 @@ title: 开发与维护指南
 locale: zh-Hans
 status: draft
 created: "2026-09-15"
+updated: "2026-09-17"
 ---
 
 # 开发与维护指南
@@ -58,7 +59,7 @@ uv run --no-config --locked --extra publication python -m pytest
 ```sh
 export TAO_RUNTIME_DIR="$PWD/tmp/tao/runtime"
 export TAO_PYTHON="$PWD/.venv/bin/python"
-.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --wheelhouse tmp/tao/wheels
+.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py env prepare --wheelhouse tmp/tao/wheels
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py doctor --format json
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py verify --only docs --format json
 ```
@@ -72,7 +73,7 @@ export TAO_PYTHON="$PWD/.venv/bin/python"
 沿用上面的环境变量，准备出版环境后构建：
 
 ```sh
-.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py setup --wheelhouse tmp/tao/wheels
+.venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py env prepare --wheelhouse tmp/tao/wheels
 .venv/bin/python plugins/tao-dev/skills/tao-dev/scripts/tao.py docs build --format json
 ```
 
@@ -132,7 +133,7 @@ skill、模板、CLI 和插件作为一个 tao-dev 版本一起发布，以 [pyp
 <!-- tao:section troubleshooting -->
 ## 排障
 
-- **缺少 wheel 或依赖**：先确认显式下载步骤和锁文件是否同步，再运行所需 setup；普通测试不会自动联网补齐。
+- **缺少 wheel 或依赖**：先确认显式下载步骤和锁文件是否同步，再运行所需的 `env prepare`；普通测试不会自动联网补齐。
 - **运行环境不可用**：先检查 doctor 输出、当前项目和安装记录；使用源码自举或显式覆盖时再检查 TAO_RUNTIME_DIR、TAO_PYTHON。按运行环境规程处理，不清理仍被其他进程使用的锁或目录。
 - **文档引用无法解析**：确认管理范围包含定义所在文件；单独检查一个文件不能代替跨文档检查。未提供历史基线时也不能证明所有历史删除均已检测。
 - **完整验证受阻**：按报告区分未完成任务、审查缺失或过期及工具故障。当前版本的总体发布状态由实际验收记录维护，不通过降低策略取得通过结果。
