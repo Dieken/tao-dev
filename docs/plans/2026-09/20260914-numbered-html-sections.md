@@ -8,6 +8,7 @@ created: "2026-09-14"
 change: CHG_20260914_4FMEGWFGCT4HCYPN
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_Y5RR8BVF6065JTYP", "DOC_20260914_P1G9T0KSCC0FTBM1"]
+updated: "2026-09-17"
 ---
 
 # Sphinx HTML 章节显示编号
@@ -63,6 +64,6 @@ Sphinx 扩展先在根 toctree 的 AST 节点上设置 `numbered`，启动 Sphin
 隔离的 tao 核心运行时未准备，因此没有通过 CLI 汇总完整 `tao verify` receipt；本记录直接保存实际检查结果。项目配置要求的独立实现审查也未在本任务中执行，所以这里只确认本项实现与回归结果，不据此声明整个项目达到发布就绪状态。
 
 <!-- tao:section questions -->
-## 未决问题
+## 待确认事项
 
-无。显示编号属于 HTML 出版层，源文档及正式引用继续只使用稳定 ID。
+无。

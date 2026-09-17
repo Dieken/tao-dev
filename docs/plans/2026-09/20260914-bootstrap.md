@@ -8,6 +8,7 @@ created: '2026-09-14'
 change: CHG_20260914_Y3TJ3KDYR2Y8AGMF
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197", "DOC_20260914_7RJ1YVEC0CP478BY", "DOC_20260914_P1G9T0KSCC0FTBM1"]
+updated: "2026-09-17"
 ---
 
 # 实现协作开发核心能力
@@ -109,7 +110,9 @@ Codex 0.154.0 的个人配置模式会持久化全局 projects 信任条目，�
 
 固定提交 `e4e1eaa` 的完整检查执行 218 项回归，全部通过（346.28 秒）；Ruff 无诊断，Node.js 检查与 Sphinx 书籍构建通过，代码检查共 349.078 秒。新增七项维护适配测试不调用模型；覆盖率观察值为 60.36%，仍受隔离子进程观测限制。完整 verify 为 not_run／blocked，组合验收任务及当前独立审查条件未满足。本文仅后补实测摘要，另行校验文档和出版，不冒充新一轮代码执行。
 
-<!-- tao:section questions -->
-## 未决项
-
 各命令和平台能力以实际验收为准；缺少能力不能通过空实现或改小验收范围消除。
+
+<!-- tao:section questions -->
+## 待确认事项
+
+无。

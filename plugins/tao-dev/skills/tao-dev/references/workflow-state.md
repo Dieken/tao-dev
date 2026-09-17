@@ -28,9 +28,9 @@ tao --project <root> workflow start --slug <slug> --summary <目标> --locale <�
 
 有意义进展后保存检查点；revision 冲突时读最新状态再协调。operations 是记录，恢复时须查实际进程。
 
-`tao workflow advance <CHG-ID> --expect <revision> --decision <决定>` 按 spec → design → plan → implement → review → finish → complete 推进。前三阶段须关联通过源检查的对应文档，批准绑定内容；任务勾选、evidence 行及 tao:results 内执行记录不使计划批准失效。任务正文、依赖、验证办法和方案变化仍会失效，不能藏进结果块。进入 implement 还须用 `--doc-review completed|skipped` 记录实际审查决定。
+`tao workflow advance <CHG-ID> --expect <revision> --decision <决定>` 按 spec → design → plan → implement → review → finish → complete 推进。前三阶段须关联通过源检查的对应文档，批准绑定内容；任务勾选、evidence 行及 tao:results 内执行记录不使计划批准失效。任务正文、依赖、验证办法或方案发生变化，仍会使计划批准失效，不能藏进结果块。进入 implement 还须用 `--doc-review completed|skipped` 记录实际审查决定。
 
-`tao workflow revise <CHG-ID> --expect <revision> --phase spec|design|plan --decision <决定>` 返回已到达阶段并撤销该阶段及下游批准，保留产物。status 的 stale_approvals 不能继续沿用；排版变化也可能保守失效，解释影响并取得相称决定。
+`tao workflow revise <CHG-ID> --expect <revision> --phase spec|design|plan --decision <决定>` 返回已到达阶段并撤销该阶段及下游批准，保留产物。status 的 stale_approvals 不能继续沿用；即使只改排版，系统也可能出于谨慎将原批准标为失效；说明实际影响并重新取得批准。
 
 阶段推进只保存协调记录，交付检查按 [验证规程](verification.md) 另行执行。
 
@@ -42,7 +42,7 @@ tao --project <root> workflow start --slug <slug> --summary <目标> --locale <�
 
 `tao handoff <CHG-ID> --from <摘要文件>` 接受 handoff profile，保存到计划或预留计划的同名附件目录；给出返回路径、实际 worktree／branch 和 continue 输入。摘要保留目标、决定、现状、证据、阻断与下一步，链接权威材料。正式 handoff 随项目保留，不自动提交、停止会话或传输源码。
 
-continue 先读 status、产物及 handoff，核对副本、有效批准、任务进度、未提交修改、证据时效和实际运行中的操作，避免重复执行。核对后记录：
+continue 先读 status、产物及 handoff，核对副本、有效批准、任务进度、未提交修改、证据时效和实际运行中的操作，避免重复执行；按 [流程操作](workflow.md) 展示进度与下一步建议。核对后记录：
 
 ```text
 tao workflow resume <CHG-ID> --expect <revision> --decision <核对结果> --handoff-digest <status 摘要>

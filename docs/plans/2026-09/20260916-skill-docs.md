@@ -8,6 +8,7 @@ created: "2026-09-16"
 change: CHG_20260916_XBKXDAF7KNN3Q0X3
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
+updated: "2026-09-17"
 ---
 
 # Skill 文档精简与职责重整
@@ -105,7 +106,9 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 验证输出与独立审查摘要位于忽略的 tmp/tao/skill-audit/，原始材料不长期保存；本节保留结论。没有安装、推送或发布插件，改动保留在 codex/trim-skill-docs 分支。
 <!-- /tao:results -->
 
-<!-- tao:section questions -->
-## 未决问题
+原生客户端、跨供应商和 Windows 验收不由文档重整结果推导。
 
-本次范围与方案已明确。原生客户端、跨供应商和 Windows 验收不由文档重整结果推导。
+<!-- tao:section questions -->
+## 待确认事项
+
+无。

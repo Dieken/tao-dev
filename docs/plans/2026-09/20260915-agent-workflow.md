@@ -8,6 +8,7 @@ created: "2026-09-15"
 change: CHG_20260915_0M6WRQNJ6CCANQ70
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197"]
+updated: "2026-09-17"
 ---
 
 # Agent 内开发工作流
@@ -16,6 +17,8 @@ design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197"]
 ## 目标与边界
 
 落实用户确认的 agent 内开发周期：可选项目接入、业务澄清、隔离工作副本、spec/design/plan 检查点、自动实现、有限审查、恢复交接与显式收尾。保持完整安装入口，Git 是完整流程的首个实现，不新增 VCS 框架或供应商。每个边界清楚的增量独立验证和提交。
+
+若实现揭示需要扩大授权或改变已确认体验的重大问题，先报告具体影响。
 
 <!-- tao:section references -->
 ## 规格依据
@@ -98,6 +101,6 @@ design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_0VF190409FQCN197"]
 最终全量 pytest 为 336 passed、0 failed、0 skipped（378.34 秒），启用全部原生客户端探针。安装后指南补充的 20 项安装回归通过。Codex 兼容包及 Claude user/project/local 四组独立原生生命周期均通过启停、0.3.0→0.3.1 升级与卸载，监测的个人配置保持不变，未调用模型。32 份受管理文档、书籍导航、分发资源链接、Sphinx HTML 构建与稳定链接、doctor 0.3.0、依赖导出及 Ruff 核心规则通过。独立上下文初审及定向复核发现的三处问题均有复现与修复回归；八个 skill 行为情境通过。原生 Windows、全部动作的真实客户端长流程及全产品跨供应商审查不在本次已验收范围；未据此声明完整 verify 的正式审查记录门槛已满足。
 
 <!-- tao:section questions -->
-## 未决问题
+## 待确认事项
 
-当前无阻断决定。若实现揭示需要扩大授权或改变已确认体验的重大问题，先报告具体影响。
+无。

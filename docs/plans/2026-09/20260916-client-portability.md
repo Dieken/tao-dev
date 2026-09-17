@@ -8,6 +8,7 @@ created: "2026-09-16"
 change: CHG_20260916_6ZAC0XQF0ZNGC2CZ
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
+updated: "2026-09-17"
 ---
 
 # 跨客户端 skill 与审查入口兼容
@@ -18,6 +19,8 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 执行用户批准的 D1–D7、A1–A6、M1–M6、E1–E5 建议，并评估 Codex 原生 TOML reviewer。保持一份共享 skill，区分文档可读、CLI 可运行、原生入口与证据导入；每项完成用表格报告。继续当前 codex/trim-skill-docs 分支，基线 612ae3c，无未提交改动。
 
 不发布，不安装或配置个人客户端。原生实验只在临时项目和已验证的隔离配置中运行，保持项目外不可见。缺 CLI、认证或隔离能力的验收写明未运行。自动安装扩展以已有客户端、原生接口及实际需求为条件，不为未知平台添加名义支持。
+
+安装管理暂不扩展其他客户端。
 
 <!-- tao:section references -->
 ## 规格依据
@@ -99,7 +102,9 @@ design_docs: ["DOC_20260914_P1G9T0KSCC0FTBM1", "DOC_20260914_0VF190409FQCN197"]
 任务 8：全量 coverage 回归 381 passed、1 failed、5 skipped，耗时 579.06 秒；唯一失败是新增诊断缺中文翻译，补齐后 11 项语言测试通过，pytest --last-failed 再跑 1 passed。独立审查发现并复核修复两处 Markdown 围栏，另跑 21 项 Codex 测试通过，无未解决的重要发现。39 份受管理文档、213 个本地链接、HTML 与稳定链接、两种发布包及字节比对、Ruff 和依赖导出检查通过。按实测将测试上限调为 720 秒、总预算 750 秒，检查内容不变且独立复核通过。未执行全量 tao verify 或发布验收，不声称所有必需门禁、原生客户端或平台均已通过；真实审查记录与可导入回执继续区分。
 <!-- /tao:results -->
 
-<!-- tao:section questions -->
-## 未决问题
+其他客户端原生验收需要相应 CLI 与隔离配置；Claude 本次模型探针还需可用的服务端认证。Codex reviewer 已作为可选 TOML 分发并验证显式项目注册。共享 skill 与规程从最初 63,979 字符精简至 38,548 字符（约减少 39.7%）；跨客户端说明和工程验收细节保留在 docs。
 
-其他客户端原生验收需要相应 CLI 与隔离配置；Claude 本次模型探针还需可用的服务端认证。Codex reviewer 已作为可选 TOML 分发并验证显式项目注册；安装管理暂不扩展其他客户端。共享 skill 与规程从最初 63,979 字符精简至 38,548 字符（约减少 39.7%）；跨客户端说明和工程验收细节保留在 docs。
+<!-- tao:section questions -->
+## 待确认事项
+
+无。

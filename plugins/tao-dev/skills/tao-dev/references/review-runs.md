@@ -4,7 +4,7 @@ agent 已进入 review 且需要固定范围、保存受检输入或控制调用
 
 ## 先预览与确认
 
-`tao workflow review-preview <CHG-ID>` 默认选本次 feature/bug fix 的累计修改，按阶段选择 docs 或 code；后台参数 --scope project 可预览全项目，--include <相对文件或目录> 可重复，--kind docs|code 可明确内容，--base <固定修订> 用于核实并确认新的比较基准。
+`tao workflow review-preview <CHG-ID>` 默认选本次 feature/bug fix 的累计修改，按阶段选择 docs 或 code；命令行参数 --scope project 可预览全项目，--include <相对文件或目录> 可重复，--kind docs|code 可明确内容，--base <固定修订> 用于核实并确认新的比较基准。
 
 预览返回完整 base/target commit、selected_files、上下文文件、排除项、总字节数及输入摘要。feature 包含基础提交以来的全部修改、暂存/未暂存修改及未忽略的新文件；基础版本不再是祖先时拒绝猜测，应调查 rebase 等情况并确认新基准。全项目模式不依赖 fork。文档阶段聚焦 Markdown，代码阶段仍对照适用文档；哪些规范已生效由审查者判断，不能把未来草稿当作现有代码的承诺。
 

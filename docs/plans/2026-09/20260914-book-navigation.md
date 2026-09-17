@@ -8,6 +8,7 @@ created: "2026-09-14"
 change: "CHG_20260914_AR8DMCNHNEHNGWWV"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20260914_Y5RR8BVF6065JTYP", "DOC_20260914_P1G9T0KSCC0FTBM1"]
+updated: "2026-09-17"
 ---
 
 # 篇章层级与统一目录页
@@ -53,8 +54,9 @@ design_docs: ["DOC_20260914_Y5RR8BVF6065JTYP", "DOC_20260914_P1G9T0KSCC0FTBM1"]
 
 覆盖为 partial；未验证完整 AST、Sphinx HTML、PDF 或真实 CLI 行为。上述临时脚本未作为维护工具交付，不能仅凭记录重放检查。摘要随计划保留，详细输出不在当前目录保留；这记录当时的结果，不证明当前版本通过。
 
+Sphinx 书籍主题、源目录导航及稳定链接检查已有实现；PDF 篇章映射尚未实现，不能从 HTML 构建通过推断 PDF 支持。当前验收见 [交付记录](20260914-bootstrap.md)。
 
 <!-- tao:section questions -->
-## 未决问题
+## 待确认事项
 
-Sphinx 书籍主题、源目录导航及稳定链接检查已有实现；PDF 篇章映射尚未实现，不能从 HTML 构建通过推断 PDF 支持。当前验收见 [交付记录](20260914-bootstrap.md)。
+无。
