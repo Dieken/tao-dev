@@ -8,7 +8,7 @@ from test_workflows import call, start, git
 def repository(root, capsys):
     git(root, 'init', '-b', 'main'); git(root, 'config', 'user.email', 'test@example.test'); git(root, 'config', 'user.name', 'Test')
     (root / '.gitignore').write_text('/tmp/tao/\n', encoding='utf-8')
-    (root / 'code.py').write_text('value = 0\n', encoding='utf-8')
+    (root / 'code.py').write_text('value = 0\n', encoding='utf-8', newline='\n')
     git(root, 'add', '.'); git(root, 'commit', '-m', 'Initial')
     state = start(root, capsys)
     return state
@@ -19,7 +19,7 @@ def test_review_preview_covers_commits_dirty_and_untracked_without_writes(tmp_pa
     for number in (1, 2):
         (tmp_path / f'feature{number}.py').write_text(f'value = {number}\n', encoding='utf-8')
         git(tmp_path, 'add', f'feature{number}.py'); git(tmp_path, 'commit', '-m', f'Part {number}')
-    (tmp_path / 'code.py').write_text('value = 3\n', encoding='utf-8')
+    (tmp_path / 'code.py').write_text('value = 3\n', encoding='utf-8', newline='\n')
     (tmp_path / 'new_test.py').write_text('assert True\n', encoding='utf-8')
     before = {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file() and '.git' not in p.parts}
     code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'], '--kind', 'code')
