@@ -253,6 +253,16 @@ def test_preparation_time_limit_covers_the_whole_command_and_rejects_a_negative_
     assert rejected.returncode == 2 and "--timeout" in rejected.stderr
 
 
+def test_help_and_version_answer_without_a_prepared_runtime(bare_python, tmp_path):
+    env = os.environ | {"TAO_RUNTIME_DIR": str(tmp_path / "unprepared"), "TAO_PYTHON": str(bare_python)}
+    for argv, expected in ((["--version"], "tao-dev "), (["--help"], "tao install --client")):
+        completed = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), *argv],
+                                   env=env, capture_output=True, text=True, encoding="utf-8")
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+        assert expected in completed.stdout
+    assert not (tmp_path / "unprepared").exists()
+
+
 def test_time_limit_advice_mentions_an_index_only_when_none_is_configured(tmp_path, monkeypatch):
     def refuse(argv, log, progress, deadline):
         if "venv" in argv:
