@@ -31,25 +31,28 @@ class InstallError(ValueError):
 def arguments(argv):
     parser = argparse.ArgumentParser(prog='tao')
     commands = parser.add_subparsers(dest='command', required=True)
-    for name in ('install', 'uninstall'):
+    for name in ('install', 'upgrade', 'uninstall', 'list'):
         command = commands.add_parser(name)
         command.add_argument('--client', choices=('claude', 'codex'), required=True)
         command.add_argument('--project', type=Path, default=Path.cwd())
         command.add_argument('--format', choices=('text', 'json'), default='text')
+        if name in ('install', 'upgrade'):
+            command.add_argument('--ref')
+            command.add_argument('--wheelhouse', type=Path)
+            command.add_argument('--timeout', type=float, default=300,
+                                 help='Seconds allowed for each dependency preparation; 0 removes the limit.')
         if name == 'install':
             command.add_argument('--scope', choices=('user', 'project', 'repo', 'local'), default='user')
             sources = command.add_mutually_exclusive_group()
             sources.add_argument('--marketplace')
             sources.add_argument('--source')
-            command.add_argument('--ref')
-            command.add_argument('--wheelhouse', type=Path)
-            command.add_argument('--timeout', type=float, default=300,
-                                 help='Seconds allowed for each dependency preparation; 0 removes the limit.')
             command.add_argument('--bin-dir', type=Path,
                                  help='CLI launcher directory; defaults to ~/.local/bin.')
-        else:
+        elif name == 'upgrade':
+            command.add_argument('--id', help='Installation identifier shown by tao list.')
+        elif name == 'uninstall':
             command.add_argument('--list', action='store_true', help='Only discover installations.')
-            command.add_argument('--id', help='Installation identifier shown by --list.')
+            command.add_argument('--id', help='Installation identifier shown by tao list.')
             command.add_argument('--yes', action='store_true', help='Confirm only the explicit --id.')
     args = parser.parse_args(argv)
     if args.command == 'install':
@@ -62,7 +65,7 @@ def arguments(argv):
         parser.error('--project must be an existing directory.')
     if args.command == 'uninstall' and args.yes and not args.id:
         parser.error('--yes requires an explicit --id; it never selects all installations.')
-    if args.command == 'install' and args.timeout < 0:
+    if args.command in ('install', 'upgrade') and args.timeout < 0:
         parser.error('--timeout must not be negative.')
     return args
 
@@ -518,6 +521,39 @@ def install(args):
         raise InstallError(str(exc), collapse_paths(files + getattr(exc, 'files', []))) from exc
 
 
+def upgrade(args):
+    """Renew a recorded installation in place.
+
+    Repeating install also upgrades, but only when the caller repeats the
+    scope and project that identify the installation: its --scope default of
+    user quietly creates a second installation instead. Upgrading a recorded
+    one never has to guess those, and never creates one.
+    """
+    rows = [row for row in state.records(args.client) if not args.id or row['id'] == args.id]
+    if not rows:
+        known = 'no recorded installation' if not args.id else f'no installation with id {args.id}'
+        raise InstallError(f'Cannot upgrade {args.client}: {known}. '
+                           f'Run tao list --client {args.client} to see them, or tao install to create one.')
+    if len(rows) > 1:
+        raise InstallError('Several installations match; choose one with --id: '
+                           + ', '.join(sorted(row['id'] for row in rows)))
+    row = rows[0]
+    selected = argparse.Namespace(
+        command='install', client=args.client, scope=row['scope'],
+        project=Path(row['project']) if row['project'] else args.project,
+        format=args.format, marketplace=None, source=None, ref=args.ref,
+        wheelhouse=args.wheelhouse, timeout=args.timeout, bin_dir=None)
+    return install(selected)
+
+
+def inventory(args):
+    """Report installations without offering to remove any of them."""
+    rows = discover(args.client, args.project)
+    for row in rows:
+        row['file_actions'] = planned_actions(row, rows)
+    return {'installations': rows}
+
+
 def guide(record):
     invocation = '/tao-' if record['client'] == 'claude' else '$tao-dev '
     return [f'Open a new {record["client"]} session in your project.',
@@ -525,7 +561,7 @@ def guide(record):
             f'Start a feature: {invocation}new <your business requirement>',
             f'Check progress: {invocation}status; resume work: {invocation}continue',
             'No TAO environment variables or PATH changes are required for agent use.',
-            f'CLI: {record.get("launcher", "tao")} install / uninstall --client {record["client"]}']
+            f'CLI: {record.get("launcher", "tao")} list / upgrade / uninstall --client {record["client"]}']
 
 
 def discover(client, project):
@@ -678,13 +714,14 @@ def print_inventory(rows):
             note = actions.get(path)
             print('   ' + path + (f'  [{note}]' if note else ''))
     if any(row.get('file_actions') for row in rows):
-        print('Legend: ' + '; '.join(f'{name} = {meaning}' for name, meaning in ACTIONS.items()) + '.')
+        print('Removal legend: ' + '; '.join(f'{name} = {meaning}' for name, meaning in ACTIONS.items()) + '.')
 
 
 def main(argv=None):
     args = arguments(list(sys.argv[1:] if argv is None else argv))
     try:
-        result = install(args) if args.command == 'install' else uninstall(args)
+        operations = {'install': install, 'upgrade': upgrade, 'uninstall': uninstall, 'list': inventory}
+        result = operations[args.command](args)
         report = dict(tool='tao-dev', command=args.command,
                       status='cancelled' if result.get('cancelled') else 'passed',
                       outputs=result, diagnostics=[])
@@ -701,7 +738,9 @@ def main(argv=None):
             print(report['diagnostics'][0]['message'])
             for path in report['outputs']['files']:
                 print('  ' + path)
-        elif args.command == 'install':
+        elif args.command == 'list':
+            print_inventory(result['installations'])
+        elif args.command in ('install', 'upgrade'):
             row = result['installation']
             print(f'{row["client"]} | {row["version"]} | {row["scope"]} | {row["project"] or "all projects"}')
             print('Plugin: ' + row['plugin_path'])

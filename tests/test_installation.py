@@ -249,7 +249,7 @@ def test_inventory_annotates_every_listed_path_with_a_legend(tmp_path, monkeypat
     install.print_inventory([row])
     printed = capsys.readouterr().out
     assert all(f'{path}  [{action}]' in printed for path, action in row['file_actions'].items())
-    assert printed.rstrip().splitlines()[-1].startswith('Legend: delete = ')
+    assert printed.rstrip().splitlines()[-1].startswith('Removal legend: delete = ')
 
 
 def test_cancelled_removal_is_reported_as_cancelled(tmp_path, monkeypatch, capsys):
@@ -291,6 +291,40 @@ def stored(tmp_path, scope='project', project=None):
                 plugin_id='tao-dev@test', plugin_path=str(base / '1.0'), plugin_base=str(base),
                 python=sys.executable, runtime_dir=str(root / 'runtime'), version='1.0',
                 source={'kind': 'source', 'location': str(tmp_path / 'origin')}, status='ready', files=[])
+
+
+def test_upgrade_renews_a_recorded_installation_and_never_creates_one(tmp_path, monkeypatch):
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    project = tmp_path / 'work'
+    project.mkdir()
+    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path)])
+    with pytest.raises(install.InstallError, match='tao list'):
+        install.upgrade(args)
+    state.save_record(stored(tmp_path, 'project', project))
+    captured = []
+    def record_args(selected):
+        captured.append(selected)
+        return {'installation': {}}
+    monkeypatch.setattr(install, 'install', record_args)
+    install.upgrade(args)
+    assert captured[0].scope == 'project' and captured[0].project == project
+    assert captured[0].source is None and captured[0].marketplace is None and captured[0].bin_dir is None
+    state.save_record(stored(tmp_path, 'user'))
+    with pytest.raises(install.InstallError, match='--id'):
+        install.upgrade(args)
+    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path),
+                                       '--id', state.install_id('codex', 'user', None)]))
+    assert captured[1].scope == 'user' and captured[1].project == tmp_path
+
+
+def test_list_reports_installations_without_offering_removal(tmp_path, monkeypatch, capsys):
+    row = receipt(tmp_path, monkeypatch)
+    monkeypatch.setattr(install, 'discover', lambda *_args: [row])
+    monkeypatch.setattr('builtins.input', lambda *_args: pytest.fail('list must not prompt'))
+    code = install.main(['list', '--client', 'claude', '--project', str(tmp_path)])
+    printed = capsys.readouterr().out
+    assert code == 0 and 'tao list: passed' in printed
+    assert f"{row['files'][0]}  [modify]" in printed and 'Removal legend: ' in printed
 
 
 def test_shared_cli_leaves_client_homes_and_retires_earlier_copies(tmp_path, monkeypatch):
