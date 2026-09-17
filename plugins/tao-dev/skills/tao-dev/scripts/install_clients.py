@@ -51,12 +51,21 @@ def _config(path):
         raise ClientError(f'Cannot read native configuration {path}: {exc}') from exc
 
 
+def _executable(name):
+    """Windows ships the clients as .cmd shims, so a bare name never resolves."""
+    resolved = shutil.which(name)
+    if not resolved:
+        raise ClientError(f'{name} CLI is not on PATH.')
+    return resolved
+
+
 def _run(args, project, *, json_output=True):
+    name, *rest = args
     try:
-        result = subprocess.run(args, cwd=project, stdin=subprocess.DEVNULL,
+        result = subprocess.run([_executable(name), *rest], cwd=project, stdin=subprocess.DEVNULL,
                                 capture_output=True, text=True, timeout=180)
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise ClientError(f'{args[0]} native command failed: {exc}') from exc
+        raise ClientError(f'{name} native command failed: {exc}') from exc
     if result.returncode:
         raise ClientError(f'{" ".join(args[:3])} failed: {(result.stderr or result.stdout).strip()}')
     if not json_output:
@@ -64,7 +73,7 @@ def _run(args, project, *, json_output=True):
     try:
         return json.loads(result.stdout)
     except ValueError as exc:
-        raise ClientError(f'{args[0]} returned invalid JSON: {result.stdout[:300]}') from exc
+        raise ClientError(f'{name} returned invalid JSON: {result.stdout[:300]}') from exc
 
 
 def _rpc(method, params, project, *, home=None):
@@ -73,7 +82,7 @@ def _rpc(method, params, project, *, home=None):
     if home is not None:
         env['CODEX_HOME'] = str(home)
     try:
-        process = subprocess.Popen(['codex', 'app-server'], cwd=project, env=env,
+        process = subprocess.Popen([_executable('codex'), 'app-server'], cwd=project, env=env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.DEVNULL, text=True, encoding='utf-8')
     except OSError as exc:
