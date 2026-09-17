@@ -19,7 +19,7 @@ def test_standalone_resources_remain_inside_skill():
     skill = SCRIPTS.parent
     links = []
     for page in [skill / 'SKILL.md', *sorted((skill / 'references').glob('*.md'))]:
-        for target in re.findall(r'\]\(([^\s)]+)\)', page.read_text()):
+        for target in re.findall(r'\]\(([^\s)]+)\)', page.read_text(encoding='utf-8')):
             url = urlsplit(target)
             if url.scheme or not url.path:
                 continue
@@ -33,8 +33,8 @@ def test_standalone_resources_remain_inside_skill():
 
 def test_local_code_fix_explicitly_routes_to_engineering_before_writing():
     skill = SCRIPTS.parent
-    entry = (skill / 'SKILL.md').read_text()
-    workflow = (skill / 'references/workflow.md').read_text()
+    entry = (skill / 'SKILL.md').read_text(encoding='utf-8')
+    workflow = (skill / 'references/workflow.md').read_text(encoding='utf-8')
 
     assert '代码实现（包括局部修复）' in entry
     assert '必须在行动前读取 [工程规程](references/engineering.md)' in entry
@@ -50,7 +50,7 @@ def test_copied_skill_from_different_cwd_without_prepared_dependencies(
     before = inventory(skill)
     project = tmp_path / 'business project'
     (project / 'docs').mkdir(parents=True)
-    (project / 'docs/spec.md').write_text(spec())
+    (project / 'docs/spec.md').write_text(spec(), encoding='utf-8')
     elsewhere = tmp_path / 'unrelated cwd'
     elsewhere.mkdir()
     data = tmp_path / 'runtime data'

@@ -87,16 +87,16 @@ def test_unsafe_receipt_cannot_be_saved(registry, tmp_path, change):
 def test_malformed_and_symlinked_receipts_are_ignored(registry, tmp_path):
     record = receipt(registry, tmp_path)
     path = registry.save_record(record)
-    path.write_text("{broken")
+    path.write_text("{broken", encoding='utf-8')
     assert registry.binding(Path(record["plugin_path"]), tmp_path) is None
     external = tmp_path / "external.json"
-    external.write_text(json.dumps(record))
+    external.write_text(json.dumps(record), encoding='utf-8')
     path.unlink()
     path.symlink_to(external)
     assert registry.records("codex") == []
     with pytest.raises(ValueError):
         registry.save_record(record)
-    assert json.loads(external.read_text()) == record
+    assert json.loads(external.read_text(encoding='utf-8')) == record
 
 
 def test_symlinked_owned_directories_are_rejected(registry, tmp_path):
@@ -209,7 +209,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
         shutil.copytree(SCRIPTS.parent.parent.parent, native, ignore=shutil.ignore_patterns("__pycache__"))
         if client == "claude":
             inventory = native / "skills/tao-dev/scripts/requirements.txt"
-            inventory.write_text(inventory.read_text() + "\n# Distinct newer dependency inventory\n")
+            inventory.write_text(inventory.read_text(encoding='utf-8') + "\n# Distinct newer dependency inventory\n", encoding='utf-8')
         row = receipt(registry, tmp_path, client=client, scope="project", project=project)
         row.update(plugin_path=str(native), plugin_base=str(native.parent))
         setup = subprocess.run([sys.executable, str(native / "skills/tao-dev/scripts/tao.py"),

@@ -49,7 +49,7 @@ def test_runbook_requires_all_operational_sections(tmp_path, missing):
             rf"\n<!-- tao:section {missing} -->.*?(?=\n<!-- tao:section |\Z)",
             "", content, flags=re.S,
         )
-    path.write_text(content)
+    path.write_text(content, encoding='utf-8')
     result = validate(tmp_path, [path])
     errors = [item for item in result.diagnostics if item.severity == "error"]
     if missing:
@@ -67,35 +67,35 @@ def test_operations_book_has_explicit_group_and_stable_runbook_links(tmp_path):
     configured = project(tmp_path)
     first = build(configured)
     directory = tmp_path / first["directory"]
-    assert "operations/" not in sidebar((directory / "docs/index.html").read_text())
+    assert "operations/" not in sidebar((directory / "docs/index.html").read_text(encoding='utf-8'))
 
     operations = tmp_path / "docs/operations"
     operations.mkdir()
     (operations / "index.md").write_text(
         navigation("restore.md").replace(CHANGE_DOC, OPERATIONS)
         .replace("Book", "Operations guide")
-    )
+    , encoding='utf-8')
     source = operations / "restore.md"
-    source.write_text(runbook())
-    (tmp_path / "docs/index.md").write_text(navigation("spec.md\noperations/index.md"))
+    source.write_text(runbook(), encoding='utf-8')
+    (tmp_path / "docs/index.md").write_text(navigation("spec.md\noperations/index.md"), encoding='utf-8')
     build(configured)
 
-    toc = sidebar((directory / "docs/index.html").read_text())
+    toc = sidebar((directory / "docs/index.html").read_text(encoding='utf-8'))
     assert re.search(r'class="toctree-l1[^\"]*"[^>]*><a[^>]*href="operations/index.html">2\. Operations guide</a>', toc)
     assert re.search(r'class="toctree-l2[^\"]*"[^>]*><a[^>]*href="operations/restore.html">2\.1\. Restore service</a>', toc)
-    page = Page((directory / "docs/operations/restore.html").read_text())
+    page = Page((directory / "docs/operations/restore.html").read_text(encoding='utf-8'))
     assert RUNBOOK in page.ids
     assert page.section_numbers[0] == "2.1. "
     for section in SECTIONS:
         assert f"{RUNBOOK}--{section}" in page.ids
         assert any(link.get("href") == f"../../refs/{RUNBOOK}.html#{RUNBOOK}--{section}"
                    for link in page.links)
-    resolver = (directory / f"refs/{RUNBOOK}.html").read_text()
+    resolver = (directory / f"refs/{RUNBOOK}.html").read_text(encoding='utf-8')
     assert f"../docs/operations/restore.html#{RUNBOOK}" in resolver
 
     # Invalid operational instructions must fail before replacing the book.
-    source.write_text(runbook().split("<!-- tao:section recovery -->")[0])
-    previous = (directory / "docs/operations/restore.html").read_text()
+    source.write_text(runbook().split("<!-- tao:section recovery -->")[0], encoding='utf-8')
+    previous = (directory / "docs/operations/restore.html").read_text(encoding='utf-8')
     with pytest.raises(ConfigurationError, match="Book sources are invalid"):
         build(configured)
-    assert (directory / "docs/operations/restore.html").read_text() == previous
+    assert (directory / "docs/operations/restore.html").read_text(encoding='utf-8') == previous

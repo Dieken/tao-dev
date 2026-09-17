@@ -12,7 +12,7 @@ from test_cli import project, run
 def broken(root):
     project(root)
     path = root / 'docs/spec.md'
-    path.write_text(path.read_text().replace('<!-- tao:field acceptance -->', '<!-- tao:field wrong -->'))
+    path.write_text(path.read_text(encoding='utf-8').replace('<!-- tao:field acceptance -->', '<!-- tao:field wrong -->'), encoding='utf-8')
     return path
 
 
@@ -34,7 +34,7 @@ def test_cli_ui_locale_and_explicit_option_are_independent_of_document_locale(tm
     path = broken(tmp_path)
     before = path.read_bytes()
     (tmp_path / '.tao').mkdir()
-    (tmp_path / '.tao/config.toml').write_text('version = 1\nlocale = "zh-Hans"\n[ui]\nlocale = "en"\n')
+    (tmp_path / '.tao/config.toml').write_text('version = 1\nlocale = "zh-Hans"\n[ui]\nlocale = "en"\n', encoding='utf-8')
     en = run(tmp_path, 'verify', '--only', 'docs')
     zh = run(tmp_path, '--diagnostic-locale', 'zh-Hans', 'verify', '--only', 'docs')
     assert en.returncode == zh.returncode == 1
@@ -136,13 +136,13 @@ def test_localization_has_no_process_global_language_state(tmp_path):
 def test_catalogue_covers_owned_diagnostics_and_preserves_placeholder_sets():
     import ast
     from string import Formatter
-    catalogue = json.loads((ASSETS / 'locales/diagnostics.zh-Hans.json').read_text())
+    catalogue = json.loads((ASSETS / 'locales/diagnostics.zh-Hans.json').read_text(encoding='utf-8'))
     def fields(text):
         return {name for _, name, _, _ in Formatter().parse(text) if name is not None}
     for source, translated in catalogue.items():
         assert translated and fields(source) == fields(translated), source
     for path in (ASSETS.parent / 'scripts').rglob('*.py'):
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
             if not isinstance(node, ast.Call):
                 continue
             name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ''
@@ -160,11 +160,11 @@ def test_hook_uses_ui_language_and_invalidates_cached_translations(tmp_path, mon
     broken(tmp_path)
     (tmp_path / '.tao').mkdir()
     config = tmp_path / '.tao/config.toml'
-    config.write_text('version = 1\n[ui]\nlocale = "zh-Hans"\n[hooks]\ntimeout_seconds = 30\n')
+    config.write_text('version = 1\n[ui]\nlocale = "zh-Hans"\n[hooks]\ntimeout_seconds = 30\n', encoding='utf-8')
     monkeypatch.chdir(tmp_path)
     first = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']
     assert first.startswith('tao docs 反馈')
     assert '仅检查文档' in first and '期望字段' in first
-    config.write_text(config.read_text().replace('zh-Hans', 'en'))
+    config.write_text(config.read_text(encoding='utf-8').replace('zh-Hans', 'en'), encoding='utf-8')
     second = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']
     assert 'docs only' in second and 'Expected fields' in second

@@ -29,7 +29,7 @@ def read_credentials():
             return result.stdout.strip()
     path = Path.home() / '.claude/.credentials.json'
     if path.is_file():
-        return path.read_text()
+        return path.read_text(encoding='utf-8')
     raise RuntimeError('Existing Claude file/Keychain access credentials are unavailable; no login attempted.')
 
 
@@ -41,7 +41,7 @@ def access_environment(workspace, timeout):
     if not data.get('accessToken') or data.get('expiresAt', 0) / 1000 - time.time() <= timeout + 120:
         raise RuntimeError('Existing Claude access token cannot cover this probe; no refresh attempted.')
     settings_path = Path.home() / '.claude/settings.json'
-    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+    settings = json.loads(settings_path.read_text(encoding='utf-8')) if settings_path.exists() else {}
     env = environment(workspace)
     routing = ('ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL',
                'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY')
@@ -70,8 +70,8 @@ def configure(workspace, inside, scope):
     (marketplace / '.claude-plugin').mkdir()
     (marketplace / '.claude-plugin/marketplace.json').write_text(json.dumps({
         'name': 'tao-runtime-test', 'owner': {'name': 'tao-dev acceptance'},
-        'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]}))
-    (inside / '.gitignore').write_text('.claude/settings.local.json\n')
+        'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]}), encoding='utf-8')
+    (inside / '.gitignore').write_text('.claude/settings.local.json\n', encoding='utf-8')
     for arguments in (['plugin', 'marketplace', 'add', str(marketplace)],
                       ['plugin', 'install', 'tao-dev@tao-runtime-test', '--scope', scope, '--json']):
         result = subprocess.run(['claude', *arguments], cwd=inside, env=environment(workspace),
@@ -110,9 +110,9 @@ def lifecycle(workspace, scope):
     command('enable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     installed(True, '0.3.0')
     manifest = workspace / 'marketplace/plugins/tao-dev/.claude-plugin/plugin.json'
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding='utf-8'))
     data['version'] = '0.3.1'
-    manifest.write_text(json.dumps(data))
+    manifest.write_text(json.dumps(data), encoding='utf-8')
     command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     installed(True, '0.3.1')
     command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')

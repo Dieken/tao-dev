@@ -29,7 +29,7 @@ def codex_attestation(root):
 
 def save_source(root, value, events):
     path = root / value['source']['path']
-    path.write_text('\n'.join(json.dumps(e) for e in events) + '\n')
+    path.write_text('\n'.join(json.dumps(e) for e in events) + '\n', encoding='utf-8')
     value['source']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -74,13 +74,13 @@ def test_codex_rejects_incomplete_or_unsubstantiated_source(tmp_path, mutation):
         events[-2]['item']['text'] = text[:-1] + ', "summary": "hidden override"}'
     elif mutation == 'model-claim': value['reviewer']['model'] = 'configured-model'
     elif mutation == 'provider-claim': value['reviewer']['provider'] = 'openai'
-    elif mutation == 'stale': (tmp_path / 'check.py').write_text('print("changed")')
+    elif mutation == 'stale': (tmp_path / 'check.py').write_text('print("changed")', encoding='utf-8')
     save_source(tmp_path, value, events)
     path = tmp_path / value['source']['path']
     if mutation == 'duplicate-json':
-        path.write_text(path.read_text().replace('"thread.started"', '"thread.started", "type": "thread.started"', 1))
+        path.write_text(path.read_text(encoding='utf-8').replace('"thread.started"', '"thread.started", "type": "thread.started"', 1), encoding='utf-8')
         value['source']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
-    elif mutation == 'tampered': path.write_text(path.read_text() + '{}\n')
+    elif mutation == 'tampered': path.write_text(path.read_text(encoding='utf-8') + '{}\n', encoding='utf-8')
     code, result = submit(tmp_path, value)
     assert code != 0, result
     assert report(tmp_path, 'status', CHG)[1]['outputs']['reviews'][0]['state'] == 'missing'

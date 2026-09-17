@@ -24,7 +24,7 @@ None.
 
 def check(tmp_path, body):
     path = tmp_path/'terms.md'
-    path.write_text(glossary(body))
+    path.write_text(glossary(body), encoding='utf-8')
     return validate(tmp_path, [path])
 
 

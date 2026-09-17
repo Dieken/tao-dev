@@ -181,5 +181,5 @@ def _markdown(report):
 
 def write_report(report, json_path, markdown_path):
     Path(json_path).write_text(
-        json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n")
-    Path(markdown_path).write_text(_markdown(report))
+        json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n", encoding='utf-8')
+    Path(markdown_path).write_text(_markdown(report), encoding='utf-8')

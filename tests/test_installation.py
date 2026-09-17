@@ -62,17 +62,17 @@ def test_changed_local_content_gets_new_native_cache_version(tmp_path):
     one, _ = install.local_catalog(source, tmp_path / 'one', 'codex', 'test')
     two, _ = install.local_catalog(source, tmp_path / 'two', 'codex', 'test')
     path = '.codex-plugin/plugin.json'
-    assert json.loads((one / path).read_text())['version'] == json.loads((two / path).read_text())['version']
-    (source / 'skills/tao-dev/SKILL.md').write_text('changed local work directory')
+    assert json.loads((one / path).read_text(encoding='utf-8'))['version'] == json.loads((two / path).read_text(encoding='utf-8'))['version']
+    (source / 'skills/tao-dev/SKILL.md').write_text('changed local work directory', encoding='utf-8')
     three, _ = install.local_catalog(source, tmp_path / 'three', 'codex', 'test')
-    assert json.loads((one / path).read_text())['version'] != json.loads((three / path).read_text())['version']
+    assert json.loads((one / path).read_text(encoding='utf-8'))['version'] != json.loads((three / path).read_text(encoding='utf-8'))['version']
 
 
 def test_sources_cannot_escape_catalog_or_follow_links(tmp_path):
     marketplace = tmp_path / 'market'
     (marketplace / '.agents/plugins').mkdir(parents=True)
     (marketplace / '.agents/plugins/marketplace.json').write_text(json.dumps({
-        'name': 'bad', 'plugins': [{'name': 'tao-dev', 'source': '../outside'}]}))
+        'name': 'bad', 'plugins': [{'name': 'tao-dev', 'source': '../outside'}]}), encoding='utf-8')
     with pytest.raises(install.InstallError, match='inside'):
         install.catalog_plugin(marketplace, 'codex')
     (marketplace / 'link').symlink_to(tmp_path)
@@ -83,10 +83,10 @@ def test_sources_cannot_escape_catalog_or_follow_links(tmp_path):
 def test_owned_root_never_replaces_existing_user_directory(tmp_path):
     root = tmp_path / 'existing'
     root.mkdir()
-    (root / 'notes.txt').write_text('mine')
+    (root / 'notes.txt').write_text('mine', encoding='utf-8')
     with pytest.raises(install.InstallError, match='ownership'):
         install.owned_root(root, 'test')
-    assert (root / 'notes.txt').read_text() == 'mine'
+    assert (root / 'notes.txt').read_text(encoding='utf-8') == 'mine'
 
 
 def test_removal_preserves_unknown_files_and_external_symlink_targets(tmp_path, monkeypatch):
@@ -97,13 +97,13 @@ def test_removal_preserves_unknown_files_and_external_symlink_targets(tmp_path, 
     (root / 'runtime').mkdir()
     outside = tmp_path / 'precious'
     outside.mkdir()
-    (outside / 'notes').write_text('mine')
+    (outside / 'notes').write_text('mine', encoding='utf-8')
     (root / 'runtime/link').symlink_to(outside)
-    (root / 'notes.txt').write_text('keep this unknown file')
+    (root / 'notes.txt').write_text('keep this unknown file', encoding='utf-8')
     paths, warnings = install.remove_owned({'id': identifier, 'client': 'codex', 'scope': 'project',
                                             'project': str(tmp_path), 'managed_root': str(root)})
     assert paths == [str(root / 'runtime')]
-    assert warnings and (root / 'notes.txt').is_file() and (outside / 'notes').read_text() == 'mine'
+    assert warnings and (root / 'notes.txt').is_file() and (outside / 'notes').read_text(encoding='utf-8') == 'mine'
 
 
 def test_report_collapses_fully_owned_directory(tmp_path):
@@ -140,13 +140,13 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
     root = state.managed_root('codex', 'project', tmp_path)
     install.owned_root(root, identifier)
     _, plugin_id = install.local_catalog(install.PLUGIN, root / 'marketplace', 'codex', identifier)
-    (root / 'marketplace/old-source').write_text('previous source')
+    (root / 'marketplace/old-source').write_text('previous source', encoding='utf-8')
     base = tmp_path / 'codex/plugins/cache' / plugin_id.split('@')[1] / 'tao-dev'
     old_cache, new_cache = base / 'old', base / 'new'
     install.copy_plugin(install.PLUGIN, old_cache)
     launcher, cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', old_cache)
     old_launcher = launcher.read_bytes()
-    (cli / 'old-cli').write_text('previous CLI')
+    (cli / 'old-cli').write_text('previous CLI', encoding='utf-8')
     previous = dict(schema=1, id=identifier, client='codex', scope='project', project=str(tmp_path),
                     managed_root=str(root), plugin_id=plugin_id, plugin_path=str(old_cache),
                     plugin_base=str(base), python=sys.executable, runtime_dir=str(root / 'runtime'),
@@ -160,7 +160,7 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
     monkeypatch.setattr(clients, 'snapshot_activation', lambda *_: {'previous': True, 'cache_paths': [str(old_cache)]}, raising=False)
     restored = []
     def restore(snapshot, **kwargs):
-        assert (root / 'marketplace/old-source').read_text() == 'previous source'
+        assert (root / 'marketplace/old-source').read_text(encoding='utf-8') == 'previous source'
         assert (old_cache / 'skills/tao-dev/scripts/tao.py').is_file()
         restored.append((snapshot, kwargs))
     monkeypatch.setattr(clients, 'restore_activation', restore, raising=False)
@@ -188,7 +188,7 @@ def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypa
         assert state.records('codex') == [previous]
     else:
         assert state.records('codex')[0]['status'] == 'preparing'
-    assert (root / 'marketplace/old-source').read_text() == 'previous source'
+    assert (root / 'marketplace/old-source').read_text(encoding='utf-8') == 'previous source'
     assert not (root / '.marketplace-previous').exists()
     assert launcher.read_bytes() == old_launcher and (cli / 'old-cli').is_file()
 
@@ -197,10 +197,10 @@ def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch)
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
     launcher, cli = install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
     original = launcher.read_bytes()
-    (cli / 'previous').write_text('keep')
+    (cli / 'previous').write_text('keep', encoding='utf-8')
     def fail(*_args):
         raise OSError('injected launcher failure')
     monkeypatch.setattr(install.os, 'replace', fail)
     with pytest.raises(OSError, match='injected'):
         install.install_cli('codex', Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    assert launcher.read_bytes() == original and (cli / 'previous').read_text() == 'keep'
+    assert launcher.read_bytes() == original and (cli / 'previous').read_text(encoding='utf-8') == 'keep'

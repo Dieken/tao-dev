@@ -74,7 +74,7 @@ def summarize_usage(log_paths, client):
         "billed_usd": None,
     }
     for path in log_paths:
-        for line in Path(path).read_text(errors="replace").splitlines():
+        for line in Path(path).read_text(errors="replace", encoding='utf-8').splitlines():
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:
@@ -136,7 +136,7 @@ def prepare_material_fixture(directory):
     """Remove unrelated requirements without supplying the missing policy choice."""
     (directory / "requirements.txt").write_text(
         "Exports are stored on disk. The product retention policy has not been "
-        "decided.\n")
+        "decided.\n", encoding='utf-8')
 
 
 def execute(client, workspace, timeout):
@@ -158,7 +158,7 @@ def execute(client, workspace, timeout):
         isolated_codex.configure(workspace, directory, plugin)
         boundary = isolated_codex.check_boundary(workspace, directory)
         config = directory / ".codex/config.toml"
-        config.write_text(config.read_text().replace("hooks = true", "hooks = false"))
+        config.write_text(config.read_text(encoding='utf-8').replace("hooks = true", "hooks = false"), encoding='utf-8')
         env = isolated_codex.environment(workspace)
         credentials = isolated_codex.access_snapshot(workspace, timeout)
     else:
@@ -168,9 +168,9 @@ def execute(client, workspace, timeout):
         boundary = None
         env = isolated_claude.environment(workspace)
         settings = workspace / "client-config/settings.json"
-        value = json.loads(settings.read_text()) if settings.exists() else {}
+        value = json.loads(settings.read_text(encoding='utf-8')) if settings.exists() else {}
         value["disableAllHooks"] = True
-        settings.write_text(json.dumps(value))
+        settings.write_text(json.dumps(value), encoding='utf-8')
         credentials = isolated_claude.access_environment(workspace, timeout)
 
     env["TAO_PYTHON"] = sys.executable
@@ -231,7 +231,7 @@ def execute(client, workspace, timeout):
     }
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n")
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding='utf-8')
     return summary
 
 

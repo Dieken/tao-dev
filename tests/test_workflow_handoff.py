@@ -18,7 +18,7 @@ change: {change}
 '''
     for section in ('scope', 'state', 'decisions', 'evidence', 'next'):
         source += f'\n<!-- tao:section {section} -->\n## {section}\n\nRead current files before proceeding.\n'
-    (root / 'handoff-source.md').write_text(source)
+    (root / 'handoff-source.md').write_text(source, encoding='utf-8')
 
 
 def test_handoff_before_plan_and_repeated_resume_preserves_new_progress(tmp_path, capsys):
@@ -41,7 +41,7 @@ def test_handoff_before_plan_and_repeated_resume_preserves_new_progress(tmp_path
     observed = report['outputs']['workflows'][0]
     assert observed['handoff_state'] == 'resumed'
     assert observed['next'] == 'Finish newly clarified acceptance criteria'
-    path.write_text(path.read_text().replace('Read current files', 'Inspect new evidence'))
+    path.write_text(path.read_text(encoding='utf-8').replace('Read current files', 'Inspect new evidence'), encoding='utf-8')
     code, report = call(tmp_path, capsys, 'workflow', 'status', state['change'])
     assert report['outputs']['workflows'][0]['handoff_state'] == 'unread'
     assert path.is_file()
@@ -64,6 +64,6 @@ def test_resume_cannot_consume_handoff_changed_after_read(tmp_path, capsys):
     target = tmp_path / report['outputs']['path']
     _, report = call(tmp_path, capsys, 'workflow', 'status', state['change'])
     observed = report['outputs']['workflows'][0]
-    target.write_text(target.read_text()+'\nNew unresolved constraint.\n')
+    target.write_text(target.read_text(encoding='utf-8')+'\nNew unresolved constraint.\n', encoding='utf-8')
     code, _ = call(tmp_path, capsys, 'workflow', 'resume', state['change'], '--expect', str(observed['revision']), '--handoff-digest', observed['handoff_digest'], '--decision', 'Read old version')
     assert code == 1

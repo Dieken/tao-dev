@@ -44,8 +44,8 @@ def main():
     (marketplace / ".claude-plugin").mkdir()
     (marketplace / ".claude-plugin/marketplace.json").write_text(json.dumps({
         "name": "tao-runtime-test", "owner": {"name": "tao-dev acceptance"},
-        "plugins": [{"name": "tao-dev", "source": "./plugins/tao-dev"}]}))
-    (inside / ".gitignore").write_text(".claude/settings.local.json\n")
+        "plugins": [{"name": "tao-dev", "source": "./plugins/tao-dev"}]}), encoding='utf-8')
+    (inside / ".gitignore").write_text(".claude/settings.local.json\n", encoding='utf-8')
     environment = os.environ | {"CLAUDE_CONFIG_DIR": str(config),
         "XDG_CONFIG_HOME": str(workspace / "xdg-config"),
         "GIT_CONFIG_GLOBAL": str(workspace / "gitconfig"),
@@ -75,7 +75,7 @@ def main():
         run = {"cwd": cwd.name, "operation": arguments[0], "exit_code": code,
                "elapsed_seconds": round(time.monotonic() - started, 3), "stdout": stdout.name}
         events = []
-        for line in stdout.read_text().splitlines():
+        for line in stdout.read_text(encoding='utf-8').splitlines():
             try:
                 item = json.loads(line)
             except ValueError:
@@ -103,7 +103,7 @@ def main():
               "scope_loading_verified": len(activation) == 2 and all(activation),
               "model_execution_verified": len(probes) == 2 and all(run["exit_code"] == 0 for run in probes),
               "model_probe_requested": args.probe}
-    (workspace / "report.json").write_text(json.dumps(report, indent=2))
+    (workspace / "report.json").write_text(json.dumps(report, indent=2), encoding='utf-8')
     print(json.dumps(report, indent=2))
     return 0 if unchanged and all(run["exit_code"] == 0 for run in runs if run["operation"] != "-p") and (not args.probe or report["scope_loading_verified"]) else 2
 

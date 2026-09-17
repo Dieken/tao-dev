@@ -43,7 +43,7 @@ def test_doctor_without_dependencies_is_structured_and_read_only(bare_python, tm
     completed = invoke(bare_python, data, "doctor")
     assert completed.returncode == 2
     report = json.loads(completed.stdout)
-    assert report["tool_version"] == tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    assert report["tool_version"] == tomllib.loads((ROOT / "pyproject.toml").read_text(encoding='utf-8'))["project"]["version"]
     assert report["diagnostics"][0]["rule_id"] == "TAO-RUNTIME-002"
     assert report["outputs"]["runtime"]["state"] == "missing"
     joined = subprocess.run([str(bare_python), str(SCRIPTS / "tao.py"), "doctor", "--format=json"],
@@ -76,7 +76,7 @@ def test_failed_complete_setup_keeps_existing_core_and_does_not_implicitly_insta
     data = tmp_path / "data"
     info = prepare(bare_python, data, scripts=scripts)
     requirements = scripts / "requirements-publication.txt"
-    requirements.write_text(requirements.read_text() + "\n# New publication inventory\n")
+    requirements.write_text(requirements.read_text(encoding='utf-8') + "\n# New publication inventory\n", encoding='utf-8')
     empty = tmp_path / "empty-wheels"
     empty.mkdir()
     failed = invoke(bare_python, data, "env", "prepare", "--wheelhouse", str(empty), scripts=scripts)
@@ -105,7 +105,7 @@ def test_changed_dependencies_use_another_environment_and_preserve_old(bare_pyth
     data = tmp_path / "data"
     first = prepare(bare_python, data, scripts=scripts)
     requirements = scripts / "requirements.txt"
-    requirements.write_text(requirements.read_text() + "\n# New release inventory\n")
+    requirements.write_text(requirements.read_text(encoding='utf-8') + "\n# New release inventory\n", encoding='utf-8')
     second = prepare(bare_python, data, scripts=scripts)
     assert first["python"] != second["python"]
     assert Path(first["python"]).is_file()
@@ -148,7 +148,7 @@ def test_corrupt_environment_requires_explicit_repair(bare_python, tmp_path):
     data = tmp_path / "data"
     first = prepare(bare_python, data)
     marker = Path(first["python"]).parent.parent / "ready.json"
-    marker.write_text("{}")
+    marker.write_text("{}", encoding='utf-8')
     broken = invoke(bare_python, data, "doctor")
     assert broken.returncode == 2
     assert json.loads(broken.stdout)["outputs"]["runtime"]["state"] == "broken"

@@ -6,7 +6,7 @@ from acceptance import clients
 
 
 def write_events(path, *events):
-    path.write_text('\n'.join(json.dumps(event) for event in events) + '\n')
+    path.write_text('\n'.join(json.dumps(event) for event in events) + '\n', encoding='utf-8')
 
 
 def test_claude_reads_come_only_from_executed_tool_inputs(tmp_path):
@@ -65,7 +65,7 @@ def test_reference_parser_reports_broad_scans_and_ignores_partial_lines(tmp_path
         '{not-json}\n' + json.dumps({'type': 'item.completed', 'item': {
             'type': 'command_execution',
             'command': "rg -n TODO .agents/skills/tao-dev/references",
-        }}) + '\n')
+        }}) + '\n', encoding='utf-8')
 
     result = clients.reference_reads(log, 'codex')
 

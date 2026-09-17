@@ -72,7 +72,7 @@ def test_review_uses_child_access_and_redacts_logs(tmp_path, monkeypatch):
     assert result['exit_code'] == 0 and result['personal_configuration_unchanged']
     assert result['credentials_unchanged'] and result['error'] is None
     assert 'CLAUDE_CODE_OAUTH_TOKEN' not in observed['env']
-    assert 'secret-test' not in (tmp_path / 'events.jsonl').read_text()
+    assert 'secret-test' not in (tmp_path / 'events.jsonl').read_text(encoding='utf-8')
     assert (tmp_path / 'client-config').stat().st_mode & 0o777 == 0o700
     assert not list(tmp_path.rglob('.credentials.json'))
 
@@ -109,7 +109,7 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
     bound = {'source_digest': 'a' * 64, 'policy_digest': 'b' * 64, 'change': 'CHG_fixture'}
     request = tmp_path / 'request.json'
     request.write_text(json.dumps({'outputs': {'request': {'binding': bound,
-                       'required_reviews': ['independent-implementation-review']}}}))
+                       'required_reviews': ['independent-implementation-review']}}}), encoding='utf-8')
     monkeypatch.setattr(runner, 'ROOT', tmp_path)
     monkeypatch.setattr(runner, 'Project', lambda root: object())
     monkeypatch.setattr(runner, 'policy', lambda project: {})
@@ -138,7 +138,7 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
             result['modelUsage'] = {'test-model': {'provider': 'different-provider'}}
         events = [dict(type='system', subtype='init', session_id='reviewer-context', apiProvider='test-provider'),
                   dict(type='assistant', message={'model': 'test-model'}), result]
-        (output / 'events.jsonl').write_text('\n'.join(json.dumps(e) for e in events))
+        (output / 'events.jsonl').write_text('\n'.join(json.dumps(e) for e in events), encoding='utf-8')
         return dict(exit_code=0, timed_out=False, error=None, personal_configuration_unchanged=True,
                     credentials_unchanged=True)
 
@@ -148,4 +148,4 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
     assert len(reports) == (0 if invalid else 1)
     summaries = list((tmp_path / 'tmp/tao/review-runs').glob('*/summary.json'))
     assert len(summaries) == 1
-    assert ('record_error' in json.loads(summaries[0].read_text())) is bool(invalid)
+    assert ('record_error' in json.loads(summaries[0].read_text(encoding='utf-8'))) is bool(invalid)

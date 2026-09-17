@@ -80,7 +80,7 @@ def _text(value, code, label):
 
 def _read_yaml(path):
     try:
-        value = yaml.safe_load(Path(path).read_text())
+        value = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
     except (OSError, yaml.YAMLError) as exc:
         raise CatalogError("invalid-yaml", f"Cannot read {path}: {exc}") from exc
     return _mapping(value, "invalid-document", str(path))

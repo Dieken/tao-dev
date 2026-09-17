@@ -48,10 +48,10 @@ class Page(HTMLParser):
 
 def project(root):
     (root / ".tao").mkdir()
-    (root / ".tao/config.toml").write_text('version = 1\nlocale = "en"\n[documents]\nbook_root = "docs/index.md"\n')
+    (root / ".tao/config.toml").write_text('version = 1\nlocale = "en"\n[documents]\nbook_root = "docs/index.md"\n', encoding='utf-8')
     (root / "docs").mkdir()
-    (root / "docs/index.md").write_text(navigation("spec.md"))
-    (root / "docs/spec.md").write_text(spec() + f'\n[Requirement section](#{DOC}--requirements)\n')
+    (root / "docs/index.md").write_text(navigation("spec.md"), encoding='utf-8')
+    (root / "docs/spec.md").write_text(spec() + f'\n[Requirement section](#{DOC}--requirements)\n', encoding='utf-8')
     return Project(root)
 
 
@@ -59,7 +59,7 @@ def test_book_has_stable_heading_and_entity_links_that_survive_moves(tmp_path):
     configured = project(tmp_path)
     output = build(configured)
     directory = tmp_path / output["directory"]
-    page = Page((directory / "docs/spec.html").read_text())
+    page = Page((directory / "docs/spec.html").read_text(encoding='utf-8'))
     assert DOC in page.ids and REQ in page.ids
     assert DOC + "--requirements" in page.ids
     assert len(page.ids) == len(set(page.ids))
@@ -70,11 +70,11 @@ def test_book_has_stable_heading_and_entity_links_that_survive_moves(tmp_path):
     links = [a["href"] for a in page.links if "headerlink" in a.get("class", "")]
     assert f"../refs/{DOC}.html#{DOC}--requirements" in links
     resolver = directory / f"refs/{REQ}.html"
-    assert "../docs/spec.html#" + REQ in resolver.read_text()
+    assert "../docs/spec.html#" + REQ in resolver.read_text(encoding='utf-8')
     (tmp_path / "docs/spec.md").rename(tmp_path / "docs/renamed.md")
-    (tmp_path / "docs/index.md").write_text(navigation("renamed.md"))
+    (tmp_path / "docs/index.md").write_text(navigation("renamed.md"), encoding='utf-8')
     build(configured)
-    assert "../docs/renamed.html#" + REQ in resolver.read_text()
+    assert "../docs/renamed.html#" + REQ in resolver.read_text(encoding='utf-8')
     assert not (directory / "docs/spec.html").exists()
 
 
@@ -87,17 +87,17 @@ def test_book_numbers_sections_without_putting_numbers_in_permalinks(tmp_path):
     second = spec().replace(DOC, second_doc).replace(REQ, second_req)
     second = second.replace(UC, second_uc)
     second = second.replace("文件导出", "文件导入")
-    (tmp_path / "docs/second.md").write_text(second)
+    (tmp_path / "docs/second.md").write_text(second, encoding='utf-8')
     part = navigation("spec.md\nsecond.md").replace(CHANGE_DOC, part_doc)
-    (tmp_path / "docs/part.md").write_text(part)
+    (tmp_path / "docs/part.md").write_text(part, encoding='utf-8')
     index = tmp_path / "docs/index.md"
-    index.write_text(navigation("part.md"))
+    index.write_text(navigation("part.md"), encoding='utf-8')
 
     first_result = build(configured)
     directory = tmp_path / first_result["directory"]
-    first = Page((directory / "docs/spec.html").read_text())
-    second_page = Page((directory / "docs/second.html").read_text())
-    part_html = (directory / "docs/part.html").read_text()
+    first = Page((directory / "docs/spec.html").read_text(encoding='utf-8'))
+    second_page = Page((directory / "docs/second.html").read_text(encoding='utf-8'))
+    part_html = (directory / "docs/part.html").read_text(encoding='utf-8')
     stable_href = f"../refs/{DOC}.html#{DOC}--requirements"
     assert first.section_numbers[:2] == ["1.1. ", "1.1.1. "]
     assert second_page.section_numbers[:2] == ["1.2. ", "1.2.1. "]
@@ -116,9 +116,9 @@ def test_book_numbers_sections_without_putting_numbers_in_permalinks(tmp_path):
 
     (tmp_path / "docs/part.md").write_text(
         navigation("second.md\nspec.md").replace(CHANGE_DOC, part_doc)
-    )
+    , encoding='utf-8')
     second_result = build(configured)
-    reordered = Page((tmp_path / second_result["directory"] / "docs/spec.html").read_text())
+    reordered = Page((tmp_path / second_result["directory"] / "docs/spec.html").read_text(encoding='utf-8'))
     assert reordered.section_numbers[:2] == ["1.2. ", "1.2.1. "]
     assert stable_href in [link["href"] for link in reordered.links]
 
@@ -128,9 +128,9 @@ def test_retired_id_keeps_a_resolvable_explanation(tmp_path):
     old = "REQ_20260914_0000000000000009"
     retired = tmp_path / "docs/retired"
     retired.mkdir()
-    (retired / "20260914.jsonl").write_text(json.dumps({"id": old, "retired_on": "2026-09-14", "reason": "Merged into export protection.", "replaced_by": [REQ]}) + "\n")
+    (retired / "20260914.jsonl").write_text(json.dumps({"id": old, "retired_on": "2026-09-14", "reason": "Merged into export protection.", "replaced_by": [REQ]}) + "\n", encoding='utf-8')
     result = build(configured)
-    page = (tmp_path / result["directory"] / f"refs/{old}.html").read_text()
+    page = (tmp_path / result["directory"] / f"refs/{old}.html").read_text(encoding='utf-8')
     assert "Merged into export protection." in page
     assert REQ in page
     assert old in Page(page).ids
@@ -142,11 +142,11 @@ def test_retired_id_keeps_a_resolvable_explanation(tmp_path):
 def test_id_references_show_current_titles_without_changing_links(tmp_path):
     configured = project(tmp_path)
     source = tmp_path / "docs/spec.md"
-    source.write_text(source.read_text() + f'\n参见 {{need}}`{DOC}`、{{need}}`{REQ}`。\n')
+    source.write_text(source.read_text(encoding='utf-8') + f'\n参见 {{need}}`{DOC}`、{{need}}`{REQ}`。\n', encoding='utf-8')
     for requirement_title in ("拒绝覆盖", "Protect <existing> & new files"):
-        source.write_text(source.read_text().replace("拒绝覆盖", requirement_title))
+        source.write_text(source.read_text(encoding='utf-8').replace("拒绝覆盖", requirement_title), encoding='utf-8')
         result = build(configured)
-        page = Page((tmp_path / result["directory"] / "docs/spec.html").read_text())
+        page = Page((tmp_path / result["directory"] / "docs/spec.html").read_text(encoding='utf-8'))
         for identity, title in ((DOC, "Specification: 文件导出"), (REQ, "Requirement: "+requirement_title)):
             references = [a for a in page.links
                           if a.get("href") == f"../refs/{identity}.html#{identity}"
@@ -162,7 +162,7 @@ def test_removed_published_id_requires_retirement_and_keeps_previous_book(tmp_pa
     resolver = tmp_path / result["directory"] / f"refs/{old}.html"
     previous = resolver.read_bytes()
     source = tmp_path / "docs/spec.md"
-    source.write_text(re.sub(r"```\{uc\}.*?```", "No active cases.", source.read_text(), flags=re.S))
+    source.write_text(re.sub(r"```\{uc\}.*?```", "No active cases.", source.read_text(encoding='utf-8'), flags=re.S), encoding='utf-8')
     with pytest.raises(ConfigurationError, match="TAO-ID-003"):
         build(configured)
     assert resolver.read_bytes() == previous
@@ -172,7 +172,7 @@ def test_book_renders_typed_forward_backlinks_and_task_dependencies(tmp_path):
     from test_document_links import linked_plan, design, DESIGN
     from test_relationships import check_change, TASK, TASK_TWO
     (tmp_path/'.tao').mkdir()
-    (tmp_path/'.tao/config.toml').write_text('version=1\nlocale="en"\n[documents]\ninclude=["docs/**/*.md"]\nbook_root="docs/index.md"\n')
+    (tmp_path/'.tao/config.toml').write_text('version=1\nlocale="en"\n[documents]\ninclude=["docs/**/*.md"]\nbook_root="docs/index.md"\n', encoding='utf-8')
     content=linked_plan([DOC],[DESIGN])
     second=f'''- [ ] `{TASK_TWO}` Check error result
   - relates: ["{REQ}"]
@@ -182,12 +182,12 @@ def test_book_renders_typed_forward_backlinks_and_task_dependencies(tmp_path):
 '''
     check_change(tmp_path,content.replace('<!-- tao:section verification -->',second+'<!-- tao:section verification -->'))
     (tmp_path/'spec.md').rename(tmp_path/'docs/spec.md')
-    (tmp_path/'docs/design.md').write_text(design(specs=[DOC]))
+    (tmp_path/'docs/design.md').write_text(design(specs=[DOC]), encoding='utf-8')
     nav=navigation('spec.md\ndesign.md\nplans/2026-09/20260914-export.md').replace(CHANGE_DOC,'DOC_20260914_0000000000000090')
-    (tmp_path/'docs/index.md').write_text(nav)
+    (tmp_path/'docs/index.md').write_text(nav, encoding='utf-8')
     output=build(Project(tmp_path)); directory=tmp_path/output['directory']
-    plan_html=(directory/'docs/plans/2026-09/20260914-export.html').read_text()
-    plan=Page(plan_html); spec_page=Page((directory/'docs/spec.html').read_text())
+    plan_html=(directory/'docs/plans/2026-09/20260914-export.html').read_text(encoding='utf-8')
+    plan=Page(plan_html); spec_page=Page((directory/'docs/spec.html').read_text(encoding='utf-8'))
     assert 'tao-relations' in plan_html and '<table' in plan_html
     assert 'Specification' in plan_html and 'Design' in plan_html
     assert any(a['text']=='文件导出' and DOC in a.get('href','') for a in plan.links)
@@ -203,9 +203,9 @@ def test_term_definition_stages_its_local_attachment(tmp_path):
     from test_glossary import glossary
     configured=project(tmp_path)
     term=glossary('```{term} Export\n\nSee [local notes](notes.txt).\n```').replace(DOC,'DOC_20260914_0000000000000080')
-    (tmp_path/'docs/terms.md').write_text(term)
-    (tmp_path/'docs/notes.txt').write_text('Important export constraints.\n')
-    (tmp_path/'docs/index.md').write_text(navigation('spec.md\nterms.md'))
+    (tmp_path/'docs/terms.md').write_text(term, encoding='utf-8')
+    (tmp_path/'docs/notes.txt').write_text('Important export constraints.\n', encoding='utf-8')
+    (tmp_path/'docs/index.md').write_text(navigation('spec.md\nterms.md'), encoding='utf-8')
     output=build(configured); directory=tmp_path/output['directory']
-    assert (directory/'docs/notes.txt').read_text()=='Important export constraints.\n'
-    assert any(a['text']=='local notes' for a in Page((directory/'docs/terms.html').read_text()).links)
+    assert (directory/'docs/notes.txt').read_text(encoding='utf-8')=='Important export constraints.\n'
+    assert any(a['text']=='local notes' for a in Page((directory/'docs/terms.html').read_text(encoding='utf-8')).links)

@@ -38,14 +38,14 @@ def configure(workspace, inside, plugin):
     (marketplace / 'marketplace.json').write_text(json.dumps({
         'name': 'tao-acceptance', 'plugins': [{
             'name': 'tao-dev', 'source': {'source': 'local', 'path': './' + plugin.relative_to(inside).as_posix()},
-            'policy': {'installation': 'AVAILABLE', 'authentication': 'ON_INSTALL'}, 'category': 'Productivity'}]}))
+            'policy': {'installation': 'AVAILABLE', 'authentication': 'ON_INSTALL'}, 'category': 'Productivity'}]}), encoding='utf-8')
     (inside / '.codex').mkdir()
     (inside / '.codex/config.toml').write_text(
         '[marketplaces.tao-acceptance]\nsource_type = "local"\nsource = ' + json.dumps(str(inside)) +
-        '\n[plugins."' + PLUGIN_ID + '"]\nenabled = true\n[features]\nhooks = true\n')
+        '\n[plugins."' + PLUGIN_ID + '"]\nenabled = true\n[features]\nhooks = true\n', encoding='utf-8')
     config = ('check_for_update_on_startup = false\n[features]\nremote_plugin = false\napps = false\n[agents]\nenabled = false\n[projects.' + json.dumps(str(inside)) +
               ']\ntrust_level = "trusted"\n')
-    (state / 'config.toml').write_text(config)
+    (state / 'config.toml').write_text(config, encoding='utf-8')
     installed = subprocess.run(['codex', 'plugin', 'add', PLUGIN_ID, '--json'], cwd=inside,
                                env=environment(workspace), capture_output=True, text=True, timeout=45, check=False)
     if installed.returncode:
@@ -56,7 +56,7 @@ def configure(workspace, inside, plugin):
         raise RuntimeError('Client reported an installation outside its isolated state.')
     # plugin add enables the plugin at user scope. A missing marketplace in
     # plugin list does not suppress cached skills in model context.
-    (state / 'config.toml').write_text(config + '[plugins."' + PLUGIN_ID + '"]\nenabled = false\n')
+    (state / 'config.toml').write_text(config + '[plugins."' + PLUGIN_ID + '"]\nenabled = false\n', encoding='utf-8')
     return cached
 
 
@@ -153,8 +153,8 @@ def trust_test_hook(workspace, inside, plugin):
                 if target.is_symlink() or not target.is_file() or target.read_bytes() != original.read_bytes():
                     raise RuntimeError('Installed hook resources differ from the reviewed source.')
     config = workspace / 'client-state/config.toml'
-    config.write_text(config.read_text() + '\n[hooks.state.' + json.dumps(hook['key']) +
-                      ']\ntrusted_hash = ' + json.dumps(hook['currentHash']) + '\n')
+    config.write_text(config.read_text(encoding='utf-8') + '\n[hooks.state.' + json.dumps(hook['key']) +
+                      ']\ntrusted_hash = ' + json.dumps(hook['currentHash']) + '\n', encoding='utf-8')
     after = hook_inventory(workspace, inside)
     trusted = [item for row in after for item in row['hooks']]
     if len(trusted) != 1 or trusted[0]['trustStatus'] != 'trusted':
@@ -178,7 +178,7 @@ def access_snapshot(workspace, timeout):
     """Reuse a current file-backed ChatGPT access token without token rotation."""
     state = workspace / 'client-state'
     original = Path.home() / '.codex/auth.json'
-    source = json.loads(original.read_text())
+    source = json.loads(original.read_text(encoding='utf-8'))
     if source.get('auth_mode') != 'chatgpt':
         raise RuntimeError('This opt-in adapter requires existing file-backed ChatGPT authentication.')
     tokens = source['tokens']
@@ -193,23 +193,23 @@ def access_snapshot(workspace, timeout):
     data = {key: source[key] for key in ('auth_mode', 'last_refresh') if key in source}
     data['tokens'] = {key: tokens[key] for key in ('access_token', 'id_token', 'account_id') if key in tokens}
     data['tokens']['refresh_token'] = ''
-    config = tomllib.loads((Path.home() / '.codex/config.toml').read_text())
+    config = tomllib.loads((Path.home() / '.codex/config.toml').read_text(encoding='utf-8'))
     if config.get('model_providers') or config.get('profile'):
         raise RuntimeError('Custom provider/profile authentication needs a separately reviewed adapter.')
     keys = ('model', 'model_provider', 'openai_base_url', 'chatgpt_base_url', 'forced_login_method', 'forced_chatgpt_workspace_id')
     prefix = '\n'.join(key + ' = ' + json.dumps(config[key]) for key in keys if key in config)
     prefix += '\ncli_auth_credentials_store = "file"\nmodel_reasoning_effort = "low"\nweb_search = "disabled"\n'
-    current = (state / 'config.toml').read_text()
+    current = (state / 'config.toml').read_text(encoding='utf-8')
     path = state / 'auth.json'
     descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(descriptor, 'w') as stream:
             json.dump(data, stream)
-        (state / 'config.toml').write_text(prefix + current)
+        (state / 'config.toml').write_text(prefix + current, encoding='utf-8')
         yield [v for k, v in tokens.items() if k.endswith('_token') and isinstance(v, str) and v]
     finally:
         path.unlink(missing_ok=True)
-        (state / 'config.toml').write_text(current)
+        (state / 'config.toml').write_text(current, encoding='utf-8')
 
 
 def private_log(path):
@@ -220,7 +220,7 @@ def private_log(path):
 
 def redact(paths, values):
     for path in paths:
-        text = path.read_text()
+        text = path.read_text(encoding='utf-8')
         for value in values:
             text = text.replace(value, '[REDACTED]')
-        path.write_text(text)
+        path.write_text(text, encoding='utf-8')

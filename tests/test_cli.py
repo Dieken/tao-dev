@@ -94,8 +94,8 @@ def test_new_creates_localized_skeleton_without_overwriting(tmp_path):
     path = tmp_path / report["outputs"]["path"]
     assert path.name == date.today().strftime("%Y%m%d") + "-export.md"
     assert path.parent.name == date.today().strftime("%Y-%m")
-    assert "## Goal and scope" in path.read_text()
-    assert "{{SCOPE}}" in path.read_text()
+    assert "## Goal and scope" in path.read_text(encoding="utf-8")
+    assert "{{SCOPE}}" in path.read_text(encoding="utf-8")
     assert report["outputs"]["draft_complete"] is False
     before = path.read_bytes()
     repeated = run(tmp_path, "new", "--slug", "export", "--locale", "en")
@@ -113,10 +113,10 @@ def test_bad_or_incomplete_generation_input_does_not_write(tmp_path, args):
 
 def test_project_config_is_local_and_determines_managed_scope(tmp_path):
     (tmp_path / ".tao").mkdir()
-    (tmp_path / ".tao/config.toml").write_text('version = 1\nlocale = "en"\n[documents]\ninclude = ["manual/*.md"]\n')
+    (tmp_path / ".tao/config.toml").write_text('version = 1\nlocale = "en"\n[documents]\ninclude = ["manual/*.md"]\n', encoding="utf-8")
     (tmp_path / "manual").mkdir()
     (tmp_path / "manual/spec.md").write_text(spec(), encoding="utf-8")
-    (tmp_path / "README.md").write_text("# Not managed\n")
+    (tmp_path / "README.md").write_text("# Not managed\n", encoding="utf-8")
     completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--only", "docs", "--format", "json"], cwd=tmp_path, text=True, capture_output=True)
     assert completed.returncode == 0, completed.stderr
     assert list(json.loads(completed.stdout)["outputs"]["documents"]["documents"]) == ["manual/spec.md"]
@@ -136,7 +136,7 @@ def test_empty_managed_scope_does_not_pass_verification(tmp_path):
 
 def test_id_allocation_does_not_ignore_unreadable_index_scope(tmp_path):
     project(tmp_path)
-    (tmp_path / "docs/broken.md").write_text("# Unknown schema\n")
+    (tmp_path / "docs/broken.md").write_text("# Unknown schema\n", encoding="utf-8")
     assert run(tmp_path, "id", "new", "REQ").returncode == 2
 
 
@@ -152,7 +152,7 @@ def test_id_collision_limit_and_full_random_alphabet():
     from datetime import date
     from taolib.identifiers import new_id
 
-    registry = json.loads((ASSETS / "document-profiles.json").read_text())
+    registry = json.loads((ASSETS / "document-profiles.json").read_text(encoding="utf-8"))
     identity = "REQ_20260914_0000000000000000"
     calls = []
 
@@ -189,19 +189,19 @@ change: {CHG}
 '''
     for key in ("scope", "state", "decisions", "evidence", "next"):
         text += f'\n<!-- tao:section {key} -->\n## {key.title()}\n\nConcrete recovery context.\n'
-    draft.write_text(text)
+    draft.write_text(text, encoding="utf-8")
     completed = run(tmp_path, "handoff", CHG, "--from", "draft.md")
     assert completed.returncode == 0, completed.stdout
     target = tmp_path / json.loads(completed.stdout)["outputs"]["path"]
     assert target == tmp_path / "docs/plans/2026-09/20260914-export/handoff.md"
-    assert "Concrete recovery context." in target.read_text()
-    assert "CLI observation" in target.read_text()
+    assert "Concrete recovery context." in target.read_text(encoding="utf-8")
+    assert "CLI observation" in target.read_text(encoding="utf-8")
     assert not (tmp_path / ".git").exists()
-    draft.write_text(text.replace("Concrete recovery context.", "Updated recovery context."))
+    draft.write_text(text.replace("Concrete recovery context.", "Updated recovery context."), encoding="utf-8")
     assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 0
-    assert "Updated recovery context." in target.read_text()
+    assert "Updated recovery context." in target.read_text(encoding="utf-8")
     previous = target.read_bytes()
-    draft.write_text(text.replace(identity, "DOC_20260914_0000000000000009"))
+    draft.write_text(text.replace(identity, "DOC_20260914_0000000000000009"), encoding="utf-8")
     assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 1
     assert target.read_bytes() == previous
 

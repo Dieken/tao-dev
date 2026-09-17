@@ -9,7 +9,7 @@ from taolib.documents import ASSETS, validate
 
 
 def decision(locale="zh-Hans", context="**背景与备选：** 比较共享环境与独立环境。"):
-    template = (ASSETS / "templates/decision.md").read_text()
+    template = (ASSETS / "templates/decision.md").read_text(encoding='utf-8')
     values = {
         "DOC_ID": "DOC_20260914_0000000000000001", "TITLE": "Runtime choice",
         "LOCALE": locale, "CREATED": "2026-09-14", "heading.decisions": "Decisions",
@@ -23,7 +23,7 @@ def decision(locale="zh-Hans", context="**背景与备选：** 比较共享环�
 
 
 def test_chinese_adr_template_names_all_consequences_not_only_costs():
-    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text())
+    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text(encoding='utf-8'))
     source = decision().replace("**Consequences:**", f"**{labels['label.consequences']}:**")
     assert "**影响与后果:**" in source
 
@@ -39,7 +39,7 @@ def test_chinese_adr_template_names_all_consequences_not_only_costs():
 ])
 def test_adr_rejects_missing_label_or_description(tmp_path, content):
     path = tmp_path / "decision.md"
-    path.write_text(decision(context=content))
+    path.write_text(decision(context=content), encoding='utf-8')
     result = validate(tmp_path, [path])
     assert "TAO-ENTITY-001" in {item.rule_id for item in result.diagnostics}
     assert any("context" in item.message for item in result.diagnostics)
@@ -53,6 +53,6 @@ def test_adr_rejects_missing_label_or_description(tmp_path, content):
 ])
 def test_adr_label_words_and_punctuation_are_localizable(tmp_path, locale, content):
     path = tmp_path / "decision.md"
-    path.write_text(decision(locale, content))
+    path.write_text(decision(locale, content), encoding='utf-8')
     result = validate(tmp_path, [path])
     assert result.valid, result.to_dict()

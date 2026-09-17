@@ -25,14 +25,14 @@ def test_damaged_structure_is_not_silently_accepted(tmp_path, content):
 
 
 def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
-    registry = json.loads((ASSETS / "document-profiles.json").read_text())
+    registry = json.loads((ASSETS / "document-profiles.json").read_text(encoding="utf-8"))
     for locale in ("en", "zh-Hans"):
         root = tmp_path / locale
         root.mkdir()
-        labels = json.loads((ASSETS / f"locales/{locale}.json").read_text())
+        labels = json.loads((ASSETS / f"locales/{locale}.json").read_text(encoding="utf-8"))
         paths = []
         for index, profile in enumerate(registry["profiles"].values(), 1):
-            template = (ASSETS / profile["template"]).read_text()
+            template = (ASSETS / profile["template"]).read_text(encoding="utf-8")
             name = Path(profile["template"]).name
             if name == "plan.md":
                 name = "2026-09/20260914-export.md"
@@ -57,8 +57,8 @@ def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
 
 
 def test_chinese_evidence_template_labels_the_input_reference():
-    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text())
-    template = (ASSETS / "templates/evidence.md").read_text()
+    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text(encoding="utf-8"))
+    template = (ASSETS / "templates/evidence.md").read_text(encoding="utf-8")
     rendered = template.replace(
         "{{label.fingerprint}}", labels["label.fingerprint"]
     )

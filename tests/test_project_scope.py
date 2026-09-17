@@ -18,8 +18,8 @@ def test_exclusions_match_the_same_root_relative_globs_as_includes(tmp_path, exc
     for name in names:
         p = tmp_path / name
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text('fixture')
+        p.write_text('fixture', encoding='utf-8')
     (tmp_path / '.tao').mkdir()
     (tmp_path / '.tao/config.toml').write_text('version = 1\n[documents]\ninclude = ["**/*.md"]\nexclude = '
-                                             + json.dumps([exclude]) + '\n')
+                                             + json.dumps([exclude]) + '\n', encoding='utf-8')
     assert {p.relative_to(tmp_path).as_posix() for p in Project(tmp_path).sources()} == names - removed

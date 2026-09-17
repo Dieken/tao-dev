@@ -53,7 +53,7 @@ class ClientAdapter:
 
     def session_id(self, log_path):
         try:
-            rows = [json.loads(line) for line in Path(log_path).read_text().splitlines()
+            rows = [json.loads(line) for line in Path(log_path).read_text(encoding='utf-8').splitlines()
                     if line.strip()]
         except (OSError, json.JSONDecodeError):
             return None
