@@ -17,6 +17,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "plugins/tao-dev/skills/tao-dev/
 def registry(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.setenv("TAO_CLI_DIR", str(tmp_path / "shared"))
     monkeypatch.delenv("TAO_PYTHON", raising=False)
     monkeypatch.delenv("TAO_RUNTIME_DIR", raising=False)
     assert importlib.util.find_spec("installed_runtime"), "Installation registry is not implemented"
@@ -232,7 +233,7 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
                                env=clean | {"TAO_RUNTIME_DIR": row["runtime_dir"], "TAO_PYTHON": sys.executable},
                                capture_output=True, text=True, check=False, encoding='utf-8')
         assert setup.returncode == 0, setup.stdout + setup.stderr
-        launcher, shared = installation.install_cli(client, sys.executable, tmp_path / "bin", native)
+        launcher, shared, _retired = installation.install_cli(sys.executable, tmp_path / "bin", native)
         row["cli_path"] = str(shared)
         registry.save_record(row)
         installed.append(row)

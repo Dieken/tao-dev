@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 import tempfile
 from pathlib import Path
 
@@ -22,6 +23,45 @@ def client_home(client):
     if not path.is_absolute():
         raise ValueError("Client configuration directory must be absolute.")
     return path.resolve()
+
+
+def shared_root():
+    """Storage every client shares, so removing one client keeps the CLI.
+
+    An explicit directory keeps experiments and tests off the real one.
+    """
+    explicit = os.environ.get("TAO_CLI_DIR")
+    if explicit:
+        path = Path(explicit)
+        if not path.is_absolute():
+            raise ValueError("Shared CLI directory must be absolute.")
+        return path.resolve()
+    if sys.platform == "win32":
+        parent = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData/Local")
+    elif sys.platform == "darwin":
+        parent = Path.home() / "Library/Application Support"
+    else:
+        parent = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
+    if not parent.is_absolute():
+        raise ValueError("User data directory must be absolute.")
+    return _unlinked(parent / "tao-dev", parent)
+
+
+def cli_root():
+    root = shared_root()
+    return _unlinked(root / "cli", root)
+
+
+def legacy_cli_roots():
+    """Earlier releases kept the shared CLI under one client's own home."""
+    roots = []
+    for client in CLIENTS:
+        try:
+            home = client_home(client)
+            roots.append(_unlinked(home / "tao-dev/cli", home))
+        except (OSError, ValueError, RuntimeError):
+            continue
+    return roots
 
 
 def _unlinked(path, boundary):
@@ -119,8 +159,16 @@ def _validate(record, client=None):
     if any(boundary.is_relative_to(base.resolve()) for boundary in boundaries):
         raise ValueError("Plugin cache base is too broad.")
     _absolute(record["python"])
-    if "cli_path" in record and _absolute(record["cli_path"]) != client_home(client) / "tao-dev/cli":
-        raise ValueError("CLI binding must point to the client's shared tao CLI.")
+    if "cli_path" in record:
+        # A receipt written before the CLI moved out of a client home stays
+        # readable; reinstalling is what repoints it.
+        allowed = [client_home(client) / "tao-dev/cli"]
+        try:
+            allowed.append(cli_root())
+        except (OSError, ValueError, RuntimeError):
+            pass
+        if _absolute(record["cli_path"]) not in allowed:
+            raise ValueError("CLI binding must point to the shared tao CLI.")
     if record["status"] not in ("ready", "preparing"):
         raise ValueError("Invalid installation status.")
     if not all(isinstance(record[key], str) and record[key] for key in ("plugin_id", "version")):
@@ -174,17 +222,14 @@ def save_record(record):
 
 
 def shared_cli(scripts):
-    """Recognize either client's managed CLI without depending on a receipt."""
+    """Recognize the managed CLI copy without depending on a receipt."""
     scripts = Path(scripts).resolve()
-    for client in CLIENTS:
-        try:
-            home = client_home(client)
-            root = _unlinked(home / "tao-dev/cli", home)
-            if scripts.is_relative_to(root):
-                return True
-        except (OSError, ValueError, RuntimeError):
-            continue
-    return False
+    roots = legacy_cli_roots()
+    try:
+        roots.append(cli_root())
+    except (OSError, ValueError, RuntimeError):
+        pass
+    return any(scripts.is_relative_to(root) for root in roots)
 
 
 def binding(scripts, cwd=None):
