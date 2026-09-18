@@ -9,7 +9,7 @@
 | 产品规格 | `docs/product/<capability>.md`，每个用户可命名的能力一份；含目标、范围、REQ／UC、约束 | 本次施工步骤、执行日志 |
 | 系统与模块设计 | `docs/engineering/<system-or-module>.md`，每个已有系统或模块一份；含边界、状态、接口与依赖 | 复制规格全文、日常任务 |
 | 跨变更的技术决定 | `docs/engineering/decisions/<slug>.md`，每个 ADR 一份；含背景、备选、决定、后果 | 临时实现过程；只影响本次变更的选择留在计划 |
-| 正式审查报告与裁决 | 有计划归其 reviews/ 附件；计划前、无所属计划或跨事项归 `docs/engineering/reviews/<yyyymmdd>-<slug>/`，采用 evidence profile；批次命名见下文，保留策略见 [证据保存](evidence-retention.md) | 临时模型输出、复制受检正文 |
+| 正式审查报告与裁决 | 有计划归其 reviews/ 附件；计划前、无所属计划或跨事项归 `docs/engineering/reviews/<yyyymmdd>-<slug>/`，采用 evidence profile；批次命名见 [报告写法](review-reports.md)，保留策略见 [证据保存](evidence-retention.md) | 临时模型输出、复制受检正文 |
 | 变更计划 | `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
 | 用户说明 | `docs/user/<user-task>.md`，每个读者操作目标一份 | 内部研发任务 |
 | 运维说明 | `docs/operations/<operation>.md`，每个部署、诊断或恢复操作一份 | 暂时实验记录 |
@@ -31,17 +31,7 @@ ADR 默认平铺在 `docs/engineering/decisions/`，不按年月或状态归档�
 
 ### 审查批次命名
 
-本规则仅适用于正式审查报告和裁决，不要求一般 evidence 改名。有计划时用 `<plan-stem>/reviews/<yyyymmdd>-<slug>/`；无所属计划、计划前或跨事项时用 `docs/engineering/reviews/<yyyymmdd>-<slug>/`。日期取批次开始的本地日期，后续编辑、移动或同批复核不刷新。
-
-slug 概括本批评审的对象与目的，使用小写 ASCII 字母、数字与连字符，如 `export-contract`、`export-recovery-followup`。创建前检查整个批次目录；同一批继续原目录，同日不同批次或独立后续评审用更具体的 slug，不覆盖、不机械追加计数。文件保持以下形式：
-
-| 内容 | 文件名 |
-|---|---|
-| 主审裁决 | `00-adjudication.md` |
-| 独立报告 | `<NN>-<focus>-<reviewer>.md`，NN 为从 01 开始的两位编号；focus 和 reviewer 使用与 slug 相同的字符约定 |
-| 批次导航 | `index.md`，使用 navigation profile |
-
-NN 在同批内唯一，用于区分报告，不代表轮次或阅读顺序；同批复核若独立成文，使用新报告编号并在正文记录实际轮次。文件名中的 reviewer 只是便于识别的简称，实际身份、模型、供应商、方法与轮次以正文为据。导航统一按 [出版规程](publication.md) 维护；接入已有书籍时从上级目录挂接批次入口。命名和碰撞由作者核对，当前 schema 校验不强制这些路径模式。
+正式报告的位置、批次和文件名见 [报告写法](review-reports.md)。
 
 ## 文档与附件拆分
 

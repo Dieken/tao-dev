@@ -54,37 +54,13 @@ coverage: unknown
 <!-- tao:field limits -->
 **{{label.limits}}:** {{UNVERIFIED_SCOPE_AND_COVERAGE_LIMITS}}
 
-### {{heading.accepted}}
-
 | {{label.finding}} | {{label.disposition}} | {{label.reason}} | {{label.followup}} |
 |---|---|---|---|
-| {{ACCEPTED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{ACCEPTED_DISPOSITION_SCOPE}} | {{ACCEPTED_RATIONALE_WITH_EVIDENCE}} | {{ACCEPTED_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE}} |
-
-### {{heading.partial}}
-
-| {{label.finding}} | {{label.disposition}} | {{label.reason}} | {{label.followup}} |
-|---|---|---|---|
-| {{PARTIAL_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{PARTIAL_DISPOSITION_SCOPE}} | {{PARTIAL_RATIONALE_WITH_EVIDENCE}} | {{PARTIAL_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE}} |
-
-### {{heading.deferred}}
-
-| {{label.finding}} | {{label.disposition}} | {{label.reason}} | {{label.followup}} |
-|---|---|---|---|
-| {{DEFERRED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{DEFERRED_DISPOSITION_SCOPE}} | {{DEFERRED_RATIONALE_WITH_EVIDENCE}} | {{DEFERRED_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE}} |
-
-### {{heading.rejected}}
-
-| {{label.finding}} | {{label.disposition}} | {{label.reason}} | {{label.followup}} |
-|---|---|---|---|
-| {{REJECTED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{REJECTED_DISPOSITION_SCOPE}} | {{REJECTED_RATIONALE_WITH_EVIDENCE}} | {{REJECTED_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE}} |
-
-### {{heading.unresolved}}
+| {{SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{DISPOSITION_AND_SCOPE}} | {{RATIONALE_WITH_EVIDENCE}} | {{FOLLOWUP_OR_NONE}} |
 
 {{UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE}}
 
-### {{heading.next_impact}}
-
-{{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
+**{{heading.next_impact}}:** {{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
 
 <!-- tao:section retention -->
 ## {{heading.retention}}

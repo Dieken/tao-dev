@@ -79,22 +79,7 @@ evidence 在勾选完成时必需，通常指向计划 verification 的稳定章
 
 plan 的 VERIFICATION 先写检查办法，执行后在 `<!-- tao:results -->` 与 `<!-- /tao:results -->` 之间补结果，避免执行记录改变计划批准。记录内容、输入引用和独立摘要的使用条件统一见 [证据保存](evidence-retention.md)。
 
-独立 evidence 的 inputs.fingerprint 填受检输入引用，environment 填环境，checks 填命令／观察、预期、结果与报告入口，findings 填限制，retention 填保存安排。reports 可明确写原始输出未长期保存及原因。
-
-frontmatter 的 result 表示报告所述受检对象在声明范围内的总体结论，不能用脚本执行状态替代；coverage 独立表示覆盖范围。结果枚举适用于全部 evidence，包括审查报告：
-
-| result | 含义 |
-|---|---|
-| passed | 有依据确认声明范围内满足检查或审查标准；不扩大 coverage |
-| failed | 有依据确认未满足标准；审查的 changes-requested 对应此值，正文保留原结论措辞 |
-| not_run | 本报告所述检查或审查确实未执行 |
-| not_applicable | 所述检查或审查不适用，正文说明依据 |
-| stale | 本报告明确判定证据不再适用于其声明的受检输入，正文记录原因；不因日志到期改写历史结果 |
-| unknown | 原材料未记载总体结论，或依据不足以确定；正文保留已有发现、检查结果与未知原因 |
-
-审查模板默认 unknown，作者据实填写；审查已执行但未形成总体结论时不能填 not_run，也不能由缺陷数量、无阻断描述或命令通过推断 passed／failed。已有明确结论不因模板默认值变成 unknown。unknown 不代表通过、不适用或已完成验收。新增枚举不改变旧值的有效性；使用 unknown 的文档须由包含该枚举的注册表和校验器检查，旧包可能拒绝。
-
-recorded_at 记录实际形成本记录的时刻，不冒充审查执行时间；编辑既有记录时保留原记录时刻。审查／检查执行时间及其来源另写在正文，无法确认则写未知，不能根据文件修改时间、目录日期或记录时刻猜测。
+独立 evidence 的字段、结果与时间语义见 [证据保存](evidence-retention.md)。
 
 ## 内容审查
 

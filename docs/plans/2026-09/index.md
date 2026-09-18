@@ -37,4 +37,5 @@ created: "2026-09-14"
 20260918-review-report-contract.md
 20260918-review-time-budget.md
 20260918-review-output-binding.md
+20260918-skill-reading-refinement.md
 ```

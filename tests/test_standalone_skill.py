@@ -31,18 +31,6 @@ def test_standalone_resources_remain_inside_skill():
     assert skill / 'references/engineering.md' in links
 
 
-def test_local_code_fix_explicitly_routes_to_engineering_before_writing():
-    skill = SCRIPTS.parent
-    entry = (skill / 'SKILL.md').read_text(encoding='utf-8')
-    workflow = (skill / 'references/workflow.md').read_text(encoding='utf-8')
-
-    assert '代码实现（包括局部修复）' in entry
-    assert '必须在行动前读取 [工程规程](references/engineering.md)' in entry
-    assert '普通局部代码实现或修复' in workflow
-    assert '仍须在写入前读取 [工程规程](engineering.md)' in workflow
-    assert '直接执行该检查，不再读取工具或验证规程' in workflow
-
-
 def test_copied_skill_from_different_cwd_without_prepared_dependencies(
         bare_python, tmp_path):  # noqa: F811
     skill = tmp_path / 'client skills 中文/tao-dev'

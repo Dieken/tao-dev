@@ -25,7 +25,7 @@ def review(locale='en', variant='review', **overrides):
         'RECORDED_AT': '2026-09-18T12:00:00+08:00',
         'CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE':
             f'F1: {{need}}`{REQ}`; [source](../../spec.md#{DOC}--requirements), line 26.',
-        'ACCEPTED_RATIONALE_WITH_EVIDENCE': f'{{need}}`{REQ}`',
+        'RATIONALE_WITH_EVIDENCE': f'{{need}}`{REQ}`',
     } | overrides
     registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
     template_path = registry['profiles']['tao.project.evidence/v0.1']['alternate_templates'][variant]
@@ -117,10 +117,12 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
             'OBSERVED_EVIDENCE_OR_UNVERIFIED_HYPOTHESIS': f'HYPOTHESIS_{number}: not reproduced',
             'IMPACT': f'IMPACT_{number}: may lose a partial export',
             'MINIMUM_REMEDY_OR_VERIFICATION': f'REMEDY_{number}: reproduce interruption first',
-            'RISKS_WITH_SIX_FINDING_ELEMENTS_OR_NONE': f'#### R{number}: recovery\n\n- RISK_{number}: preserve uncertainty',
-            'NON_BLOCKING_SUGGESTIONS_OR_NONE': f'1. SUGGESTION_{number}: **optional** `retry` label\n\n---',
-            'ACCEPTED_LIMITS_WITH_SOURCE_AND_RATIONALE_OR_NONE': f'LIMIT_{number}: offline operation accepted by the owner',
-            'UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE': f'- UNRESOLVED_{number}: external input remains unknown',
+            'SEVERITY_AND_BLOCKING_CONDITION': f'SEVERITY_{number}: blocks only when reproduced',
+            'OTHER_FINDINGS_AND_UNRESOLVED_WORK_OR_NONE': (
+                f'### Recovery risk\n\n- RISK_{number}: preserve uncertainty\n\n'
+                f'1. SUGGESTION_{number}: **optional** `retry` label\n\n---\n\n'
+                f'LIMIT_{number}: offline operation accepted by the owner\n\n'
+                f'- UNRESOLVED_{number}: external input remains unknown'),
             'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': f'NEXT_{number}: investigate before deciding',
         }
         text = review(locale, **fields)
@@ -134,26 +136,24 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
         'DOC_ID': adjudication, 'EVD_ID': 'EVD_20260918_0000000000000004',
         'SOURCE_REPORT_LINK': link,
         'SOURCE_REPORT_LINKS_OR_NO_SEPARATE_REPORTS': '\n'.join(f'- [{name}]({name})' for name in names),
-        'ACCEPTED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' D1',
-        'PARTIAL_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' R1',
-        'PARTIAL_DISPOSITION_SCOPE': 'PARTIAL_SCOPE: accept the scenario, retain the existing design',
-        'DEFERRED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' N1',
-        'DEFERRED_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE': 'REVISIT: after a reproducible failure',
+        'SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' D1',
+        'DISPOSITION_AND_SCOPE': 'PARTIAL_SCOPE: accept the scenario, retain the existing design',
+        'FOLLOWUP_OR_NONE': 'REVISIT: after a reproducible failure',
         'UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE': '- REMAINING: execution time unknown',
         'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': 'IMPACT_ON_PLAN: no implementation authorized',
     }
     text = review(locale, 'review-adjudication', **fields)
     labels = json.loads((ASSETS / f'locales/{locale}.json').read_text(encoding='utf-8'))
-    start = text.index('### ' + labels['heading.accepted'])
-    end = text.index('### ' + labels['heading.partial'])
-    heading, table = text[start:end].split('\n\n', 1)
-    text = text[:start] + heading + '\n\n' + ''.join(
-        f'#### Theme {letter}\n\nDETAIL_{letter}: keep the original explanation.\n\n{table}'
-        for letter in 'ABCDE'
-    ) + text[end:]
-    start = text.index('### ' + labels['heading.rejected'])
-    end = text.index('### ' + labels['heading.unresolved'])
-    text = text[:start] + f"### {labels['heading.rejected']}\n\nREJECT_REASON: source premise contradicted by the contract.\n\n" + text[end:]
+    # Complex authors can group the single-table starting point without a
+    # different schema; no disposition category is mandatory.
+    start = text.index('| ' + labels['label.finding'])
+    end = text.index('\n\n', start)
+    table = text[start:end]
+    groups = ''.join(
+        f'### Theme {letter}\n\nDETAIL_{letter}: keep the original explanation.\n\n{table}\n\n'
+        for letter in 'ABCDEFG'
+    )
+    text = text[:start] + groups + 'REJECT_REASON: source premise contradicted by the contract.\n' + text[end:]
     (directory / '00-adjudication.md').write_text(text, encoding='utf-8')
     (directory / 'index.md').write_text(
         navigation('00-adjudication.md\n' + '\n'.join(names)).replace(CHANGE_DOC, 'DOC_20260918_0000000000000005'), encoding='utf-8')
@@ -173,7 +173,7 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
     assert f'01-contract-alpha.html#{REVIEW}--findings' in [a.get('href') for a in Page(html).links]
     for number, name in enumerate(names, 1):
         html = (pages / name.replace('.md', '.html')).read_text(encoding='utf-8')
-        for sentinel in ['TRIGGER', 'HYPOTHESIS', 'IMPACT', 'REMEDY', 'RISK', 'SUGGESTION', 'LIMIT', 'UNRESOLVED', 'NEXT']:
+        for sentinel in ['SEVERITY', 'TRIGGER', 'HYPOTHESIS', 'IMPACT', 'REMEDY', 'RISK', 'SUGGESTION', 'LIMIT', 'UNRESOLVED', 'NEXT']:
             assert f'{sentinel}_{number}' in html
         assert '<ol' in html and '<ul' in html and '<hr' in html
         assert '<strong>optional</strong>' in html

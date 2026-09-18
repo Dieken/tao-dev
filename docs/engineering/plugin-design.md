@@ -5,7 +5,7 @@ title: 插件打包与运行环境
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
-updated: "2026-09-15"
+updated: "2026-09-18"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 ---
 
@@ -27,7 +27,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 
 开发资料留在项目根的 `docs/`；运行源码单独放在 `plugins/tao-dev/`。根目录 [AGENTS.md](../../AGENTS.md) 管理本项目开发，旁置 [CLAUDE.md](../../CLAUDE.md) 仅含一行 `@AGENTS.md` 供 Claude 导入；二者均不作为产品 agent 定义或分发内容。按实际组件逐步创建目录，未实现的组件不放空配置或虚假入口。
 
-当前 prompt 实现由 [SKILL.md](../../plugins/tao-dev/skills/tao-dev/SKILL.md) 明确加载 [工程规程](../../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_20260914_4CS6P421MGW68PME`。工程条款的权威执行文本维护在该运行参考中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
+当前 prompt 实现由 [SKILL.md](../../plugins/tao-dev/skills/tao-dev/SKILL.md) 按任务加载 [工程规程](../../plugins/tao-dev/skills/tao-dev/references/engineering.md)，落实 {need}`REQ_20260914_4CS6P421MGW68PME`。工程条款的权威执行文本维护在该入口及按场景链接的 [工程专题](../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md) 中，内部文档维护需求、理由和验收，不复制一套同文规则。发布目录离开开发仓库后仍须能完整读取这些指令。
 
 ```text
 tao-dev/

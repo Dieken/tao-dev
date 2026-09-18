@@ -50,10 +50,9 @@ coverage: unknown
 <!-- tao:field limits -->
 **{{label.limits}}:** {{UNVERIFIED_SCOPE_AND_COVERAGE_LIMITS}}
 
-### {{heading.defects}}
+### {{LOCAL_FINDING_ID_AND_TITLE}}
 
-#### {{LOCAL_FINDING_ID_AND_TITLE}}
-
+- **{{label.severity}}:** {{SEVERITY_AND_BLOCKING_CONDITION}}
 - **{{label.location}}:** {{LOCATION_LINK_AND_LINE_OUTSIDE_LINK}}
 - **{{label.constraint}}:** {{CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE}}
 - **{{label.trigger}}:** {{TRIGGER}}
@@ -61,25 +60,9 @@ coverage: unknown
 - **{{label.impact}}:** {{IMPACT}}
 - **{{label.remedy}}:** {{MINIMUM_REMEDY_OR_VERIFICATION}}
 
-### {{heading.risks}}
+{{OTHER_FINDINGS_AND_UNRESOLVED_WORK_OR_NONE}}
 
-{{RISKS_WITH_SIX_FINDING_ELEMENTS_OR_NONE}}
-
-### {{heading.suggestions}}
-
-{{NON_BLOCKING_SUGGESTIONS_OR_NONE}}
-
-### {{heading.accepted_limits}}
-
-{{ACCEPTED_LIMITS_WITH_SOURCE_AND_RATIONALE_OR_NONE}}
-
-### {{heading.unresolved}}
-
-{{UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE}}
-
-### {{heading.next_impact}}
-
-{{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
+**{{heading.next_impact}}:** {{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
 
 <!-- tao:section retention -->
 ## {{heading.retention}}

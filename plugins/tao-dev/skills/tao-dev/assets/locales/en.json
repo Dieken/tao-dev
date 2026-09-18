@@ -104,5 +104,6 @@
   "label.finding": "Source finding",
   "label.disposition": "Disposition and scope",
   "label.reason": "Rationale",
-  "label.followup": "Remaining work or revisit condition"
+  "label.followup": "Remaining work or revisit condition",
+  "label.severity": "Severity and blocking condition"
 }

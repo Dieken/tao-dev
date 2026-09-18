@@ -21,6 +21,7 @@ RESOURCE_PATH = re.compile(
     r'assets/[A-Za-z0-9_./-]+)')
 DOCUMENT_RESOURCES = {
     'references/documents.md',
+    'references/review-reports.md',
     'references/document-layout.md',
     'references/document-content.md',
     'references/retirement.md',

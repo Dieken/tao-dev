@@ -6,6 +6,8 @@ from pathlib import Path
 import uuid
 import zipfile
 
+from tao_messages import Message
+
 from . import git_workflow, workflows
 from .project import ConfigurationError, ConflictError, contained
 from .verification import digest_json, file_digest
@@ -37,7 +39,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
             raise ConfigurationError('Review outputs must be exact project-relative Markdown paths.')
         target_path = contained(project.root, name)
         if target_path != project.root / name or (target_path.exists() and (not started or not target_path.is_file())):
-            raise ConflictError('Reserve a new review output file before starting: '+name)
+            raise ConflictError(Message('Reserve a new review output file before starting: {arg0}', name))
     info = git_workflow.context(project.root)
     target = info['base_commit'] if info else None
     source = None

@@ -265,7 +265,7 @@ class Validator:
             self.result.diagnostics.append(Diagnostic(
                 "TAO-LINK-002", "warning", path, line,
                 Message('Unlinked Markdown file in prose: {arg0}.', child.content),
-                'Use a relative Markdown link for navigation; put line numbers outside the link.'))
+                'For a navigation target, use a relative Markdown link with line numbers outside it; keep filename examples as code without inventing a target.'))
 
     def entity(self, token, section, path, offset):
         match = re.fullmatch(r"\{(req|uc|adr)\}\s+(.+)", token.info.strip())
