@@ -16,7 +16,7 @@ def names(value):
     return set(filter(None, (value or '').split('\0')))
 
 
-def preview(project, state, scope='feature', kind=None, base=None, include=None):
+def preview(project, state, scope='feature', kind=None, base=None, include=None, outputs=None, *, started=False):
     if scope not in ('feature', 'project'):
         raise ConfigurationError('Review scope must be feature or project.')
     kind = kind or ('docs' if state['phase'] in workflows.DOC_PHASES else 'code')
@@ -27,6 +27,17 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
         if not isinstance(path, str) or Path(path).is_absolute():
             raise ConfigurationError('Review filters must be project-relative paths.')
         contained(project.root, path)
+    outputs = outputs or []
+    if not isinstance(outputs, list) or any(not isinstance(p, str) for p in outputs) or len(outputs) != len(set(outputs)):
+        raise ConfigurationError('Review outputs must be distinct project-relative Markdown files.')
+    for name in outputs:
+        path = Path(name)
+        if (path.is_absolute() or path.as_posix() != name or '..' in path.parts
+                or path.suffix != '.md' or any(c in name for c in '*?[]')):
+            raise ConfigurationError('Review outputs must be exact project-relative Markdown paths.')
+        target_path = contained(project.root, name)
+        if target_path != project.root / name or (target_path.exists() and (not started or not target_path.is_file())):
+            raise ConflictError('Reserve a new review output file before starting: '+name)
     info = git_workflow.context(project.root)
     target = info['base_commit'] if info else None
     source = None
@@ -52,6 +63,10 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
             files |= selected  # Deleted paths remain visible in the review scope.
         else:
             selected = set(files)
+        if outputs and not started:
+            tracked_outputs = names(git_workflow.run(project.root, 'ls-tree', '-r', '--name-only', '-z', target, '--', *outputs))
+            if tracked_outputs or (set(outputs) & files) - untracked:
+                raise ConflictError('Tracked inputs cannot be reserved as review outputs.')
     else:
         if scope != 'project':
             raise ConfigurationError('Feature diff review requires Git; project review can use a file snapshot.')
@@ -65,8 +80,8 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
         parts = Path(name).parts
         return (not set(parts) & (EXCLUDED - {'tmp', '.tao'}) and parts[:len(temporary)] != temporary
                 and parts[:2] != ('.tao', 'workflows'))
-    excluded = sorted(name for name in files if not admitted(name))
-    files = {name for name in files if admitted(name)}
+    excluded = sorted({name for name in files if not admitted(name)} | set(outputs))
+    files = {name for name in files if admitted(name)} - set(outputs)
     rows = []
     total = 0
     for name in sorted(files):
@@ -87,11 +102,19 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None)
         selected = {name for name in selected if name.endswith('.md')}
     if include:
         selected = {name for name in selected if any(name == p or name.startswith(p.rstrip('/')+'/') for p in include)}
-    return {'schema': 'tao.review-scope/v0.1', 'change': state['change'], 'scope': scope, 'kind': kind,
+    result = {'schema': 'tao.review-scope/v0.1', 'change': state['change'], 'scope': scope, 'kind': kind,
             'base_commit': source, 'target_commit': target, 'include': include,
             'selected_files': sorted(selected), 'context_files': [r[0] for r in rows], 'excluded_files': excluded,
             'input_digest': digest_json(rows), 'input_bytes': total, 'index_entries': {name: index[name] for name in sorted(files & index.keys())},
             'instruction': 'Confirm this scope before starting. The snapshot includes unchanged context; inspect relevant callers and authoritative documents. No review has run.'}
+    if outputs:
+        result['output_files'] = sorted(outputs)
+    return result
+
+
+def repreview(project, state, request, *, started=False):
+    return preview(project, state, request.get('scope'), request.get('kind'), request.get('base_commit'),
+                   request.get('include'), request.get('output_files'), started=started)
 
 
 def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, budget_seconds=None, new_batch=False):
@@ -101,7 +124,7 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
     if not isinstance(request, dict) or request.get('change') != identity:
         raise ConfigurationError('Review scope belongs to another workflow.')
     def edit(owner, state):
-        fresh = preview(owner, state, request.get('scope'), request.get('kind'), request.get('base_commit'), request.get('include'))
+        fresh = repreview(owner, state, request)
         if fresh != request:
             raise ConflictError('Review inputs changed after scope confirmation; inspect a fresh preview.')
         if not request['selected_files']:
@@ -145,7 +168,7 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
                 member = zipfile.ZipInfo(name)
                 member.external_attr = int(entry['mode'], 8) << 16
                 archive.writestr(member, blob.stdout)
-        if preview(owner, state, request['scope'], key, request['base_commit'], request['include']) != request:
+        if repreview(owner, state, request) != request:
             raise ConflictError('Inputs changed while snapshotting; no review was started.')
         series['runs'].append({'id': run_id, 'round': len(series['runs'])+1, 'started_at': now.isoformat(),
                                'outcome': 'running', 'mode': mode, 'reviewers': reviewers, 'decision': decision,
@@ -178,7 +201,7 @@ def finish(project, identity, expected, result):
                 raise ConflictError('Review report is missing or empty.')
             saved.append({'path': name, 'digest': file_digest(path)})
         try:
-            current = preview(owner, state, run['request']['scope'], kind, run['request']['base_commit'], run['request']['include'])
+            current = repreview(owner, state, run['request'], started=True)
             outcome = result['outcome'] if current == run['request'] or result['outcome'] == 'failed' else 'stale'
         except (OSError, ValueError) as exc:
             run['input_error'] = str(exc)
@@ -195,4 +218,4 @@ def passed(project, state, kind):
     if not series or not series['runs']:
         return False
     run = series['runs'][-1]
-    return run['outcome'] == 'passed' and preview(project, state, run['request']['scope'], kind, run['request']['base_commit'], run['request']['include']) == run['request']
+    return run['outcome'] == 'passed' and repreview(project, state, run['request'], started=True) == run['request']
