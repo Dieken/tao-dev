@@ -9,6 +9,7 @@
 | 产品规格 | `docs/product/<capability>.md`，每个用户可命名的能力一份；含目标、范围、REQ／UC、约束 | 本次施工步骤、执行日志 |
 | 系统与模块设计 | `docs/engineering/<system-or-module>.md`，每个已有系统或模块一份；含边界、状态、接口与依赖 | 复制规格全文、日常任务 |
 | 跨变更的技术决定 | `docs/engineering/decisions/<slug>.md`，每个 ADR 一份；含背景、备选、决定、后果 | 临时实现过程；只影响本次变更的选择留在计划 |
+| 正式审查报告与裁决 | 有计划归其 reviews/ 附件；计划前、无所属计划或跨事项归 `docs/engineering/reviews/<yyyymmdd>-<scope>/`，采用 evidence profile；详见 [证据保存](evidence-retention.md) | 临时模型输出、复制受检正文 |
 | 变更计划 | `docs/plans/<yyyy-mm>/<yyyymmdd>-<slug>.md`，一次交付目标一份 | 已在规格定义的需求全文、原始测试日志 |
 | 用户说明 | `docs/user/<user-task>.md`，每个读者操作目标一份 | 内部研发任务 |
 | 运维说明 | `docs/operations/<operation>.md`，每个部署、诊断或恢复操作一份 | 暂时实验记录 |

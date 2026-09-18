@@ -40,6 +40,20 @@ def unmanaged_pages():
     return [ROOT / name for name in names if name and (ROOT / name).resolve() not in managed]
 
 
+def test_tracked_markdown_outside_document_scope_has_a_runtime_or_entry_role():
+    """A new reports/ or reviews/ tree must not silently escape schema checks."""
+    entry_points = {'AGENTS.md', 'CLAUDE.md', 'README.md', 'tests/acceptance/README.md'}
+    runtime_roots = (
+        'plugins/tao-dev/agents/', 'plugins/tao-dev/commands/',
+        'plugins/tao-dev/skills/tao-dev/references/',
+        'plugins/tao-dev/skills/tao-dev/assets/templates/',
+    )
+    for page in unmanaged_pages():
+        name = page.relative_to(ROOT).as_posix()
+        assert (name in entry_points or name == 'plugins/tao-dev/skills/tao-dev/SKILL.md'
+                or name.startswith(runtime_roots)), f'Declare the document role and schema scope: {name}'
+
+
 def test_links_of_unmanaged_pages_stay_reachable():
     anchors = stable_anchors()
     pages = unmanaged_pages()

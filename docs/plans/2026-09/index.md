@@ -32,4 +32,5 @@ created: "2026-09-14"
 20260916-client-portability.md
 20260916-agent-behavior-testing.md
 20260917-skill-collaboration-ux.md
+20260918-operation-review-evidence.md
 ```
