@@ -11,7 +11,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 # tao 命令与流程接入
 
-本文定义工具接口及实现边界，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。已实现操作及精确调用方式以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 和 doctor 返回的能力为准；本文保留尚待实现接口的边界说明。 [流程操作](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 规定 agent 的调用时机与当前回退行为。
+本文定义工具接口及实现边界，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。已实现操作及精确调用方式以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 和 doctor 返回的能力为准；本文保留尚待实现接口的边界说明。 [开发动作](../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md) 规定 agent 的调用时机与当前回退行为。
 
 使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](documentation/contract.md)。
 
@@ -56,7 +56,7 @@ CLI 与 agent 动作有意区分职责：`tao env prepare` 准备 tao 自身运�
 <!-- tao:section architecture -->
 ## 流程接入
 
-skill 对照 [流程操作](../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型；finish 动作呈现具体收尾选择。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+skill 对照 [开发动作](../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型；finish 动作呈现具体收尾选择。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
 
 运行环境准备以 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md) 为准；agent setup 通过 project inspect/configure 接入项目检查。doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。某项 CLI 能力缺失时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
 
