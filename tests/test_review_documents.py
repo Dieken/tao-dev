@@ -23,9 +23,10 @@ def review(locale='en', variant='review', **overrides):
         'DOC_ID': REVIEW, 'EVD_ID': EVIDENCE, 'TITLE': 'Export review',
         'LOCALE': locale, 'CREATED': '2026-09-18',
         'RECORDED_AT': '2026-09-18T12:00:00+08:00',
-        'CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE':
+        'RESULT': 'unknown', 'COVERAGE': 'unknown',
+        'CONSTRAINT':
             f'F1: {{need}}`{REQ}`; [source](../../spec.md#{DOC}--requirements), line 26.',
-        'RATIONALE_WITH_EVIDENCE': f'{{need}}`{REQ}`',
+        'RATIONALE': f'{{need}}`{REQ}`',
     } | overrides
     registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
     template_path = registry['profiles']['tao.project.evidence/v0.1']['alternate_templates'][variant]
@@ -51,6 +52,8 @@ def test_review_template_validates_as_evidence_and_indexes_citations(tmp_path, l
     assert result.documents['docs/engineering/reviews/export.md'].metadata['result'] == 'unknown'
     report.write_text(review(locale, variant).replace('<!-- tao:field limits -->', ''), encoding='utf-8')
     assert not validate(tmp_path, [source, report]).valid
+    report.write_text(review(locale, variant, RESULT='{{RESULT}}', COVERAGE='{{COVERAGE}}'), encoding='utf-8')
+    assert not validate(tmp_path, [source, report]).valid, 'An unfilled outcome must not validate'
 
 
 @pytest.mark.parametrize('outcome', ['passed', 'failed', 'not_run', 'not_applicable', 'stale', 'unknown'])
@@ -58,7 +61,7 @@ def test_evidence_result_extension_preserves_existing_values(tmp_path, outcome):
     source = tmp_path / 'spec.md'
     source.write_text(spec(), encoding='utf-8')
     report = tmp_path / 'report.md'
-    report.write_text(review().replace('../../spec.md', 'spec.md').replace('result: unknown', f'result: {outcome}'), encoding='utf-8')
+    report.write_text(review().replace('../../spec.md', 'spec.md').replace('result: "unknown"', f'result: {outcome}'), encoding='utf-8')
     result = validate(tmp_path, [source, report])
     assert result.valid, result.to_dict()
     assert result.documents['report.md'].metadata['result'] == outcome
@@ -88,7 +91,7 @@ def test_markdown_report_cannot_replace_required_review_receipt(tmp_path, outcom
     setup_review(tmp_path)
     report = tmp_path / 'docs/engineering/reviews/export.md'
     report.parent.mkdir(parents=True)
-    report.write_text(review().replace('result: unknown', f'result: {outcome}'), encoding='utf-8')
+    report.write_text(review().replace('result: "unknown"', f'result: {outcome}'), encoding='utf-8')
     code, result = cli_report(tmp_path, 'verify', CHG, '--only', 'docs')
     assert code == 0, result
     assert result['readiness'] == 'not-evaluated'
@@ -111,19 +114,18 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
         fields = {
             'DOC_ID': identity, 'EVD_ID': f'EVD_20260918_{number:016d}',
             'LOCAL_FINDING_ID_AND_TITLE': f'D{number}: qualified defect',
-            'LOCATION_LINK_AND_LINE_OUTSIDE_LINK': f'[source]({source_path}#{DOC}--requirements), line 26',
-            'CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE': f'{{need}}`{REQ}`',
+            'LOCATION': f'[source]({source_path}#{DOC}--requirements), line 26',
+            'CONSTRAINT': f'{{need}}`{REQ}`',
             'TRIGGER': f'TRIGGER_{number}: only after interrupted export',
-            'OBSERVED_EVIDENCE_OR_UNVERIFIED_HYPOTHESIS': f'HYPOTHESIS_{number}: not reproduced',
+            'EVIDENCE': f'HYPOTHESIS_{number}: not reproduced',
             'IMPACT': f'IMPACT_{number}: may lose a partial export',
-            'MINIMUM_REMEDY_OR_VERIFICATION': f'REMEDY_{number}: reproduce interruption first',
-            'SEVERITY_AND_BLOCKING_CONDITION': f'SEVERITY_{number}: blocks only when reproduced',
-            'OTHER_FINDINGS_AND_UNRESOLVED_WORK_OR_NONE': (
-                f'### Recovery risk\n\n- RISK_{number}: preserve uncertainty\n\n'
-                f'1. SUGGESTION_{number}: **optional** `retry` label\n\n---\n\n'
-                f'LIMIT_{number}: offline operation accepted by the owner\n\n'
-                f'- UNRESOLVED_{number}: external input remains unknown'),
-            'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': f'NEXT_{number}: investigate before deciding',
+            'REMEDY': f'REMEDY_{number}: reproduce interruption first',
+            'SEVERITY': f'SEVERITY_{number}: blocks only when reproduced',
+            'RISKS': f'#### Recovery risk\n\n- RISK_{number}: preserve uncertainty',
+            'SUGGESTIONS': f'1. SUGGESTION_{number}: **optional** `retry` label\n\n---',
+            'ACCEPTED_LIMITS': f'LIMIT_{number}: offline operation accepted by the owner',
+            'UNRESOLVED': f'- UNRESOLVED_{number}: external input remains unknown',
+            'NEXT_IMPACT': f'NEXT_{number}: investigate before deciding',
         }
         text = review(locale, **fields)
         if number == 3:
@@ -135,12 +137,11 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
     fields = {
         'DOC_ID': adjudication, 'EVD_ID': 'EVD_20260918_0000000000000004',
         'SOURCE_REPORT_LINK': link,
-        'SOURCE_REPORT_LINKS_OR_NO_SEPARATE_REPORTS': '\n'.join(f'- [{name}]({name})' for name in names),
+        'REPORTS': '\n'.join(f'- [{name}]({name})' for name in names),
         'SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' D1',
-        'DISPOSITION_AND_SCOPE': 'PARTIAL_SCOPE: accept the scenario, retain the existing design',
-        'FOLLOWUP_OR_NONE': 'REVISIT: after a reproducible failure',
-        'UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE': '- REMAINING: execution time unknown',
-        'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': 'IMPACT_ON_PLAN: no implementation authorized',
+        'FOLLOWUP': 'REVISIT: after a reproducible failure',
+        'UNRESOLVED': '- REMAINING: execution time unknown',
+        'NEXT_IMPACT': 'IMPACT_ON_PLAN: no implementation authorized',
     }
     text = review(locale, 'review-adjudication', **fields)
     labels = json.loads((ASSETS / f'locales/{locale}.json').read_text(encoding='utf-8'))
@@ -167,8 +168,8 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
     html = (pages / '00-adjudication.html').read_text(encoding='utf-8')
     assert html.count('<table') == 8
     for sentinel in ['DETAIL_' + letter for letter in 'ABCDE'] + [
-        'PARTIAL_SCOPE', 'REVISIT', 'REMAINING', 'IMPACT_ON_PLAN', 'REJECT_REASON',
-    ]:
+        'REVISIT', 'REMAINING', 'IMPACT_ON_PLAN', 'REJECT_REASON',
+    ] + [labels[key] for key in ('label.accepted', 'label.partial', 'label.deferred', 'label.rejected')]:
         assert sentinel in html
     assert f'01-contract-alpha.html#{REVIEW}--findings' in [a.get('href') for a in Page(html).links]
     for number, name in enumerate(names, 1):

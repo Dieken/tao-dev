@@ -7,8 +7,8 @@ status: draft
 created: "{{CREATED}}"
 evidence: "{{EVD_ID}}"
 recorded_at: "{{RECORDED_AT}}"
-result: unknown
-coverage: unknown
+result: "{{RESULT}}"
+coverage: "{{COVERAGE}}"
 ---
 
 # {{TITLE}}
@@ -18,7 +18,7 @@ coverage: unknown
 
 {{SCOPE}}
 
-**{{label.review_time}}:** {{ACTUAL_REVIEW_TIME_WITH_SOURCE_OR_UNKNOWN}}
+**{{label.review_time}}:** {{REVIEW_TIME_AND_SOURCE}}
 
 <!-- tao:section inputs -->
 ## {{heading.inputs}}
@@ -31,36 +31,38 @@ coverage: unknown
 
 | {{label.reports}} | {{label.focus}} | {{label.reviewer}} | {{label.method}} | {{label.independence}} | {{label.round}} |
 |---|---|---|---|---|---|
-| {{SOURCE_REPORT_LINK}} | {{REVIEW_FOCUS}} | {{ACTUAL_REVIEWER_MODEL_PROVIDER_OR_UNKNOWN}} | {{ACTUAL_INVOCATION_AND_EFFORT_OR_UNKNOWN}} | {{ACTUAL_INDEPENDENCE_OR_UNKNOWN}} | {{ACTUAL_ROUND_OR_UNKNOWN}} |
+| {{SOURCE_REPORT_LINK}} | {{REVIEW_FOCUS}} | {{REVIEWER_MODEL_PROVIDER}} | {{INVOCATION_AND_EFFORT}} | {{INDEPENDENCE}} | {{ROUND}} |
 
 <!-- tao:section checks -->
 ## {{heading.checks}}
 
 <!-- tao:field command -->
-**{{label.command}}:** {{ACTUAL_CHECKS_AND_ADJUDICATION_METHOD}}
+**{{label.command}}:** {{COMMAND}}
 
 <!-- tao:field expected -->
-**{{label.expected}}:** {{ADJUDICATION_CRITERIA_AND_DECISION_RULES}}
+**{{label.expected}}:** {{EXPECTED}}
 
 <!-- tao:field observed -->
-**{{label.observed}}:** {{CHECK_RESULTS_AND_SEPARATE_REVIEW_VERDICT}}
+**{{label.observed}}:** {{OBSERVED}}
 
 <!-- tao:field reports -->
-**{{label.reports}}:** {{SOURCE_REPORT_LINKS_OR_NO_SEPARATE_REPORTS}}
+**{{label.reports}}:** {{REPORTS}}
 
 <!-- tao:section findings -->
 ## {{heading.findings}}
 
 <!-- tao:field limits -->
-**{{label.limits}}:** {{UNVERIFIED_SCOPE_AND_COVERAGE_LIMITS}}
+**{{label.limits}}:** {{LIMITS}}
 
 | {{label.finding}} | {{label.disposition}} | {{label.reason}} | {{label.followup}} |
 |---|---|---|---|
-| {{SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{DISPOSITION_AND_SCOPE}} | {{RATIONALE_WITH_EVIDENCE}} | {{FOLLOWUP_OR_NONE}} |
+| {{SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID}} | {{label.accepted}} / {{label.partial}} / {{label.deferred}} / {{label.rejected}} | {{RATIONALE}} | {{FOLLOWUP}} |
 
-{{UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE}}
+### {{heading.unresolved}}
 
-**{{heading.next_impact}}:** {{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
+{{UNRESOLVED}}
+
+**{{label.next_impact}}:** {{NEXT_IMPACT}}
 
 <!-- tao:section retention -->
 ## {{heading.retention}}
