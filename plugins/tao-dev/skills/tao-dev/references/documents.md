@@ -10,7 +10,7 @@
 
 接入时明确管理范围：纳入范围的文档必须有受支持的 schema，缺少或未知 schema 报错；未接入的历史文档列为范围外，不悄悄计入覆盖率。按本次修改需要逐步接入，普通 README、外部资料与客户端 manifest 不因使用 Markdown 就自动纳入。配置和适配由 agent 复用已有约定，确有冲突才交由用户决定。
 
-格式注册表权威定义 profile 名称、元数据字段、章节顺序、条目字段和模板位置；本文解释内容要求、引用与完成语义。模板是这些规则的写作起点，不能反过来修改规则以适配模板。
+格式注册表权威定义结构；本文解释写作与完成语义。需要精确字段时，用受支持的 Python 调用本 skill 的 [单 profile 读取器](../scripts/read_profile.py)，例如 `python <skill>/scripts/read_profile.py evidence --locale zh-Hans --template review`。它只返回当前契约和已替换显示标签的模板，不写文件、不分配 ID；普通类型省略 --template。使用已确定的文档语言，只读当前 profile，不整份加载注册表与所有语言资源。无法执行本地脚本时，选择注册表中当前 profile、通用元数据与关联条目约束，配合所选模板及对应的 [中文](../assets/locales/zh-Hans.json) 或 [英文](../assets/locales/en.json) 标签完成填写。
 
 ## 文档选择与目录
 
@@ -32,7 +32,7 @@
 | 主审裁决 | evidence schema 的 [review-adjudication 写作模板](../assets/templates/review-adjudication.md) |
 | 恢复摘要 | [handoff](../assets/templates/handoff.md) |
 
-两种审查模板均复用 `tao.project.evidence/v0.1` 的字段和五个固定章节，不增加 Markdown review schema。inputs.environment 记录实际审查者、供应商、模型、调用方式、强度、独立性与轮次；未知信息明确标注。checks.observed 分别写确定性检查结果与审查结论，findings 保存发现、处置及未决项，具体组织见 [审查规程](review.md)。结果与时间语义见 [正文写法](document-content.md) 的任务与证据段。格式校验检查 evidence 结构，不验证结论正确、身份真实或内容完整；JSON `tao.review/v0.1` 是 [机器审查回执](review-receipts.md)，不能用报告或模板替代其输入绑定和来源检查。
+审查特有字段、发现与处置组织见 [报告写法](review-reports.md)；evidence 的结果、时间与保存语义见 [证据保存](evidence-retention.md)。
 
 设计通过 `spec_docs` 引用规格 DOC；计划通过 `spec_docs`、`design_docs` 引用适用规格和设计，通过 `tasks_doc` 引用任务附件 DOC。`spec_docs`、`design_docs` 一旦提供，须为非空、无重复的 YAML ID 数组。任务附件必须通过 `change` 引用同一 CHG，专属设计可关联该 CHG，共享设计不必声明专属开发事项。计划生成前的 CHG 由 [工作流状态](workflow-state.md) 提供。正文引用使用 `{need}` 和必要职责说明，不能保留第二份正文。关系只维护正向字段，反向链接由工具生成。按本次事项沿直接关系读取相关文档和章节，不沿反向链接加载整张文档图。草稿可暂缺依据；design/plan 阶段批准前必须关联已批准的上游产物并覆盖本次范围。当前 tasks_doc 指向一份完整任务集合，不通过普通正文引用暗中扩展为多份任务附件；扩展该关系须先定义并验证格式。计划及其任务附件合起来至少有一个 TASK。
 
@@ -55,7 +55,7 @@
 
 plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
-模板的 heading.* 和 label.* 从 [简体中文资源](../assets/locales/zh-Hans.json) 或 [英文资源](../assets/locales/en.json) 取显示文字，其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写；生成后仍需检查是否是真实内容。
+读取器从所选语言资源替换 heading.* 和 label.*；无需再读另一语言资源。其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写；生成后仍需检查是否是真实内容。
 
 ## 标识符与引用
 
@@ -69,7 +69,7 @@ plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状
 
 文件导航用项目内相对 Markdown 链接，解析含符号链接的路径后不得越出项目；不使用本机绝对地址或 file://。外部资料使用项目可访问的稳定链接，引用范围遵循项目保密约定。发布时条目与章节使用稳定锚点及书籍解析入口，精确规则见 [出版规程](publication.md)。未实际构建并检查链接时，不要宣称移动后的 URL 已可用。
 
-引用目标不能只写成普通文本或代码片段。文件行号置于链接外，不把 `:行号` 当作路径后缀；审查快照位置只说明受检输入，不代替正文导航。校验器对正文未链接的完整 ID（TAO-REF-005）和独立代码片段中的明确 Markdown 文件路径（TAO-LINK-002）给出 warning，不自动猜测或注册引用；目录模式、命令、围栏代码示例不属于该检查。缩写 ID、普通文本路径及引用意图仍须人工核对；无 warning 不证明所有引用都可点击。
+引用目标不能只写成普通文本或代码片段。文件行号置于链接外，不把 `:行号` 当作路径后缀；审查快照位置只说明受检输入，不代替正文导航。校验器对正文未链接的完整 ID（TAO-REF-005）和独立代码片段中的明确 Markdown 文件路径（TAO-LINK-002）给出 warning，不自动猜测或注册引用；目录模式、命令、围栏代码示例不属于该检查。文件命名示例不是导航目标，可保留代码形式，不为消除 warning 编造链接。缩写 ID、普通文本路径及引用意图仍须人工核对。
 
 ## 检查与修正
 

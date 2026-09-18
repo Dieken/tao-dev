@@ -338,5 +338,9 @@
   "Unlinked ID in prose: {arg0}.": "正文 ID 未链接：{arg0}。",
   "Use the need role with the full ID for a formal reference; keep syntax examples in fenced code.": "正式引用使用 need 角色和完整 ID；语法示例放在围栏代码中。",
   "Unlinked Markdown file in prose: {arg0}.": "正文 Markdown 文件未链接：{arg0}。",
-  "Use a relative Markdown link for navigation; put line numbers outside the link.": "导航使用相对 Markdown 链接；行号放在链接外。"
+  "For a navigation target, use a relative Markdown link with line numbers outside it; keep filename examples as code without inventing a target.": "若是导航目标，使用相对 Markdown 链接并将行号放在链接外；文件命名示例可保留代码形式，不编造目标。",
+  "Review outputs must be distinct project-relative Markdown files.": "审查输出必须是互不重复的项目相对 Markdown 文件路径。",
+  "Review outputs must be exact project-relative Markdown paths.": "审查输出必须使用精确的项目相对 Markdown 路径。",
+  "Reserve a new review output file before starting: {arg0}": "开始审查前请预留新的输出文件：{arg0}",
+  "Tracked inputs cannot be reserved as review outputs.": "已跟踪的输入文件不能预留为审查输出。"
 }

@@ -46,18 +46,18 @@ EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践
 
 ### Markdown 管理边界
 
-按内容职责接入，不能通过另建 reviews/、reports/ 或移动目录使正式结论逃离校验。正式审查报告和裁决复用 evidence profile；[独立报告模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review.md) 由审查者或整理者读取，[主审裁决模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review-adjudication.md) 由裁决作者读取。两者注册为同一 profile 的写作变体，沿用解析器与出版器，无新增审查实体。审查者来源、发现及处置由写作规程要求，schema 检查既有 evidence 字段和章节，不验证来源真实性或语义完整性。JSON 审查回执、调度状态与 Markdown 报告职责不同，登记成功不代表报告格式有效。
+按内容职责接入，对话反馈和临时分析不自动建档；已要求持久化为受管理交付文档的结论不能通过另建 reviews/、reports/ 或移动目录逃离校验。正式审查报告和裁决复用 evidence profile；[独立报告模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review.md) 由审查者或整理者读取，[主审裁决模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review-adjudication.md) 由裁决作者读取。两者注册为同一 profile 的写作变体，沿用解析器与出版器，无新增审查实体。固定二级章节保持，子分类按内容选择，裁决默认单表；独立发现模板明确严重性与阻断条件。审查者来源、发现及处置由写作规程要求，schema 检查既有 evidence 字段和章节，不验证来源真实性或语义完整性。JSON 审查回执、调度状态与 Markdown 报告职责不同，登记成功不代表报告格式有效。
 
-evidence.result 接受 unknown，表达原材料未记载或无法确定的总体结论；保留所有旧值及五个固定二级章节。结果、覆盖与记录时间语义统一见 [正文写法](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)，不改写历史结果以适配模板。该扩充由注册表驱动，未改变 JSON 审查回执的契约与门槛；未知结论的报告不满足必需审查。旧版本校验器可能拒绝新枚举，消费项目使用 unknown 前须更新对应包。
+evidence.result 接受 unknown，表达原材料未记载或无法确定的总体结论；保留所有旧值及五个固定二级章节。结果、覆盖与记录时间语义统一见 [证据保存](../../../plugins/tao-dev/skills/tao-dev/references/evidence-retention.md)，不改写历史结果以适配模板。该扩充由注册表驱动，未改变 JSON 审查回执的契约与门槛；未知结论的报告不满足必需审查。
 
-审查批次目录、slug 与 00／NN 文件名由 [文档组织](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 约束；编号不替代导航顺序，当前源校验器不校验该命名模式。[报告组织规程](../../../plugins/tao-dev/skills/tao-dev/references/review.md) 说明两种模板的填写方式与内容职责；schema、引用检查及 HTML 回归分别验证结构和发布能力，不验证判断依据是否完整。skill 指导按规范生成文档，不提供外部报告迁移流程。
+审查批次目录、slug 与 00／NN 文件名由 [报告写法](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md) 约束；编号不替代导航顺序，当前源校验器不校验该命名模式。[报告组织规程](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md) 说明两种模板的填写方式与内容职责；schema、引用检查及 HTML 回归分别验证结构和发布能力，不验证判断依据是否完整。skill 指导按规范生成文档，不提供外部报告迁移流程。
 
 | Markdown 内容 | 管理方式 |
 |---|---|
 | 产品、设计、决定、计划、任务、交接、术语、操作说明、导航 | docs/ 内使用对应共享 profile |
 | 正式测试摘要、审查报告、裁决、需要保留的调查结论 | 按职责放入计划 verification 或独立 evidence；不能用普通 Markdown 绕过 schema |
 | skill 入口、运行参考、agent 与 command | 供客户端或 LLM 读取，遵循各自格式；检查分发和链接，不注册为项目交付文档 |
-| 模板与条目片段 | 填写前含变量，作为输入资源；生成文档后按 profile 校验 |
+| 模板与条目片段 | 填写前含变量，作为输入资源；read_profile.py 按当前 profile 与语言提供局部契约和显示标签已替换的模板，生成文档后按 profile 校验 |
 | README 与客户端开发指令 | 入口及开发约定，检查链接，不套交付 profile；不在其中持续存放正式审查结论 |
 | 临时原始输出、测试夹具、外部历史资料 | 明确范围外；不得计入正式文档覆盖或直接冒充交付结论 |
 
@@ -68,6 +68,8 @@ evidence.result 接受 unknown，表达原材料未记载或无法确定的总�
 一条关系只维护其发出方：反向引用、需求覆盖表和汇总由索引生成，生成文件不得成为另一份人工维护的真相。检查目标存在、关系类型、任务依赖无环和替代关系无环。标为 superseded 的对象必须能找到至少一个替代者；引用 retired／superseded 对象给出复查提示，合法的历史解释不必全部阻断。
 
 出版层复用 taolib 的源文档索引，以同一份定义和关系生成条目引用、稳定锚点及 refs/ 解析页。PDF 和第三方编辑器表现不由 HTML 构建结果推导。
+
+中文搜索使用相邻字符对建立索引，不依赖分词组件；单汉字查询通常无结果。索引随正文增长并由各页加载，构建器验证生成脚本能否加载；算法和加载机制属于出版器维护职责，消费项目的操作指导仅保留查询限制和检查要求。
 
 出版适配将源文的章节键与条目定义转换为 MyST 显式目标或等价 AST 节点；已有显式标签须校验一致，避免重复注入。仅设置 html_permalinks 不足以保证复制稳定链接，需要实际检查主题行为。实现依据见 [MyST 显式目标](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html#creating-explicit-targets) 与 [Sphinx 永久链接](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_permalinks)。这些实现选择供 tao-dev 开发维护使用；使用方只需读取 skill 中的链接与出版结果规程。
 
