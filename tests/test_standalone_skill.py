@@ -19,7 +19,9 @@ def test_standalone_resources_remain_inside_skill():
     skill = SCRIPTS.parent
     links = []
     for page in [skill / 'SKILL.md', *sorted((skill / 'references').glob('*.md'))]:
-        for target in re.findall(r'\]\(([^\s)]+)\)', page.read_text(encoding='utf-8')):
+        # A link inside a fenced example is sample syntax, not a shipped resource.
+        prose = re.sub(r'^```.*?^```', '', page.read_text(encoding='utf-8'), flags=re.S | re.M)
+        for target in re.findall(r'\]\(([^\s)]+)\)', prose):
             url = urlsplit(target)
             if url.scheme or not url.path:
                 continue
@@ -29,6 +31,13 @@ def test_standalone_resources_remain_inside_skill():
             links.append(resolved)
     assert skill / 'scripts/tao.py' in links
     assert skill / 'references/engineering.md' in links
+
+
+def test_local_code_fix_keeps_its_route_to_engineering():
+    """The exemption for small repairs must not drop the engineering read."""
+    workflow = (SCRIPTS.parent / 'references/workflow.md').read_text(encoding='utf-8')
+    assert '普通局部代码实现或修复' in workflow
+    assert '仍须在写入前读取 [工程规程](engineering.md)' in workflow
 
 
 def test_copied_skill_from_different_cwd_without_prepared_dependencies(

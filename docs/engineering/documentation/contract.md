@@ -50,7 +50,7 @@ EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践
 
 evidence.result 接受 unknown，表达原材料未记载或无法确定的总体结论；保留所有旧值及五个固定二级章节。结果、覆盖与记录时间语义统一见 [证据保存](../../../plugins/tao-dev/skills/tao-dev/references/evidence-retention.md)，不改写历史结果以适配模板。该扩充由注册表驱动，未改变 JSON 审查回执的契约与门槛；未知结论的报告不满足必需审查。
 
-审查批次目录、slug 与 00／NN 文件名由 [报告写法](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md) 约束；编号不替代导航顺序，当前源校验器不校验该命名模式。[报告组织规程](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md) 说明两种模板的填写方式与内容职责；schema、引用检查及 HTML 回归分别验证结构和发布能力，不验证判断依据是否完整。skill 指导按规范生成文档，不提供外部报告迁移流程。
+[报告写法](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md) 约束审查批次目录、slug、00／NN 文件名及两种模板的填写方式与内容职责；编号不替代导航顺序，当前源校验器不校验该命名模式。schema、引用检查及 HTML 回归分别验证结构和发布能力，不验证判断依据是否完整。skill 指导按规范生成文档，不提供外部报告迁移流程。
 
 | Markdown 内容 | 管理方式 |
 |---|---|

@@ -61,7 +61,9 @@ def test_links_of_unmanaged_pages_stay_reachable():
     assert pages
     for page in pages:
         plugin = next((p for p in page.parents if (p / '.claude-plugin/plugin.json').is_file()), None)
-        for target in LINK.findall(page.read_text(encoding='utf-8')):
+        # A link inside a fenced example is sample syntax, not a shipped resource.
+        prose = re.sub(r'^```.*?^```', '', page.read_text(encoding='utf-8'), flags=re.S | re.M)
+        for target in LINK.findall(prose):
             url = urlsplit(target)
             if url.scheme in ('http', 'https', 'mailto') or '{{' in target:
                 continue  # Templates keep their placeholders until a project renders them.

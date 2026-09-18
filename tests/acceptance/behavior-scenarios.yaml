@@ -20,7 +20,7 @@ scenarios:
     turns: []
     rules: [LOAD-001, LOAD-002, LOAD-003, STATUS-001]
     expectations:
-      required_resources: [references/workflow.md]
+      required_resources: [references/workflow.md, references/workflow-actions.md]
       forbidden_resources: [references/engineering.md, references/verification.md]
       forbidden_writes: ["**/*"]
       forbidden_commands: [verify]
@@ -55,7 +55,8 @@ scenarios:
     turns: []
     rules: [LOAD-001, LOAD-002, LOAD-003, REVIEW-001]
     expectations:
-      required_resources: [references/workflow.md, references/engineering.md, references/review.md]
+      required_resources: [references/workflow.md, references/workflow-actions.md,
+        references/engineering.md, references/review.md]
       forbidden_resources: [references/publication.md]
       forbidden_writes: [example.py, requirements.txt]
 
