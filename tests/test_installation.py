@@ -221,9 +221,9 @@ def receipt(tmp_path, monkeypatch):
     cache = home / 'plugins/cache' / f'tao-dev-{identifier}' / 'tao-dev'
     return {
         'id': identifier, 'client': 'claude', 'scope': 'local', 'project': str(project),
-        'plugin_id': f'tao-dev@tao-dev-{identifier}', 'version': '0.5.0',
+        'plugin_id': f'tao-dev@tao-dev-{identifier}', 'version': '1.0',
         'managed_root': str(project / '.local/tao-dev/claude/local'),
-        'plugin_path': str(cache / '0.5.0'), 'plugin_base': str(cache),
+        'plugin_path': str(cache / '1.0'), 'plugin_base': str(cache),
         'cli_path': str(tmp_path / 'shared/cli'), 'launcher': str(tmp_path / 'bin/tao'),
         'files': [str(home / 'plugins/installed_plugins.json'),
                   str(home / 'plugins/known_marketplaces.json'),
