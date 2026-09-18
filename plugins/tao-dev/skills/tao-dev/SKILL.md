@@ -11,7 +11,7 @@ description: 在与用户协作开发软件时使用，适用于业务需求澄�
 
 ## 开始工作
 
-必须先读取 [流程操作](references/workflow.md) 的入口与当前动作段，按项目状态和已有授权推进。需求、设计、代码实现（包括局部修复）、调试或审查必须在行动前读取 [工程规程](references/engineering.md)；只读 `status` 和仅执行 `docs` 本地构建时，无需完整读取 `references/engineering.md`。
+必须先读取 [流程操作](references/workflow.md) 的入口、讨论与进度及当前动作段，按项目状态和已有授权推进。所有讨论均遵循其中的独立判断与提问原则，不限于 spec、design 或正式开发阶段。需求、设计、代码实现（包括局部修复）、调试或审查必须在行动前读取 [工程规程](references/engineering.md)；只读 `status` 和仅执行 `docs` 本地构建时，无需完整读取 `references/engineering.md`。
 
 ## 按任务读取
 
