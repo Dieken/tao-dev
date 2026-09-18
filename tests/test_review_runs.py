@@ -209,3 +209,81 @@ def test_new_batch_flag_reaches_workflow_command(tmp_path, capsys):
                         '--expect', str(state['revision']), '--from', str(path),
                         '--mode', 'serial', '--reviewers', '1', '--decision', 'New requested review', '--new-batch')
     assert code == 0, result
+
+
+@pytest.mark.parametrize('scope', ['feature', 'project'])
+def test_reserved_formal_reports_validate_without_staling_inputs(tmp_path, capsys, scope):
+    from taolib.review_runs import preview, begin, finish, passed
+    from taolib.project import Project
+    from taolib.documents import validate
+    from test_documents import spec
+    from test_review_documents import review
+    from test_relationships import navigation
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs/spec.md').write_text(spec(), encoding='utf-8')
+    directory = 'docs/engineering/reviews/20260918-contract'
+    report = directory + '/01-contract-reviewer.md'
+    index = directory + '/index.md'
+    request = preview(project, state, scope, 'docs', outputs=[report, index])
+    assert request['output_files'] == [report, index]
+    assert report not in request['context_files']
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review fixed inputs')
+    (tmp_path / directory).mkdir(parents=True)
+    (tmp_path / report).write_text(review().replace('../../spec.md', '../../../spec.md'), encoding='utf-8')
+    (tmp_path / index).write_text(navigation('01-contract-reviewer.md'), encoding='utf-8')
+    documents = validate(tmp_path, list((tmp_path / 'docs').rglob('*.md')))
+    assert documents.valid and not documents.diagnostics, documents.to_dict()
+    state = finish(project, state['change'], state['revision'], {
+        'outcome': 'passed', 'reports': [report], 'summary': 'Reviewed the unchanged specification',
+    })
+    assert state['reviews']['docs']['runs'][-1]['outcome'] == 'passed'
+    assert passed(Project(tmp_path), state, 'docs')
+    # The next review includes this round's reports; there is no global exemption.
+    assert report in preview(project, state, 'project', 'docs')['context_files']
+
+
+@pytest.mark.parametrize('changed', ['code.py', 'docs/engineering/reviews/history.md', 'new.py'])
+def test_reserved_outputs_do_not_hide_source_or_historical_report_changes(tmp_path, capsys, changed):
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    history = tmp_path / 'docs/engineering/reviews/history.md'
+    history.parent.mkdir(parents=True)
+    history.write_text('Earlier review', encoding='utf-8')
+    report = 'docs/engineering/reviews/current.md'
+    request = preview(project, state, 'project', 'code', outputs=[report])
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+    (tmp_path / report).write_text('New review', encoding='utf-8')
+    (tmp_path / changed).write_text('Changed input', encoding='utf-8')
+    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'Old input'})
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'stale'
+
+
+def test_review_outputs_must_be_new_exact_paths_and_stay_absent_until_begin(tmp_path, capsys):
+    from taolib.review_runs import preview, begin
+    from taolib.project import Project, ConfigurationError, ConflictError
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    (tmp_path / 'old.md').write_text('Existing report', encoding='utf-8')
+    git(tmp_path, 'add', 'old.md'); git(tmp_path, 'commit', '-m', 'Existing report')
+    for name in ['old.md', '../escape.md', 'docs/**/*.md', '/absolute.md', 'code.py']:
+        with pytest.raises((ConfigurationError, ConflictError)):
+            preview(project, state, outputs=[name])
+    git(tmp_path, 'rm', 'old.md')
+    with pytest.raises(ConflictError):
+        preview(project, state, outputs=['old.md'])
+    request = preview(project, state, 'project', 'code', outputs=['new.md'])
+    (tmp_path / 'new.md').write_text('Created after confirmation', encoding='utf-8')
+    with pytest.raises(ConflictError):
+        begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+
+
+def test_review_output_option_is_bound_by_cli_preview(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'],
+                        '--scope', 'project', '--output', 'docs/review.md', '--output', 'docs/index.md')
+    assert code == 0, report
+    assert report['outputs']['output_files'] == ['docs/index.md', 'docs/review.md']

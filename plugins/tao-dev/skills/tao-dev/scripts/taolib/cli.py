@@ -69,6 +69,7 @@ def arguments(argv):
     preview.add_argument("--kind", choices=("docs", "code"))
     preview.add_argument("--base")
     preview.add_argument("--include", action="append", default=[])
+    preview.add_argument("--output", action="append", default=[], help="Reserve an exact new Markdown output path outside review inputs; repeat for each report or new navigation page.")
     for operation in ("review-begin", "review-end"):
         command = operations.add_parser(operation, parents=[common])
         command.add_argument("change")

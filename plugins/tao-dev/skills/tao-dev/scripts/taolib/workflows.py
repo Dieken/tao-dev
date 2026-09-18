@@ -319,7 +319,7 @@ def dispatch(project, args):
         from . import review_runs
         owner = locate(project, args.change)
         if args.operation == 'review-preview':
-            return review_runs.preview(owner, read(owner, args.change), args.scope, args.kind, args.base, args.include)
+            return review_runs.preview(owner, read(owner, args.change), args.scope, args.kind, args.base, args.include, args.output)
         source = load(contained(owner.root, args.source))
         if args.operation == 'review-begin':
             return review_runs.begin(owner, args.change, args.expect, source, args.mode, args.reviewers,
