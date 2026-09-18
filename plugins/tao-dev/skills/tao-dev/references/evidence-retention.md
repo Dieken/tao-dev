@@ -8,7 +8,7 @@
 |---|---|
 | 普通验证结论 | 计划 verification，随计划保留 |
 | 独立摘要 | 需要跨开发事项引用、报告较长或周期不同时用 `<plan-stem>/evidence/`；无开发事项用 docs/evidence/ |
-| 正式审查报告与裁决 | 使用 evidence schema 和 [审查模板](../assets/templates/review.md)；有计划用 `<plan-stem>/reviews/`，计划尚未创建、无所属计划或跨事项时用 `docs/engineering/reviews/<yyyymmdd>-<scope>/`；纳入 documents 范围及适用的书籍导航 |
+| 正式审查报告与裁决 | 使用 evidence schema，分别采用 [独立报告](../assets/templates/review.md) 和 [主审裁决](../assets/templates/review-adjudication.md) 模板；按 [审查批次命名](document-layout.md) 放入计划附件或工程 reviews/，纳入 documents 范围及适用的书籍导航 |
 | 原始输出、日志、覆盖率、截图和临时输入清单 | tmp/tao/ 或 CI 产物，不纳入 VCS，按既定期限清理 |
 | 本地书籍 | temporary 下 book/ |
 | 可重建索引与短期锁 | temporary 下 cache/ |

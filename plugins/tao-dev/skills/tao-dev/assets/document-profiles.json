@@ -429,7 +429,8 @@
             "failed",
             "not_run",
             "not_applicable",
-            "stale"
+            "stale",
+            "unknown"
           ],
           "required": true
         },
@@ -462,7 +463,8 @@
         ]
       },
       "alternate_templates": {
-        "review": "templates/review.md"
+        "review": "templates/review.md",
+        "review-adjudication": "templates/review-adjudication.md"
       }
     },
     "tao.project.handoff/v0.1": {

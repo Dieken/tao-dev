@@ -46,7 +46,11 @@ EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践
 
 ### Markdown 管理边界
 
-按内容职责接入，不能通过另建 reviews/、reports/ 或移动目录使正式结论逃离校验。正式审查报告和裁决复用 evidence profile；[审查模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review.md) 由报告作者读取，沿用既有解析器与出版器，无新增审查实体。审查者来源、发现及处置由写作规程要求，schema 检查既有 evidence 字段和章节，不验证来源真实性或语义完整性。JSON 审查回执、调度状态与 Markdown 报告职责不同，登记成功不代表报告格式有效。
+按内容职责接入，不能通过另建 reviews/、reports/ 或移动目录使正式结论逃离校验。正式审查报告和裁决复用 evidence profile；[独立报告模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review.md) 由审查者或整理者读取，[主审裁决模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review-adjudication.md) 由裁决作者读取。两者注册为同一 profile 的写作变体，沿用解析器与出版器，无新增审查实体。审查者来源、发现及处置由写作规程要求，schema 检查既有 evidence 字段和章节，不验证来源真实性或语义完整性。JSON 审查回执、调度状态与 Markdown 报告职责不同，登记成功不代表报告格式有效。
+
+evidence.result 接受 unknown，表达原材料未记载或无法确定的总体结论；保留所有旧值及五个固定二级章节。结果、覆盖与记录时间语义统一见 [正文写法](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)，不改写历史结果以适配模板。该扩充由注册表驱动，未改变 JSON 审查回执的契约与门槛；未知结论的报告不满足必需审查。旧版本校验器可能拒绝新枚举，消费项目使用 unknown 前须更新对应包。
+
+审查批次目录、slug 与 00／NN 文件名由 [文档组织](../../../plugins/tao-dev/skills/tao-dev/references/document-layout.md) 约束；编号不替代导航顺序，当前源校验器不校验该命名模式。[报告组织规程](../../../plugins/tao-dev/skills/tao-dev/references/review.md) 说明两种模板的填写方式与内容职责；schema、引用检查及 HTML 回归分别验证结构和发布能力，不验证判断依据是否完整。skill 指导按规范生成文档，不提供外部报告迁移流程。
 
 | Markdown 内容 | 管理方式 |
 |---|---|
