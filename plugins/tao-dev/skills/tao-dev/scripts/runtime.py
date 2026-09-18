@@ -20,6 +20,11 @@ from tao_messages import Message, configured_locale, diagnostic
 SCRIPTS = Path(__file__).resolve().parent
 IMPORTS = {"core": ["markdown_it", "yaml"],
            "publication": ["markdown_it", "yaml", "sphinx", "myst_parser", "sphinx_book_theme"]}
+# The probes import the runtime's own dependencies, which in publication mode
+# include Sphinx and the book theme. A cold import on a loaded or slow file
+# system is ordinary, so this bound only stops an unbounded wait; it is not a
+# hang detector, and exceeding it says nothing about the environment's health.
+PROBE_TIMEOUT = 60
 # Package sources, never install locations: these decide where a wheel is
 # fetched from, and the locked hashes still decide whether it is accepted.
 SOURCE_KEYS = ("index-url", "extra-index-url", "trusted-host", "proxy", "cert",
@@ -241,7 +246,8 @@ def inspect_python(python):
             "executable=os.path.realpath(sys.executable))))")
     try:
         completed = subprocess.run(isolated(python, "-c", code),
-                                   capture_output=True, text=True, encoding="utf-8", timeout=10, env=environment())
+                                   capture_output=True, text=True, encoding="utf-8",
+                                   timeout=PROBE_TIMEOUT, env=environment())
         if completed.returncode:
             # Keep the interpreter's own reason: without it a broken or
             # unusable Python is indistinguishable from an absent one.
@@ -279,8 +285,14 @@ def probe(python, mode):
             f"[importlib.import_module(n) for n in {IMPORTS[mode]!r}]; "
             "print(json.dumps({'prefix':sys.prefix,'packages':"
             "sorted((d.metadata['Name'].lower(),d.version) for d in m.distributions())}))")
-    completed = subprocess.run(isolated(python, "-c", code), env=environment(),
-                               capture_output=True, text=True, encoding="utf-8", timeout=10)
+    try:
+        completed = subprocess.run(isolated(python, "-c", code), env=environment(),
+                                   capture_output=True, text=True, encoding="utf-8", timeout=PROBE_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        # Load is a transient condition, not a broken environment. Without this
+        # the raw exception reaches the caller as an untranslated command line.
+        raise RuntimeFailure(Message('Runtime check did not finish within {arg0} seconds; retry when the machine is less loaded.',
+                                     PROBE_TIMEOUT)) from exc
     if completed.returncode:
         raise RuntimeFailure("Runtime imports failed; run tao env prepare for a new environment.",
                              "TAO-RUNTIME-003", "broken")
