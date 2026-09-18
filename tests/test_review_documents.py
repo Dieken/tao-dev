@@ -9,40 +9,60 @@ from taolib.documents import ASSETS, validate
 from taolib.publication import build
 from test_documents import DOC, REQ, check, spec
 from test_publication import Page, project
-from test_relationships import change, check_change
+from test_relationships import CHANGE_DOC, CHG, change, check_change, navigation
+from test_reviews import setup_review
+from test_verification import report as cli_report
 
 REVIEW = 'DOC_20260918_0000000000000001'
 EVIDENCE = 'EVD_20260918_0000000000000001'
 
 
-def review(locale='en'):
+def review(locale='en', variant='review', **overrides):
     labels = json.loads((ASSETS / f'locales/{locale}.json').read_text(encoding='utf-8'))
     values = labels | {
         'DOC_ID': REVIEW, 'EVD_ID': EVIDENCE, 'TITLE': 'Export review',
         'LOCALE': locale, 'CREATED': '2026-09-18',
         'RECORDED_AT': '2026-09-18T12:00:00+08:00',
-        'FINDINGS_WITH_LOCATION_CONSTRAINT_TRIGGER_EVIDENCE_IMPACT_AND_MINIMUM_REMEDY':
+        'CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE':
             f'F1: {{need}}`{REQ}`; [source](../../spec.md#{DOC}--requirements), line 26.',
-    }
+        'ACCEPTED_RATIONALE_WITH_EVIDENCE': f'{{need}}`{REQ}`',
+    } | overrides
     registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
-    template_path = registry['profiles']['tao.project.evidence/v0.1']['alternate_templates']['review']
+    template_path = registry['profiles']['tao.project.evidence/v0.1']['alternate_templates'][variant]
     template = (ASSETS / template_path).read_text(encoding='utf-8')
+    for key in re.findall(r'\{\{((?:heading|label)\.[^}]+)\}\}', template):
+        assert key in labels, f'Missing {locale} translation: {key}'
     return re.sub(r'\{\{([^}]+)\}\}', lambda m: values.get(m[1], 'Not independently reviewed.'), template)
 
 
 @pytest.mark.parametrize('locale', ['en', 'zh-Hans'])
-def test_review_template_validates_as_evidence_and_indexes_citations(tmp_path, locale):
+@pytest.mark.parametrize('variant', ['review', 'review-adjudication'])
+def test_review_template_validates_as_evidence_and_indexes_citations(tmp_path, locale, variant):
     (tmp_path / 'docs/engineering/reviews').mkdir(parents=True)
     source = tmp_path / 'docs/spec.md'
     source.write_text(spec(), encoding='utf-8')
     report = tmp_path / 'docs/engineering/reviews/export.md'
-    report.write_text(review(locale), encoding='utf-8')
+    report.write_text(review(locale, variant), encoding='utf-8')
     result = validate(tmp_path, [source, report])
     assert result.valid, result.to_dict()
     assert not result.diagnostics
     assert result.definitions[EVIDENCE].path == 'docs/engineering/reviews/export.md'
     assert any(r.path.endswith('export.md') and r.target == REQ for r in result.references)
-    report.write_text(review(locale).replace('<!-- tao:field limits -->', ''), encoding='utf-8')
+    assert result.documents['docs/engineering/reviews/export.md'].metadata['result'] == 'unknown'
+    report.write_text(review(locale, variant).replace('<!-- tao:field limits -->', ''), encoding='utf-8')
+    assert not validate(tmp_path, [source, report]).valid
+
+
+@pytest.mark.parametrize('outcome', ['passed', 'failed', 'not_run', 'not_applicable', 'stale', 'unknown'])
+def test_evidence_result_extension_preserves_existing_values(tmp_path, outcome):
+    source = tmp_path / 'spec.md'
+    source.write_text(spec(), encoding='utf-8')
+    report = tmp_path / 'report.md'
+    report.write_text(review().replace('../../spec.md', 'spec.md').replace('result: unknown', f'result: {outcome}'), encoding='utf-8')
+    result = validate(tmp_path, [source, report])
+    assert result.valid, result.to_dict()
+    assert result.documents['report.md'].metadata['result'] == outcome
+    report.write_text(report.read_text(encoding='utf-8').replace(f'result: {outcome}', 'result: changes-requested'), encoding='utf-8')
     assert not validate(tmp_path, [source, report]).valid
 
 
@@ -61,6 +81,107 @@ def test_review_html_links_reach_source_and_requirement(tmp_path):
     assert f'../../spec.html#{DOC}--requirements' in hrefs
     assert DOC + '--requirements' in Page((directory / 'docs/spec.html').read_text(encoding='utf-8')).ids
     assert '../docs/spec.html#' + REQ in (directory / f'refs/{REQ}.html').read_text(encoding='utf-8')
+
+
+@pytest.mark.parametrize('outcome', ['unknown', 'passed'])
+def test_markdown_report_cannot_replace_required_review_receipt(tmp_path, outcome):
+    setup_review(tmp_path)
+    report = tmp_path / 'docs/engineering/reviews/export.md'
+    report.parent.mkdir(parents=True)
+    report.write_text(review().replace('result: unknown', f'result: {outcome}'), encoding='utf-8')
+    code, result = cli_report(tmp_path, 'verify', CHG, '--only', 'docs')
+    assert code == 0, result
+    assert result['readiness'] == 'not-evaluated'
+    code, result = cli_report(tmp_path, 'verify', CHG)
+    assert code == 2 and result['readiness'] == 'blocked', result
+    assert result['outputs']['reviews'][0]['state'] == 'missing'
+
+
+@pytest.mark.parametrize('locale', ['en', 'zh-Hans'])
+@pytest.mark.parametrize('parent', ['engineering', 'plans/2026-09/20260918-export'])
+def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, locale, parent):
+    """Synthetic reports exercise rich content inside the five-section contract."""
+    configured = project(tmp_path)
+    directory = tmp_path / 'docs' / parent / 'reviews/20260918-export-contract'
+    directory.mkdir(parents=True)
+    source_path = '../' * (len(directory.relative_to(tmp_path / 'docs').parts)) + 'spec.md'
+    names = ['01-contract-alpha.md', '02-recovery-beta.md', '03-test-gamma.md']
+    for number, name in enumerate(names, 1):
+        identity = f'DOC_20260918_{number:016d}'
+        fields = {
+            'DOC_ID': identity, 'EVD_ID': f'EVD_20260918_{number:016d}',
+            'LOCAL_FINDING_ID_AND_TITLE': f'D{number}: qualified defect',
+            'LOCATION_LINK_AND_LINE_OUTSIDE_LINK': f'[source]({source_path}#{DOC}--requirements), line 26',
+            'CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE': f'{{need}}`{REQ}`',
+            'TRIGGER': f'TRIGGER_{number}: only after interrupted export',
+            'OBSERVED_EVIDENCE_OR_UNVERIFIED_HYPOTHESIS': f'HYPOTHESIS_{number}: not reproduced',
+            'IMPACT': f'IMPACT_{number}: may lose a partial export',
+            'MINIMUM_REMEDY_OR_VERIFICATION': f'REMEDY_{number}: reproduce interruption first',
+            'RISKS_WITH_SIX_FINDING_ELEMENTS_OR_NONE': f'#### R{number}: recovery\n\n- RISK_{number}: preserve uncertainty',
+            'NON_BLOCKING_SUGGESTIONS_OR_NONE': f'1. SUGGESTION_{number}: **optional** `retry` label\n\n---',
+            'ACCEPTED_LIMITS_WITH_SOURCE_AND_RATIONALE_OR_NONE': f'LIMIT_{number}: offline operation accepted by the owner',
+            'UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE': f'- UNRESOLVED_{number}: external input remains unknown',
+            'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': f'NEXT_{number}: investigate before deciding',
+        }
+        text = review(locale, **fields)
+        if number == 3:
+            # An existing report can keep numbered six-element findings.
+            text = re.sub(r'^- (\*\*[^\n]+)', r'1. \1', text, flags=re.MULTILINE)
+        (directory / name).write_text(text, encoding='utf-8')
+    adjudication = 'DOC_20260918_0000000000000004'
+    link = f'[{names[0]}]({names[0]}#{REVIEW}--findings)'
+    fields = {
+        'DOC_ID': adjudication, 'EVD_ID': 'EVD_20260918_0000000000000004',
+        'SOURCE_REPORT_LINK': link,
+        'SOURCE_REPORT_LINKS_OR_NO_SEPARATE_REPORTS': '\n'.join(f'- [{name}]({name})' for name in names),
+        'ACCEPTED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' D1',
+        'PARTIAL_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' R1',
+        'PARTIAL_DISPOSITION_SCOPE': 'PARTIAL_SCOPE: accept the scenario, retain the existing design',
+        'DEFERRED_SOURCE_REPORT_LINK_AND_LOCAL_FINDING_ID': link + ' N1',
+        'DEFERRED_REMAINING_WORK_OR_REVISIT_CONDITION_OR_NONE': 'REVISIT: after a reproducible failure',
+        'UNRESOLVED_ISSUES_AND_UNCERTAINTIES_OR_NONE': '- REMAINING: execution time unknown',
+        'IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION': 'IMPACT_ON_PLAN: no implementation authorized',
+    }
+    text = review(locale, 'review-adjudication', **fields)
+    labels = json.loads((ASSETS / f'locales/{locale}.json').read_text(encoding='utf-8'))
+    start = text.index('### ' + labels['heading.accepted'])
+    end = text.index('### ' + labels['heading.partial'])
+    heading, table = text[start:end].split('\n\n', 1)
+    text = text[:start] + heading + '\n\n' + ''.join(
+        f'#### Theme {letter}\n\nDETAIL_{letter}: keep the original explanation.\n\n{table}'
+        for letter in 'ABCDE'
+    ) + text[end:]
+    start = text.index('### ' + labels['heading.rejected'])
+    end = text.index('### ' + labels['heading.unresolved'])
+    text = text[:start] + f"### {labels['heading.rejected']}\n\nREJECT_REASON: source premise contradicted by the contract.\n\n" + text[end:]
+    (directory / '00-adjudication.md').write_text(text, encoding='utf-8')
+    (directory / 'index.md').write_text(
+        navigation('00-adjudication.md\n' + '\n'.join(names)).replace(CHANGE_DOC, 'DOC_20260918_0000000000000005'), encoding='utf-8')
+    (tmp_path / 'docs/index.md').write_text(
+        navigation('spec.md\n' + (directory / 'index.md').relative_to(tmp_path / 'docs').as_posix()), encoding='utf-8')
+    result = validate(tmp_path, list((tmp_path / 'docs').rglob('*.md')), book_root=tmp_path / 'docs/index.md')
+    assert result.valid and not result.diagnostics, result.to_dict()
+    output = build(configured)
+    site = tmp_path / output['directory']
+    pages = site / directory.relative_to(tmp_path)
+    html = (pages / '00-adjudication.html').read_text(encoding='utf-8')
+    assert html.count('<table') == 8
+    for sentinel in ['DETAIL_' + letter for letter in 'ABCDE'] + [
+        'PARTIAL_SCOPE', 'REVISIT', 'REMAINING', 'IMPACT_ON_PLAN', 'REJECT_REASON',
+    ]:
+        assert sentinel in html
+    assert f'01-contract-alpha.html#{REVIEW}--findings' in [a.get('href') for a in Page(html).links]
+    for number, name in enumerate(names, 1):
+        html = (pages / name.replace('.md', '.html')).read_text(encoding='utf-8')
+        for sentinel in ['TRIGGER', 'HYPOTHESIS', 'IMPACT', 'REMEDY', 'RISK', 'SUGGESTION', 'LIMIT', 'UNRESOLVED', 'NEXT']:
+            assert f'{sentinel}_{number}' in html
+        assert '<ol' in html and '<ul' in html and '<hr' in html
+        assert '<strong>optional</strong>' in html
+        hrefs = [a.get('href') for a in Page(html).links]
+        assert source_path.replace('.md', '.html') + f'#{DOC}--requirements' in hrefs
+        assert '../' * (len(directory.relative_to(tmp_path).parts)) + f'refs/{REQ}.html#{REQ}' in hrefs
+        assert f'DOC_20260918_{number:016d}--findings' in Page(html).ids
+    assert DOC + '--requirements' in Page((site / 'docs/spec.html').read_text(encoding='utf-8')).ids
 
 
 @pytest.mark.parametrize('citation,rule', [
