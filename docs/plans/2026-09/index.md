@@ -35,4 +35,5 @@ created: "2026-09-14"
 20260918-operation-review-evidence.md
 20260918-independent-discussion.md
 20260918-review-report-contract.md
+20260918-review-time-budget.md
 ```
