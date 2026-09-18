@@ -116,7 +116,7 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
         if series is None or new_batch:
             series = {'id': uuid.uuid4().hex, 'phase': state['phase'], 'decision': decision,
                       'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
-                      'budget_seconds': budget_seconds or 1800, 'runs': [], 'budget_decisions': []}
+                      'budget_seconds': budget_seconds or 7200, 'runs': [], 'budget_decisions': []}
         for field, value in (('max_rounds', max_rounds), ('budget_seconds', budget_seconds)):
             if value is not None:
                 if type(value) is not int or value <= 0:

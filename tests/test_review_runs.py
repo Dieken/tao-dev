@@ -1,5 +1,6 @@
 """Reviews bind cumulative changes and retain their finite budget across sessions."""
 import json
+from datetime import datetime, timedelta, timezone
 import zipfile
 import pytest
 from test_workflows import call, start, git
@@ -83,6 +84,58 @@ def test_elapsed_budget_is_preserved_when_a_session_resumes(tmp_path, capsys):
     assert state['reviews']['code']['runs'][-1]['outcome'] == 'budget-exceeded'
     with pytest.raises(ConflictError, match='budget'):
         begin(Project(tmp_path), state['change'], state['revision'], preview(project, state, 'project', 'code'), 'serial', 1, 'New session')
+
+
+def test_default_window_allows_discussion_but_expires_at_two_hours(tmp_path, capsys, monkeypatch):
+    from taolib import review_runs
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    started = datetime(2026, 9, 18, tzinfo=timezone.utc)
+    now = started
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+
+    monkeypatch.setattr(review_runs, 'datetime', Clock)
+    request = review_runs.preview(project, state, 'project', 'code')
+    state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+    assert state['reviews']['code']['budget_seconds'] == 7200
+    report = tmp_path / 'tmp/tao/report.md'
+    report.write_text('A correction is required.', encoding='utf-8')
+    now = started + timedelta(minutes=40)
+    state = review_runs.finish(project, state['change'], state['revision'], {
+        'outcome': 'changes-requested', 'reports': ['tmp/tao/report.md'], 'summary': 'Correct the default',
+    })
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'changes-requested'
+    now = started + timedelta(seconds=7199)
+    state = review_runs.begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'Recheck after discussion')
+    assert state['reviews']['code']['started_at'] == started.isoformat()
+    now = started + timedelta(seconds=7200)
+    state = review_runs.finish(project, state['change'], state['revision'], {
+        'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result',
+    })
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'budget-exceeded'
+
+
+@pytest.mark.parametrize('budget', [1800, 9000])
+def test_resume_preserves_explicit_budget_and_new_batch_uses_default(tmp_path, capsys, budget):
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    request = preview(project, state, 'project', 'code')
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Explicit budget', budget_seconds=budget)
+    state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted'})
+    state = begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'Resume')
+    assert state['reviews']['code']['budget_seconds'] == budget
+    assert state['reviews']['code']['budget_decisions'] == []
+    state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted again'})
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'User requests another batch', new_batch=True)
+    assert state['review_history']['code'][-1]['budget_seconds'] == budget
+    assert state['reviews']['code']['budget_seconds'] == 7200
 
 
 def test_index_is_in_scope_snapshot_and_freshness_even_when_worktree_reverted(tmp_path, capsys):
