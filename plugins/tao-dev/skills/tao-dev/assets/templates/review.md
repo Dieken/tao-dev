@@ -7,8 +7,8 @@ status: draft
 created: "{{CREATED}}"
 evidence: "{{EVD_ID}}"
 recorded_at: "{{RECORDED_AT}}"
-result: unknown
-coverage: unknown
+result: "{{RESULT}}"
+coverage: "{{COVERAGE}}"
 ---
 
 # {{TITLE}}
@@ -18,7 +18,7 @@ coverage: unknown
 
 {{SCOPE}}
 
-**{{label.review_time}}:** {{ACTUAL_REVIEW_TIME_WITH_SOURCE_OR_UNKNOWN}}
+**{{label.review_time}}:** {{REVIEW_TIME_AND_SOURCE}}
 
 <!-- tao:section inputs -->
 ## {{heading.inputs}}
@@ -27,42 +27,58 @@ coverage: unknown
 **{{label.fingerprint}}:** {{FINGERPRINT}}
 
 <!-- tao:field environment -->
-**{{label.environment}}:** {{REVIEWER_PROVIDER_MODEL_METHOD_EFFORT_INDEPENDENCE_ROUND_AND_ENVIRONMENT}}
+**{{label.environment}}:** {{REVIEWER_AND_ENVIRONMENT}}
 
 <!-- tao:section checks -->
 ## {{heading.checks}}
 
 <!-- tao:field command -->
-**{{label.command}}:** {{ACTUAL_CHECK_COMMANDS_AND_REVIEW_METHOD}}
+**{{label.command}}:** {{COMMAND}}
 
 <!-- tao:field expected -->
-**{{label.expected}}:** {{REVIEW_CRITERIA}}
+**{{label.expected}}:** {{EXPECTED}}
 
 <!-- tao:field observed -->
-**{{label.observed}}:** {{CHECK_RESULTS_AND_SEPARATE_REVIEW_VERDICT}}
+**{{label.observed}}:** {{OBSERVED}}
 
 <!-- tao:field reports -->
-**{{label.reports}}:** {{SOURCE_REPORT_LINKS_OR_NO_SEPARATE_REPORTS}}
+**{{label.reports}}:** {{REPORTS}}
 
 <!-- tao:section findings -->
 ## {{heading.findings}}
 
 <!-- tao:field limits -->
-**{{label.limits}}:** {{UNVERIFIED_SCOPE_AND_COVERAGE_LIMITS}}
+**{{label.limits}}:** {{LIMITS}}
 
-### {{LOCAL_FINDING_ID_AND_TITLE}}
+### {{heading.defects}}
 
-- **{{label.severity}}:** {{SEVERITY_AND_BLOCKING_CONDITION}}
-- **{{label.location}}:** {{LOCATION_LINK_AND_LINE_OUTSIDE_LINK}}
-- **{{label.constraint}}:** {{CONSTRAINT_WITH_NEED_REFERENCE_OR_SOURCE}}
+#### {{LOCAL_FINDING_ID_AND_TITLE}}
+
+- **{{label.severity}}:** {{SEVERITY}}
+- **{{label.location}}:** {{LOCATION}}
+- **{{label.constraint}}:** {{CONSTRAINT}}
 - **{{label.trigger}}:** {{TRIGGER}}
-- **{{label.evidence}}:** {{OBSERVED_EVIDENCE_OR_UNVERIFIED_HYPOTHESIS}}
+- **{{label.evidence}}:** {{EVIDENCE}}
 - **{{label.impact}}:** {{IMPACT}}
-- **{{label.remedy}}:** {{MINIMUM_REMEDY_OR_VERIFICATION}}
+- **{{label.remedy}}:** {{REMEDY}}
 
-{{OTHER_FINDINGS_AND_UNRESOLVED_WORK_OR_NONE}}
+### {{heading.risks}}
 
-**{{heading.next_impact}}:** {{IMPACT_ON_NEXT_ACTIONS_WITHOUT_INVENTING_AUTHORIZATION}}
+{{RISKS}}
+
+### {{heading.suggestions}}
+
+{{SUGGESTIONS}}
+
+### {{heading.accepted_limits}}
+
+{{ACCEPTED_LIMITS}}
+
+### {{heading.unresolved}}
+
+{{UNRESOLVED}}
+
+**{{label.next_impact}}:** {{NEXT_IMPACT}}
 
 <!-- tao:section retention -->
 ## {{heading.retention}}
