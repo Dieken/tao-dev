@@ -79,6 +79,7 @@ class Validator:
     def __init__(self, root):
         self.root = Path(root).resolve()
         self.registry = json.loads((ASSETS / "document-profiles.json").read_text(encoding="utf-8"))
+        self.bare_id = re.compile(r"(?<![A-Za-z0-9_])" + self.registry["id"]["pattern"].removeprefix("^").removesuffix("$") + r"(?![A-Za-z0-9_])")
         self.result = Result()
         self.md = parser()
         self.file_links = []
@@ -227,11 +228,44 @@ class Validator:
             line = offset + token.map[0] + 1
             if PLACEHOLDER.search(token.content):
                 self.error("TAO-ENTITY-001", path, line, "Unfilled template placeholder.")
+            if re.fullmatch(r"\([^\s()]+\)=", token.content):
+                continue  # MyST explicit targets are syntax, not prose citations.
+            linked = False
             for child in token.children or []:
                 if child.type == "tao_need":
                     self.reference(child.content, None, path, line + child.meta["line_offset"])
                 elif child.type in ("link_open", "image"):
                     self.file_links.append((path, line, child.attrGet("href") or child.attrGet("src")))
+                    if child.type == "link_open":
+                        linked = True
+                elif child.type == "link_close":
+                    linked = False
+                elif not linked and child.type in ("text", "code_inline"):
+                    self.unlinked_reference(child, path, line)
+
+    def unlinked_reference(self, child, path, line):
+        # Code commands are examples, while a standalone ID is a likely citation.
+        matches = list(self.bare_id.finditer(child.content))
+        if child.type == "code_inline" and not self.bare_id.fullmatch(child.content):
+            matches = []
+        for match in matches:
+            identity = match[0]
+            definition = self.result.definitions.get(identity)
+            if definition and (definition.path, definition.line) == (path, line):
+                continue  # A TASK declaration is already indexed.
+            if any((ref.path, ref.line, ref.target) == (path, line, identity)
+                   and ref.relation in ("relates", "depends_on") for ref in self.result.references):
+                continue  # Structured task fields are already indexed.
+            self.result.diagnostics.append(Diagnostic(
+                "TAO-REF-005", "warning", path, line,
+                Message('Unlinked ID in prose: {arg0}.', identity),
+                'Use the need role with the full ID for a formal reference; keep syntax examples in fenced code.',
+                entity_id=identity))
+        if child.type == "code_inline" and re.fullmatch(r"[^\s`*?<>{}|@]+\.md(?::[0-9]+)?(?:#[^\s]+)?", child.content):
+            self.result.diagnostics.append(Diagnostic(
+                "TAO-LINK-002", "warning", path, line,
+                Message('Unlinked Markdown file in prose: {arg0}.', child.content),
+                'Use a relative Markdown link for navigation; put line numbers outside the link.'))
 
     def entity(self, token, section, path, offset):
         match = re.fullmatch(r"\{(req|uc|adr)\}\s+(.+)", token.info.strip())

@@ -28,7 +28,10 @@
 | 运维操作 | [runbook](../assets/templates/runbook.md) |
 | 项目术语 | [glossary](../assets/templates/glossary.md) |
 | 独立检查摘要 | [evidence](../assets/templates/evidence.md) |
+| 正式审查报告与裁决 | evidence schema 的 [review 写作模板](../assets/templates/review.md) |
 | 恢复摘要 | [handoff](../assets/templates/handoff.md) |
+
+审查模板复用 evidence 的字段和章节：inputs.environment 记录实际审查者、供应商、模型、调用方式与独立性，checks.observed 分别写确定性检查结果与审查结论，findings 保存发现、逐项处置和未决项。`result` 描述本报告范围内的结果；要求修改对应 failed，未执行对应 not_run，不能因检查命令通过就写 passed。格式校验检查 evidence 结构，不验证结论正确或审查者身份。
 
 设计通过 `spec_docs` 引用规格 DOC；计划通过 `spec_docs`、`design_docs` 引用适用规格和设计，通过 `tasks_doc` 引用任务附件 DOC。`spec_docs`、`design_docs` 一旦提供，须为非空、无重复的 YAML ID 数组。任务附件必须通过 `change` 引用同一 CHG，专属设计可关联该 CHG，共享设计不必声明专属开发事项。计划生成前的 CHG 由 [工作流状态](workflow-state.md) 提供。正文引用使用 `{need}` 和必要职责说明，不能保留第二份正文。关系只维护正向字段，反向链接由工具生成。按本次事项沿直接关系读取相关文档和章节，不沿反向链接加载整张文档图。草稿可暂缺依据；design/plan 阶段批准前必须关联已批准的上游产物并覆盖本次范围。当前 tasks_doc 指向一份完整任务集合，不通过普通正文引用暗中扩展为多份任务附件；扩展该关系须先定义并验证格式。计划及其任务附件合起来至少有一个 TASK。
 
@@ -64,6 +67,8 @@ plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状
 同一版本的正式索引只允许一个定义；示例、档案和测试夹具不注册当前定义，多版本出版分别建索引。退役记录纳入 VCS 并参与查重，无法恢复历史基线时不能宣称查出了所有历史删除。外部项目的正式引用需显式导入索引，无可用索引时报告 unresolved。
 
 文件导航用项目内相对 Markdown 链接，解析含符号链接的路径后不得越出项目；不使用本机绝对地址或 file://。外部资料使用项目可访问的稳定链接，引用范围遵循项目保密约定。发布时条目与章节使用稳定锚点及书籍解析入口，精确规则见 [出版规程](publication.md)。未实际构建并检查链接时，不要宣称移动后的 URL 已可用。
+
+引用目标不能只写成普通文本或代码片段。文件行号置于链接外，不把 `:行号` 当作路径后缀；审查快照位置只说明受检输入，不代替正文导航。校验器对正文未链接的完整 ID（TAO-REF-005）和独立代码片段中的明确 Markdown 文件路径（TAO-LINK-002）给出 warning，不自动猜测或注册引用；目录模式、命令、围栏代码示例不属于该检查。缩写 ID、普通文本路径及引用意图仍须人工核对；无 warning 不证明所有引用都可点击。
 
 ## 检查与修正
 

@@ -460,6 +460,9 @@
         "retention": [
           "retention"
         ]
+      },
+      "alternate_templates": {
+        "review": "templates/review.md"
       }
     },
     "tao.project.handoff/v0.1": {

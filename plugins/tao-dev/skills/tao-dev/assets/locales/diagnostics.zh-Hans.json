@@ -334,5 +334,9 @@
   "Generated search data names no stemmer.": "生成的搜索数据未声明 stemmer。",
   "Generated search data assigns the undefined stemmer {arg0}; the book would publish with search disabled.": "生成的搜索数据引用了未定义的 stemmer {arg0}；这样发布的书籍搜索会静默失效。",
   "Interpreter probe failed: {arg0}": "解释器探测失败：{arg0}",
-  "Unexpected, failed or additional Codex review turn.": "Codex 审查包含意外事件、失败或额外轮次。"
+  "Unexpected, failed or additional Codex review turn.": "Codex 审查包含意外事件、失败或额外轮次。",
+  "Unlinked ID in prose: {arg0}.": "正文 ID 未链接：{arg0}。",
+  "Use the need role with the full ID for a formal reference; keep syntax examples in fenced code.": "正式引用使用 need 角色和完整 ID；语法示例放在围栏代码中。",
+  "Unlinked Markdown file in prose: {arg0}.": "正文 Markdown 文件未链接：{arg0}。",
+  "Use a relative Markdown link for navigation; put line numbers outside the link.": "导航使用相对 Markdown 链接；行号放在链接外。"
 }

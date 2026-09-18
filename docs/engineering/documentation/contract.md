@@ -5,7 +5,7 @@ title: Markdown 文档契约
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
-updated: "2026-09-16"
+updated: "2026-09-18"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
@@ -43,6 +43,21 @@ EARS 是受约束的自然语言写法，ADR、arc42、Diátaxis 是文档实践
 构建顺序为：解析全部纳入文档 → 注册定义 → 解析引用 → 检查类型与关系 → 输出诊断和索引。AST 必须区分顶层正式条目与代码示例；正文里提到一个 ID 不是新的定义。
 
 本仓库 docs/ 下的 Markdown 使用同一份共享格式注册表并纳入全局检查。运行参考、模板、README 与客户端配置使用各自格式，不纳入正文 profile。外部资料不成为本项目正式定义；没有显式导入索引的外部条目引用报告 unresolved。
+
+### Markdown 管理边界
+
+按内容职责接入，不能通过另建 reviews/、reports/ 或移动目录使正式结论逃离校验。正式审查报告和裁决复用 evidence profile；[审查模板](../../../plugins/tao-dev/skills/tao-dev/assets/templates/review.md) 由报告作者读取，沿用既有解析器与出版器，无新增审查实体。审查者来源、发现及处置由写作规程要求，schema 检查既有 evidence 字段和章节，不验证来源真实性或语义完整性。JSON 审查回执、调度状态与 Markdown 报告职责不同，登记成功不代表报告格式有效。
+
+| Markdown 内容 | 管理方式 |
+|---|---|
+| 产品、设计、决定、计划、任务、交接、术语、操作说明、导航 | docs/ 内使用对应共享 profile |
+| 正式测试摘要、审查报告、裁决、需要保留的调查结论 | 按职责放入计划 verification 或独立 evidence；不能用普通 Markdown 绕过 schema |
+| skill 入口、运行参考、agent 与 command | 供客户端或 LLM 读取，遵循各自格式；检查分发和链接，不注册为项目交付文档 |
+| 模板与条目片段 | 填写前含变量，作为输入资源；生成文档后按 profile 校验 |
+| README 与客户端开发指令 | 入口及开发约定，检查链接，不套交付 profile；不在其中持续存放正式审查结论 |
+| 临时原始输出、测试夹具、外部历史资料 | 明确范围外；不得计入正式文档覆盖或直接冒充交付结论 |
+
+源校验器在 AST 正文中提示未链接的完整 ID 和独立代码片段中的 Markdown 路径，使用 TAO-REF-005／TAO-LINK-002 warning。已解析的 TASK 定义和关系字段、链接显示文字及围栏代码不重复提示；不从裸文字自动建立关系。该检查是引用意图的提示，不能可靠识别缩写、普通文本中的任意路径或所有语义引用；内容审查及实际 HTML 链接核验仍必需。
 
 退役数据由独立 JSONL 读取层按格式注册表中的 retirement_records 契约提取，再与 Markdown 定义合并检查；docs/retired/ 的全部日期文件都参与索引，不以 Sphinx 导航或当前修改日期决定范围。该目录只在产生实际退役记录时建立，不预写示例作为正式数据；读取器与跨文件一致性由回归测试验收。
 
