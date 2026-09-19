@@ -133,10 +133,11 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
   - depends_on: []
   - verify: 核对 project-setup.md 空项目分支要求记录延后决定与重新接入触发点；workflow-actions.md 的 new 步骤要求写计划前核对检查策略可用性，缺失时把落地任务列为前置并由需执行检查的任务 depends_on；document-content.md 设计段要求新建项目在 design 定工具、命令与门槛，并写明 inputs 按预期目录结构声明、首任务只落最小可跑通集合。运行受管理文档校验与全仓相对链接解析，均无新增诊断。
   - evidence: [验证记录](#DOC_20260919_61NK2KP5RFSC3WFC--verification)
-- [ ] `TASK_20260919_F7EZFA77T9VQ78RK` 计划覆盖对照与进入实现的门
+- [x] `TASK_20260919_F7EZFA77T9VQ78RK` 计划覆盖对照与进入实现的门
   - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_FQJ3HPX0WSZBC4YP"]
   - verify: 核对 workflow-actions.md 要求计划展示覆盖对照，左列为本次范围内的需求加本次新增或修改的设计决定、用例经 verifies 已归属需求而不重复枚举，且每项三选一、左列按全部受管理设计文档相对事项基线修订的正式决定差异枚举而非凭记忆、且明确不以 design_docs 划定扫描范围、分期计划须在 scope 声明边界并在 questions 留清单、覆盖对照承认无对应需求的使能任务；进入实现的门改为先出覆盖对照与缺口自查结果再问是否加独立审查，跳过须记录跳过的具体缺口；document-content.md 要求任务在有对应需求时优先关联需求；review.md 的审查方法补齐 plan／tasks 要点。运行受管理文档校验与链接解析无新增诊断。
+  - evidence: [验证记录](#DOC_20260919_61NK2KP5RFSC3WFC--verification)
 - [ ] `TASK_20260919_1WN3X1HDKJW0WHKM` 交付前逐条核对需求验收是否被实际执行
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
@@ -183,6 +184,10 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 {need}`TASK_20260919_FQJ3HPX0WSZBC4YP`：project-setup.md 的空项目分支改为要求记录延后了哪些检查、重新接入的触发点（技术栈确定，通常即 design 完成）与谁依赖它；同一页的重复 setup 说明补入新工具随对应任务增量补配，不预配尚不存在的工具。workflow-actions.md 的 new 增第 5 步，要求写 plan 前核对检查策略可用性，缺策略且本次要写代码时把落地作为计划内前置任务，并用 depends_on 而非任务顺序表达。document-content.md 的设计内容补入全新项目两步分工、输入范围按预期目录结构声明、前置任务只落最小可跑通集合。
 
 检查：`tao verify --only docs` 通过，全仓仅剩 cli-design.md 第 80 行一条既有 TAO-LINK-002 warning，无新增诊断。全仓 113 份 Markdown 的相对链接全部解析成功。这两项是确定性检查，覆盖结构、ID、关系与链接目标，不判断规则本身是否有效。
+
+{need}`TASK_20260919_F7EZFA77T9VQ78RK`：workflow-actions.md 的 new 增第 6 步，要求计划写成后展示覆盖对照，每项三选一且不允许沉默遗漏；左列为本次范围内的需求加本次新增或修改的设计决定，用例经 `verifies` 已归属需求不重复枚举，设计决定按全部受管理设计文档相对 fork commit 的正式条目差异枚举，并写明不以 `design_docs` 划范围及其理由；右列承认使能任务不算孤儿。同页的实现门改为先展示覆盖对照与缺口自查结果再问是否另加独立审查，跳过须记录跳过了哪些具体缺口。review.md 的审查方法把 plan／tasks 要点展开为覆盖遗漏、被藏进任务的方案决定、依赖成环或倒序、不可判定的 `verify`。document-content.md 的任务节要求有对应需求时优先关联需求。
+
+检查：`tao verify --only docs` 通过，诊断仍只有那一条既有 warning；113 份 Markdown 的相对链接全部解析成功。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
