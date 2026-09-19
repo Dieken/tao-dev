@@ -1,0 +1,173 @@
+---
+schema: tao.project.plan/v0.1
+id: "DOC_20260919_61NK2KP5RFSC3WFC"
+title: "覆盖核对与发现处置"
+locale: "zh-Hans"
+status: draft
+created: "2026-09-19"
+spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
+design_docs: ["DOC_20260914_AG3NSZ8RBSFA0YHW", "DOC_20260914_P1G9T0KSCC0FTBM1"]
+change: "CHG_20260919_CN6CCKSK3NPBCGMF"
+---
+
+# 覆盖核对与发现处置
+
+<!-- tao:section scope -->
+## 目标与边界
+
+用户在一个独立项目上实际使用 tao-dev 走完 spec、design 和 plan，报告了四类观察：计划只拆出起始的试验任务而没有覆盖规格与设计的全部事项；spec／design 做了四轮评审后，plan／tasks 阶段没有被提示评审就直接可以进入实现；implement 流程没有要求端到端验证；讨论评审结果时发现的呈现不便阅读，且问题解决后没有与 evidence 文档比对遗漏。随后补充了第五点：全新项目在进入 implement 时还没有配置 `[verification]`，这件事没有被安排进计划。
+
+逐条核对现有参考页后确认，这五类观察对应的规则要么缺失，要么只以静默延后的形式存在：项目设计已经承诺「任务通过关系字段生成依赖图」「阻断未被伪装为假设」「只存在代码、连接、测试或引用均不足以证明行为已验证」「意见写明场景、后果与解除条件」，但 skill 的运行参考页没有把这些承诺落成可执行的核对步骤。本次修正这一实现缺口。
+
+范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md)、[review.md](../../../plugins/tao-dev/skills/tao-dev/references/review.md)、[review-reports.md](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md)、[document-content.md](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)、[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md)（仅新增一处反向链接），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
+
+不改 `document-profiles.json` 的 schema 契约、不改工作流状态机。CLI 行为只改一处：审查调度在受检范围载荷形状不对时给出的诊断消息，见下。任务关联需求依赖注册表已有的 `relates_types: ["REQ", "CHG"]`，无需扩展格式。
+
+**必读底座不得增大。** 上一批刚把 [SKILL.md](../../../plugins/tao-dev/skills/tao-dev/SKILL.md) 加 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 从 9,880 字节压到实测 6,580 字节，本次一个字都不进这两份文件，全部改动落在按需读取页。
+
+另收三项与本批规则改动无关、但在本次执行中确认的既有缺陷，各自单独成任务、单独提交：
+
+其一，[tao 命令设计](../../engineering/cli-design.md) 的 `tao handoff` 行长期留有一条 TAO-LINK-002 warning。此前至少五个批次记录过该告警，其中 [操作与审查证据](20260918-operation-review-evidence.md) 明确判定它「表示尚未生成的文件名，不是可导航对象，人工核对后保留」。本次按用户明确要求重议并改为修正；审查规程的强度表规定项目或用户有明确要求时按该要求执行，因此这是正当的重议，而非无依据地推翻既有决定。
+
+其二，本次编写计划时实际踩到：审查调度的 `review-begin --from` 要求传入预览输出的 `outputs` 对象，而 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 只说「把预览 JSON 保存到项目 temporary 目录」，未区分完整 CLI 信封与其 `outputs`。传入信封时返回的诊断是「审查范围属于另一个工作流」，把载荷形状问题误报为事项不匹配。
+
+其三，编写本批审查报告时撞到 TAO-TASK-001 误报：任务识别的模式用 `\[[^]]*\]` 匹配方括号以寻找复选框，但该写法同样匹配 Markdown 链接的链接文字，于是同一列表项内既有链接又引用 TASK 时被误判为 tasks 章节外的任务定义。这与 TAO-LINK-002 不同——后者按设计工作，这一条是实现与意图不符。
+
+本计划不是分期计划，覆盖用户逐条确认的全部 22 项建议，另加上述三项既有缺陷；三项明确不做的事项在设计章节记录依据。
+
+<!-- tao:section references -->
+## 规格引用
+
+本批不新增承诺，全部落在三条已有需求的实现层：
+
+- {need}`REQ_20260914_4CS6P421MGW68PME` 要求分发的 skill 入口给出适用条件、具体动作和判断依据，而非仅宣示质量目标。计划覆盖对照与进入实现的门属于这条的具体动作。
+- {need}`REQ_20260914_0J68SDKV86ENKER2` 要求完成声明绑定实际证据，且未运行、不可用与不适用均不能显示为通过。验收执行核对与检查策略配置属于这条。
+- {need}`REQ_20260914_M05MAGDARWBY5D44` 要求审查意见有具体依据、比较可行替代或说明没有可行替代的依据，并保留处置记录。发现的呈现、分批与闭环核对属于这条。
+- {need}`REQ_20260914_NN0AEQ2E1GTVSMTV` 要求信息只维护一处、阅读可按主题组合。本批多处改为链接已有规则而非复述，并据此拒绝了重复的字段定义。
+
+需求到任务的覆盖对照（本计划覆盖全部，无延后项）：
+
+| 需求 | 覆盖任务 |
+|---|---|
+| {need}`REQ_20260914_0J68SDKV86ENKER2` | {need}`TASK_20260919_FQJ3HPX0WSZBC4YP`、{need}`TASK_20260919_1WN3X1HDKJW0WHKM` |
+| {need}`REQ_20260914_4CS6P421MGW68PME` | {need}`TASK_20260919_F7EZFA77T9VQ78RK` |
+| {need}`REQ_20260914_M05MAGDARWBY5D44` | {need}`TASK_20260919_M5N536VCAAYCT4FD`、{need}`TASK_20260919_15JC4JBCTJVFK1DJ` |
+| {need}`REQ_20260914_NN0AEQ2E1GTVSMTV` | {need}`TASK_20260919_YK293K37D4TNXZ59` |
+| {need}`REQ_20260914_42AXMZ2KH2RAZ8M3` | {need}`TASK_20260919_5ZRZJAXBWEDHFAT2`、{need}`TASK_20260919_RX3R4ACVW28DZ6FM` |
+
+<!-- tao:section design -->
+## 设计
+
+沿用 {need}`DOC_20260914_AG3NSZ8RBSFA0YHW` 的阶段职责与授权约束，以及 {need}`DOC_20260914_P1G9T0KSCC0FTBM1` 的文档契约；本批不改这两份设计，只补它们在运行参考页的实现。
+
+### 共同原则：把静默延后改成显式核对
+
+五类问题的根源相同——存在一个合法的「先不做」，但这个决定既不被记录，也不被安排后续。空项目延后接入检查策略、计划先拆试验任务、验收留到以后跑、可选文档审查跳过，每一项单独看都符合「先验证可能推翻方案的风险」和「不预建抽象」，合起来的效果却是交付门在整个 implement 期间全部失效：`tao status` 在无策略时返回未评估，`tao verify --only code` 在缺配置时返回未完成，而完整交付判定只检查 TASK 状态，不检查 REQ 是否有人实现。
+
+因此本批不新增关卡，而是要求每个「先不做」都产出三样东西：延后了什么、重新处理的触发条件、谁依赖它。表达方式优先用注册表已有的关系字段，而不是新的正文约定——`relates` 指向 REQ 让覆盖可核对，`depends_on` 指向前置任务让「首要」可校验且不成环。这与设计中「任务通过关系字段生成依赖图；不依赖局部编号、手工同步 waves」一致。
+
+### 覆盖对照按本次范围，而不是只按需求
+
+独立审查指出，只按 REQ 建覆盖表会漏掉设计侧的事项，核对注册表后确认这是结构性的：`UC` 的 `required_options` 含 `verifies` 且只能指向 REQ，因此用例经该关系已归属需求，覆盖需求即覆盖用例；`ADR` 的 `required_options` 只有 `id` 与 `status`，没有任何强制关系，而任务的 `relates_types` 只允许 `REQ` 与 `CHG`。也就是说一条设计决定可以合法地不关联任何需求，纯需求覆盖表看不见它——这正是用户原话「没有覆盖规格与设计的全部事项」里的设计侧一半。
+
+因此覆盖对照的左列定义为本次范围内的需求，加上本次新增或修改的设计决定与设计章节结论；用例经 `verifies` 已归属需求，不重复枚举。不采用枚举适用设计文档全部 ADR 的做法：ADR 是长期决定，多数早已实现，全量枚举与既有的「覆盖本次范围」冲突，会把核对变成仪式。左列的边界是本次范围，不是文档全集。
+
+### 全新项目的检查策略分两步
+
+全新项目在写代码前配不出完整的 `[verification]`：`inputs` 要列源码目录与锁文件，而锁文件本身是产物。所以选工具、定命令、定门槛属于设计决定，落在 design 的 verification 章节；建骨架、装依赖、写配置、跑通首次基线属于实现，落在计划的前置任务。该任务的验证是自指的——`tao verify --only code` 不再返回未完成，并产出第一份检查回执。
+
+两个配套约束按已有规则推导：`inputs` 是「调用方声明的完整行为输入范围」，全新项目若只列当前存在的文件，每长出一个目录就会让历史结果过期，所以按预期目录结构声明；[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md) 已说明重复 setup 只检查、补充，所以首个任务只落最小可跑通的检查集合，新工具随对应任务增量补配，避免一批 `not_run` 把交付判定长期卡在未完成。
+
+### 发现的呈现复用报告字段，不另立一套
+
+正式报告的发现字段已经覆盖定位、约束、触发条件、证据或待证假设、后果和最小改动。缺的是三样：分类、根源（触发条件不等于根因），以及对话呈现本身没有任何契约——现有规则只约束写进 evidence 文件的内容，agent 在对话里怎么讲无人规定，用户的阅读负担正出在这里。因此新增的呈现规则只规定顺序与分批，字段定义指向报告写法，不产生第二份正文。
+
+分批规则直接沿用 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 已有的提问原则（一次一个关键问题、有依赖先问前置、独立简单问题可合问），扩展到发现上按阻断级、依赖前置、同类聚合分批，不引入新概念。
+
+### 三项明确不做及依据
+
+plan／tasks 不引入四轮独立审查：审查规程的默认预算是一次初审加最多一次定向复核，而 plan 阶段的主要风险就是覆盖缺口，一次结构化核对即可拦住，四轮的调用与等待成本不成比例。
+
+implement 不强制端到端测试：与正文写法明文的「选择单元、集成、端到端或属性测试依据风险和验证目标，不按固定测试次数或覆盖率一刀切」直接冲突，会让改一行文案也要跑端到端，诱发仪式性测试。改为按需求逐条核对验收是否被实际执行过，层级仍由风险决定。
+
+不要求每条发现都给出备选与推荐解法：与 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 的「不凑反对意见、选项或固定分析表」和审查规程的「允许无发现，不凑数量」冲突，会稳定制造假选项。改为只在确有代价不同的可行备选时才写备选、推荐与理由。
+
+### 既有 TAO-LINK-002 的判定与修正方向
+
+该诊断不是校验器缺陷。规则对任何行内代码中的 `*.md` 一律告警，其测试 `test_unlinked_citations_are_visible_but_not_invented_references` 说明意图就是让未链接的文件引用可见，并拒绝自动补链；文档规程也明写不为消除 warning 编造链接。因此不放宽规则。
+
+handoff 附件是每个开发事项各自的文件，没有可链接的静态目标，CLI 按事项返回其实际路径。权威定义已由 [工作流状态](../../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md) 维护，按信息只维护一处，命令设计不必重复该字面名。修正为在正文改用「handoff 文档」的说法，保留原意并消除该告警，不新增链接、不改规则、不加忽略项。
+
+### 审查范围载荷的三层缺陷
+
+本次执行中实际踩到，逐层核实如下。命令行把 `--from` 文件整个读为 JSON 直接传给登记函数，而该函数只认顶层的 `change` 键，因此唯一可用的载荷是预览输出的 `outputs` 对象；[审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 没有写明这一点。登记函数把三种不同原因——载荷不是对象、缺少 `change` 键、确实属于另一个事项——合并为同一条「属于另一个工作流」的消息，前两种其实是载荷传错，该消息把排查引向了事项身份。
+
+根因在第三层：现有回归全部在进程内直接以预览函数的返回值调用登记函数，绕过了保存文件再读回的这一步，而那是 agent 唯一能走的路径，因此前两层缺陷长期没有暴露。修正相应分三部分：参考页写明载荷形状，诊断区分这三种原因并在载荷形似完整 CLI 信封时直接指出，回归补一条覆盖文件往返的用例。诊断消息是否需要本地化条目由执行时核实，不预先断言。
+
+### 两处过宽的模式匹配
+
+载荷形状的诊断与任务识别的误报同属一类：用宽松正则在正文里找结构，命中了不该命中的内容，且都因为回归没有覆盖真实调用路径而长期存活。任务识别的意图是复选框语法，收紧到只匹配行首的复选框即可，不需要放宽任何既有检查；本批审查报告中为绕开该误报而改写的一处措辞，在修正后恢复为链接，用作该修正的实际验证。
+
+### 一处需要同步的用户可见行为
+
+[用户工作流指南](../../user/workflow.md) 第 5 节现在写的是「未做过文档审查时，进入实现前会询问是否先审查」，第 1 节写的是「可选：接入项目检查」。这两处描述的行为被本批改变，按知识维护规则须同步，否则用户指南会与实际提示不符。
+
+<!-- tao:section tasks -->
+## 任务
+
+- [ ] `TASK_20260919_FQJ3HPX0WSZBC4YP` 全新项目的检查策略：延后要记录触发点，落地成计划内的前置任务
+  - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: []
+  - verify: 核对 project-setup.md 空项目分支要求记录延后决定与重新接入触发点；workflow-actions.md 的 new 步骤要求写计划前核对检查策略可用性，缺失时把落地任务列为前置并由需执行检查的任务 depends_on；document-content.md 设计段要求新建项目在 design 定工具、命令与门槛，并写明 inputs 按预期目录结构声明、首任务只落最小可跑通集合。运行受管理文档校验与全仓相对链接解析，均无新增诊断。
+- [ ] `TASK_20260919_F7EZFA77T9VQ78RK` 计划覆盖对照与进入实现的门
+  - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: ["TASK_20260919_FQJ3HPX0WSZBC4YP"]
+  - verify: 核对 workflow-actions.md 要求计划展示覆盖对照，左列为本次范围内的需求加本次新增或修改的设计决定、用例经 verifies 已归属需求而不重复枚举，且每项三选一、分期计划须在 scope 声明边界并在 questions 留清单、覆盖对照承认无对应需求的使能任务；进入实现的门改为先出覆盖对照与缺口自查结果再问是否加独立审查，跳过须记录跳过的具体缺口；document-content.md 要求任务在有对应需求时优先关联需求；review.md 的审查方法补齐 plan／tasks 要点。运行受管理文档校验与链接解析无新增诊断。
+- [ ] `TASK_20260919_1WN3X1HDKJW0WHKM` 交付前逐条核对需求验收是否被实际执行
+  - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
+  - verify: 核对 workflow-actions.md 的 implement 收尾与 review 入口要求逐条需求说明验收由哪次实际执行观察到、未执行的列为缺口且不能用单元测试通过顶替；document-content.md 要求设计写明每条需求验收在哪一层执行；engineering-practices.md 既有的 mock 不替代关键集成一句被反向链接引用而非复述。确认未引入固定测试层级要求。运行受管理文档校验与链接解析无新增诊断。
+- [ ] `TASK_20260919_M5N536VCAAYCT4FD` 评审发现的呈现、分批与处置闭环
+  - relates: ["REQ_20260914_M05MAGDARWBY5D44", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
+  - verify: 核对 review.md 新增的呈现小节复用报告写法的字段定义而不重列字段，分批按阻断级、依赖前置、同类聚合并要求先给总览、一批一回应、每批预告剩余；处置完毕后回读 evidence 逐编号核对并展示汇总表，两侧缺项均显式列出；发现数超过一批时须落成受管理 evidence。核对 review-reports.md 补入分类与根源、根源未确认写待证，备选解法为条件性。运行受管理文档校验与链接解析无新增诊断。
+- [ ] `TASK_20260919_5ZRZJAXBWEDHFAT2` 清除命令设计中既有的 TAO-LINK-002 告警
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: []
+  - verify: 改写 cli-design.md 的 tao handoff 行，改用 handoff 文档的说法而不保留该附件文件名的字面形式，不新增链接、不放宽规则、不加忽略项；核对该行原意未变。运行受管理文档校验，确认全仓诊断数由 1 降为 0。
+- [ ] `TASK_20260919_15JC4JBCTJVFK1DJ` 让审查范围载荷的形状可读且诊断可定位
+  - relates: ["REQ_20260914_M05MAGDARWBY5D44", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: []
+  - verify: 在审查调度参考页写明登记命令的受检范围载荷是预览输出的 outputs 对象而非完整 CLI 信封；把登记函数中合并的三种拒绝原因拆开，载荷形似完整信封时明确指出应改传其 outputs，确认新消息是否需要本地化条目并按结论处理；补一条回归覆盖保存预览到文件再以该文件登记的往返路径，并确认它在修正前失败、修正后通过。运行审查调度相关回归与受管理文档校验。
+- [ ] `TASK_20260919_RX3R4ACVW28DZ6FM` 收紧任务识别模式，消除链接引起的 TAO-TASK-001 误报
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: []
+  - verify: 把任务识别的触发模式收紧到只匹配行首复选框语法，不放宽 tasks 章节外任务定义、嵌套任务与字段格式的既有拒绝；补回归覆盖「非 tasks 章节的列表项同时含 Markdown 链接与 TASK 引用」不报 error，并确认该用例在修正前失败；把本批审查报告中为绕开该误报改写的定位措辞恢复为链接，作为修正的实际验证。运行文档校验与关系相关回归。
+- [ ] `TASK_20260919_YK293K37D4TNXZ59` 同步用户指南并完成一次完整回归
+  - relates: ["REQ_20260914_NN0AEQ2E1GTVSMTV", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: ["TASK_20260919_1WN3X1HDKJW0WHKM", "TASK_20260919_M5N536VCAAYCT4FD", "TASK_20260919_5ZRZJAXBWEDHFAT2", "TASK_20260919_15JC4JBCTJVFK1DJ", "TASK_20260919_RX3R4ACVW28DZ6FM"]
+  - verify: 更新 docs/user/workflow.md 第 1 节与第 5 节使其与改动后的实际提示一致；实测 SKILL.md 加 workflow.md 的字节数确认未增；运行维护回归一次，与上一批基线比较通过数与失败原因；运行受管理文档校验与全仓链接解析；核对本计划验证章节的每个数值均为本次实测或本次复核所得，引用历史批次结论处已标注未复测。
+
+<!-- tao:section verification -->
+## 验证
+
+按任务的 verify 字段执行，检查办法如下。每份参考页改动后运行 `tao verify --only docs` 与全仓相对 Markdown 链接解析；这两项确定性检查覆盖结构、ID、关系与链接目标，不判断规则本身是否有效。
+
+必读底座体积用实测字节数核对 [SKILL.md](../../../plugins/tao-dev/skills/tao-dev/SKILL.md) 与 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 之和不超过本次实测的 6,580 字节。上一批记为 6,537 字节，本次复测发现该数字当时就是错的：这两份文件自 `2469362` 起未改动，在产出该说法的提交上实测同样是 6,580。本次以实测值为准，不沿用错误基线。当前没有任何回归测试断言这个数值，它是本计划自设的约束，须人工测量并记录，不能声称由测试保障。
+
+维护回归按已记录的做法在全部编辑完成后运行一次，不在每个任务后重跑；上一批基线为 490 passed、5 skipped、约 466 秒，跳过项是未启用的原生客户端安装探针。`tests/test_repository.py` 会检查参考页的链接可达性与文档角色，是本批最相关的回归面。 全仓受管理文档校验的既有诊断为 1 条，本批结束后应为 0 条。
+
+本计划断言的具体数值必须来自本次实测或本次复核，引用历史批次结论时标明「引自该批次，本次未复测」。本次审查发现的基线字节数错误，正是一个数字被跨批次复制而无人复测造成的，该规则用于防止同类再发。
+
+本批改动是 agent 行为规则，确定性检查无法证明改动后的 agent 真的会执行这些核对。规则是否改善实际计划覆盖与发现呈现质量，须在后续真实事项中观察，本计划不声称已验证该效果。
+
+<!-- tao:results -->
+尚未执行。
+<!-- /tao:results -->
+
+<!-- tao:section questions -->
+## 待确认事项
+
+本批只修改规则文本，未安排行为试验。上一批已用行为试验确认过「读取相关小节」仍导致整篇加载，本批新增内容是否会把按需页推高到影响加载成本，未测量。
+
+无。
