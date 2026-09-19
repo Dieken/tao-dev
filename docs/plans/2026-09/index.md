@@ -41,4 +41,5 @@ created: "2026-09-14"
 20260918-skill-review-followup.md
 20260919-coverage-and-findings.md
 20260919-coverage-and-findings/reviews/20260919-plan-review/index.md
+20260919-coverage-and-findings/reviews/20260919-plan-additions/index.md
 ```
