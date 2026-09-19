@@ -9,7 +9,8 @@ from tao_messages import Message
 def task(validator, token, section, doc, body_lines, offset):
     raw = body_lines[token.map[0]:token.map[1]]
     first = raw[0] if raw else ""
-    if not re.search(r"\[[^]]*\].*`TASK_", first):
+    # A checkbox holds at most one character; link text would swallow any bracket.
+    if "`TASK_" not in first or not re.match(r"\s*[-*+]\s+\[[^]]?\]", first):
         return
     line = offset + token.map[0] + 1
     rule = validator.registry["tasks"]
