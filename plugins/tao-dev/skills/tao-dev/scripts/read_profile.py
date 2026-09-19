@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import sys
 
 ASSETS = Path(__file__).resolve().parents[1] / 'assets'
 
@@ -38,6 +39,12 @@ def read_profile(profile, locale, variant=None):
 
 
 def main():
+    # A localized template is mostly Chinese, and isolated mode ignores
+    # PYTHONUTF8, so a Windows console or pipe would encode the result with the
+    # legacy code page and fail. Own the encoding instead.
+    reconfigure = getattr(sys.stdout, 'reconfigure', None)
+    if reconfigure is not None:
+        reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('profile', help='Profile name, e.g. evidence, or its full schema')
     parser.add_argument('--locale', required=True, choices=('en', 'zh-Hans'))
