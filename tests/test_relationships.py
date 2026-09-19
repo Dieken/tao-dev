@@ -207,3 +207,12 @@ def test_link_text_in_prose_is_not_read_as_a_task_checkbox(tmp_path):
     assert not [d for d in result.diagnostics if d.rule_id == 'TAO-TASK-001'], [
         (d.rule_id, d.message) for d in result.diagnostics]
     assert result.definitions[TASK].status == "completed"
+
+
+@pytest.mark.parametrize('mark', ['- [xx]', '- [ x]', '1. [x]', '- [X]'])
+def test_malformed_checkbox_beside_a_valid_task_still_errors(tmp_path, mark):
+    """A typo must not drop a task silently; the floor check only catches the last one."""
+    extra = f'\n{mark} `{TASK_TWO}` 另一项\n  - relates: ["{CHG}"]\n  - depends_on: []\n  - verify: 检查。\n'
+    result = check_change(tmp_path, change().replace('\n<!-- tao:section verification -->', extra + '\n<!-- tao:section verification -->'))
+    assert 'TAO-TASK-001' in codes(result)
+    assert not result.valid

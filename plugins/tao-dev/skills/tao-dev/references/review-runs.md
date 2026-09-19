@@ -34,6 +34,6 @@ tao workflow review-begin <CHG-ID> --expect <revision> --from <preview.json> --m
 tao workflow review-end <CHG-ID> --expect <revision> --from <result.json>
 ```
 
-非失败结果必须有对应数量的非空报告；输入改变会记为 stale，超出时间预算记为 budget-exceeded。这些记录不自动满足 required_reviews，也不证明报告结论正确。历史变化或其他输入错误不阻止登记失败，错误原因随记录保留。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
+非失败结果必须有对应数量的非空报告。结论按提交值保留；受检输入是否仍与确认时一致记在 `inputs`，是否已超出时间预算记在 `budget`，三者互不覆盖。预算耗尽会阻止开始新一轮，但不改写已经做出的结论。这些记录不自动满足 required_reviews，也不证明报告结论正确。历史变化或其他输入错误不阻止登记失败，错误原因随记录保留。失败或中断不能补造成功报告；记录实际失败后，由剩余预算决定能否重试。
 
 修复、复核及新增范围按 [审查规程](review.md) 处理；原始快照与报告按 [证据保存](evidence-retention.md) 管理。
