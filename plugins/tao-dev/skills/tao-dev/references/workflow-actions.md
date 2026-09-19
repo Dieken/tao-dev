@@ -12,6 +12,7 @@
 2. 汇总需求与未决点，确认澄清完成，并取得创建 worktree／编写 spec 的授权。意见未收敛时继续讨论。
 3. 调用 workflow start，默认使用隔离 worktree；复用已有副本，记录根、分支与基准。前提和冲突处理见 [工作流状态](workflow-state.md)。
 4. 在副本中编写或修订 spec，保存检查点、执行文档检查并展示链接，按上述授权规则继续或暂停。
+5. 编写 plan 前核对项目检查策略是否可用。缺策略且本次要写代码时，把落地检查策略作为计划内的前置任务，需执行检查的任务用 `depends_on` 指向它——「首要」用依赖表达，不靠任务顺序。全新项目的两步分工见 [正文写法](document-content.md) 的设计内容。
 
 正式文档采用 [文档规程](documents.md)。完整功能开发的 spec、design、plan 各有入口，优先复用；位置与拆分见 [文档组织](document-layout.md)。仅在编写 plan 时调用 `tao new --slug <原 slug> --change <CHG-ID>`，不提前生成空计划或未来阶段产物。
 
