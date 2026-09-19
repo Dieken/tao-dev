@@ -81,7 +81,8 @@ def test_elapsed_budget_is_preserved_when_a_session_resumes(tmp_path, capsys):
     state = mutate(project, state['change'], state['revision'], lambda owner, current: current['reviews']['code'].update(started_at='2000-01-01T00:00:00+00:00'))
     (tmp_path / 'tmp/tao/report.md').write_text('Late review output', encoding='utf-8')
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result'})
-    assert state['reviews']['code']['runs'][-1]['outcome'] == 'budget-exceeded'
+    run = state['reviews']['code']['runs'][-1]
+    assert (run['outcome'], run['budget']) == ('passed', 'exceeded')  # The window does not rewrite the verdict.
     with pytest.raises(ConflictError, match='budget'):
         begin(Project(tmp_path), state['change'], state['revision'], preview(project, state, 'project', 'code'), 'serial', 1, 'New session')
 
@@ -117,7 +118,8 @@ def test_default_window_allows_discussion_but_expires_at_two_hours(tmp_path, cap
     state = review_runs.finish(project, state['change'], state['revision'], {
         'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result',
     })
-    assert state['reviews']['code']['runs'][-1]['outcome'] == 'budget-exceeded'
+    run = state['reviews']['code']['runs'][-1]
+    assert (run['outcome'], run['budget']) == ('passed', 'exceeded')
 
 
 @pytest.mark.parametrize('budget', [1800, 9000])
@@ -154,7 +156,10 @@ def test_index_is_in_scope_snapshot_and_freshness_even_when_worktree_reverted(tm
     git(tmp_path, 'add', 'code.py')  # Only index content changes now.
     (tmp_path/'tmp/tao/report.md').write_text('Initial staged version was reviewed.', encoding='utf-8')
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Reviewed initial input'})
-    assert state['reviews']['code']['runs'][-1]['outcome'] == 'stale'
+    run = state['reviews']['code']['runs'][-1]
+    assert (run['outcome'], run['inputs']) == ('passed', 'stale')  # The verdict stands; its inputs do not.
+    from taolib.review_runs import passed as gate
+    assert not gate(project, state, 'code')
 
 
 def test_failed_review_can_close_after_history_invalidates_comparison(tmp_path, capsys):
@@ -259,7 +264,10 @@ def test_reserved_outputs_do_not_hide_source_or_historical_report_changes(tmp_pa
     (tmp_path / report).write_text('New review', encoding='utf-8')
     (tmp_path / changed).write_text('Changed input', encoding='utf-8')
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'Old input'})
-    assert state['reviews']['code']['runs'][-1]['outcome'] == 'stale'
+    run = state['reviews']['code']['runs'][-1]
+    assert (run['outcome'], run['inputs']) == ('passed', 'stale')
+    from taolib.review_runs import passed as gate
+    assert not gate(project, state, 'code')
 
 
 def test_review_outputs_must_be_new_exact_paths_and_stay_absent_until_begin(tmp_path, capsys):
@@ -317,3 +325,23 @@ def test_saved_preview_envelope_is_rejected_with_its_own_reason(tmp_path, capsys
                           '--reviewers', '1', '--decision', 'Round one')
     assert code == 0, accepted
     assert accepted['outputs']['reviews']['code']['runs'][-1]['outcome'] == 'running'
+
+
+def test_elapsed_window_does_not_veto_a_review_that_actually_passed(tmp_path, capsys):
+    """A passing review stays usable at the gate when discussion outlasted the window."""
+    from taolib import review_runs, workflows
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    request = review_runs.preview(project, state, 'project', 'code')
+    state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review code')
+    (tmp_path / 'tmp/tao/report.md').write_text('No findings.', encoding='utf-8')
+    state = workflows.mutate(project, state['change'], state['revision'],
+                             lambda owner, current: current['reviews']['code'].update(
+                                 started_at='2000-01-01T00:00:00+00:00'))
+    state = review_runs.finish(project, state['change'], state['revision'], {
+        'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Clean',
+    })
+    run = state['reviews']['code']['runs'][-1]
+    assert (run['outcome'], run['inputs'], run['budget']) == ('passed', 'current', 'exceeded')
+    assert review_runs.passed(project, state, 'code')
