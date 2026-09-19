@@ -197,3 +197,13 @@ def test_invalid_navigation_is_rejected(tmp_path, entry):
     nav = tmp_path / "index.md"
     nav.write_text(navigation(entry), encoding="utf-8")
     assert "TAO-DOC-002" in codes(validate(tmp_path, [nav, tmp_path / "spec.md"], book_root=nav))
+
+
+def test_link_text_in_prose_is_not_read_as_a_task_checkbox(tmp_path):
+    """A review finding cites a file and a task in one bullet; only a checkbox declares a task."""
+    prose = (f'\n- **定位:** [规格](../../../spec.md)，收尾任务 {{need}}`{TASK}`。\n'
+             f'- **约束:** 另一处 [规格](../../../spec.md) 与 {{need}}`{TASK}` 同列。\n')
+    result = check_change(tmp_path, change().replace('检查文件是否存在。', '检查文件是否存在。' + prose))
+    assert not [d for d in result.diagnostics if d.rule_id == 'TAO-TASK-001'], [
+        (d.rule_id, d.message) for d in result.diagnostics]
+    assert result.definitions[TASK].status == "completed"
