@@ -138,10 +138,11 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
   - depends_on: ["TASK_20260919_FQJ3HPX0WSZBC4YP"]
   - verify: 核对 workflow-actions.md 要求计划展示覆盖对照，左列为本次范围内的需求加本次新增或修改的设计决定、用例经 verifies 已归属需求而不重复枚举，且每项三选一、左列按全部受管理设计文档相对事项基线修订的正式决定差异枚举而非凭记忆、且明确不以 design_docs 划定扫描范围、分期计划须在 scope 声明边界并在 questions 留清单、覆盖对照承认无对应需求的使能任务；进入实现的门改为先出覆盖对照与缺口自查结果再问是否加独立审查，跳过须记录跳过的具体缺口；document-content.md 要求任务在有对应需求时优先关联需求；review.md 的审查方法补齐 plan／tasks 要点。运行受管理文档校验与链接解析无新增诊断。
   - evidence: [验证记录](#DOC_20260919_61NK2KP5RFSC3WFC--verification)
-- [ ] `TASK_20260919_1WN3X1HDKJW0WHKM` 交付前逐条核对需求验收是否被实际执行
+- [x] `TASK_20260919_1WN3X1HDKJW0WHKM` 交付前逐条核对需求验收是否被实际执行
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
   - verify: 核对 workflow-actions.md 的 implement 收尾与 review 入口要求逐条需求说明验收由哪次实际执行观察到、未执行的列为缺口且不能用单元测试通过顶替；document-content.md 要求设计写明每条需求验收在哪一层执行；engineering-practices.md 既有的 mock 不替代关键集成一句被反向链接引用而非复述。确认未引入固定测试层级要求。运行受管理文档校验与链接解析无新增诊断。
+  - evidence: [验证记录](#DOC_20260919_61NK2KP5RFSC3WFC--verification)
 - [ ] `TASK_20260919_M5N536VCAAYCT4FD` 评审发现的呈现、分批与处置闭环
   - relates: ["REQ_20260914_M05MAGDARWBY5D44", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
@@ -188,6 +189,10 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 {need}`TASK_20260919_F7EZFA77T9VQ78RK`：workflow-actions.md 的 new 增第 6 步，要求计划写成后展示覆盖对照，每项三选一且不允许沉默遗漏；左列为本次范围内的需求加本次新增或修改的设计决定，用例经 `verifies` 已归属需求不重复枚举，设计决定按全部受管理设计文档相对 fork commit 的正式条目差异枚举，并写明不以 `design_docs` 划范围及其理由；右列承认使能任务不算孤儿。同页的实现门改为先展示覆盖对照与缺口自查结果再问是否另加独立审查，跳过须记录跳过了哪些具体缺口。review.md 的审查方法把 plan／tasks 要点展开为覆盖遗漏、被藏进任务的方案决定、依赖成环或倒序、不可判定的 `verify`。document-content.md 的任务节要求有对应需求时优先关联需求。
 
 检查：`tao verify --only docs` 通过，诊断仍只有那一条既有 warning；113 份 Markdown 的相对链接全部解析成功。
+
+{need}`TASK_20260919_1WN3X1HDKJW0WHKM`：workflow-actions.md 的 implement 收尾要求逐条需求说明验收由哪一次实际执行观察到，写出命令、输入与观察结果，未执行的如实列为缺口且不能用单元测试通过顶替；同页 review 入口先取该核对结果，未执行的验收进入审查范围。document-content.md 的设计内容要求写明每条需求的验收在哪一层执行，并反向链接工程专题既有的隔离与替身边界，不复述。
+
+明确未引入固定测试层级要求：改动只核对验收是否被执行，层级仍由设计按风险决定，原有的不一刀切表述保持不变。检查：文档校验通过，诊断数不变；链接全部解析。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
