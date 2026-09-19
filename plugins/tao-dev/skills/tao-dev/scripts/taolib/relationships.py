@@ -9,8 +9,9 @@ from tao_messages import Message
 def task(validator, token, section, doc, body_lines, offset):
     raw = body_lines[token.map[0]:token.map[1]]
     first = raw[0] if raw else ""
-    # A checkbox holds at most one character; link text would swallow any bracket.
-    if "`TASK_" not in first or not re.match(r"\s*[-*+]\s+\[[^]]?\]", first):
+    # A checkbox follows the list marker and is not link syntax; its content is left
+    # to the strict match below, so a malformed mark still reaches the error.
+    if "`TASK_" not in first or not re.match(r"\s*(?:[-*+]|\d+[.)])\s+\[[^]]*\](?!\()", first):
         return
     line = offset + token.map[0] + 1
     rule = validator.registry["tasks"]

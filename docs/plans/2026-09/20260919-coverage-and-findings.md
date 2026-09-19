@@ -19,7 +19,7 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 逐条核对现有参考页后确认，这五类观察对应的规则要么缺失，要么只以静默延后的形式存在：项目设计已经承诺「任务通过关系字段生成依赖图」「阻断未被伪装为假设」「只存在代码、连接、测试或引用均不足以证明行为已验证」「意见写明场景、后果与解除条件」，但 skill 的运行参考页没有把这些承诺落成可执行的核对步骤。本次修正这一实现缺口。
 
-范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md)、[review.md](../../../plugins/tao-dev/skills/tao-dev/references/review.md)、[review-reports.md](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md)、[document-content.md](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)、[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md)（仅新增一处反向链接），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
+范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md)、[review.md](../../../plugins/tao-dev/skills/tao-dev/references/review.md)、[review-reports.md](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md)、[document-content.md](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)、[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md)（仅新增两处反向链接，本身不改），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
 
 不改 `document-profiles.json` 的 schema 契约、不改工作流状态机。CLI 与校验器源码改三处，均为下述既有缺陷的修正：审查调度的受检范围载荷诊断、任务识别的触发模式、审查结论被调度状态覆盖。除此之外不改 CLI 行为。任务关联需求依赖注册表已有的 `relates_types: ["REQ", "CHG"]`，无需扩展格式。
 
@@ -206,9 +206,9 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 
 关于本地化：任务要求核实而非假设，核实结果与事前判断相反——`tests/test_diagnostics_locale.py` 的目录覆盖测试断言每一条 `ConfigurationError` 字面量都必须存在于中文诊断目录，因此三条新消息都补入 `diagnostics.zh-Hans.json`，按原文件格式就近插入，未重排其余条目。
 
-回归：新增用例覆盖保存完整信封、保存缺标识对象、保存正确 `outputs` 三种情形的文件往返。既有回归全部在进程内直接传 `preview()` 返回值，从未走过保存再读回这条 agent 唯一可走的路径，这是三层缺陷长期存活的根因。该用例在修正前失败，失败信息正是原来那条误导性的「属于另一个工作流」；修正后 `test_review_runs.py` 与 `test_diagnostics_locale.py` 合计 31 项通过。
+回归：新增用例覆盖保存完整信封、保存缺标识对象、保存正确 `outputs` 三种情形的文件往返。既有回归全部在进程内直接传 `preview()` 返回值，从未走过保存再读回这条 agent 唯一可走的路径，这是三层缺陷长期存活的根因。该用例在修正前失败，失败信息正是原来那条误导性的「属于另一个工作流」；修正后 `test_review_runs.py` 与 `test_diagnostics_locale.py` 合计 32 项通过。
 
-{need}`TASK_20260919_RX3R4ACVW28DZ6FM`：任务识别的触发模式由无锚定的 `\[[^]]*\].*` 收紧为「行首列表标记后紧跟至多一字符的方括号」，即复选框语法。这样既排除了 Markdown 链接的链接文字，又保留了对畸形任务的识别——嵌套任务、tasks 章节外的任务、大写 `[X]`、缺字段与字段顺序错误仍然报错，这些由既有参数化用例覆盖。
+{need}`TASK_20260919_RX3R4ACVW28DZ6FM`：任务识别的触发模式由无锚定的 `\[[^]]*\].*` 收紧为「行首列表标记后紧跟至多一字符的方括号」，即复选框语法。判别式是两条独立事实：方括号紧跟列表标记，且其后不是左括号；列表标记同时接受有序形式。已用九种边界输入实测，这样既排除了 Markdown 链接的链接文字（含零、单与多字符链接文字），又保留了对畸形任务的识别——嵌套任务、tasks 章节外的任务、大写 `[X]`、缺字段与字段顺序错误仍然报错，这些由既有参数化用例覆盖。
 
 新增用例把链接与任务引用放在同一列表项的正文里，断言不报 TAO-TASK-001 且正常任务仍被正确登记。该用例在修正前失败。修正后 `test_relationships.py`、`test_documents.py` 与 `test_workflow_documents.py` 合计 72 项通过。
 
@@ -237,13 +237,17 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 
 {need}`REQ_20260914_42AXMZ2KH2RAZ8M3`：已执行。三处诊断与校验缺陷各有一条红绿用例，均确认修正前失败、修正后通过；全仓受管理文档诊断由 1 条降为 0 条，定位到文件与行、输出规则号与建议的能力在这几次失败输出中被实际观察到。
 
-{need}`REQ_20260914_M05MAGDARWBY5D44`：其行为面已由本事项的审查过程执行并记录，不是未执行。「审查者先独立检查再对照作者理由」在五个轮次中执行，批次一第 1 轮按规程未附作者自评，该事实记录在对应报告的环境字段；「跨供应商不可确认或未执行时不得宣称完成」由六份报告逐份写明跨供应商审查未执行来满足。其余条款（不因用户表态翻转判断、小修改不强制多模型流程）本批未构造场景验证。
+{need}`REQ_20260914_M05MAGDARWBY5D44`：其行为面已由本事项的审查过程执行并记录，不是未执行。「审查者先独立检查再对照作者理由」在五个轮次中执行，批次一第 1 轮按规程未附作者自评，该事实记录在对应报告的环境字段；「跨供应商不可确认或未执行时不得宣称完成」由五份独立报告中的四份显式写明跨供应商审查未执行、第二轮复核报告隐含同一事实来满足。其余条款（不因用户表态翻转判断、小修改不强制多模型流程）本批未构造场景验证。
 
-{need}`REQ_20260914_NN0AEQ2E1GTVSMTV`：已由独立审查执行，结论为部分不满足并已修复。第二批次第 1 轮发现六份证据文档重复同一处表述、且其指向的工作流状态并不持久，据此改为以报告正文的基线与目标提交为权威依据。该验收属语义判断，无自动检查器，由独立审查承担符合设计。
+{need}`REQ_20260914_NN0AEQ2E1GTVSMTV`：已执行，结论为部分不满足并已修复：六份证据文档重复同一处表述，且其指向的工作流状态并不持久，据此改为以报告正文的基线与目标提交为权威依据。该发现来自主审在讨论工作流状态是否纳入版本控制时的自查，不是任何一轮独立审查的发现——此前本记录曾归因于第二批次第 1 轮，经实现阶段审查指出后核实并订正。该验收属语义判断，无自动检查器；本例由自查承担，独立审查在其他条款上另有执行。
 
 {need}`REQ_20260914_0J68SDKV86ENKER2`：与本批改动相关的部分已执行——预留输出不改变受检输入在三个批次中实际使用，「未运行、不可用与不适用均不能显示为通过」由调度状态不再覆盖结论的新用例覆盖。其余条款（费用估算不得冒充账单、历史报告变化仍使结果过期）本批未触及，历史结果仍适用，按未触及处理而非缺口。
 
 {need}`REQ_20260914_4CS6P421MGW68PME`：**存在真实缺口。** 该验收明确规定「正式行为验收采用隔离场景，两端分别记录结果」，本批未执行任何隔离场景行为试验；已核实六份 `test_behavior_*.py` 无一触及本批新增规则。这是计划编写时即声明、并经四轮审查认可的范围决定，不是疏漏；但按本批引入的核对规则，已知并接受的限制仍应逐条点名，而不是被确定性检查全绿掩盖。补足的前提是按仓库的 CLI 实验约束在隔离实验项目内驱动真实客户端并两端分别记录，规模接近本批本身，因此不并入本计划。
+
+实现阶段的两名并行审查者提出六项发现，全部核实成立，处置见 [实现审查批次](20260919-coverage-and-findings/reviews/20260919-implementation/index.md)。其中一项是本批引入的正确性回归：任务识别的触发模式收紧过度，把括号长度与判别耦合，导致两字符、含多余空格与有序列表形式的畸形复选框被静默丢弃——不注册、不校验、不报错，文档整体仍判为合法，只有当它是唯一任务时才被兜底捞出。另一名审查者从相反方向指出同一模式仍有窄幅误报。两位各自给的修法经九种边界输入实测均各错四处，改用「方括号紧跟列表标记且其后不是左括号、列表标记接受有序形式」的判别式，九种情形全部正确。新增的参数化回归使文档中同时存在合法与畸形任务，四种畸形形状中三种在修正前失败。
+
+另补一条向后兼容回归：构造缺少 `inputs` 与 `budget` 字段的历史记录，断言闸门判定与旧逻辑等价。此前该兼容路径只有静态推理，任务 verify 却写成「确认」，属把推理当执行。
 
 本批唯一确认的验收缺口是上述 {need}`REQ_20260914_4CS6P421MGW68PME` 的隔离场景行为验收。补足需在隔离实验项目内驱动真实客户端并两端分别记录，规模接近本批本身，应另立事项；在此之前，本批规则的实际效果只有观察，没有验收。
 

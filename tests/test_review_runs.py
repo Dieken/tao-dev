@@ -345,3 +345,30 @@ def test_elapsed_window_does_not_veto_a_review_that_actually_passed(tmp_path, ca
     run = state['reviews']['code']['runs'][-1]
     assert (run['outcome'], run['inputs'], run['budget']) == ('passed', 'current', 'exceeded')
     assert review_runs.passed(project, state, 'code')
+
+
+def test_records_written_before_the_split_are_read_without_new_fields(tmp_path, capsys):
+    """Old runs carry freshness inside outcome; the gate must read them as it used to."""
+    from taolib import review_runs, workflows
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    request = review_runs.preview(project, state, 'project', 'code')
+    state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review code')
+    (tmp_path / 'tmp/tao/report.md').write_text('No findings.', encoding='utf-8')
+    state = review_runs.finish(project, state['change'], state['revision'], {
+        'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Clean',
+    })
+
+    def strip(owner, current):
+        run = current['reviews']['code']['runs'][-1]
+        run.pop('inputs', None)
+        run.pop('budget', None)
+    state = workflows.mutate(project, state['change'], state['revision'], strip)
+    run = state['reviews']['code']['runs'][-1]
+    assert 'inputs' not in run and 'budget' not in run
+    assert review_runs.passed(project, state, 'code')
+
+    state = workflows.mutate(project, state['change'], state['revision'],
+                             lambda owner, current: current['reviews']['code']['runs'][-1].update(outcome='stale'))
+    assert not review_runs.passed(project, state, 'code')
