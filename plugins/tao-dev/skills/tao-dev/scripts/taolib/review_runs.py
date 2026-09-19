@@ -123,7 +123,14 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
     workflows.text(decision)
     if mode not in ('serial', 'parallel') or type(reviewers) is not int or not 1 <= reviewers <= 3 or (mode == 'serial' and reviewers != 1):
         raise ConfigurationError('Use one serial reviewer or up to three parallel reviewers.')
-    if not isinstance(request, dict) or request.get('change') != identity:
+    if not isinstance(request, dict):
+        raise ConfigurationError('Review scope must be a JSON object.')
+    if 'change' not in request:
+        envelope = request.get('outputs')
+        if isinstance(envelope, dict) and 'change' in envelope:
+            raise ConfigurationError('Review scope looks like a full command envelope; pass its outputs object.')
+        raise ConfigurationError('Review scope is missing its change identifier.')
+    if request['change'] != identity:
         raise ConfigurationError('Review scope belongs to another workflow.')
     def edit(owner, state):
         fresh = repreview(owner, state, request)
