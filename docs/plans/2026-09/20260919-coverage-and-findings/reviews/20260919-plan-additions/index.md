@@ -12,7 +12,7 @@ created: "2026-09-19"
 <!-- tao:section overview -->
 ## 导读
 
-前一批次两轮结束后计划又有修订与新增，本批次独立复核这部分内容，重点是记录失真的订正是否诚实完整。先读裁决，再按需查看独立报告。前一批次见 [审查批次](../20260919-plan-review/index.md)。
+前一批次两轮结束后计划又有修订与新增，本批次独立复核这部分内容，重点是记录失真的订正是否诚实完整。先读裁决，再按需查看两份独立报告；第 2 轮为针对第 1 轮处置的定向复核。前一批次见 [审查批次](../20260919-plan-review/index.md)。
 
 <!-- tao:section contents -->
 ## 阅读顺序
@@ -23,4 +23,5 @@ created: "2026-09-19"
 
 00-adjudication.md
 01-additions-claude.md
+02-additions-recheck-claude.md
 ```
