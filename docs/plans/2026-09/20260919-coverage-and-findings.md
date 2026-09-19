@@ -21,11 +21,11 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md)、[review.md](../../../plugins/tao-dev/skills/tao-dev/references/review.md)、[review-reports.md](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md)、[document-content.md](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)、[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md)（仅新增一处反向链接），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
 
-不改 `document-profiles.json` 的 schema 契约、不改工作流状态机。CLI 行为只改一处：审查调度在受检范围载荷形状不对时给出的诊断消息，见下。任务关联需求依赖注册表已有的 `relates_types: ["REQ", "CHG"]`，无需扩展格式。
+不改 `document-profiles.json` 的 schema 契约、不改工作流状态机。CLI 与校验器源码改三处，均为下述既有缺陷的修正：审查调度的受检范围载荷诊断、任务识别的触发模式、审查结论被调度状态覆盖。除此之外不改 CLI 行为。任务关联需求依赖注册表已有的 `relates_types: ["REQ", "CHG"]`，无需扩展格式。
 
 **必读底座不得增大。** 上一批刚把 [SKILL.md](../../../plugins/tao-dev/skills/tao-dev/SKILL.md) 加 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 从 9,880 字节压到实测 6,580 字节，本次一个字都不进这两份文件，全部改动落在按需读取页。
 
-另收三项与本批规则改动无关、但在本次执行中确认的既有缺陷，各自单独成任务、单独提交：
+另收四项与本批规则改动无关、但在本次执行中确认的既有缺陷，各自单独成任务、单独提交：
 
 其一，[tao 命令设计](../../engineering/cli-design.md) 的 `tao handoff` 行长期留有一条 TAO-LINK-002 warning。此前至少五个批次记录过该告警，其中 [操作与审查证据](20260918-operation-review-evidence.md) 明确判定它「表示尚未生成的文件名，不是可导航对象，人工核对后保留」。本次按用户明确要求重议并改为修正；审查规程的强度表规定项目或用户有明确要求时按该要求执行，因此这是正当的重议，而非无依据地推翻既有决定。
 
@@ -33,17 +33,20 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 其三，编写本批审查报告时撞到 TAO-TASK-001 误报：任务识别的模式用 `\[[^]]*\]` 匹配方括号以寻找复选框，但该写法同样匹配 Markdown 链接的链接文字，于是同一列表项内既有链接又引用 TASK 时被误判为 tasks 章节外的任务定义。这与 TAO-LINK-002 不同——后者按设计工作，这一条是实现与意图不符。
 
-本计划不是分期计划，覆盖用户逐条确认的全部 22 项建议，另加上述三项既有缺陷；三项明确不做的事项在设计章节记录依据。
+其四，审查登记在批次墙钟窗口超出时无条件把 outcome 改写为超预算，覆盖掉审查的实质结论、失败与输入过期三种不同事实；阶段闸门据该字段判断是否已有通过的审查，因此一次实际通过的审查只要人类讨论超过窗口就无法推进，只能改记为跳过或重做，两者都是错误记录。
+
+本计划不是分期计划，覆盖用户逐条确认的全部 22 项建议，另加上述四项既有缺陷；三项明确不做的事项在设计章节记录依据。
 
 <!-- tao:section references -->
 ## 规格引用
 
-本批不新增承诺，全部落在三条已有需求的实现层：
+本批不新增承诺，全部落在五条已有需求的实现层：
 
 - {need}`REQ_20260914_4CS6P421MGW68PME` 要求分发的 skill 入口给出适用条件、具体动作和判断依据，而非仅宣示质量目标。计划覆盖对照与进入实现的门属于这条的具体动作。
 - {need}`REQ_20260914_0J68SDKV86ENKER2` 要求完成声明绑定实际证据，且未运行、不可用与不适用均不能显示为通过。验收执行核对与检查策略配置属于这条。
 - {need}`REQ_20260914_M05MAGDARWBY5D44` 要求审查意见有具体依据、比较可行替代或说明没有可行替代的依据，并保留处置记录。发现的呈现、分批与闭环核对属于这条。
 - {need}`REQ_20260914_NN0AEQ2E1GTVSMTV` 要求信息只维护一处、阅读可按主题组合。本批多处改为链接已有规则而非复述，并据此拒绝了重复的字段定义。
+- {need}`REQ_20260914_42AXMZ2KH2RAZ8M3` 要求检查区分结构错误、质量提示与语义审查意见，并输出规则号、问题原因及修正建议。三项既有缺陷中修正诊断与校验逻辑的两项属于这条。
 
 需求到任务的覆盖对照（本计划覆盖全部，无延后项）：
 
@@ -51,7 +54,7 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 |---|---|
 | {need}`REQ_20260914_0J68SDKV86ENKER2` | {need}`TASK_20260919_FQJ3HPX0WSZBC4YP`、{need}`TASK_20260919_1WN3X1HDKJW0WHKM` |
 | {need}`REQ_20260914_4CS6P421MGW68PME` | {need}`TASK_20260919_F7EZFA77T9VQ78RK` |
-| {need}`REQ_20260914_M05MAGDARWBY5D44` | {need}`TASK_20260919_M5N536VCAAYCT4FD`、{need}`TASK_20260919_15JC4JBCTJVFK1DJ` |
+| {need}`REQ_20260914_M05MAGDARWBY5D44` | {need}`TASK_20260919_M5N536VCAAYCT4FD`、{need}`TASK_20260919_15JC4JBCTJVFK1DJ`、{need}`TASK_20260919_WFARM32WFSHMJ7H6` |
 | {need}`REQ_20260914_NN0AEQ2E1GTVSMTV` | {need}`TASK_20260919_YK293K37D4TNXZ59` |
 | {need}`REQ_20260914_42AXMZ2KH2RAZ8M3` | {need}`TASK_20260919_5ZRZJAXBWEDHFAT2`、{need}`TASK_20260919_RX3R4ACVW28DZ6FM` |
 
@@ -70,7 +73,9 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 独立审查指出，只按 REQ 建覆盖表会漏掉设计侧的事项，核对注册表后确认这是结构性的：`UC` 的 `required_options` 含 `verifies` 且只能指向 REQ，因此用例经该关系已归属需求，覆盖需求即覆盖用例；`ADR` 的 `required_options` 只有 `id` 与 `status`，没有任何强制关系，而任务的 `relates_types` 只允许 `REQ` 与 `CHG`。也就是说一条设计决定可以合法地不关联任何需求，纯需求覆盖表看不见它——这正是用户原话「没有覆盖规格与设计的全部事项」里的设计侧一半。
 
-因此覆盖对照的左列定义为本次范围内的需求，加上本次新增或修改的设计决定与设计章节结论；用例经 `verifies` 已归属需求，不重复枚举。不采用枚举适用设计文档全部 ADR 的做法：ADR 是长期决定，多数早已实现，全量枚举与既有的「覆盖本次范围」冲突，会把核对变成仪式。左列的边界是本次范围，不是文档全集。
+因此覆盖对照的左列定义为本次范围内的需求，加上本次新增或修改的设计决定与设计章节结论；用例经 `verifies` 已归属需求，不重复枚举。
+
+第 2 轮复核指出这个定义仍然不可判定：ADR 的必需选项只有 `id` 与 `status`，`links` 可指向 CHG 但非必需，因此没有任何强制关系能标记一条设计决定属于本次变更；文档规程的「专属设计可关联该 CHG」用的是「可」，且只覆盖新建专属设计，不覆盖在已有共享设计中改动某条决定。缺少枚举办法时，左列完全依赖执行者自己记得，漏记即复现原问题。因此枚举来源定为可核对的差异操作：对 `design_docs` 所列及本次新建的设计文档，核对其正式决定条目相对事项基线修订的差异，逐条判断是否应入左列。基线修订由工作流状态记录，`design_docs` 是计划的元数据字段，两者都不依赖执行者记忆。不采用枚举适用设计文档全部 ADR 的做法：ADR 是长期决定，多数早已实现，全量枚举与既有的「覆盖本次范围」冲突，会把核对变成仪式。左列的边界是本次范围，不是文档全集。
 
 ### 全新项目的检查策略分两步
 
@@ -122,7 +127,7 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 - [ ] `TASK_20260919_F7EZFA77T9VQ78RK` 计划覆盖对照与进入实现的门
   - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_FQJ3HPX0WSZBC4YP"]
-  - verify: 核对 workflow-actions.md 要求计划展示覆盖对照，左列为本次范围内的需求加本次新增或修改的设计决定、用例经 verifies 已归属需求而不重复枚举，且每项三选一、分期计划须在 scope 声明边界并在 questions 留清单、覆盖对照承认无对应需求的使能任务；进入实现的门改为先出覆盖对照与缺口自查结果再问是否加独立审查，跳过须记录跳过的具体缺口；document-content.md 要求任务在有对应需求时优先关联需求；review.md 的审查方法补齐 plan／tasks 要点。运行受管理文档校验与链接解析无新增诊断。
+  - verify: 核对 workflow-actions.md 要求计划展示覆盖对照，左列为本次范围内的需求加本次新增或修改的设计决定、用例经 verifies 已归属需求而不重复枚举，且每项三选一、左列按 design_docs 与新建设计文档相对基线修订的正式决定差异枚举而非凭记忆、分期计划须在 scope 声明边界并在 questions 留清单、覆盖对照承认无对应需求的使能任务；进入实现的门改为先出覆盖对照与缺口自查结果再问是否加独立审查，跳过须记录跳过的具体缺口；document-content.md 要求任务在有对应需求时优先关联需求；review.md 的审查方法补齐 plan／tasks 要点。运行受管理文档校验与链接解析无新增诊断。
 - [ ] `TASK_20260919_1WN3X1HDKJW0WHKM` 交付前逐条核对需求验收是否被实际执行
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: ["TASK_20260919_F7EZFA77T9VQ78RK"]
@@ -143,9 +148,13 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
   - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "CHG_20260919_CN6CCKSK3NPBCGMF"]
   - depends_on: []
   - verify: 把任务识别的触发模式收紧到只匹配行首复选框语法，不放宽 tasks 章节外任务定义、嵌套任务与字段格式的既有拒绝；补回归覆盖「非 tasks 章节的列表项同时含 Markdown 链接与 TASK 引用」不报 error，并确认该用例在修正前失败；把本批审查报告中为绕开该误报改写的定位措辞恢复为链接，作为修正的实际验证。运行文档校验与关系相关回归。
+- [ ] `TASK_20260919_WFARM32WFSHMJ7H6` 不让调度状态覆盖审查结论
+  - relates: ["REQ_20260914_M05MAGDARWBY5D44", "CHG_20260919_CN6CCKSK3NPBCGMF"]
+  - depends_on: []
+  - verify: 让审查结论、输入新鲜度与调度窗口三者分别记录，不再由超预算无条件覆盖已判定的 outcome；核实阶段闸门读取的通过判定不再因窗口超时而否决一次实际通过的审查，并确认既有历史记录的读取不被破坏；补回归覆盖「审查通过但批次窗口已超」时闸门仍可推进，且该用例在修正前失败。运行审查调度与工作流相关回归。
 - [ ] `TASK_20260919_YK293K37D4TNXZ59` 同步用户指南并完成一次完整回归
   - relates: ["REQ_20260914_NN0AEQ2E1GTVSMTV", "CHG_20260919_CN6CCKSK3NPBCGMF"]
-  - depends_on: ["TASK_20260919_1WN3X1HDKJW0WHKM", "TASK_20260919_M5N536VCAAYCT4FD", "TASK_20260919_5ZRZJAXBWEDHFAT2", "TASK_20260919_15JC4JBCTJVFK1DJ", "TASK_20260919_RX3R4ACVW28DZ6FM"]
+  - depends_on: ["TASK_20260919_1WN3X1HDKJW0WHKM", "TASK_20260919_M5N536VCAAYCT4FD", "TASK_20260919_5ZRZJAXBWEDHFAT2", "TASK_20260919_15JC4JBCTJVFK1DJ", "TASK_20260919_RX3R4ACVW28DZ6FM", "TASK_20260919_WFARM32WFSHMJ7H6"]
   - verify: 更新 docs/user/workflow.md 第 1 节与第 5 节使其与改动后的实际提示一致；实测 SKILL.md 加 workflow.md 的字节数确认未增；运行维护回归一次，与上一批基线比较通过数与失败原因；运行受管理文档校验与全仓链接解析；核对本计划验证章节的每个数值均为本次实测或本次复核所得，引用历史批次结论处已标注未复测。
 
 <!-- tao:section verification -->
