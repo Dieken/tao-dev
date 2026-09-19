@@ -287,3 +287,33 @@ def test_review_output_option_is_bound_by_cli_preview(tmp_path, capsys):
                         '--scope', 'project', '--output', 'docs/review.md', '--output', 'docs/index.md')
     assert code == 0, report
     assert report['outputs']['output_files'] == ['docs/index.md', 'docs/review.md']
+
+
+def test_saved_preview_envelope_is_rejected_with_its_own_reason(tmp_path, capsys):
+    """The agent saves a command result to a file; only its outputs object is the scope."""
+    state = repository(tmp_path, capsys)
+    (tmp_path / 'code.py').write_text('value = 1\n', encoding='utf-8', newline='\n')
+    code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'], '--kind', 'code')
+    assert code == 0, report
+    scope = tmp_path / 'tmp/tao/scope.json'
+    scope.parent.mkdir(parents=True, exist_ok=True)
+
+    scope.write_text(json.dumps(report), encoding='utf-8')
+    code, envelope = call(tmp_path, capsys, 'workflow', 'review-begin', state['change'], '--expect',
+                          str(state['revision']), '--from', 'tmp/tao/scope.json', '--mode', 'serial',
+                          '--reviewers', '1', '--decision', 'Envelope by mistake')
+    assert code == 2 and envelope['status'] == 'not_run'
+    assert 'outputs object' in envelope['diagnostics'][0]['message']
+
+    scope.write_text(json.dumps({'kind': 'code'}), encoding='utf-8')
+    code, bare = call(tmp_path, capsys, 'workflow', 'review-begin', state['change'], '--expect',
+                      str(state['revision']), '--from', 'tmp/tao/scope.json', '--mode', 'serial',
+                      '--reviewers', '1', '--decision', 'No identifier')
+    assert code == 2 and 'missing its change identifier' in bare['diagnostics'][0]['message']
+
+    scope.write_text(json.dumps(report['outputs']), encoding='utf-8')
+    code, accepted = call(tmp_path, capsys, 'workflow', 'review-begin', state['change'], '--expect',
+                          str(state['revision']), '--from', 'tmp/tao/scope.json', '--mode', 'serial',
+                          '--reviewers', '1', '--decision', 'Round one')
+    assert code == 0, accepted
+    assert accepted['outputs']['reviews']['code']['runs'][-1]['outcome'] == 'running'
