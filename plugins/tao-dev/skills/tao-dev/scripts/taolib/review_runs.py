@@ -209,15 +209,17 @@ def finish(project, identity, expected, result):
             if Path(name).is_absolute() or not path.is_file() or not path.stat().st_size:
                 raise ConflictError('Review report is missing or empty.')
             saved.append({'path': name, 'digest': file_digest(path)})
+        # The verdict, the freshness of its inputs and the schedule window are three
+        # separate facts; recording them in one field loses whichever is written last.
         try:
-            current = repreview(owner, state, run['request'], started=True)
-            outcome = result['outcome'] if current == run['request'] or result['outcome'] == 'failed' else 'stale'
+            fresh = repreview(owner, state, run['request'], started=True) == run['request']
         except (OSError, ValueError) as exc:
             run['input_error'] = str(exc)
-            outcome = 'failed' if result['outcome'] == 'failed' else 'stale'
-        if (datetime.now(timezone.utc)-datetime.fromisoformat(series['started_at'])).total_seconds() >= series['budget_seconds']:
-            outcome = 'budget-exceeded'
-        run.update(outcome=outcome, reports=saved, summary=result['summary'], ended_at=datetime.now(timezone.utc).isoformat())
+            fresh = False
+        elapsed = (datetime.now(timezone.utc)-datetime.fromisoformat(series['started_at'])).total_seconds()
+        run.update(outcome=result['outcome'], inputs='current' if fresh else 'stale',
+                   budget='within' if elapsed < series['budget_seconds'] else 'exceeded',
+                   reports=saved, summary=result['summary'], ended_at=datetime.now(timezone.utc).isoformat())
         run['evidence_boundary'] = 'Scheduling record only. Required independent attestations use tao review imports; report existence does not prove correctness or identity.'
     return workflows.mutate(project, identity, expected, edit)
 
@@ -227,4 +229,6 @@ def passed(project, state, kind):
     if not series or not series['runs']:
         return False
     run = series['runs'][-1]
-    return run['outcome'] == 'passed' and repreview(project, state, run['request'], started=True) == run['request']
+    # Older records carry freshness inside outcome; newer ones state it separately.
+    return (run['outcome'] == 'passed' and run.get('inputs', 'current') == 'current'
+            and repreview(project, state, run['request'], started=True) == run['request'])
