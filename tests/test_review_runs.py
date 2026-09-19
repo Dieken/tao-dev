@@ -369,6 +369,8 @@ def test_records_written_before_the_split_are_read_without_new_fields(tmp_path, 
     assert 'inputs' not in run and 'budget' not in run
     assert review_runs.passed(project, state, 'code')
 
+    # Short-circuiting stops before the default, so this only holds the older
+    # outcome values to their meaning; the default branch is covered above.
     state = workflows.mutate(project, state['change'], state['revision'],
                              lambda owner, current: current['reviews']['code']['runs'][-1].update(outcome='stale'))
     assert not review_runs.passed(project, state, 'code')
