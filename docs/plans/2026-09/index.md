@@ -42,4 +42,5 @@ created: "2026-09-14"
 20260919-coverage-and-findings.md
 20260919-coverage-and-findings/reviews/20260919-plan-review/index.md
 20260919-coverage-and-findings/reviews/20260919-plan-additions/index.md
+20260919-coverage-and-findings/reviews/20260919-plan-confirmation/index.md
 ```
