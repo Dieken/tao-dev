@@ -39,4 +39,6 @@ created: "2026-09-14"
 20260918-review-output-binding.md
 20260918-skill-reading-refinement.md
 20260918-skill-review-followup.md
+20260919-coverage-and-findings.md
+20260919-coverage-and-findings/reviews/20260919-plan-review/index.md
 ```
