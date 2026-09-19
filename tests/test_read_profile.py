@@ -38,7 +38,8 @@ def test_profile_reader_runs_from_copied_skill_without_writing(tmp_path):
     before = {p.relative_to(skill): p.read_bytes() for p in skill.rglob('*') if p.is_file()}
     result = subprocess.run([sys.executable, '-I', '-B', str(script), 'evidence',
                              '--locale', 'zh-Hans', '--template', 'review-adjudication'],
-                            cwd=tmp_path, capture_output=True, text=True, check=True)
+                            cwd=tmp_path, capture_output=True, text=True,
+                            encoding='utf-8', check=True)
     assert '处置与范围' in json.loads(result.stdout)['template']
     assert before == {p.relative_to(skill): p.read_bytes() for p in skill.rglob('*') if p.is_file()}
 
