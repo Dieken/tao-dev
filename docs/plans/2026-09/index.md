@@ -47,4 +47,5 @@ created: "2026-09-14"
 20260920-check-input-scope.md
 20260920-check-input-scope/reviews/20260920-plan-review/index.md
 20260920-check-input-scope/reviews/20260920-implementation/index.md
+20260920-check-input-scope/reviews/20260920-implementation-followup/index.md
 ```
