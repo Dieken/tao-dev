@@ -8,7 +8,7 @@
 |---|---|
 | `tao verify --only docs` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；结果为 partial／not-evaluated |
 | `tao verify` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／有效审查记录时返回 2 与 blocked |
-| `tao verify --only code` | 按项目既有检查策略实际运行或复用有效结果，返回 partial；`--only evidence` 只检查当前证据 |
+| `tao verify --only code` | 按项目既有检查策略实际运行或复用有效结果，返回 partial；声明了自身输入范围且该范围未变的检查沿用上次结果并在结果中标出，其余重新执行；`--only evidence` 只检查当前证据，逐项时效不足时报 expired 并列出超时的检查 |
 | `tao verify --only docs --dry-run` | 只显示选择方案，不执行检查，不生成通过证据 |
 | `tao id new REQ` | 用本地日期及安全随机源生成 ID；读取现有定义和退役记录查重，不写编号台账 |
 | `tao retire <ID> --reason <说明> [--replaced-by <ID>] [--apply]` | 默认只读预览移除对象、引用影响及退役后的校验；--apply 才保存退役记录并移除正文。替代参数可重复，必须同类型且可解析；完整规则见 [退役规程](retirement.md) |

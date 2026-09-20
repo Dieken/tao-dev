@@ -19,6 +19,10 @@ metrics = {format = "coverage-json", path = "tmp/tao/coverage/coverage.json"}
 
 [[verification.checks]]
 id = "python-lint"
+# Ruff reads only these two trees; its version is pinned by pyproject.toml and
+# uv.lock, and every rule comes from argv, so there is no separate config file.
+# python-tests declares nothing: it really does depend on the managed documents.
+inputs = ["plugins/tao-dev/skills/tao-dev/scripts/**/*", "tests/**/*", "pyproject.toml", "uv.lock"]
 argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "-m", "ruff", "check", "--select", "E9,F63,F7,F82", "--output-format", "json", "--output-file", "tmp/tao/ruff.json", "plugins/tao-dev/skills/tao-dev/scripts", "tests"]
 timeout_seconds = 15
 metrics = {format = "ruff-json", path = "tmp/tao/ruff.json"}
