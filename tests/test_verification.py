@@ -341,3 +341,27 @@ def test_a_carried_row_ages_from_its_own_execution_not_the_receipt(tmp_path):
     assert rows(rerun)['whole']['reused'] is True
     assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
     assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'y'
+
+
+def test_a_malformed_log_path_in_a_receipt_fails_closed(tmp_path):
+    """Both readers treat a saved receipt as untrusted input.
+
+    Failing closed here rests on ConfigurationError deriving from ValueError;
+    pin it so re-parenting that class cannot silently turn a corrupt receipt
+    into an unhandled exception.
+    """
+    scoped(tmp_path)
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    receipt = tmp_path / 'tmp/tao/verification/latest.json'
+    saved = json.loads(receipt.read_text(encoding='utf-8'))
+    for row in saved['checks']:
+        row['log'] = '../../escape.log'
+    receipt.write_text(json.dumps(saved), encoding='utf-8')
+    code, current = report(tmp_path, 'verify', '--only', 'evidence')
+    assert code == 2, current
+    assert current['outputs']['evidence']['state'] == 'invalid'
+    code, rerun = report(tmp_path, 'verify', '--only', 'code')
+    assert code == 0, rerun
+    assert all(row['reused'] is False for row in rerun['outputs']['execution']['checks'])
+    assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
+    assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'yy'

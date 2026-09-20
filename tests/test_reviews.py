@@ -190,3 +190,64 @@ def test_model_provider_is_taken_from_observed_usage_when_init_omits_it(tmp_path
     value['reviewer']['provider'] = 'firstParty'
     code, result = submit(tmp_path, value)
     assert code == 0, result
+
+
+def workflow_state(root, runs):
+    """A minimal workflow record carrying only what binding() reads."""
+    directory = root / ".tao/workflows"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{CHG}.json").write_text(json.dumps({
+        "schema": "tao.workflow/v0.1", "change": CHG, "phase": "review", "revision": 1,
+        "artifacts": {}, "approvals": {}, "reviews": runs}), encoding='utf-8')
+
+
+def digest(root):
+    project = Project(root)
+    return reviews.binding(project, policy(project), CHG)["source_digest"]
+
+
+def test_reserved_report_outputs_do_not_change_the_reviewed_inputs(tmp_path):
+    setup_review(tmp_path)
+    reports = tmp_path / "docs/plans/2026-09/20260914-export/reviews/20260914-first"
+    reports.mkdir(parents=True)
+    history = reports / "01-first-claude.md"
+    history.write_text("# earlier round\n", encoding='utf-8')
+    workflow_state(tmp_path, {"docs": {"runs": [
+        {"request": {"output_files": [history.relative_to(tmp_path).as_posix()]}},
+        {"request": {"output_files": ["docs/plans/2026-09/20260914-export/reviews/20260914-first/02-recheck-claude.md"]}},
+    ]}})
+    before = digest(tmp_path)
+    current = reports / "02-recheck-claude.md"
+    current.write_text("# this round's report\n", encoding='utf-8')
+    assert digest(tmp_path) == before, "writing this round's declared output must not move the binding"
+    current.write_text("# this round's report, revised\n", encoding='utf-8')
+    assert digest(tmp_path) == before
+    # An earlier round's report is history; changing it does expire a result.
+    history.write_text("# earlier round, edited\n", encoding='utf-8')
+    assert digest(tmp_path) != before
+
+
+def test_binding_excludes_nothing_without_readable_workflow_state(tmp_path):
+    setup_review(tmp_path)
+    reports = tmp_path / "docs/plans/2026-09/20260914-export/reviews/20260914-first"
+    reports.mkdir(parents=True)
+    declared = "docs/plans/2026-09/20260914-export/reviews/20260914-first/01-first-claude.md"
+    assert reviews.declared_outputs(Project(tmp_path), CHG) == []
+    before = digest(tmp_path)
+    (tmp_path / declared).write_text("# report\n", encoding='utf-8')
+    assert digest(tmp_path) != before, "with no state to declare it, a new report is an ordinary input"
+    (tmp_path / f".tao/workflows/{CHG}.json").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / f".tao/workflows/{CHG}.json").write_text("{not json", encoding='utf-8')
+    assert reviews.declared_outputs(Project(tmp_path), CHG) == []
+    workflow_state(tmp_path, {"docs": {"runs": [{"request": {"output_files": [declared]}}]}})
+    assert digest(tmp_path) == before
+
+
+def test_excluding_every_input_still_fails_closed(tmp_path):
+    setup_review(tmp_path)
+    project = Project(tmp_path)
+    names = [path.relative_to(tmp_path).as_posix()
+             for pattern in policy(project)["inputs"] for path in tmp_path.glob(pattern) if path.is_file()]
+    workflow_state(tmp_path, {"docs": {"runs": [{"request": {"output_files": names + [".tao/config.toml"]}}]}})
+    with pytest.raises(ValueError):
+        digest(tmp_path)
