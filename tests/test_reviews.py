@@ -251,3 +251,17 @@ def test_excluding_every_input_still_fails_closed(tmp_path):
     workflow_state(tmp_path, {"docs": {"runs": [{"request": {"output_files": names + [".tao/config.toml"]}}]}})
     with pytest.raises(ValueError):
         digest(tmp_path)
+
+
+@pytest.mark.parametrize("runs", ['"text"', '["not-a-dict"]', '[{"request": 7}]', '[{"request": {"output_files": 3}}]',
+                                  '[{}]', '[]', '{"round": 1}'])
+def test_malformed_but_parseable_workflow_state_excludes_nothing(tmp_path, runs):
+    setup_review(tmp_path)
+    before = digest(tmp_path)
+    directory = tmp_path / ".tao/workflows"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{CHG}.json").write_text(
+        '{"schema": "tao.workflow/v0.1", "change": "%s", "phase": "review", "revision": 1,'
+        ' "artifacts": {}, "approvals": {}, "reviews": {"docs": {"runs": %s}}}' % (CHG, runs), encoding='utf-8')
+    assert reviews.declared_outputs(Project(tmp_path), CHG) == []
+    assert digest(tmp_path) == before
