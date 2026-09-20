@@ -105,10 +105,11 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
   - verify: 给 `.tao/config.toml` 的 `python-lint` 声明其真实输入范围（该检查只读 `plugins/tao-dev/skills/tao-dev/scripts` 与 `tests` 两棵树，其工具版本由 `pyproject.toml` 与 `uv.lock` 固定，ruff 规则全部来自 argv，无独立配置文件）；`python-tests` 不声明，因其确实依赖受管理文档。执行一次完整 `tao verify --only code` 取得基线回执，随后只改动一份文档后重新执行，记录 `python-lint` 是否被沿用、其执行时刻是否保持原值、`python-tests` 是否重新执行，并写出两次调用的实际命令、改动的文件与观察到的回执内容。这是本次改动在真实策略上的端到端观察，不以回归用例顶替。
   - evidence: [验证记录](#DOC_20260920_RYR02DHVTJJVR8DY--verification)
 
-- [ ] `TASK_20260920_B66GBH9CSPTNYFBN` 审查绑定不再把本轮声明的报告输出算作受检输入
+- [x] `TASK_20260920_B66GBH9CSPTNYFBN` 审查绑定不再把本轮声明的报告输出算作受检输入
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260920_Y0WCT88THT8JXXS2"]
   - depends_on: ["TASK_20260920_6ACW0WPHCC3BQJKR"]
-  - verify: `snapshot()` 接受排除集合参数，`reviews.binding()` 从工作流状态取各审查类别最近一轮的 `output_files` 填入，`execute()` 与 `evidence()` 不传。回归覆盖：预留输出存在与不存在时 `binding()` 的 `source_digest` 相同；更早轮次的报告变化仍使其变化；工作流状态缺失或不可读时不排除任何文件；排除后输入集合为空仍按空范围拒绝。在本仓库实测：保存本事项实现阶段审查报告后，`tao status` 的该项必需审查由 stale 回到 satisfied，并写出实测的摘要值。
+  - verify: `snapshot()` 接受排除集合参数，`reviews.binding()` 从工作流状态取各审查类别最近一轮的 `output_files` 填入，`execute()` 与 `evidence()` 不传。回归覆盖：预留输出存在与不存在时 `binding()` 的 `source_digest` 相同；更早轮次的报告变化仍使其变化；工作流状态缺失或不可读时不排除任何文件；排除后输入集合为空仍按空范围拒绝。在本仓库实测：实现阶段某一轮的 attestation 导入后，按三个时点观察 `tao status` 的该项必需审查——仅导入、本轮声明的报告落盘、加入批次导航——确认落盘那一步状态不退化为 stale，并写出三个时点的实测状态。`status()` 中 stale 的判定先于其余判定，因此该步保持其实质结论即为绑定未移动的证据。不断言该项必需审查达到 satisfied：本轮的发现处置与导航挂接各自独立决定该状态，而导航改动按审查调度规程属后续文档变更、不是声明输出。
+  - evidence: [验证记录](#DOC_20260920_RYR02DHVTJJVR8DY--verification)
 
 <!-- tao:section verification -->
 ## 验证
@@ -175,7 +176,7 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 `status()` 中 stale 的判定先于 changes-requested，因此 B 点仍为 changes-requested 就是绑定未移动的直接证据，这正是本次修复要达到的效果。
 
-该项检查原写为「由 stale 回到 satisfied」，实测达不到该字面结果，原因有二且都不是修复失效：其一，本轮存在未处置的阻断级发现，状态本就不应显示满足；其二，新报告必须进入批次导航才能从书入口可达，而导航改动按规程不是声明输出。因此本项记为部分达成：实质结论（保存本轮声明的报告不再使该轮审查失效）已由 B 点证据确立，字面结论未达成，不改写为已达成。
+该项检查原写为「由 stale 回到 satisfied」。实测表明那个字面结果达不到，原因有二且都不是修复失效：其一，当轮存在未处置的阻断级发现，状态本就不应显示满足；其二，新报告必须进入批次导航才能从书入口可达，而导航改动按审查调度规程是后续文档变更、不是声明输出。原措辞把两个各自独立的因素当成了修复本身的效果，因此经用户批准改写为上表的三时点观察，以 B 点不退化为 stale 作为绑定未移动的判据。
 
 <!-- /tao:results -->
 
