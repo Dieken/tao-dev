@@ -119,11 +119,12 @@ def combined(project, paths, digests):
     return fingerprint.hexdigest()
 
 
-def scopes(project, config, paths, digests):
+def scopes(project, config, paths, allowed, digests):
     """A digest per check: its own declared scope, or the whole policy scope.
 
-    A declaration may only narrow. Matching a file outside the policy scope is
-    a configuration error, because the receipt still binds the whole scope.
+    A declaration may only narrow, so it is validated against the whole policy
+    scope; `paths` then decides what actually contributes a digest, which is
+    the policy scope minus whatever the caller excluded.
     """
     whole = combined(project, paths, digests)
     result = {}
@@ -133,25 +134,31 @@ def scopes(project, config, paths, digests):
             result[check['id']] = whole
             continue
         subset = matched(project, declared)
-        outside = sorted(path.relative_to(project.root).as_posix() for path in subset - paths)
+        outside = sorted(path.relative_to(project.root).as_posix() for path in subset - allowed)
         if outside:
             raise ConfigurationError(Message(
                 'Check {arg0} declares inputs outside verification.inputs: {arg1}.', check['id'], ', '.join(outside[:5])))
-        if not subset:
+        contributing = subset & paths
+        if not contributing:
             raise ConfigurationError(Message('Check {arg0} matched no inputs; an empty scope cannot pass.', check['id']))
-        result[check['id']] = combined(project, subset, digests)
+        result[check['id']] = combined(project, contributing, digests)
     return whole, result
 
 
-def snapshot(project, config):
-    paths = matched(project, config['inputs'])
-    if not paths:
-        raise ConfigurationError('No verification inputs matched; an empty scope cannot pass.')
+def snapshot(project, config, exclude=()):
+    """`exclude` drops project-relative paths a caller declared in advance as
+    its own new outputs, so writing them cannot change what was examined. Only
+    review binding passes it; a check receipt binds the whole input scope."""
+    allowed = matched(project, config['inputs'])
     config_path = contained(project.root, ".tao/config.toml")
     if config_path.is_file():
-        paths.add(config_path)
+        allowed.add(config_path)
+    excluded = {contained(project.root, name).resolve() for name in exclude}
+    paths = {path for path in allowed if path.resolve() not in excluded}
+    if not paths:
+        raise ConfigurationError('No verification inputs matched; an empty scope cannot pass.')
     digests = {}
-    source_digest, check_digests = scopes(project, config, paths, digests)
+    source_digest, check_digests = scopes(project, config, paths, allowed, digests)
     runtime = {p.name: file_digest(p) for p in Path(__file__).parent.glob('*.py')}
     executables = {}
     for check in config['checks']:
@@ -228,33 +235,27 @@ def evidence(project, config, current=None):
         return {'state': 'invalid', 'logs_available': False}
 
 
-def carried(project, config, current):
+def carried(project, config, current, existing):
     """Previous rows still standing on their own scope, tools and freshness.
 
-    Policy and environment changes invalidate every row: a declaration narrows
-    which sources a check watches, never which toolchain produced its result.
+    Only rows of a receipt the reader could interpret qualify: a corrupted
+    cache is re-run, never mined for the parts that still look plausible.
+    Policy and environment changes invalidate every row, because a
+    declaration narrows which sources a check watches, never which toolchain
+    produced its result.
     """
-    path = receipt_path(project)
-    if not path.is_file():
+    saved = existing['saved'] if existing['state'] not in ('missing', 'invalid') else None
+    if not saved:
         return {}
-    try:
-        saved = json.loads(path.read_text(encoding='utf-8'))
-        if saved.get('receipt_version') != 2 or not isinstance(saved.get('checks'), list):
-            return {}
-        if saved['inputs']['policy_digest'] != current['policy_digest'] or saved['inputs']['environment_digest'] != current['environment_digest']:
-            return {}
-    except (ValueError, KeyError, TypeError, OSError):
+    if saved['inputs']['policy_digest'] != current['policy_digest'] or saved['inputs']['environment_digest'] != current['environment_digest']:
         return {}
     limit = config.get('reuse_seconds', 3600)
     now = time.time()
     rows = {}
     for row in saved['checks']:
-        stamp = row.get('recorded_epoch')
-        if row.get('status') != 'passed' or type(stamp) not in (int, float) or not math.isfinite(stamp):
+        if row['status'] != 'passed' or now - row['recorded_epoch'] > limit:
             continue
-        if stamp > now + 5 or now - stamp > limit:
-            continue
-        if row.get('inputs_digest') != current['check_digests'].get(row.get('id')):
+        if row.get('inputs_digest') != current['check_digests'].get(row['id']):
             continue
         if config.get('require_logs', False) and not (row.get('log') and contained(project.root, row['log']).is_file()):
             continue
@@ -272,7 +273,7 @@ def execute(project, config):
         directory = project.output('temporary', 'verification')
         directory.mkdir(parents=True, exist_ok=True)
         rows = []
-        previous = carried(project, config, before)
+        previous = carried(project, config, before, existing)
         for check in config['checks']:
             prior = previous.get(check['id'])
             if prior is not None and prior.get('argv') == check['argv']:

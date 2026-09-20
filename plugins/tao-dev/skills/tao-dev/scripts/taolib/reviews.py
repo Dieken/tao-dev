@@ -24,8 +24,32 @@ def text(value):
         raise ValueError('Review text must be nonempty.')
 
 
+def declared_outputs(project, change):
+    """New report paths the latest round of each review kind reserved.
+
+    Writing a report a round declared in advance must not change what that
+    round examined. Earlier rounds' reports stay in scope: they are history,
+    and history changing does expire a result. An unreadable state excludes
+    nothing, which shows a review as stale rather than as satisfied.
+    """
+    from . import workflows
+    try:
+        state = workflows.read(project, change)
+        series = state.get('reviews')
+        if not isinstance(series, dict):
+            return []
+        names = []
+        for batch in series.values():
+            runs = batch.get('runs') if isinstance(batch, dict) else None
+            request = runs[-1].get('request', {}) if runs else {}
+            names.extend(request.get('output_files') or [])
+        return [name for name in names if isinstance(name, str) and name]
+    except (ConfigurationError, ValueError, KeyError, TypeError, OSError):
+        return []
+
+
 def binding(project, config, change):
-    current = snapshot(project, config)
+    current = snapshot(project, config, exclude=declared_outputs(project, change))
     return {key: current[key] for key in ('source_digest', 'policy_digest')} | {'change': change}
 
 

@@ -21,6 +21,8 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 范围限于 `taolib/verification.py` 的策略校验、输入快照、执行与证据判定四处，检查回执格式，以及两份使用方参考页。不改文档校验器、不改工作流状态机、不改 `--only` 的分类划分，也不给文档分类引入可配置命令——PostToolUse hook 每次编辑后调用 `verify --only docs`，该路径不执行任何项目命令，这条边界本次保持不变。
 
+本事项执行中确认了一项既有缺陷，经用户决定一并修复：`tao review` 的输入绑定把本轮声明的报告输出算进受检输入，而 {need}`REQ_20260914_0J68SDKV86ENKER2` 的验收要求「审查开始前明确的新报告输出不改变受检输入」。它与本次主题无关，但属于同一条需求的实现缺口、同一个模块家族，单独成任务、单独提交。
+
 不做逐项过期判定：输入变化的过期判定仍然整体进行，只有复用时效按每项检查各自的实际执行时刻判定。理由见设计章节。
 
 <!-- tao:section references -->
@@ -35,7 +37,7 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 | 左列条目 | 覆盖任务 |
 |---|---|
-| {need}`REQ_20260914_0J68SDKV86ENKER2` | {need}`TASK_20260920_6ACW0WPHCC3BQJKR`、{need}`TASK_20260920_6XJG8PTX00G5RQ9M`、{need}`TASK_20260920_3JT1MKMYG9Y95T9W`、{need}`TASK_20260920_R76R9DDKYGM4TM6C` |
+| {need}`REQ_20260914_0J68SDKV86ENKER2` | {need}`TASK_20260920_6ACW0WPHCC3BQJKR`、{need}`TASK_20260920_6XJG8PTX00G5RQ9M`、{need}`TASK_20260920_3JT1MKMYG9Y95T9W`、{need}`TASK_20260920_R76R9DDKYGM4TM6C`、{need}`TASK_20260920_B66GBH9CSPTNYFBN` |
 | {need}`REQ_20260914_4CS6P421MGW68PME` | {need}`TASK_20260920_W1QAW0FQS640CT22` |
 | {need}`ADR_20260920_YB4X14PK7D277PS7` | {need}`TASK_20260920_6ACW0WPHCC3BQJKR`、{need}`TASK_20260920_6XJG8PTX00G5RQ9M`、{need}`TASK_20260920_3JT1MKMYG9Y95T9W` |
 
@@ -59,6 +61,14 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 声明匹配的文件集合须是全局输入范围匹配集合的子集，越界按配置错误拒绝。这条挡的是「声明到策略输入范围之外」，挡不住「声明得比真实依赖窄」——后者是逐项复用本身的代价，由 ADR 记录，工具不宣称能发现隐含依赖。作为补偿，策略、工具与环境指纹的变化仍使全部检查失效，不设逐项例外。
 
 约束在输入快照阶段判定而非策略校验阶段，因为需要展开通配符才能比较文件集合；两者都以配置错误报告，退出码一致。
+
+### 审查绑定排除本轮声明的输出
+
+`reviews.binding()` 直接调用 `snapshot()`，结构上没有接收预留输出的途径，因此 `review-preview --output` 的预留只对 `workflow review-begin／end` 生效，对 `tao review` 与必需审查的时效判定不生效。后果不是理论的：本项目的 `verification.inputs` 含 `docs/**/*.md`，而文档组织规定审查报告放在计划的 reviews 附件目录，于是保存正式报告必然使它所记录的那次审查失效。
+
+修法是给 `snapshot()` 增加一个排除集合参数，由 `reviews.binding()` 从工作流状态取各审查类别最近一轮声明的输出填入。只有最近一轮的声明输出被排除；更早轮次的报告是历史材料，继续参与摘要，与验收「历史报告变化仍使结果过期」一致。`execute()` 与 `evidence()` 不传排除集合——检查回执绑定的是完整输入范围，与审查绑定无关。工作流状态不可读时不排除任何文件，即退回当前行为：这一侧的失败使审查显示为过期，而不是显示为满足。
+
+`reviews` 已引用 `verification`，而 `workflows` 引用 `reviews`，因此工作流状态在函数内延迟引入，沿用本仓库既有写法。
 
 ### 配置形状与回执版本
 
@@ -94,6 +104,11 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
   - depends_on: ["TASK_20260920_3JT1MKMYG9Y95T9W"]
   - verify: 给 `.tao/config.toml` 的 `python-lint` 声明其真实输入范围（该检查只读 `plugins/tao-dev/skills/tao-dev/scripts` 与 `tests` 两棵树，其工具版本由 `pyproject.toml` 与 `uv.lock` 固定，ruff 规则全部来自 argv，无独立配置文件）；`python-tests` 不声明，因其确实依赖受管理文档。执行一次完整 `tao verify --only code` 取得基线回执，随后只改动一份文档后重新执行，记录 `python-lint` 是否被沿用、其执行时刻是否保持原值、`python-tests` 是否重新执行，并写出两次调用的实际命令、改动的文件与观察到的回执内容。这是本次改动在真实策略上的端到端观察，不以回归用例顶替。
   - evidence: [验证记录](#DOC_20260920_RYR02DHVTJJVR8DY--verification)
+
+- [ ] `TASK_20260920_B66GBH9CSPTNYFBN` 审查绑定不再把本轮声明的报告输出算作受检输入
+  - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260920_Y0WCT88THT8JXXS2"]
+  - depends_on: ["TASK_20260920_6ACW0WPHCC3BQJKR"]
+  - verify: `snapshot()` 接受排除集合参数，`reviews.binding()` 从工作流状态取各审查类别最近一轮的 `output_files` 填入，`execute()` 与 `evidence()` 不传。回归覆盖：预留输出存在与不存在时 `binding()` 的 `source_digest` 相同；更早轮次的报告变化仍使其变化；工作流状态缺失或不可读时不排除任何文件；排除后输入集合为空仍按空范围拒绝。在本仓库实测：保存本事项实现阶段审查报告后，`tao status` 的该项必需审查由 stale 回到 satisfied，并写出实测的摘要值。
 
 <!-- tao:section verification -->
 ## 验证
@@ -141,6 +156,14 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 第一次与第二次执行之间还有一次同形观察，改动的是 `plugins/tao-dev/skills/tao-dev/assets/locales/diagnostics.zh-Hans.json`——同样在全局 `plugins/**/*` 之内、在声明范围之外，`python-lint` 同样被沿用。两次观察的区别只是改动的文件类别，结论一致。
 
 本项目省下的是 0.746 秒，收益量级不具代表性：`python-tests` 确实依赖受管理文档，无法收窄，而真正的目标场景是长检查与文档类检查混在同一策略里。机制在真实策略上跑通，收益量级须在消费方项目上观察，本计划不声称已验证后者。
+
+{need}`TASK_20260920_B66GBH9CSPTNYFBN`：`snapshot()` 增加 `exclude` 参数，排除调用方预先声明的自身新输出；`scopes()` 相应拆成两个集合——子集约束对**排除前**的完整策略范围判定，摘要只由**排除后**的集合贡献，因此排除不会把越界声明变成合法声明。`reviews.binding()` 新增 `declared_outputs()`，从工作流状态取各审查类别最近一轮的 `output_files`；`workflows` 引用 `reviews`，故在函数内延迟引入。`execute()` 与 `evidence()` 不传排除集合。
+
+修复前后在本仓库实测，控制导航不变、只增删本轮三份预留输出：修复前 `binding()` 的 `source_digest` 为 `a2b23e4d62df66b3…`（有输出）对 `1ebbc73dd7b36b31…`（无输出）；修复后两种状态同为 `2bb170e327e30ea0…`，排除项计 4 份，即 docs 批次最近一轮 1 份加 code 批次最近一轮 3 份。
+
+检查：`tests/test_reviews.py` 增三项回归——本轮声明输出写入或改写均不移动绑定而更早轮次的报告改动仍移动它；无工作流状态、状态不可解析时都不排除任何文件，此时新报告按普通输入处理；排除掉全部输入后仍按空范围拒绝。`test_reviews.py` 21 项、`test_verification.py`、`test_review_runs.py`、`test_workflows.py` 合计 60 项全部通过。
+
+本次同时修正了 F1 处置中发现的另一处缺陷：`carried()` 原先在 `require_logs` 为假时不校验日志路径，于是一份 `evidence()` 已判为 invalid 的损坏回执仍会被逐行挖出可用的部分，违反验证规程「缓存损坏或清空后须重跑」。改为由 `execute()` 把已算出的 `evidence()` 结果传入，状态为 invalid 或 missing 时一行都不沿用，同时删去重复的解析与校验。`tests/test_verification.py` 增一项回归，对含遍历分量的日志路径断言 `evidence()` 返回 invalid 且重跑时无任何沿用行。
 
 <!-- /tao:results -->
 
