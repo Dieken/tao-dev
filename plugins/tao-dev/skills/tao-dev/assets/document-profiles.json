@@ -291,7 +291,8 @@
       "approval_requires": [
         "spec_docs",
         "design_docs"
-      ]
+      ],
+      "results_section": "verification"
     },
     "tao.project.design/v0.1": {
       "template": "templates/design.md",

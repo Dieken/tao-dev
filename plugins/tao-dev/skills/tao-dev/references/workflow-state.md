@@ -32,6 +32,8 @@ tao --project <root> workflow start --slug <slug> --summary <目标> --locale <�
 
 `tao workflow revise <CHG-ID> --expect <revision> --phase spec|design|plan --decision <决定>` 返回已到达阶段并撤销该阶段及下游批准，保留产物。status 的 stale_approvals 不能继续沿用；即使只改排版，系统也可能出于谨慎将原批准标为失效；说明实际影响并重新取得批准。
 
+实现期的文档细化可自评恢复：把已实现的技术选择补进设计、把实测结论写回文档、修补任务 verify 的措辞或登记例外，这类修订不改变承诺、需求与任务范围，agent 可自行 revise 并重新批准回到 implement，决定文字须写明是自评、被修订的具体内容，以及它为何不落入下列任何一条。仍须停下取得用户批准的是：改变产品承诺或验收实质、增删需求、改变任务范围、自己判断不准或存在两种合理改法。自评不适用于阶段首次批准，只用于已获批准阶段内的回补。
+
 阶段推进只保存协调记录，交付检查按 [验证规程](verification.md) 另行执行。
 
 ## 创建计划

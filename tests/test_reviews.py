@@ -216,14 +216,26 @@ def test_reserved_report_outputs_do_not_change_the_reviewed_inputs(tmp_path):
         {"request": {"output_files": [history.relative_to(tmp_path).as_posix()]}},
         {"request": {"output_files": ["docs/plans/2026-09/20260914-export/reviews/20260914-first/02-recheck-claude.md"]}},
     ]}})
+    other = tmp_path / "docs/plans/2026-09/20260914-export/reviews/20260901-earlier"
+    other.mkdir(parents=True)
+    elsewhere = other / "01-earlier-claude.md"
+    elsewhere.write_text("# another batch\n", encoding='utf-8')
     before = digest(tmp_path)
     current = reports / "02-recheck-claude.md"
     current.write_text("# this round's report\n", encoding='utf-8')
     assert digest(tmp_path) == before, "writing this round's declared output must not move the binding"
     current.write_text("# this round's report, revised\n", encoding='utf-8')
     assert digest(tmp_path) == before
-    # An earlier round's report is history; changing it does expire a result.
+    # The adjudication and the batch navigation page are equally this batch's
+    # own records, and completing a round requires both.
+    (reports / "00-adjudication.md").write_text("# adjudication\n", encoding='utf-8')
+    (reports / "index.md").write_text("# batch\n", encoding='utf-8')
+    assert digest(tmp_path) == before
+    # An earlier round of the same batch is also this batch's record.
     history.write_text("# earlier round, edited\n", encoding='utf-8')
+    assert digest(tmp_path) == before
+    # Another batch's report is history; changing it does expire a result.
+    elsewhere.write_text("# another batch, edited\n", encoding='utf-8')
     assert digest(tmp_path) != before
 
 
@@ -244,13 +256,15 @@ def test_binding_excludes_nothing_without_readable_workflow_state(tmp_path):
 
 
 def test_excluding_every_input_still_fails_closed(tmp_path):
+    """The guard lives where the exclusion is applied; an exclusion that empties
+    the scope is a configuration error, not a scope that passes by default."""
+    from taolib.verification import snapshot
     setup_review(tmp_path)
     project = Project(tmp_path)
     names = [path.relative_to(tmp_path).as_posix()
              for pattern in policy(project)["inputs"] for path in tmp_path.glob(pattern) if path.is_file()]
-    workflow_state(tmp_path, {"docs": {"runs": [{"request": {"output_files": names + [".tao/config.toml"]}}]}})
     with pytest.raises(ValueError):
-        digest(tmp_path)
+        snapshot(project, policy(project), exclude=names + [".tao/config.toml"])
 
 
 @pytest.mark.parametrize("runs", ['"text"', '["not-a-dict"]', '[{"request": 7}]', '[{"request": {"output_files": 3}}]',
@@ -284,3 +298,12 @@ def test_review_record_path_stays_inside_the_reviews_directory(tmp_path):
     project = Project(tmp_path)
     path = reviews.path_for(project, CHG, "independent")
     assert path.resolve().parent == (project.output("temporary", f"reviews/{CHG}")).resolve()
+
+
+@pytest.mark.parametrize("change", ["../../escape", "CHG/../../x", "not-an-id", "CHG_20260914_lowercase0000000"])
+def test_status_reports_a_row_state_for_an_identity_it_cannot_locate(tmp_path, change):
+    """Locating a record is part of reading it, so a rejected identity is a
+    row state; nothing in this module may raise at the caller."""
+    setup_review(tmp_path)
+    rows = reviews.status(Project(tmp_path), policy(Project(tmp_path)), change)
+    assert [row["state"] for row in rows] == ["invalid"]

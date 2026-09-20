@@ -76,7 +76,7 @@ def plan_contract(content):
         elif marker == '<!-- /tao:results -->' and pending is not None:
             excluded.update(range(pending, number + 1))
             pending = None
-        else:
+        elif marker not in {'<!-- tao:results -->', '<!-- /tao:results -->'}:
             section, pending = marker, None
     section, in_task, result = None, False, []
     for number, line in enumerate(lines):

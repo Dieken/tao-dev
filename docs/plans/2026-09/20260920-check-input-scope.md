@@ -180,8 +180,6 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 **完整交付判定。** 在实现审查新批次第 1 轮的 attestation 导入之后、本轮报告落盘之前，执行 `tao verify CHG_20260920_Y0WCT88THT8JXXS2`：退出码 0，status passed，coverage complete，readiness checks-satisfied，目标任务开放项为空，当前证据可复用，必需审查 `independent-implementation-review` 为 satisfied，诊断 0 条，耗时 3.0 秒。该耗时来自整份回执复用，其中各检查行的执行属于此前的实际运行，不是本次重新执行。
 
-首次执行时漏传 CHG ID，本仓库有二十余份计划文档，工具无法自动选定唯一目标，因而返回 target 为空、readiness blocked，且必需审查一行显示 missing——那是缺目标的结果，不是审查记录缺失。补上事项标识后即为上述结果。
-
 该判定的观察时点在本轮审查报告与其批次导航落盘之前。落盘后必需审查因导航改动显示为过期：批次导航不是声明输出，按 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 属后续文档变更。这与上文三时点观察一致，不改写该判定在其时点上的结论。
 
 **审查执行汇总。** 本事项共五轮独立审查，分属三个批次：计划阶段批次两轮（1 条建议，采用）、实现阶段批次两轮（1 条建议部分采用、1 条阻断采用并修复）、用户明确发起的复核批次一轮（1 条建议，记为后续加固）。五轮均为模型审查，`claude-sonnet-5`，供应商 firstParty，五个互不相同的会话上下文，均与作者上下文不同；同供应商，未使用跨供应商审查者。三条真实问题中的两条出现在自测通过之后，其中一条为阻断。

@@ -68,6 +68,6 @@ status 只读比较当前证据。require_logs=true 时缺日志阻止复用，�
 
 ## 完整交付判定
 
-`tao verify` 检查 docs、code、evidence，自动选择唯一开发事项；多个候选时由 agent 根据当前上下文传 CHG ID。目标任务及其依赖必须完成，当前证据可复用，配置要求不得缺失，才返回 complete／checks-satisfied。`--only` 始终 partial／not-evaluated，dry-run 不执行、不生成证据。
+`tao verify` 检查 docs、code、evidence，自动选择唯一开发事项；多个候选时由 agent 根据当前上下文传 CHG ID。完整验证另按事项基线核对需求承接：本次新增或修改的正式需求须被本事项任务的 relates 覆盖，或在计划 questions 中声明延后；该核对需要 VCS 与工作流状态，无基线时报未评估而非通过，`--only docs` 不受影响。目标任务及其依赖必须完成，当前证据可复用，配置要求不得缺失，才返回 complete／checks-satisfied。`--only` 始终 partial／not-evaluated，dry-run 不执行、不生成证据。
 
 required_reviews 声明不能省略的独立审查条件；按 [审查记录](review-receipts.md) 取得输入绑定、导入实际结果。完整验证逐项报告 satisfied、changes-requested、missing、invalid、stale、expired 或 materials-missing；只有全部 satisfied 才满足审查门槛。不能用报告存在、角色名称或任意 passed 字段满足它，也不能为了通过清空已要求的审查。发布、合入和用户风险接受仍由已有授权和实际判断决定。

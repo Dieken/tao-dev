@@ -244,6 +244,23 @@ def verify(project, args, report):
             report["outputs"]["open_tasks"] = open_tasks
             if not tasks or open_tasks:
                 codes.append(1)
+            from . import coverage as requirement_coverage
+            from . import git_workflow, workflows
+            try:
+                state = workflows.read(project, args.change)
+                baseline = state.get('git', {}).get('base_commit') or ''
+            except (ConfigurationError, ConflictError, OSError, ValueError):
+                baseline = None
+            def at_baseline(revision, name):
+                return git_workflow.run(project.root, 'show', f'{revision}:{name}', required=False)
+            summary = requirement_coverage.report(project, result, args.change, baseline, at_baseline)
+            report["outputs"]["requirement_coverage"] = summary
+            # Nothing declared and nothing carried is the silent case this
+            # exists for; an unevaluated baseline is reported, never passed.
+            if summary['state'] == 'not-evaluated':
+                codes.append(2)
+            elif summary['state'] == 'evaluated' and (summary['uncovered'] or summary['invalid_deferrals']):
+                codes.append(1)
         if config.get("required_reviews"):
             rows = reviews.status(project, config, args.change)
             report["outputs"]["reviews"] = rows
