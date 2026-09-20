@@ -19,6 +19,12 @@ from .project import ConfigurationError, contained, mutation_lock, create_file
 from tao_messages import Message
 
 
+def patterns(value):
+    """A declared input scope: nonempty, project-relative, no traversal."""
+    return (isinstance(value, list) and bool(value)
+            and not any(not isinstance(p, str) or not p or Path(p).is_absolute() or '..' in Path(p).parts for p in value))
+
+
 def policy(project):
     value = project.config.get('verification')
     if value is None:
@@ -27,14 +33,14 @@ def policy(project):
     if not isinstance(value, dict) or value.keys() - allowed:
         raise ConfigurationError('Invalid verification configuration.')
     inputs = value.get('inputs')
-    if not isinstance(inputs, list) or not inputs or any(not isinstance(p, str) or not p or Path(p).is_absolute() or '..' in Path(p).parts for p in inputs):
+    if not patterns(inputs):
         raise ConfigurationError('verification.inputs must explicitly name project-relative input patterns.')
     checks = value.get('checks')
     if not isinstance(checks, list) or not checks:
         raise ConfigurationError('Configure at least one authorized verification check.')
     seen = set()
     for check in checks:
-        if not isinstance(check, dict) or check.keys() - {'id', 'argv', 'timeout_seconds', 'metrics'}:
+        if not isinstance(check, dict) or check.keys() - {'id', 'argv', 'timeout_seconds', 'metrics', 'inputs'}:
             raise ConfigurationError('Invalid check definition.')
         name = check.get('id', '')
         if not isinstance(name, str) or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name) or name in seen:
@@ -43,6 +49,8 @@ def policy(project):
         argv = check.get('argv')
         if not isinstance(argv, list) or not argv or any(not isinstance(s, str) or not s or '\0' in s for s in argv):
             raise ConfigurationError('Check argv must be a nonempty argument array; no implicit shell.')
+        if 'inputs' in check and not patterns(check['inputs']):
+            raise ConfigurationError('Check inputs must name project-relative input patterns; omit the key to use the whole policy scope.')
         metric = check.get('metrics')
         if metric is not None:
             if not isinstance(metric, dict) or set(metric) != {'format', 'path'} or metric['format'] not in ('coverage-json', 'ruff-json') or not isinstance(metric['path'], str):
@@ -88,24 +96,62 @@ def file_digest(path):
     return result.hexdigest()
 
 
-def snapshot(project, config):
+def matched(project, declared):
+    """Files a declared input scope actually resolves to right now."""
     paths = set()
     temporary = project.output('temporary').resolve()
-    for pattern in config['inputs']:
+    for pattern in declared:
         for path in project.root.glob(pattern):
             contained(project.root, path)
             if path.is_file() and not path.resolve().is_relative_to(temporary) and not {'.git', '__pycache__'} & set(path.relative_to(project.root).parts):
                 paths.add(path)
+    return paths
+
+
+def combined(project, paths, digests):
+    """Keep only a combined digest, never a persistent per-file inventory."""
+    fingerprint = hashlib.sha256()
+    for path in sorted(paths):
+        if path not in digests:
+            digests[path] = file_digest(path)
+        fingerprint.update(path.relative_to(project.root).as_posix().encode() + b'\0')
+        fingerprint.update(digests[path].encode() + b'\0')
+    return fingerprint.hexdigest()
+
+
+def scopes(project, config, paths, digests):
+    """A digest per check: its own declared scope, or the whole policy scope.
+
+    A declaration may only narrow. Matching a file outside the policy scope is
+    a configuration error, because the receipt still binds the whole scope.
+    """
+    whole = combined(project, paths, digests)
+    result = {}
+    for check in config['checks']:
+        declared = check.get('inputs')
+        if declared is None:
+            result[check['id']] = whole
+            continue
+        subset = matched(project, declared)
+        outside = sorted(path.relative_to(project.root).as_posix() for path in subset - paths)
+        if outside:
+            raise ConfigurationError(Message(
+                'Check {arg0} declares inputs outside verification.inputs: {arg1}.', check['id'], ', '.join(outside[:5])))
+        if not subset:
+            raise ConfigurationError(Message('Check {arg0} matched no inputs; an empty scope cannot pass.', check['id']))
+        result[check['id']] = combined(project, subset, digests)
+    return whole, result
+
+
+def snapshot(project, config):
+    paths = matched(project, config['inputs'])
     if not paths:
         raise ConfigurationError('No verification inputs matched; an empty scope cannot pass.')
     config_path = contained(project.root, ".tao/config.toml")
     if config_path.is_file():
         paths.add(config_path)
-    fingerprint = hashlib.sha256()
-    # Keep only a combined digest, never a persistent per-file inventory.
-    for path in sorted(paths):
-        fingerprint.update(path.relative_to(project.root).as_posix().encode() + b'\0')
-        fingerprint.update(file_digest(path).encode() + b'\0')
+    digests = {}
+    source_digest, check_digests = scopes(project, config, paths, digests)
     runtime = {p.name: file_digest(p) for p in Path(__file__).parent.glob('*.py')}
     executables = {}
     for check in config['checks']:
@@ -116,7 +162,7 @@ def snapshot(project, config):
                    'packages': sorted((d.metadata['Name'], d.version) for d in distributions()),
                    'variables': {k: os.environ.get(k) for k in ['PATH', 'LANG', 'LC_ALL', *config.get('environment', [])]},
                    'executables': executables, 'runtime': runtime}
-    result = {'source_digest': fingerprint.hexdigest(), 'input_count': len(paths),
+    result = {'source_digest': source_digest, 'input_count': len(paths), 'check_digests': check_digests,
               'policy_digest': digest_json(project.config), 'environment_digest': digest_json(environment),
               'input_ref': None, 'vcs_consistency': 'unavailable'}
     if shutil.which('git'):
@@ -148,7 +194,7 @@ def evidence(project, config, current=None):
         return {'state': 'missing', 'logs_available': False}
     try:
         saved = json.loads(path.read_text(encoding='utf-8'))
-        if saved.get('receipt_version') != 1 or not isinstance(saved.get('checks'), list):
+        if saved.get('receipt_version') != 2 or not isinstance(saved.get('checks'), list):
             raise ValueError('unsupported receipt')
         expected = {row['id']: row['argv'] for row in config['checks']}
         observed = {row['id']: row['argv'] for row in saved['checks']}
@@ -156,23 +202,64 @@ def evidence(project, config, current=None):
             raise ValueError('receipt check set mismatch')
         if saved['status'] == 'passed' and any(row['status'] != 'passed' or row['exit_code'] != 0 for row in saved['checks']):
             raise ValueError('inconsistent check outcome')
-        if type(saved['recorded_epoch']) not in (int, float) or not math.isfinite(saved['recorded_epoch']) or saved['recorded_epoch'] > time.time() + 5:
-            raise ValueError('invalid receipt timestamp')
+        for stamp in [saved['recorded_epoch'], *(row.get('recorded_epoch') for row in saved['checks'])]:
+            if type(stamp) not in (int, float) or not math.isfinite(stamp) or stamp > time.time() + 5:
+                raise ValueError('invalid receipt timestamp')
         logs = all(contained(project.root, row['log']).is_file() for row in saved['checks'] if row.get('log'))
         now = current or snapshot(project, config)
+        # A carried row was executed earlier than this receipt was written, so
+        # each row ages from its own execution; refreshing the receipt after an
+        # unrelated input change must not present a stale execution as fresh.
+        limit = config.get('reuse_seconds', 3600)
+        expired = sorted(row['id'] for row in saved['checks'] if time.time() - row['recorded_epoch'] > limit)
         if saved['inputs']['fingerprint'] != now['fingerprint']:
             state = 'stale'
         elif saved['status'] != 'passed':
             state = 'failed' if saved['status'] == 'failed' else saved['status']
-        elif time.time() - saved['recorded_epoch'] > config.get('reuse_seconds', 3600):
+        elif expired or time.time() - saved['recorded_epoch'] > limit:
             state = 'expired'
         elif config.get('require_logs', False) and not logs:
             state = 'materials-missing'
         else:
             state = 'reusable'
-        return {'state': state, 'logs_available': logs, 'receipt': path.relative_to(project.root).as_posix(), 'saved': saved}
+        return {'state': state, 'logs_available': logs, 'expired_checks': expired,
+                'receipt': path.relative_to(project.root).as_posix(), 'saved': saved}
     except (ValueError, KeyError, TypeError, OSError):
         return {'state': 'invalid', 'logs_available': False}
+
+
+def carried(project, config, current):
+    """Previous rows still standing on their own scope, tools and freshness.
+
+    Policy and environment changes invalidate every row: a declaration narrows
+    which sources a check watches, never which toolchain produced its result.
+    """
+    path = receipt_path(project)
+    if not path.is_file():
+        return {}
+    try:
+        saved = json.loads(path.read_text(encoding='utf-8'))
+        if saved.get('receipt_version') != 2 or not isinstance(saved.get('checks'), list):
+            return {}
+        if saved['inputs']['policy_digest'] != current['policy_digest'] or saved['inputs']['environment_digest'] != current['environment_digest']:
+            return {}
+    except (ValueError, KeyError, TypeError, OSError):
+        return {}
+    limit = config.get('reuse_seconds', 3600)
+    now = time.time()
+    rows = {}
+    for row in saved['checks']:
+        stamp = row.get('recorded_epoch')
+        if row.get('status') != 'passed' or type(stamp) not in (int, float) or not math.isfinite(stamp):
+            continue
+        if stamp > now + 5 or now - stamp > limit:
+            continue
+        if row.get('inputs_digest') != current['check_digests'].get(row.get('id')):
+            continue
+        if config.get('require_logs', False) and not (row.get('log') and contained(project.root, row['log']).is_file()):
+            continue
+        rows[row['id']] = row
+    return rows
 
 
 def execute(project, config):
@@ -185,9 +272,18 @@ def execute(project, config):
         directory = project.output('temporary', 'verification')
         directory.mkdir(parents=True, exist_ok=True)
         rows = []
+        previous = carried(project, config, before)
         for check in config['checks']:
+            prior = previous.get(check['id'])
+            if prior is not None and prior.get('argv') == check['argv']:
+                # Keep the original elapsed time and execution moment; this run
+                # did not produce them and must not claim them as its own.
+                rows.append(prior | {'reused': True})
+                continue
             remaining = config.get('budget_seconds', 300) - (time.monotonic() - start)
-            row = {'id': check['id'], 'argv': check['argv'], 'status': 'not_run', 'exit_code': None, 'elapsed_seconds': 0, 'log': None}
+            row = {'id': check['id'], 'argv': check['argv'], 'status': 'not_run', 'exit_code': None,
+                   'elapsed_seconds': 0, 'log': None, 'reused': False,
+                   'inputs_digest': before['check_digests'][check['id']], 'recorded_epoch': time.time()}
             if remaining <= 0:
                 row['reason'] = 'budget-exhausted'
                 rows.append(row)
@@ -234,7 +330,7 @@ def execute(project, config):
             rows.append(row)
         after = snapshot(project, config)
         status = 'stale' if before['fingerprint'] != after['fingerprint'] else 'not_run' if any(r['status'] == 'not_run' for r in rows) else 'failed' if any(r['status'] == 'failed' for r in rows) else 'passed'
-        receipt = {'receipt_version': 1, 'recorded_at': datetime.now(timezone.utc).isoformat(),
+        receipt = {'receipt_version': 2, 'recorded_at': datetime.now(timezone.utc).isoformat(),
                    'recorded_epoch': time.time(), 'inputs': before, 'status': status,
                    'checks': rows, 'elapsed_seconds': round(time.monotonic() - start, 6),
                    'budget_seconds': config.get('budget_seconds', 300), 'reused': False,

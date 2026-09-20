@@ -250,3 +250,94 @@ def test_git_probe_timeout_is_reported_as_unavailable_vcs(tmp_path, monkeypatch)
     observed = snapshot(project, policy(project))
     assert observed['vcs_consistency'] == 'unavailable'
     assert observed['input_ref'] is None
+
+
+def scoped(root, *, declared='["check.py"]', budget=20):
+    """Two checks over one policy scope; only the first declares its own."""
+    configured(root, 'from pathlib import Path\np=Path("tmp/tao/first")\np.write_text(p.read_text()+"x" if p.exists() else "x")', budget=budget)
+    config = root / '.tao/config.toml'
+    config.write_text(config.read_text(encoding='utf-8').replace(
+        'id = "tests"', 'id = "scoped"\ninputs = ' + declared, 1) + f'''
+[[verification.checks]]
+id = "whole"
+argv = [{json.dumps(sys.executable)}, "-c", "from pathlib import Path; p=Path('tmp/tao/second'); p.write_text(p.read_text()+'y' if p.exists() else 'y')"]
+timeout_seconds = 5
+''', encoding='utf-8')
+
+
+def rows(value):
+    """Check rows of a CLI report or of a saved receipt, keyed by check id."""
+    receipt = value['outputs']['execution'] if 'outputs' in value else value
+    return {row['id']: row for row in receipt['checks']}
+
+
+@pytest.mark.parametrize('declared', ['[]', '"check.py"', '[""]', '["/etc/hosts"]', '["../outside/**"]',
+                                     '["check.py", "outside.md"]', '["missing/**/*"]'])
+def test_a_declared_scope_may_only_narrow_and_must_match_something(tmp_path, declared):
+    scoped(tmp_path, declared=declared)
+    # Inside the project but outside verification.inputs: declaring it widens.
+    (tmp_path / 'outside.md').write_text('not a verification input\n', encoding='utf-8')
+    code, result = report(tmp_path, 'verify', '--only', 'code')
+    assert code == 2, (declared, result)
+    assert not (tmp_path / 'tmp/tao/first').exists()
+    assert not (tmp_path / 'tmp/tao/second').exists()
+
+
+def test_only_the_check_whose_own_scope_changed_is_re_executed(tmp_path):
+    scoped(tmp_path)
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    first = json.loads((tmp_path / 'tmp/tao/verification/latest.json').read_text(encoding='utf-8'))
+    assert first['receipt_version'] == 2
+    assert all(row['reused'] is False for row in first['checks'])
+    # A document is inside verification.inputs but outside the declared scope:
+    # the whole receipt goes stale, yet only the undeclared check must re-run.
+    (tmp_path / 'docs/spec.md').write_text(spec() + '\n<!-- edited -->\n', encoding='utf-8')
+    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'stale'
+    code, second = report(tmp_path, 'verify', '--only', 'code')
+    assert code == 0, second
+    carried, rerun = rows(second)['scoped'], rows(second)['whole']
+    assert carried['reused'] is True and rerun['reused'] is False
+    assert carried['recorded_epoch'] == rows(first)['scoped']['recorded_epoch']
+    assert carried['elapsed_seconds'] == rows(first)['scoped']['elapsed_seconds']
+    assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'x'
+    assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'yy'
+    # Its own scope changing does re-run it.
+    (tmp_path / 'check.py').write_text('from pathlib import Path\np=Path("tmp/tao/first")\np.write_text(p.read_text()+"x")', encoding='utf-8')
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
+
+
+def test_unreadable_or_older_receipt_versions_re_execute_every_check(tmp_path):
+    scoped(tmp_path)
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    receipt = tmp_path / 'tmp/tao/verification/latest.json'
+    saved = json.loads(receipt.read_text(encoding='utf-8'))
+    saved['receipt_version'] = 1
+    saved['inputs']['source_digest'] = 'changed'
+    receipt.write_text(json.dumps(saved), encoding='utf-8')
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
+    assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'yy'
+
+
+def test_a_carried_row_ages_from_its_own_execution_not_the_receipt(tmp_path):
+    scoped(tmp_path)
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    receipt = tmp_path / 'tmp/tao/verification/latest.json'
+    saved = json.loads(receipt.read_text(encoding='utf-8'))
+    for row in saved['checks']:
+        if row['id'] == 'scoped':
+            row['recorded_epoch'] -= 3601
+    receipt.write_text(json.dumps(saved), encoding='utf-8')
+    # The receipt itself is fresh and its inputs unchanged, so only the row's
+    # own execution moment can make this expired.
+    code, current = report(tmp_path, 'verify', '--only', 'evidence')
+    assert code == 2, current
+    assert current['outputs']['evidence']['state'] == 'expired'
+    assert current['outputs']['evidence']['expired_checks'] == ['scoped']
+    code, rerun = report(tmp_path, 'verify', '--only', 'code')
+    assert code == 0, rerun
+    assert rows(rerun)['scoped']['reused'] is False
+    assert rows(rerun)['whole']['reused'] is True
+    assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
+    assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'y'
