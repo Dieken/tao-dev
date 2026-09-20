@@ -11,6 +11,16 @@ budget_seconds = 1860
 reuse_seconds = 3600
 required_reviews = ["independent-implementation-review"]
 
+# Ordered first and scoped narrowly: a missing diagnostics catalogue entry is
+# a common slip, and learning about it here costs seconds rather than the
+# quarter hour the full regression takes. python-tests runs it again as part
+# of the suite; the duplicate is worth the earlier signal.
+[[verification.checks]]
+id = "diagnostics-locale"
+inputs = ["plugins/tao-dev/skills/tao-dev/scripts/**/*", "plugins/tao-dev/skills/tao-dev/assets/locales/**/*", "tests/test_diagnostics_locale.py", "pyproject.toml", "uv.lock"]
+argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "-m", "pytest", "tests/test_diagnostics_locale.py", "-q"]
+timeout_seconds = 120
+
 [[verification.checks]]
 id = "python-tests"
 argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "tests/acceptance/quality.py"]
