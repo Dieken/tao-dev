@@ -265,3 +265,22 @@ def test_malformed_but_parseable_workflow_state_excludes_nothing(tmp_path, runs)
         ' "artifacts": {}, "approvals": {}, "reviews": {"docs": {"runs": %s}}}' % (CHG, runs), encoding='utf-8')
     assert reviews.declared_outputs(Project(tmp_path), CHG) == []
     assert digest(tmp_path) == before
+
+
+@pytest.mark.parametrize("change,requirement", [
+    ("../../escape", "independent"), ("CHG/../../x", "independent"), ("/etc", "independent"),
+    (CHG, "../secret"), (CHG, "Independent"), (CHG, ""), ("", "independent"),
+    ("CHG_20260914_lowercase0000000", "independent"),
+])
+def test_review_record_paths_reject_identities_that_are_not_indexed(tmp_path, change, requirement):
+    """Both parts become path segments; containment alone would still allow a
+    record to land outside the reviews directory."""
+    with pytest.raises(ValueError):
+        reviews.path_for(Project(tmp_path), change, requirement)
+
+
+def test_review_record_path_stays_inside_the_reviews_directory(tmp_path):
+    setup_review(tmp_path)
+    project = Project(tmp_path)
+    path = reviews.path_for(project, CHG, "independent")
+    assert path.resolve().parent == (project.output("temporary", f"reviews/{CHG}")).resolve()
