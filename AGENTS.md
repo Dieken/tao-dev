@@ -48,6 +48,16 @@ no client credential and no PowerShell launcher. Native Windows client
 behavior acceptance and the current independent review therefore remain
 incomplete; partial checks do not establish delivery readiness.
 
+Always pass `--no-config` to `uv`. This machine's global `uv.toml`
+declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
+rewrites every registry and wheel URL in `uv.lock`, producing a large
+diff nobody asked for. The justfile and CI already pass it; the gap is
+an ad-hoc command typed during a session. For one-off calls prefer
+`.venv/bin/python` directly, which is what the justfile's own `tao` and
+`python` variables do. If `uv.lock` shows a mass URL change nobody
+intended, it came from a bare `uv` invocation: restore it with
+`git checkout uv.lock`.
+
 # CLI experiments
 
 These constraints govern experiments on a maintainer machine, where they
