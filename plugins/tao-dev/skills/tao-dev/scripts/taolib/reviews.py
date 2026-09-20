@@ -41,10 +41,14 @@ def declared_outputs(project, change):
         names = []
         for batch in series.values():
             runs = batch.get('runs') if isinstance(batch, dict) else None
-            request = runs[-1].get('request', {}) if runs else {}
-            names.extend(request.get('output_files') or [])
+            latest = runs[-1] if isinstance(runs, list) and runs else None
+            request = latest.get('request') if isinstance(latest, dict) else None
+            declared = request.get('output_files') if isinstance(request, dict) else None
+            names.extend(declared if isinstance(declared, list) else [])
         return [name for name in names if isinstance(name, str) and name]
-    except (ConfigurationError, ValueError, KeyError, TypeError, OSError):
+    except (ConfigurationError, ValueError, KeyError, TypeError, AttributeError, OSError):
+        # A shape this function cannot read is the same kind of failure as
+        # unreadable JSON, and must degrade the same way, not raise.
         return []
 
 

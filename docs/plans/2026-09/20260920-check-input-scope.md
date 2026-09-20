@@ -165,6 +165,18 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 本次同时修正了 F1 处置中发现的另一处缺陷：`carried()` 原先在 `require_logs` 为假时不校验日志路径，于是一份 `evidence()` 已判为 invalid 的损坏回执仍会被逐行挖出可用的部分，违反验证规程「缓存损坏或清空后须重跑」。改为由 `execute()` 把已算出的 `evidence()` 结果传入，状态为 invalid 或 missing 时一行都不沿用，同时删去重复的解析与校验。`tests/test_verification.py` 增一项回归，对含遍历分量的日志路径断言 `evidence()` 返回 invalid 且重跑时无任何沿用行。
 
+**审查绑定修复的实测（{need}`TASK_20260920_B66GBH9CSPTNYFBN` 的第五项检查）。** 实现阶段第 2 轮复核后按三个时点观察 `tao status` 的该项必需审查：
+
+| 时点 | 状态 | 说明 |
+|---|---|---|
+| A 导入本轮 attestation，尚无报告落盘 | changes-requested | 该轮有阻断级发现且处置为 open |
+| B 本轮声明的报告已落盘 | changes-requested | 状态未退化为 stale，即绑定未因保存本轮报告而移动 |
+| C 加入批次导航条目之后 | stale | 导航不是声明输出，按审查调度规程属后续文档变更 |
+
+`status()` 中 stale 的判定先于 changes-requested，因此 B 点仍为 changes-requested 就是绑定未移动的直接证据，这正是本次修复要达到的效果。
+
+该项检查原写为「由 stale 回到 satisfied」，实测达不到该字面结果，原因有二且都不是修复失效：其一，本轮存在未处置的阻断级发现，状态本就不应显示满足；其二，新报告必须进入批次导航才能从书入口可达，而导航改动按规程不是声明输出。因此本项记为部分达成：实质结论（保存本轮声明的报告不再使该轮审查失效）已由 B 点证据确立，字面结论未达成，不改写为已达成。
+
 <!-- /tao:results -->
 
 <!-- tao:section questions -->

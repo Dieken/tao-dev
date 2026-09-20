@@ -12,7 +12,7 @@ created: "2026-09-20"
 <!-- tao:section overview -->
 ## 概述
 
-本事项实现阶段独立审查的报告与裁决。受检对象为提交 `bf03df4` 的实现与回归，范围不含 `project.py`、`tao_messages` 与 CLI 层。
+本事项实现阶段两轮独立审查的报告与裁决。受检对象为提交 `bf03df4` 的实现与回归，范围不含 `project.py`、`tao_messages` 与 CLI 层。
 
 <!-- tao:section contents -->
 ## 阅读顺序
@@ -23,4 +23,5 @@ created: "2026-09-20"
 
 00-adjudication.md
 01-implementation-claude.md
+02-implementation-recheck-claude.md
 ```

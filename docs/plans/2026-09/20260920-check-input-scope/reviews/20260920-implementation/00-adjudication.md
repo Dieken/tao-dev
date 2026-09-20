@@ -17,7 +17,7 @@ coverage: "partial"
 <!-- tao:section scope -->
 ## 目标与边界
 
-对实现阶段批次第 1 轮的 1 条发现裁决。受检对象与范围同来源报告。
+对实现阶段批次两轮共 2 条发现逐项裁决。受检对象与范围同各自来源报告。
 
 本裁决的 result 为 failed，因为本轮登记为 changes-requested。这不表示实现有阻断级缺陷：F1 所述的崩溃不会发生，其缺陷主张不成立；采用的只是它附带指出的回归覆盖缺口。原结论措辞保留在来源报告。
 
@@ -59,9 +59,12 @@ coverage: "partial"
 
 | 来源发现 | 处置与范围 | 依据与理由 | 剩余工作或复查条件 |
 |---|---|---|---|
-| [F1](01-implementation-claude.md) 回执解析可能漏掉日志路径越界 | 部分采用：缺陷主张不采用，其指出的回归覆盖缺口采用 | 缺陷主张经实测否定，见上方检查记录；审查者已自行声明该点未确定，这是诚实的待证假设而非误报。但它指出的耦合是真的：两处的向安全侧失败依赖「`ConfigurationError` 是 `ValueError` 子类」这一隐式前提，一旦有人改动该基类，`evidence()` 会在越界日志路径上崩溃而没有任何检查提示。现有回归 `test_corrupt_or_empty_pass_receipt_is_not_reused` 只覆盖结构合法但 checks 为空的回执，不覆盖畸形日志路径，审查者对覆盖面的描述属实 | 补一条回归，对含遍历分量的日志路径断言 `evidence()` 返回 invalid、`carried()` 不沿用任何行，把该保证固化。改动受检文件后本轮 attestation 失效，须以定向复核重新建立绑定 |
+| [第 2 轮 F1](02-implementation-recheck-claude.md) 状态畸形但可解析时崩溃 | 采用 | 阻断级，已由主审复现：把 `reviews.docs.runs` 置为 `["not-a-dict"]` 后调用 `declared_outputs()`，抛出未捕获的 `AttributeError: 'str' object has no attribute 'get'`。它与本事项设计写明的「状态不可读时不排除任何文件」直接冲突，且形状损坏与 JSON 损坏本是同一类可读性失败。按其给出的最小改动处理：对 `runs`、`runs[-1]`、`request`、`output_files` 逐层 `isinstance` 判定后取值，并把 `AttributeError` 加入捕获元组作为后手 | 已修复并在引发崩溃的同一输入上确认返回空列表；新增 7 项参数化回归覆盖非列表、非对象元素、非对象 request、非列表 output_files、空对象、空列表与非列表 runs。本批次两轮用尽，该修复本身未经独立复核，须由用户明确发起新批次 |
+| [第 1 轮 F1](01-implementation-claude.md) 回执解析可能漏掉日志路径越界 | 部分采用：缺陷主张不采用，其指出的回归覆盖缺口采用 | 缺陷主张经实测否定，见上方检查记录；审查者已自行声明该点未确定，这是诚实的待证假设而非误报。但它指出的耦合是真的：两处的向安全侧失败依赖「`ConfigurationError` 是 `ValueError` 子类」这一隐式前提，一旦有人改动该基类，`evidence()` 会在越界日志路径上崩溃而没有任何检查提示。现有回归 `test_corrupt_or_empty_pass_receipt_is_not_reused` 只覆盖结构合法但 checks 为空的回执，不覆盖畸形日志路径，审查者对覆盖面的描述属实 | 补一条回归，对含遍历分量的日志路径断言 `evidence()` 返回 invalid、`carried()` 不沿用任何行，把该保证固化。改动受检文件后本轮 attestation 失效，须以定向复核重新建立绑定 |
 
 ### 未解决事项
+
+第 2 轮 F1 的修复未经独立复核。本批次 2 轮已用尽，按审查调度规程不得由 agent 自行增加轮次上限或另开批次；是否新开批次由用户决定。在此之前，项目必需的 `independent-implementation-review` 不对应当前实现。
 
 参考页改动缺少行为验收。本次对验证规程与工具规程的改动是 agent 行为规则，`tao verify --only docs` 只覆盖其结构。该缺口在本轮范围声明中列出，审查者未就此提出发现，本轮也未消除它；它不由本批次结论承担，实际效果须在消费方项目使用中观察。
 
