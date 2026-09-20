@@ -162,6 +162,7 @@
   "Retirement requires a nonempty reason.": "退役必须提供非空原因。",
   "Retirement requires an existing source or retirement definition.": "退役要求源文档或退役记录中已有该定义。",
   "Review IDs must be unique lowercase words separated by hyphens.": "审查 ID 必须唯一，使用连字符分隔的小写单词。",
+  "Review records require an indexed CHG identity.": "审查记录必须使用受管理索引中的 CHG 标识符。",
   "Review does not satisfy a configured requirement.": "审查不满足配置中的任何审查要求。",
   "Review findings and limitations must be arrays.": "审查发现及限制必须是数组。",
   "Review inputs are stale or belong to another change.": "审查输入已过期或属于其他变更。",

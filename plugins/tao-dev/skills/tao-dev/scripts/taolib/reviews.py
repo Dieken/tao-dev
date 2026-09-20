@@ -162,7 +162,16 @@ def confirm_source(project, value):
 
 
 def path_for(project, change, requirement):
-    # Only validated requirement names and indexed CHG IDs reach this function.
+    """Both parts become path segments, so neither may be taken on trust.
+
+    Callers do validate today, but containment only stops an escape from the
+    project; an unchecked identity could still place a record outside the
+    reviews directory. Check here so the guarantee lives in code.
+    """
+    if not isinstance(change, str) or not re.fullmatch(r'CHG_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}', change):
+        raise ConfigurationError('Review records require an indexed CHG identity.')
+    if not isinstance(requirement, str) or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', requirement):
+        raise ConfigurationError('Review IDs must be unique lowercase words separated by hyphens.')
     return project.output('temporary', f'reviews/{change}/{requirement}.json')
 
 
