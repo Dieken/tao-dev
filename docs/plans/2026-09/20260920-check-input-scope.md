@@ -186,6 +186,21 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 **审查执行汇总。** 本事项共五轮独立审查，分属三个批次：计划阶段批次两轮（1 条建议，采用）、实现阶段批次两轮（1 条建议部分采用、1 条阻断采用并修复）、用户明确发起的复核批次一轮（1 条建议，记为后续加固）。五轮均为模型审查，`claude-sonnet-5`，供应商 firstParty，五个互不相同的会话上下文，均与作者上下文不同；同供应商，未使用跨供应商审查者。三条真实问题中的两条出现在自测通过之后，其中一条为阻断。
 
+**合入前的最终交付判定。** 上文的判定作出后又产生两次提交——`a6a93f5` 为仓库约定增加 `uv` 必须带 `--no-config` 的规则，`27caa46` 在 `path_for()` 内校验标识符——两者均未经独立审查，彼时完整 `tao verify` 因必需审查过期而返回 failed 与 blocked，其余各项全部通过。经用户决定为复核批次追加预算至 14400 秒后，第 2 轮覆盖了这两次提交。导入该轮 attestation 后、其报告落盘前重新执行：
+
+```
+tao verify CHG_20260920_Y0WCT88THT8JXXS2
+  status passed | coverage complete | readiness checks-satisfied
+  open_tasks []   evidence reusable   diagnostics 0
+  python-tests passed 977.06 秒，528 passed、5 skipped
+  python-lint  passed   0.25 秒，0 条诊断
+  independent-implementation-review -> satisfied
+```
+
+该次 `python-tests` 重新执行不是因输入变化：上一次执行距此已超过 `reuse_seconds`，逐行时效判定使其过期。这是本次所实现机制在真实策略上的第三次生效观察，也正是规格本次修订所要求的行为——若时效仍按整份回执的记录时刻判定，期间数次调用会不断把它刷新为新鲜。
+
+回归总数由事项开始时的 508 项增至 528 项。该判定的观察时点在本轮报告与批次导航落盘之前；落盘后必需审查再次因导航改动显示为过期，理由同上文三时点观察。
+
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
