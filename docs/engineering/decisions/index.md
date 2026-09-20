@@ -29,4 +29,5 @@ project-language.md
 plugin-adapters.md
 isolated-runtime.md
 per-check-reuse.md
+batch-own-records.md
 ```

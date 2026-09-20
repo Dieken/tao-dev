@@ -107,3 +107,39 @@ def test_dirty_source_is_not_silently_left_out_of_worktree(tmp_path, capsys):
     code, report = call(tmp_path, capsys, 'workflow', 'start', '--slug', 'filter', '--summary', 'Filter', '--locale', 'en', '--decision', 'Write', '--worktree')
     assert code == 1, report
     assert not (tmp_path / '.worktrees/filter').exists()
+
+
+PLAN_RESULTS = '\n<!-- tao:results -->\n执行记录。\n<!-- /tao:results -->\n'
+
+
+@pytest.mark.parametrize('mutation,rule', [
+    (lambda t: t.replace('<!-- /tao:results -->\n', ''), 'TAO-DOC-003'),
+    (lambda t: t.replace('<!-- tao:results -->\n', ''), 'TAO-DOC-003'),
+    (lambda t: t.replace('<!-- tao:results -->', '<!-- tao:results -->\n<!-- tao:results -->'), 'TAO-DOC-003'),
+    (lambda t: t.replace(PLAN_RESULTS, '').replace('<!-- tao:section verification -->', PLAN_RESULTS + '\n<!-- tao:section verification -->'), 'TAO-DOC-003'),
+])
+def test_unpaired_or_misplaced_results_markers_are_reported(tmp_path, mutation, rule):
+    """The structure stays intact while these markers are wrong, so nothing
+    else reports them and the plan contract silently changes instead."""
+    from taolib.documents import validate
+    from test_relationships import change
+    body = change().replace('<!-- tao:section questions -->', PLAN_RESULTS + '\n<!-- tao:section questions -->')
+    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
+    path.parent.mkdir(parents=True)
+    path.write_text(mutation(body), encoding='utf-8')
+    result = validate(tmp_path, [path])
+    assert rule in {d.rule_id for d in result.diagnostics}, result.to_dict()
+
+
+def test_a_paired_results_block_is_accepted_and_excluded_from_the_contract(tmp_path):
+    from taolib.documents import validate
+    from taolib.workflows import plan_contract
+    from test_relationships import change
+    body = change().replace('<!-- tao:section questions -->', PLAN_RESULTS + '\n<!-- tao:section questions -->')
+    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
+    path.parent.mkdir(parents=True)
+    path.write_text(body, encoding='utf-8')
+    result = validate(tmp_path, [path])
+    assert 'TAO-DOC-003' not in {d.rule_id for d in result.diagnostics}, result.to_dict()
+    assert '执行记录。' not in plan_contract(body)
+    assert plan_contract(body) == plan_contract(body.replace('执行记录。', '改写后的执行记录。'))

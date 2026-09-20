@@ -15,6 +15,67 @@ def repository(root, capsys):
     return state
 
 
+
+def evidence_report(title, doc, evd):
+    """A registrable report is a managed document, so fixtures write one."""
+    return f"""---
+schema: tao.project.evidence/v0.1
+id: "{doc}"
+title: "{title}"
+locale: "en"
+status: draft
+created: "2026-09-14"
+evidence: "{evd}"
+recorded_at: "2026-09-14T00:00:00+00:00"
+result: "passed"
+coverage: "partial"
+---
+
+# {title}
+
+<!-- tao:section scope -->
+## Scope
+
+Fixture report.
+
+<!-- tao:section inputs -->
+## Inputs
+
+<!-- tao:field fingerprint -->
+**Inputs:** Fixture tree.
+
+<!-- tao:field environment -->
+**Environment:** Fixture reviewer.
+
+<!-- tao:section checks -->
+## Checks
+
+<!-- tao:field command -->
+**Command:** None.
+
+<!-- tao:field expected -->
+**Expected:** None.
+
+<!-- tao:field observed -->
+**Observed:** None.
+
+<!-- tao:field reports -->
+**Reports:** This file.
+
+<!-- tao:section findings -->
+## Findings
+
+<!-- tao:field limits -->
+**Limits:** Fixture only.
+
+<!-- tao:section retention -->
+## Retention
+
+<!-- tao:field retention -->
+**Retention:** Discarded with the fixture.
+"""
+
+
 def test_review_preview_covers_commits_dirty_and_untracked_without_writes(tmp_path, capsys):
     state = repository(tmp_path, capsys)
     for number in (1, 2):
@@ -249,19 +310,20 @@ def test_reserved_formal_reports_validate_without_staling_inputs(tmp_path, capsy
     assert report in preview(project, state, 'project', 'docs')['context_files']
 
 
-@pytest.mark.parametrize('changed', ['code.py', 'docs/engineering/reviews/history.md', 'new.py'])
+@pytest.mark.parametrize('changed', ['code.py', 'docs/engineering/reviews/20260901-earlier/01-earlier.md', 'new.py'])
 def test_reserved_outputs_do_not_hide_source_or_historical_report_changes(tmp_path, capsys, changed):
     from taolib.review_runs import preview, begin, finish
     from taolib.project import Project
     state = repository(tmp_path, capsys)
     project = Project(tmp_path)
-    history = tmp_path / 'docs/engineering/reviews/history.md'
+    history = tmp_path / 'docs/engineering/reviews/20260901-earlier/01-earlier.md'
     history.parent.mkdir(parents=True)
-    history.write_text('Earlier review', encoding='utf-8')
-    report = 'docs/engineering/reviews/current.md'
+    history.write_text(evidence_report('Earlier review', 'DOC_20260914_0000000000000101', 'EVD_20260914_0000000000000102'), encoding='utf-8')
+    report = 'docs/engineering/reviews/20260914-current/01-current.md'
+    (tmp_path / report).parent.mkdir(parents=True)
     request = preview(project, state, 'project', 'code', outputs=[report])
     state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
-    (tmp_path / report).write_text('New review', encoding='utf-8')
+    (tmp_path / report).write_text(evidence_report('New review', 'DOC_20260914_0000000000000103', 'EVD_20260914_0000000000000104'), encoding='utf-8')
     (tmp_path / changed).write_text('Changed input', encoding='utf-8')
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'Old input'})
     run = state['reviews']['code']['runs'][-1]
@@ -374,3 +436,27 @@ def test_records_written_before_the_split_are_read_without_new_fields(tmp_path, 
     state = workflows.mutate(project, state['change'], state['revision'],
                              lambda owner, current: current['reviews']['code']['runs'][-1].update(outcome='stale'))
     assert not review_runs.passed(project, state, 'code')
+
+
+def test_review_end_refuses_a_report_that_does_not_validate(tmp_path, capsys):
+    """Registering pairs a conclusion with the material carrying it; an
+    unreadable report leaves nothing to register, and a round that has ended
+    cannot be registered again to correct its digest."""
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project, ConflictError
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    (tmp_path / 'docs/engineering/reviews').mkdir(parents=True)
+    report = 'docs/engineering/reviews/current.md'
+    request = preview(project, state, 'project', 'code', outputs=[report])
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+    (tmp_path / report).write_text('Not a managed document', encoding='utf-8')
+    with pytest.raises(ConflictError):
+        finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
+    assert state['reviews']['code']['runs'][-1]['outcome'] == 'running', 'the round stays open for a corrected report'
+    (tmp_path / report).write_text(evidence_report('Fixed', 'DOC_20260914_0000000000000105', 'EVD_20260914_0000000000000106'), encoding='utf-8')
+    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
+    run = state['reviews']['code']['runs'][-1]
+    assert run['outcome'] == 'passed'
+    from taolib.verification import file_digest
+    assert run['reports'][0]['digest'] == file_digest(tmp_path / report)

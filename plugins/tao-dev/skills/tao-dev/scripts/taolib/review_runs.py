@@ -9,6 +9,11 @@ import zipfile
 from tao_messages import Message
 
 from . import git_workflow, workflows
+
+
+def contract_digest(path):
+    import hashlib
+    return hashlib.sha256(workflows.plan_contract(path.read_text(encoding='utf-8')).encode()).hexdigest()
 from .project import ConfigurationError, ConflictError, contained
 from .verification import digest_json, file_digest
 from .project_setup import EXCLUDED
@@ -16,6 +21,20 @@ from .project_setup import EXCLUDED
 
 def names(value):
     return set(filter(None, (value or '').split('\0')))
+
+
+def own_records(outputs):
+    """Directories holding the records of the batch these outputs belong to.
+
+    Completing a round requires an adjudication and a batch navigation page
+    besides the reserved report, and from the second round on both already
+    exist, so neither can be reserved as a new output. Excluding the batch
+    directory keeps those mandatory products from expiring the very round
+    that produced them. Only this batch's directory is excluded: another
+    batch's reports are history, and history changing does expire a result.
+    """
+    return sorted({name.rsplit('/', 1)[0] + '/' for name in outputs or []
+                   if isinstance(name, str) and '/' in name})
 
 
 def preview(project, state, scope='feature', kind=None, base=None, include=None, outputs=None, *, started=False):
@@ -82,8 +101,10 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         parts = Path(name).parts
         return (not set(parts) & (EXCLUDED - {'tmp', '.tao'}) and parts[:len(temporary)] != temporary
                 and parts[:2] != ('.tao', 'workflows'))
-    excluded = sorted({name for name in files if not admitted(name)} | set(outputs))
-    files = {name for name in files if admitted(name)} - set(outputs)
+    records = own_records(outputs)
+    own = {name for name in files if any(name.startswith(d) for d in records)}
+    excluded = sorted({name for name in files if not admitted(name)} | set(outputs) | own)
+    files = {name for name in files if admitted(name)} - set(outputs) - own
     rows = []
     total = 0
     for name in sorted(files):
@@ -96,7 +117,10 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         # Only POSIX carries permission bits; elsewhere record that the mode
         # is unknown rather than storing a value that restricts nothing.
         mode = path.stat().st_mode & 0o777 if exists and os.name == 'posix' else None
-        rows.append([name, file_digest(path) if exists else None, mode, index.get(name)])
+        # The plan carries this run's own execution record; hash the contract
+        # it declares, not the results written while completing the round.
+        digest = contract_digest(path) if exists and name == state.get('plan_path') else (file_digest(path) if exists else None)
+        rows.append([name, digest, mode, index.get(name)])
         if exists:
             total += path.stat().st_size
     selected &= files
@@ -209,6 +233,17 @@ def finish(project, identity, expected, result):
             if Path(name).is_absolute() or not path.is_file() or not path.stat().st_size:
                 raise ConflictError('Review report is missing or empty.')
             saved.append({'path': name, 'digest': file_digest(path)})
+        # What is recorded is a conclusion together with the material carrying
+        # it, so an unreadable report leaves nothing to record. Validating here
+        # also keeps the digest matching the file: a report fixed afterwards
+        # cannot be registered again once the round has ended.
+        if saved:
+            from .documents import validate as validate_documents
+            result_index = validate_documents(owner.root, owner.sources())
+            faults = [d for d in result_index.diagnostics if d.severity == 'error' and d.path in set(reports)]
+            if faults:
+                raise ConflictError(Message('Review report does not validate: {arg0}:{arg1} {arg2}.',
+                                            faults[0].path, faults[0].line, faults[0].rule_id))
         # The verdict, the freshness of its inputs and the schedule window are three
         # separate facts; recording them in one field loses whichever is written last.
         try:

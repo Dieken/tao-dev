@@ -203,6 +203,24 @@ class Validator:
             self.error("TAO-DOC-001", path, locations["updated"], "updated precedes created.")
         return values, profile, "".join(lines[end + 1:]), end + 1
 
+    def paired_marker(self, value, opened, section, profile, path, line):
+        """Track the results block: structure stays intact while it is wrong, so
+        nothing else reports it, and the contract silently changes instead."""
+        allowed = profile.get("results_section")
+        if value == "<!-- tao:results -->":
+            if opened is not None:
+                self.error("TAO-DOC-003", path, line, "Results block opens again before the previous one closes.")
+            elif not allowed:
+                self.error("TAO-DOC-003", path, line, "This profile has no results block.")
+            elif section != allowed:
+                self.error("TAO-DOC-003", path, line, Message('Results block belongs in section {arg0}, not {arg1}.', allowed, section))
+            return line
+        if value == "<!-- /tao:results -->":
+            if opened is None:
+                self.error("TAO-DOC-003", path, line, "Results block is closed without being opened.")
+            return None
+        return opened
+
     def fields(self, tokens, expected, path, offset, label_style=None):
         found = []
         for index, token in enumerate(tokens):
@@ -326,6 +344,7 @@ class Validator:
         navigation_count = 0
         sections, section, previous_heading = [], None, 0
         h1 = []
+        opened = None
         for index, token in enumerate(tokens):
             line = offset + (token.map[0] if token.map else 0) + 1
             if token.type == "heading_open" and token.level == 0:
@@ -357,8 +376,12 @@ class Validator:
                 elif token.info.strip() == "{toctree}":
                     navigation_count += 1
                     relationships.navigation(self, token, section, doc, offset)
+            if token.type == "html_block" and token.level == 0:
+                opened = self.paired_marker(token.content.strip(), opened, section, profile, path, line)
             if token.type == "list_item_open":
                 relationships.task(self, token, section, doc, body_lines, offset)
+        if opened is not None:
+            self.error("TAO-DOC-003", path, opened, "Results block is never closed; add <!-- /tao:results --> where the record ends.")
         if profile.get("navigation") and navigation_count != profile["navigation"]["block_count"]:
             self.error("TAO-DOC-002", path, offset + 1, "Navigation requires exactly one toctree.")
         if h1 != [metadata.get("title")]:

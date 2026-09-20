@@ -25,12 +25,14 @@ def text(value):
 
 
 def declared_outputs(project, change):
-    """New report paths the latest round of each review kind reserved.
+    """Files belonging to this change's own review batches.
 
-    Writing a report a round declared in advance must not change what that
-    round examined. Earlier rounds' reports stay in scope: they are history,
-    and history changing does expire a result. An unreadable state excludes
-    nothing, which shows a review as stale rather than as satisfied.
+    Completing a round produces an adjudication and a navigation page besides
+    the reserved report; none of them may expire the round that produced them.
+    Other batches' reports stay in scope, because history changing does expire
+    a result. An unreadable state excludes nothing, which shows a review as
+    stale rather than as satisfied. The same definition drives the finish gate,
+    so one record cannot count as a change in one place and not the other.
     """
     from . import workflows
     try:
@@ -38,14 +40,19 @@ def declared_outputs(project, change):
         series = state.get('reviews')
         if not isinstance(series, dict):
             return []
-        names = []
+        from .review_runs import own_records
+        latest = []
         for batch in series.values():
             runs = batch.get('runs') if isinstance(batch, dict) else None
-            latest = runs[-1] if isinstance(runs, list) and runs else None
-            request = latest.get('request') if isinstance(latest, dict) else None
+            run = runs[-1] if isinstance(runs, list) and runs else None
+            request = run.get('request') if isinstance(run, dict) else None
             declared = request.get('output_files') if isinstance(request, dict) else None
-            names.extend(declared if isinstance(declared, list) else [])
-        return [name for name in names if isinstance(name, str) and name]
+            latest.extend(declared if isinstance(declared, list) else [])
+        directories = own_records(latest)
+        if not directories:
+            return []
+        managed = [path.relative_to(project.root).as_posix() for path in project.sources()]
+        return sorted(name for name in managed if any(name.startswith(d) for d in directories))
     except (ConfigurationError, ValueError, KeyError, TypeError, AttributeError, OSError):
         # A shape this function cannot read is the same kind of failure as
         # unreadable JSON, and must degrade the same way, not raise.
@@ -210,9 +217,11 @@ def status(project, config, change):
     for requirement in config['required_reviews']:
         row = {'requirement': requirement, 'state': 'missing'}
         if change:
-            path = path_for(project, change, requirement)
-            if path.is_file():
-                try:
+            try:
+                # Locating the record is part of reading it: an identity this
+                # function rejects yields a row state, never an exception.
+                path = path_for(project, change, requirement)
+                if path.is_file():
                     value = load(path)
                     stamp = validate(value)
                     if value['requirement'] != requirement:
@@ -230,7 +239,7 @@ def status(project, config, change):
                         state = 'materials-missing'
                     row.update(state=state, receipt=path.relative_to(project.root).as_posix(), materials_available=available,
                                reviewer=value['reviewer'], summary=value['summary'], findings=value['findings'], limitations=value['limitations'])
-                except (ValueError, KeyError, TypeError, AttributeError, OSError):
-                    row['state'] = 'invalid'
+            except (ValueError, KeyError, TypeError, AttributeError, OSError):
+                row['state'] = 'invalid'
         rows.append(row)
     return rows
