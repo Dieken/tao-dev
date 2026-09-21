@@ -322,6 +322,17 @@ def rows(value):
     return {row['id']: row for row in receipt['checks']}
 
 
+@pytest.mark.parametrize('pattern', ['/etc/hosts', 'C:/Windows/win.ini', 'C:check.py',
+                                     '\\\\server\\share\\check.py', '..\\outside\\check.py'])
+def test_a_rooted_or_traversing_pattern_is_refused_on_every_platform(pattern):
+    """One configuration must be valid or invalid everywhere: a pattern only
+    the other platform's flavour reads as rooted would otherwise reach glob,
+    which raises instead of reporting a configuration error."""
+    from taolib.verification import patterns
+    assert not patterns([pattern])
+    assert patterns(['check.py', 'docs/**/*.md'])
+
+
 @pytest.mark.parametrize('declared', ['[]', '"check.py"', '[""]', '["/etc/hosts"]', '["../outside/**"]',
                                      '["check.py", "outside.md"]', '["missing/**/*"]'])
 def test_a_declared_scope_may_only_narrow_and_must_match_something(tmp_path, declared):

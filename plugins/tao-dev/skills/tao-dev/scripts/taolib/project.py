@@ -1,7 +1,7 @@
 """Project-scoped configuration and filesystem operations."""
 
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
 import tomllib
 from contextlib import contextmanager
@@ -14,6 +14,25 @@ class ConfigurationError(ValueError):
 
 class ConflictError(ValueError):
     pass
+
+
+def relative_pattern(value):
+    """A project-relative path or glob: no drive, no root, no traversal.
+
+    Both flavours judge it, so one configuration is valid or invalid
+    everywhere. A single flavour disagrees with the other about what is
+    absolute: "/etc/hosts" carries no drive letter, so Windows reads it as
+    relative and hands it to glob, which raises instead of reporting a
+    configuration error, and "C:/Windows" reads as an ordinary relative name
+    on POSIX.
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    for flavour in (PurePosixPath, PureWindowsPath):
+        path = flavour(value)
+        if path.drive or path.root or '..' in path.parts:
+            return False
+    return True
 
 
 def contained(root, relative):
@@ -58,7 +77,7 @@ class Project:
                                                              for key, value in self.section_redirects.items()):
             raise ConfigurationError('documents.section_redirects must map section references to section references.')
         for patterns in (self.includes, self.excludes):
-            if not isinstance(patterns, list) or any(not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts for p in patterns):
+            if not isinstance(patterns, list) or any(not relative_pattern(p) for p in patterns):
                 raise ConfigurationError("Document patterns must be project-relative string arrays.")
         self.paths = {"plans": "docs/plans", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
         for value in self.paths.values():

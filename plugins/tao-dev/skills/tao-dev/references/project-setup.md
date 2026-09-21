@@ -35,7 +35,7 @@ docs_enabled = true
 timeout_seconds = 5
 ```
 
-include、exclude 从项目根按 Python Path.glob 展开，以包含集合减去排除集合；`*` 不跨目录，`**` 含零层或多层。排除整棵子树用 `vendor/**/*.md`，不按路径尾部匹配。普通 README、运行 prompt、模板与 manifest 不因文件后缀自动纳入。
+include、exclude 从项目根按 Python Path.glob 展开，以包含集合减去排除集合；`*` 不跨目录，`**` 含零层或多层。排除整棵子树用 `vendor/**/*.md`，不按路径尾部匹配。只接受项目相对的斜杠模式：带盘符、以分隔符开头或含 `..` 的模式按配置错误拒绝，判定与运行平台无关。普通 README、运行 prompt、模板与 manifest 不因文件后缀自动纳入。
 
 locale 为新文档默认语言，可选 `[ui] locale` 独立设置诊断语言；不设置时按源文档语言诊断。明确的 --locale 优先于项目配置，未配置时 CLI 可采用已有管理文档唯一 locale；仍不明确则由 agent 按 [文档规程](documents.md) 解决。章节迁移映射 documents.section_redirects 见 [出版规程](publication.md)。
 

@@ -23,3 +23,14 @@ def test_exclusions_match_the_same_root_relative_globs_as_includes(tmp_path, exc
     (tmp_path / '.tao/config.toml').write_text('version = 1\n[documents]\ninclude = ["**/*.md"]\nexclude = '
                                              + json.dumps([exclude]) + '\n', encoding='utf-8')
     assert {p.relative_to(tmp_path).as_posix() for p in Project(tmp_path).sources()} == names - removed
+
+
+@pytest.mark.parametrize('pattern', ['/etc/*.md', 'C:/docs/*.md', '..\\outside\\*.md'])
+def test_a_rooted_or_traversing_document_pattern_is_refused_on_every_platform(tmp_path, pattern):
+    """A pattern whose own flavour reads as rooted is a configuration error,
+    not a glob call: the other flavour raises there instead of reporting it."""
+    (tmp_path / '.tao').mkdir()
+    (tmp_path / '.tao/config.toml').write_text(
+        'version = 1\n[documents]\ninclude = ' + json.dumps([pattern]) + '\n', encoding='utf-8')
+    with pytest.raises(ValueError, match='project-relative'):
+        Project(tmp_path)
