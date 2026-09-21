@@ -1,12 +1,13 @@
 """Run real bounded check processes against independent project fixtures."""
 
 import json
+import re
 import sys
 
 import pytest
 
 from test_cli import run
-from test_relationships import change, CHG
+from test_relationships import change, CHG, TASK
 from test_documents import DOC, REQ, spec
 
 
@@ -27,6 +28,40 @@ id = "tests"
 argv = [{json.dumps(sys.executable)}, "check.py"]
 timeout_seconds = {timeout}
 ''', encoding='utf-8')
+
+
+TASKS_DOC = 'DOC_20260914_0000000000000020'
+
+
+def split(root):
+    """Move the change's tasks into the attachment its plan declares.
+
+    The format registry forbids a plan that attaches a task set from also
+    collecting tasks, so this is the only shape a split change can take.
+    """
+    path = root / 'docs/plans/2026-09/20260914-export.md'
+    plan = path.read_text(encoding='utf-8')
+    block = re.search(r'<!-- tao:section tasks -->(.*?)<!-- tao:section verification -->', plan, re.S)[1]
+    path.write_text(plan.replace(block, '\n## 任务\n\n任务在附件中维护。\n\n')
+                    .replace('change: ' + CHG, 'change: ' + CHG + '\ntasks_doc: ' + TASKS_DOC), encoding='utf-8')
+    (root / 'docs/tasks.md').write_text(f"""---
+schema: tao.project.tasks/v0.1
+id: {TASKS_DOC}
+title: 导出检查任务
+locale: zh-Hans
+status: draft
+created: "2026-09-14"
+change: {CHG}
+---
+
+# 导出检查任务
+
+<!-- tao:section scope -->
+## 范围
+
+承接导出检查的任务。
+
+<!-- tao:section tasks -->{block}""".replace('(#DOC', '(plans/2026-09/20260914-export.md#DOC'), encoding='utf-8')
 
 
 def report(root, *arguments):
@@ -103,6 +138,22 @@ def test_full_verification_requires_closed_target_tasks(tmp_path):
     assert code == 0, result
     assert result['coverage'] == 'complete'
     assert result['readiness'] == 'checks-satisfied'
+
+
+def test_full_verification_reads_the_task_attachment_the_plan_declares(tmp_path):
+    """A split task set is the change's task set: its open items block, and
+    closing them satisfies the gate that reading the plan alone never could."""
+    configured(tmp_path)
+    split(tmp_path)
+    code, result = report(tmp_path, 'verify', CHG)
+    assert code == 1 and result['readiness'] == 'blocked'
+    assert result['outputs']['open_tasks'] == [TASK]
+    path = tmp_path / 'docs/tasks.md'
+    path.write_text(path.read_text(encoding='utf-8').replace('- [ ]', '- [x]'), encoding='utf-8')
+    code, result = report(tmp_path, 'verify', CHG)
+    assert code == 0, result
+    assert result['outputs']['open_tasks'] == []
+    assert result['coverage'] == 'complete' and result['readiness'] == 'checks-satisfied'
 
 
 def test_dry_run_does_not_execute_or_save_receipts(tmp_path):

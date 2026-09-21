@@ -231,7 +231,16 @@ def verify(project, args, report):
             codes.append(2)
         else:
             report["target"] = args.change
-            tasks = [t for d in changes if d.metadata["change"] == args.change for t in d.tasks]
+            # The registry forbids a plan that attaches a task set from also
+            # collecting tasks, so the authoritative set follows tasks_doc the
+            # way the plan artifact digest does; reading the plan body alone
+            # would report every split change as having no tasks at all.
+            sources = {d.path: d for d in changes if d.metadata["change"] == args.change}
+            for plan in list(sources.values()):
+                attachment = result.definitions.get(plan.metadata.get("tasks_doc"))
+                if attachment is not None and attachment.path in result.documents:
+                    sources.setdefault(attachment.path, result.documents[attachment.path])
+            tasks = [t for d in sources.values() for t in d.tasks]
             pending = list(tasks)
             required = set(tasks)
             while pending:
