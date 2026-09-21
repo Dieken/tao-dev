@@ -26,7 +26,7 @@ tao workflow review-begin <CHG-ID> --expect <revision> --from <preview.json> --m
 
 ## 汇总与停止
 
-正式 Markdown 报告与裁决先按 [审查规程](review.md) 整理为受管理的 evidence 文档，并在登记前通过文档校验——review-end 校验所提交的报告，不合格即拒绝登记，因为登记的是结论与承载它的材料，材料不合格则无可登记，且轮次结束后无法重新登记以更正摘要。它不代替适用的出版检查；临时原始输出按 [证据保存](evidence-retention.md) 保留，不能因登记成功就声称正式报告完整。
+正式 Markdown 报告与裁决先按 [审查规程](review.md) 整理为受管理的 evidence 文档，并在登记前通过文档校验——review-end 校验所提交的报告，不合格即拒绝登记，因为登记的是结论与承载它的材料，材料不合格则无可登记，且轮次结束后无法重新登记以更正摘要。校验范围以项目实际管理的文档为准：不在管理范围内的报告按 [审查规程](review.md) 可用其他格式，此时记录逐份标明该报告未做校验，不使未检查的报告读起来像已检查。它不代替适用的出版检查；临时原始输出按 [证据保存](evidence-retention.md) 保留，不能因登记成功就声称正式报告完整。
 
 每个完成的审查者保存实际报告，主 agent 逐项裁决发现。用 JSON 写入 outcome（passed、changes-requested 或 failed）、reports（不同报告的项目相对路径数组）和 summary，再调用：
 

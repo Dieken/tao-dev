@@ -491,3 +491,24 @@ def test_a_rounds_own_records_do_not_reopen_the_finish_gate(tmp_path, capsys):
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
     assert state['reviews']['code']['runs'][-1]['inputs'] == 'current'
     assert passed(project, state, 'code'), 'the finish gate stays open after the round writes its own records'
+
+
+def test_a_report_outside_the_document_globs_is_still_validated(tmp_path, capsys):
+    """A report the project does not manage may use another format, but the
+    record must say it was not validated rather than imply that it was."""
+    from taolib.review_runs import preview, begin, finish
+    from taolib.project import Project, ConflictError
+    state = repository(tmp_path, capsys)
+    (tmp_path / '.tao/config.toml').write_text(
+        'version = 1\n[documents]\ninclude = ["docs/**/*.md"]\n', encoding='utf-8')
+    project = Project(tmp_path)
+    report = 'reviews/01-outside.md'
+    (tmp_path / 'reviews').mkdir()
+    request = preview(project, state, 'project', 'code', outputs=[report])
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+    assert all(not str(s).endswith('01-outside.md') for s in project.sources()), 'the report is outside the globs'
+    (tmp_path / report).write_text('Not a managed document\n', encoding='utf-8')
+    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
+    entry = state['reviews']['code']['runs'][-1]['reports'][0]
+    assert entry['validated'] is False, 'an unchecked report must not read as a checked one'
+

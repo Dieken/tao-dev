@@ -77,7 +77,7 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 - [x] `TASK_20260921_PJ4W5TTCCGBNJ9T4` review-end 登记前校验报告文档
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260921_Y6MW6AX39S9RJHGZ"]
   - depends_on: []
-  - verify: `review-end` 对所提交报告执行受管理文档校验，不合格则拒绝登记并报出该报告的诊断；合格时登记的摘要与文件一致。回归覆盖含无效引用的报告被拒、合格报告正常登记、以及失败结果允许无报告的既有路径不受影响。同步 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 中「不代替输出的 schema、引用和适用的出版检查」一句，使其不再被读作可以事后再查。
+  - verify: `review-end` 对所提交报告执行受管理文档校验，不合格则拒绝登记并报出该报告的诊断；合格时登记的摘要与文件一致。校验范围以项目实际管理的文档为准，不在管理范围内的报告逐份标明未校验，不因未被校验而读作已校验。回归覆盖含无效引用的报告被拒、合格报告正常登记、以及失败结果允许无报告的既有路径不受影响。同步 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 中「不代替输出的 schema、引用和适用的出版检查」一句，使其不再被读作可以事后再查。
   - evidence: [验证记录](#DOC_20260921_H676H5G6Z6WBQ55S--verification)
 - [x] `TASK_20260921_RJHMMH9870M755WV` 审查记录路径的构造与读取一律退化为已定义状态
   - relates: ["CHG_20260921_Y6MW6AX39S9RJHGZ"]
