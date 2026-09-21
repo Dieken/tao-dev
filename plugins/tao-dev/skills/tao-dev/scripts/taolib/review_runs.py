@@ -11,9 +11,13 @@ from tao_messages import Message
 from . import git_workflow, workflows
 
 
-def contract_digest(path):
+def contract_text(path):
+    return workflows.plan_contract(path.read_text(encoding='utf-8'))
+
+
+def contract_digest(text):
     import hashlib
-    return hashlib.sha256(workflows.plan_contract(path.read_text(encoding='utf-8')).encode()).hexdigest()
+    return hashlib.sha256(text.encode()).hexdigest()
 from .project import ConfigurationError, ConflictError, contained
 from .verification import digest_json, file_digest
 from .project_setup import EXCLUDED
@@ -103,7 +107,9 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
                 and parts[:2] != ('.tao', 'workflows'))
     records = own_records(outputs)
     own = {name for name in files if any(name.startswith(d) for d in records)}
-    excluded = sorted({name for name in files if not admitted(name)} | set(outputs) | own)
+    # Name the rule, not the files it currently matches: a batch writes its own
+    # records while the round is open, and an enumeration would grow with them.
+    excluded = sorted({name for name in files if not admitted(name)} | set(outputs))
     files = {name for name in files if admitted(name)} - set(outputs) - own
     rows = []
     total = 0
@@ -119,10 +125,14 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         mode = path.stat().st_mode & 0o777 if exists and os.name == 'posix' else None
         # The plan carries this run's own execution record; hash the contract
         # it declares, not the results written while completing the round.
-        digest = contract_digest(path) if exists and name == state.get('plan_path') else (file_digest(path) if exists else None)
+        contract = contract_text(path) if exists and name == state.get('plan_path') else None
+        digest = contract_digest(contract) if contract is not None else (file_digest(path) if exists else None)
         rows.append([name, digest, mode, index.get(name)])
         if exists:
-            total += path.stat().st_size
+            # Every derived field must describe the same material. A size taken
+            # from the file while the digest comes from its contract reopens the
+            # hole the contract transform closed.
+            total += len(contract.encode()) if contract is not None else path.stat().st_size
     selected &= files
     if kind == 'docs':
         selected = {name for name in selected if name.endswith('.md')}
@@ -131,6 +141,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
     result = {'schema': 'tao.review-scope/v0.1', 'change': state['change'], 'scope': scope, 'kind': kind,
             'base_commit': source, 'target_commit': target, 'include': include,
             'selected_files': sorted(selected), 'context_files': [r[0] for r in rows], 'excluded_files': excluded,
+            'excluded_record_directories': records,
             'input_digest': digest_json(rows), 'input_bytes': total, 'index_entries': {name: index[name] for name in sorted(files & index.keys())},
             'instruction': 'Confirm this scope before starting. The snapshot includes unchanged context; inspect relevant callers and authoritative documents. No review has run.'}
     if outputs:
