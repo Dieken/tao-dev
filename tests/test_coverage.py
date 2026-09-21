@@ -156,3 +156,21 @@ def test_an_unresolved_requirement_is_left_to_the_reference_resolver(tmp_path):
     project, index = project_with(tmp_path, plan_text=plan)
     assert 'TAO-REF-001' in {d.rule_id for d in index.diagnostics}
     assert coverage.report(project, index, CHG, 'BASE', at(spec()))['scope']['out_of_scope'] == []
+
+
+def test_a_deferral_declaration_is_not_a_prose_citation(tmp_path):
+    """The declaration the coverage check requires must not collide with the
+    prose citation rule: written as the grammar demands, it is not a finding."""
+    deferral = f'- deferred: {REQ} — 等上游接口确定后由下一个事项承接'
+    plan = change().replace('## 待定\n\n无。', '## 待定\n\n' + deferral)
+    project, index = project_with(tmp_path, plan_text=plan)
+    assert [d.rule_id for d in index.diagnostics] == []
+    declared, faults = coverage.deferrals(project, index, CHG)
+    assert declared.get(REQ) and not faults
+
+
+def test_a_bare_requirement_id_in_prose_is_still_reported(tmp_path):
+    """Only the declaration is exempt; the section is not a quiet corner."""
+    plan = change().replace('## 待定\n\n无。', f'## 待定\n\n还需确认 {REQ} 的上游接口。')
+    project, index = project_with(tmp_path, plan_text=plan)
+    assert [d.rule_id for d in index.diagnostics] == ['TAO-REF-005']

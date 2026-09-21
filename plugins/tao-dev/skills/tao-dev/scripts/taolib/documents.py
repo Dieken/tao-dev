@@ -16,6 +16,7 @@ from markdown_it import MarkdownIt
 
 from .model import Definition, Diagnostic, Document, Reference, Result
 from . import relationships, glossary
+from .coverage import DECLARATION
 from tao_messages import diagnostic, Message
 
 
@@ -73,6 +74,16 @@ def labelled_paragraph(token):
     else:
         return False
     return bool(label and description)
+
+
+def section_at(sections, line):
+    """The section a line belongs to, given each heading's recorded line."""
+    found = None
+    for name, start in (sections or {}).items():
+        if start > line:
+            break
+        found = name
+    return found
 
 
 class Validator:
@@ -239,7 +250,7 @@ class Validator:
         if found != expected:
             self.error("TAO-ENTITY-001", path, offset + 1, Message('Expected fields {arg0}; found {arg1}.', expected, found))
 
-    def inline(self, tokens, path, offset):
+    def inline(self, tokens, path, offset, sections=None):
         for token in tokens:
             if token.type != "inline":
                 continue
@@ -248,6 +259,10 @@ class Validator:
                 self.error("TAO-ENTITY-001", path, line, "Unfilled template placeholder.")
             if re.fullmatch(r"\([^\s()]+\)=", token.content):
                 continue  # MyST explicit targets are syntax, not prose citations.
+            # A deferral declaration is structured text the coverage check reads
+            # by the same grammar; its ID is the record, not a prose citation.
+            declaration = (section_at(sections, line) == "questions"
+                           and DECLARATION.fullmatch(token.content) is not None)
             linked = False
             for child in token.children or []:
                 if child.type == "tao_need":
@@ -258,7 +273,7 @@ class Validator:
                         linked = True
                 elif child.type == "link_close":
                     linked = False
-                elif not linked and child.type in ("text", "code_inline"):
+                elif not linked and not declaration and child.type in ("text", "code_inline"):
                     self.unlinked_reference(child, path, line)
 
     def unlinked_reference(self, child, path, line):
@@ -394,7 +409,7 @@ class Validator:
                 self.error("TAO-DOC-002", path, doc.sections[section_key], Message('Section {arg0} requires content or an explanation of non-applicability.', section_key))
         for section_key, required in profile.get("section_fields", {}).items():
             self.fields(self.section_tokens(tokens, doc, section_key, offset), required, path, offset)
-        self.inline(tokens, path, offset)
+        self.inline(tokens, path, offset, doc.sections)
         counts = Counter(d.kind for d in self.result.definitions.values() if d.path == path)
         for kind, count in profile.get("minimum_entities", {}).items():
             if counts[kind] < count:

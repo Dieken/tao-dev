@@ -5,7 +5,12 @@ import re
 from .project import contained
 from tao_messages import Message
 
-DEFERRAL = re.compile(r"- deferred: (REQ_[0-9A-HJKMNP-TV-Z_]+) — (\S.*)")
+# The declaration is deliberately plain text: it is compared line by line,
+# and role syntax inside it would only make the match more fragile. Document
+# validation reads the same grammar, so the bare ID it carries is not
+# reported as an unlinked citation.
+DECLARATION = re.compile(r"deferred: (REQ_[0-9A-HJKMNP-TV-Z_]+) — (\S.*)")
+DEFERRAL = re.compile(r"- " + DECLARATION.pattern)
 
 
 def entities(text):
