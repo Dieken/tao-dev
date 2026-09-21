@@ -294,7 +294,9 @@ class Validator:
                 Message('Unlinked ID in prose: {arg0}.', identity),
                 'Use the need role with the full ID for a formal reference; keep syntax examples in fenced code.',
                 entity_id=identity))
-        if child.type == "code_inline" and re.fullmatch(r"[^\s`*?<>{}|@]+\.md(?::[0-9]+)?(?:#[^\s]+)?", child.content):
+        # A reference carrying a line number or a line range cites a place in a
+        # file, which no Markdown link can express, so both forms stay code.
+        if child.type == "code_inline" and re.fullmatch(r"[^\s`*?<>{}|@]+\.md(?:#[^\s]+)?", child.content):
             self.result.diagnostics.append(Diagnostic(
                 "TAO-LINK-002", "warning", path, line,
                 Message('Unlinked Markdown file in prose: {arg0}.', child.content),
