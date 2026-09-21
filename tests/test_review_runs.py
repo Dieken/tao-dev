@@ -460,3 +460,34 @@ def test_review_end_refuses_a_report_that_does_not_validate(tmp_path, capsys):
     assert run['outcome'] == 'passed'
     from taolib.verification import file_digest
     assert run['reports'][0]['digest'] == file_digest(tmp_path / report)
+
+
+def test_a_rounds_own_records_do_not_reopen_the_finish_gate(tmp_path, capsys):
+    """Every derived field must describe the same material: a size taken from
+    the file while the digest comes from its contract reopens the hole."""
+    from taolib.review_runs import preview, begin, repreview, passed, finish
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    plan = tmp_path / state['plan_path']
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    from test_relationships import change
+    plan.write_text(change(), encoding='utf-8')
+    batch = 'docs/plans/2026-09/20260914-export/reviews/20260914-first'
+    report = batch + '/01-first-claude.md'
+    # The batch navigation page is in place before the round, as the scheduling
+    # rules require; only the report is reserved.
+    (tmp_path / batch).mkdir(parents=True)
+    (tmp_path / batch / 'index.md').write_text('# batch\n', encoding='utf-8')
+    request = preview(project, state, 'project', 'code', outputs=[report])
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
+    # Completing a round writes the report, the adjudication and the plan's
+    # execution record; none of them may expire the round that produced them.
+    (tmp_path / report).write_text(evidence_report('R', 'DOC_20260914_0000000000000201', 'EVD_20260914_0000000000000202'), encoding='utf-8')
+    (tmp_path / batch / '00-adjudication.md').write_text('# adjudication\n', encoding='utf-8')
+    plan.write_text(change().replace('<!-- tao:section questions -->',
+                                     '<!-- tao:results -->\n实测记录。\n<!-- /tao:results -->\n\n<!-- tao:section questions -->'), encoding='utf-8')
+    assert repreview(project, state, request, started=True) == request
+    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
+    assert state['reviews']['code']['runs'][-1]['inputs'] == 'current'
+    assert passed(project, state, 'code'), 'the finish gate stays open after the round writes its own records'

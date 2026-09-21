@@ -17,7 +17,7 @@ coverage: "partial"
 <!-- tao:section scope -->
 ## 目标与边界
 
-本批次第 1 轮无编号发现，故本裁决不含处置表，只记录结论与两项主审自评的残留缺口。result 为 passed：本轮登记为 passed 且无发现。coverage 为 partial：被调用模块、三份指导页与格式注册表不在受检集合内。
+本批次两轮：第 1 轮无编号发现，第 2 轮 1 条阻断级发现经实测否定。以下含该发现的处置表、结论与主审自评的残留缺口。result 为 passed：本轮登记为 passed 且无发现。coverage 为 partial：被调用模块、三份指导页与格式注册表不在受检集合内。
 
 **审查执行时间与依据:** 同来源报告，2026-09-21 09:51:29 至 09:52:27，实测 57.393 秒。本裁决形成于同日 09:54。
 
@@ -61,7 +61,13 @@ coverage: "partial"
 
 两项均不构成阻断：前者有 ADR 记录代价，后者由 `tests/test_coverage.py` 的用例固化了失败方向。若日后另开审查批次，这两处应优先纳入范围。
 
+| 来源发现 | 处置与范围 | 依据与理由 | 剩余工作或复查条件 |
+|---|---|---|---|
+| [第 2 轮 F1](02-gate-recheck-claude.md) `finish()` 漏捕 `ConflictError` 而阻断登记失败 | 不采用 | 前提经实测否定：`class ConflictError(ValueError)`，方法解析顺序为 `ConflictError → ValueError → Exception`，实测 `except (OSError, ValueError)` 捕获该异常，因此历史变化触发的冲突会落入既有分支并记入 `input_error`，调度页所述行为成立 | 无。该误报是同类第三次，成因见下 |
+
 ### 未解决事项
+
+审查派发范围的缺口。本会话三轮审查提出过同一类发现——某异常不在捕获元组内——三次均不成立，三次成因相同：派发文件未含 `project.py`，审查者看不到 `ConfigurationError` 与 `ConflictError` 均为 `ValueError` 子类。这不是审查者的问题，代价是一次轮次被消耗在可预先排除的误报上。治标是派发时固定带上该文件；更彻底的做法是让这类保证不依赖隐式类层次，属后续事项，本次不扩大范围。
 
 无阻断。上述两项残留缺口如实记录，不因本轮无发现而视为已覆盖。
 
