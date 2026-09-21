@@ -46,6 +46,7 @@
   "Document is not reachable from the book root.": "无法从书籍根目录页访问该文档。",
   "Document patterns must be project-relative string arrays.": "文档匹配规则必须是项目相对路径的字符串数组。",
   "Duplicate JSON key.": "JSON 键重复。",
+  "Deferral needs a requirement ID and a trigger: {arg0}": "延后声明需要需求 ID 与触发条件：{arg0}",
   "Duplicate definition: {arg0}.": "定义重复：{arg0}。",
   "Duplicate key: {arg0}": "键重复：{arg0}",
   "Duplicate metadata: {arg0}.": "元数据字段重复：{arg0}。",

@@ -45,7 +45,7 @@ coverage: "partial"
 **实际观察:** 回归 543 passed、4 skipped、371 秒，事项开始时为 528 项。文档校验 82 份、0 诊断。覆盖核对以基线 `d8b599d` 识出本次修改的 {need}`REQ_20260914_0J68SDKV86ENKER2` 与 {need}`REQ_20260914_42AXMZ2KH2RAZ8M3`，两条均有任务承接，未承接项为空。审查者返回 0 条发现。
 
 <!-- tao:field reports -->
-**报告:** 原始事件流保存在忽略目录 `tmp/tao/review-runs/1789955489630827000/`。本轮 attestation 经 `tao review --from` 导入为必需审查 `independent-implementation-review` 的记录。
+**报告:** 原始事件流保存在忽略目录 `tmp/tao/review-runs/1789955489630827000/`。本轮 attestation **未**导入：报告初稿称已导入，属记述错误，实际未执行 `tao review --from`，必需审查记录目录因此不存在，完整验证如实报 missing。发现该错误时受检输入已随后续提交变化，导入被按输入过期拒绝，故本轮不作为必需审查的记录来源。
 
 <!-- tao:section findings -->
 ## 发现与限制
