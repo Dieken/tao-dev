@@ -23,4 +23,5 @@ created: "2026-09-21"
 
 00-adjudication.md
 01-required-claude.md
+02-required-recheck-claude.md
 ```
