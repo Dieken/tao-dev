@@ -50,4 +50,5 @@ created: "2026-09-14"
 20260920-check-input-scope/reviews/20260920-implementation-followup/index.md
 20260921-contract-checkability.md
 20260921-contract-checkability/reviews/20260921-implementation/index.md
+20260921-contract-checkability/reviews/20260921-required/index.md
 ```
