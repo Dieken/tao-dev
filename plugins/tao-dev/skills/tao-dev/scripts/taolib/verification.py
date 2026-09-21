@@ -15,14 +15,13 @@ import subprocess
 import sys
 import time
 
-from .project import ConfigurationError, contained, mutation_lock, create_file
+from .project import ConfigurationError, contained, mutation_lock, create_file, relative_pattern
 from tao_messages import Message
 
 
 def patterns(value):
     """A declared input scope: nonempty, project-relative, no traversal."""
-    return (isinstance(value, list) and bool(value)
-            and not any(not isinstance(p, str) or not p or Path(p).is_absolute() or '..' in Path(p).parts for p in value))
+    return isinstance(value, list) and bool(value) and all(relative_pattern(p) for p in value)
 
 
 def policy(project):
