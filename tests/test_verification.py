@@ -7,7 +7,7 @@ import pytest
 
 from test_cli import run
 from test_relationships import change, CHG
-from test_documents import spec
+from test_documents import DOC, REQ, spec
 
 
 def configured(root, body='print("checked")', *, timeout=5, budget=20):
@@ -365,3 +365,21 @@ def test_a_malformed_log_path_in_a_receipt_fails_closed(tmp_path):
     assert all(row['reused'] is False for row in rerun['outputs']['execution']['checks'])
     assert (tmp_path / 'tmp/tao/first').read_text(encoding='utf-8') == 'xx'
     assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'yy'
+
+
+def test_full_verification_fails_on_the_declared_range_without_a_baseline(tmp_path):
+    """The range is checkable without VCS, so it gates a complete run in the
+    very case that leaves the baseline comparison unevaluated."""
+    configured(tmp_path)
+    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
+    text = path.read_text(encoding='utf-8').replace('- [ ]', '- [x]')
+    declared = text.replace('created: "2026-09-14"', f'created: "2026-09-14"\nspec_docs: [{DOC}]')
+    path.write_text(declared.replace(f'"{CHG}", "{REQ}"', f'"{CHG}"'), encoding='utf-8')
+    code, result = report(tmp_path, 'verify', CHG)
+    scope = result['outputs']['requirement_coverage']['scope']
+    assert code == 1, result
+    assert scope['uncovered'] == [REQ] and result['readiness'] == 'blocked'
+    path.write_text(declared, encoding='utf-8')
+    code, result = report(tmp_path, 'verify', CHG)
+    assert code == 0, result
+    assert result['outputs']['requirement_coverage']['scope']['uncovered'] == []

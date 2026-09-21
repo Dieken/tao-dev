@@ -259,7 +259,14 @@ def verify(project, args, report):
             # exists for; an unevaluated baseline is reported, never passed.
             if summary['state'] == 'not-evaluated':
                 codes.append(2)
-            elif summary['state'] == 'evaluated' and (summary['uncovered'] or summary['invalid_deferrals']):
+            elif summary['state'] == 'evaluated' and summary['uncovered']:
+                codes.append(1)
+            # A malformed deferral exempts nothing, so it fails whether or not
+            # the baseline angle ran; a plan declaring no range is a condition.
+            if summary['invalid_deferrals']:
+                codes.append(1)
+            declared_scope = summary['scope']
+            if declared_scope['state'] == 'evaluated' and (declared_scope['uncovered'] or declared_scope['out_of_scope']):
                 codes.append(1)
         if config.get("required_reviews"):
             rows = reviews.status(project, config, args.change)
