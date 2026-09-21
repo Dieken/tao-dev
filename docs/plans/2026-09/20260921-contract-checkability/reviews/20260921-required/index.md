@@ -22,4 +22,5 @@ created: "2026-09-21"
 :titlesonly:
 
 00-adjudication.md
+01-required-claude.md
 ```
