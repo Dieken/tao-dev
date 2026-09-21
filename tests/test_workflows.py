@@ -55,7 +55,8 @@ def test_approval_tracks_content_and_requires_new_decision_after_edits(tmp_path,
     p.write_text(p.read_text(encoding='utf-8')+'\nChanged requirement interpretation.\n', encoding='utf-8')
     view = observe(project, state)
     assert view['stale_approvals'] == ['spec']
-    with pytest.raises(ConflictError):
+    # The refusal names the stale phase, which is not the phase being advanced.
+    with pytest.raises(ConflictError, match='spec'):
         advance(project, state['change'], 3, 'Continue')
 
 
