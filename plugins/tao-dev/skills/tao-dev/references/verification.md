@@ -24,13 +24,13 @@ timeout_seconds = 120
 
 示例需按实际项目修改，不是强制采用 Python 的约定。所有 checks 均为必需检查，按声明顺序串行执行；需要环境激活时显式指向已准备的解释器。argv 不经过隐式 shell；确需 shell 时必须显式配置已授权命令。范围不明时执行全部配置检查，不让用户每次选择等级。缺配置、空输入集合、未知键或缺工具返回未完成。
 
-单项检查可用同名的 `inputs` 声明自己的输入范围，省略即沿用全局范围：
+单项检查可用同名的 `inputs` 声明自己的输入范围，省略即沿用全局范围。下面同为示例，检查标识、命令与范围都按项目实际填写，不是要求接入某个特定检查：
 
 ```toml
 [[verification.checks]]
-id = "task-graph"
-argv = ["python3", "tools/check_task_graph.py"]
-inputs = ["tools/check_task_graph.py", "docs/plans/**/*.md", "docs/product/*.md"]
+id = "<检查标识>"
+argv = ["<命令>", "<参数>"]
+inputs = ["<该检查实际读取的文件与目录>"]
 timeout_seconds = 60
 ```
 
