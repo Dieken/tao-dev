@@ -144,8 +144,37 @@ def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
     command = [sys.executable, str(ENTRY), "--project", str(tmp_path), "--format", "json", "new", "--slug", "same", "--locale", "en"]
     processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8") for _ in range(2)]
     results = [(p.communicate(), p.returncode) for p in processes]
-    assert sorted(code for _, code in results) == [0, 1]
+    # The reports travel with the assertion: a platform that answers a taken
+    # destination with an unexpected code is otherwise only a bare exit code.
+    assert sorted(code for _, code in results) == [0, 1], results
     assert len(list((tmp_path / "docs").rglob("*.md"))) == 1
+
+
+def test_a_taken_destination_is_a_conflict_whatever_the_platform_reports(tmp_path, monkeypatch):
+    """A platform may answer an existing hard-link destination with something
+    other than EEXIST, so exclusive publication decides by the destination
+    itself. An unrelated failure still propagates: it is not a lost race."""
+    import os
+    from taolib.project import ConflictError, create_file
+
+    path = tmp_path / "docs/plans/2026-09/20260914-same.md"
+    original = os.link
+
+    def taken(source, destination):
+        Path(destination).write_text("the winner", encoding="utf-8")
+        raise PermissionError(13, "Access is denied")
+
+    monkeypatch.setattr(os, "link", taken)
+    with pytest.raises(ConflictError):
+        create_file(tmp_path, path, "the loser")
+    assert path.read_text(encoding="utf-8") == "the winner"
+    assert not list(path.parent.glob(".tao-new-*"))
+
+    monkeypatch.setattr(os, "link", lambda source, destination: (_ for _ in ()).throw(OSError(5, "Input/output error")))
+    with pytest.raises(OSError) as raised:
+        create_file(tmp_path, tmp_path / "docs/other.md", "text")
+    assert not isinstance(raised.value, ConflictError)
+    monkeypatch.setattr(os, "link", original)
 
 
 def test_id_collision_limit_and_full_random_alphabet():

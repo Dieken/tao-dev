@@ -129,7 +129,13 @@ def create_file(root, path, text):
             os.fsync(stream.fileno())
         try:
             os.link(temporary, path)
-        except FileExistsError as exc:
+        except OSError as exc:
+            # A taken destination is the condition, not the error number
+            # reporting it: a platform may answer an existing link name with
+            # something other than EEXIST, and reading that as an unexpected
+            # failure turns a lost race into a crash instead of a conflict.
+            if not isinstance(exc, FileExistsError) and not path.exists():
+                raise
             raise ConflictError(Message('Concurrent file creation: {arg0}', path.relative_to(root))) from exc
     finally:
         Path(temporary).unlink(missing_ok=True)
