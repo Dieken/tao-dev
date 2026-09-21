@@ -79,6 +79,7 @@ def test_real_checks_are_partial_and_reused_without_reexecution(tmp_path):
     code, second = report(tmp_path, 'verify', '--only', 'code')
     assert code == 0
     assert second['outputs']['execution']['reused'] is True
+    assert all(row['reused'] is True for row in second['outputs']['execution']['checks'])
     assert (tmp_path / 'tmp/tao/calls').read_text(encoding='utf-8') == 'x'
     assert not list(tmp_path.rglob('inputs.sha256'))
 
