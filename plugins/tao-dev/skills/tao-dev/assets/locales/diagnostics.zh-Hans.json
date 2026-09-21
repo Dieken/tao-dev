@@ -311,7 +311,7 @@
   "Refinement starts at spec, design or plan.": "修订必须从 spec、design 或 plan 阶段开始。",
   "Workflow checkpoint changed; run tao workflow status and reconcile before retrying.": "工作流检查点已变化；请先运行 tao workflow status 并协调实际状态，再重试。",
   "Checkpoint accepts summary, next, blockers, operations and artifacts only.": "检查点仅接受 summary、next、blockers、operations 和 artifacts。",
-  "Approved documents changed; refine and obtain a new decision first.": "已批准文档发生变化；请先修订并取得新的决定。",
+  "Approved documents changed in {arg0}; refine and obtain a new decision first.": "{arg0} 的已批准文档发生变化；请先修订并取得新的决定。",
   "Resolve blockers and reconcile active operations before advancing.": "推进前请解决阻断，并核对活动操作。",
   "Cannot refine a stage not yet reached.": "无法修订尚未到达的阶段。",
   "Handoff changed since inspection; read and reconcile its current content first.": "检查后 handoff 已变化；请先读取并协调当前内容。",

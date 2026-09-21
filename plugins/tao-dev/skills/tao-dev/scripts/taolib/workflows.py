@@ -235,8 +235,13 @@ def checkpoint(project, identity, expected, patch):
 def advance(project, identity, expected, decision, doc_review=None):
     text(decision)
     def edit(owner, state):
-        if observe(owner, state)['stale_approvals']:
-            raise ConflictError('Approved documents changed; refine and obtain a new decision first.')
+        stale = observe(owner, state)['stale_approvals']
+        if stale:
+            # Any stale approval blocks, not only the phase being advanced, so
+            # the message names the phase to revise instead of sending the
+            # reader to status for the one fact the refusal already knows.
+            raise ConflictError(Message('Approved documents changed in {arg0}; refine and obtain a new decision first.',
+                                        ', '.join(stale)))
         phase = state['phase']
         if phase == 'complete' or state['blockers'] or state['operations']:
             raise ConflictError('Resolve blockers and reconcile active operations before advancing.')
