@@ -25,6 +25,10 @@ SECTION = re.compile(r"<!-- tao:section ([a-z][a-z0-9-]*) -->\n?\Z")
 FIELD = re.compile(r"<!-- tao:field ([a-z][a-z0-9-]*) -->\n?\Z")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z][A-Za-z0-9_.]*\}\}")
 LOCALE = re.compile(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*\Z")
+# A record of the past. Registration pins its digest in the workflow state, so
+# advice to rewrite its citations cannot be followed, and the IDs it cites are
+# the ones that existed when it was written.
+RECORD = "tao.project.evidence/v0.1"
 
 
 def need_role(state, silent):
@@ -250,7 +254,9 @@ class Validator:
         if found != expected:
             self.error("TAO-ENTITY-001", path, offset + 1, Message('Expected fields {arg0}; found {arg1}.', expected, found))
 
-    def inline(self, tokens, path, offset, sections=None):
+    def inline(self, tokens, path, offset, doc=None):
+        sections = doc.sections if doc is not None else None
+        record = doc is not None and doc.metadata.get("schema") == RECORD
         for token in tokens:
             if token.type != "inline":
                 continue
@@ -273,7 +279,7 @@ class Validator:
                         linked = True
                 elif child.type == "link_close":
                     linked = False
-                elif not linked and not declaration and child.type in ("text", "code_inline"):
+                elif not linked and not declaration and not record and child.type in ("text", "code_inline"):
                     self.unlinked_reference(child, path, line)
 
     def unlinked_reference(self, child, path, line):
@@ -302,7 +308,7 @@ class Validator:
                 Message('Unlinked Markdown file in prose: {arg0}.', child.content),
                 'For a navigation target, use a relative Markdown link with line numbers outside it; keep filename examples as code without inventing a target.'))
 
-    def entity(self, token, section, path, offset):
+    def entity(self, token, section, doc, path, offset):
         match = re.fullmatch(r"\{(req|uc|adr)\}\s+(.+)", token.info.strip())
         line = offset + token.map[0] + 1
         if not match:
@@ -347,7 +353,7 @@ class Validator:
         first_field = next((i for i, t in enumerate(body_tokens) if t.type == "html_block" and FIELD.fullmatch(t.content)), len(body_tokens))
         if kind == "REQ" and not any(t.type == "paragraph_open" for t in body_tokens[:first_field]):
             self.error("TAO-ENTITY-001", path, body_offset + 1, "REQ requires a behavior paragraph before its fields.")
-        self.inline(body_tokens, path, body_offset)
+        self.inline(body_tokens, path, body_offset, doc)
 
     def document(self, source, path):
         parsed = self.metadata(source, path)
@@ -385,7 +391,7 @@ class Validator:
                                                              if child.type in ('text', 'code_inline', 'tao_need'))
             if token.type == "fence" and token.level == 0:
                 if re.match(r"\{(?:req|uc|adr)(?:\}|\s)", token.info):
-                    self.entity(token, section, path, offset)
+                    self.entity(token, section, doc, path, offset)
                 elif re.match(r"\{(?:chg|evd)\}", token.info):
                     self.error("TAO-ENTITY-001", path, line, "CHG and EVD are defined only in frontmatter.")
                 elif re.match(r"\{term\}(?:\s|$)", token.info):
@@ -411,7 +417,7 @@ class Validator:
                 self.error("TAO-DOC-002", path, doc.sections[section_key], Message('Section {arg0} requires content or an explanation of non-applicability.', section_key))
         for section_key, required in profile.get("section_fields", {}).items():
             self.fields(self.section_tokens(tokens, doc, section_key, offset), required, path, offset)
-        self.inline(tokens, path, offset, doc.sections)
+        self.inline(tokens, path, offset, doc)
         counts = Counter(d.kind for d in self.result.definitions.values() if d.path == path)
         for kind, count in profile.get("minimum_entities", {}).items():
             if counts[kind] < count:
@@ -432,6 +438,9 @@ class Validator:
             if target is None:
                 self.error("TAO-REF-001", ref.path, ref.line, Message('Unresolved ID: {arg0}.', ref.target))
             elif target.status in ("retired", "superseded"):
+                citing = self.result.documents.get(ref.path)
+                if citing is not None and citing.metadata.get("schema") == RECORD:
+                    continue  # The record describes what existed then; the ID is not a task.
                 self.result.diagnostics.append(Diagnostic("TAO-REF-003", "warning", ref.path, ref.line,
                     Message('Reference to {arg0} ID: {arg1}.', target.status, target.id), "Review the replacement or explain the historical use."))
         replaced = {r.target for r in self.result.references if r.relation == "supersedes"}
