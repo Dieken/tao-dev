@@ -189,7 +189,6 @@ def test_review_batch_publishes_nested_tables_lists_and_source_links(tmp_path, l
     (f'Constraint {REQ}.', 'TAO-REF-005'),
     (f'Constraint `{REQ}`.', 'TAO-REF-005'),
     ('Source `docs/product/spec.md`.', 'TAO-LINK-002'),
-    ('Source `docs-snapshot/docs/spec.md:48`.', 'TAO-LINK-002'),
 ])
 def test_unlinked_citations_are_visible_but_not_invented_references(tmp_path, citation, rule):
     result = check(tmp_path, spec() + '\n' + citation + '\n')
@@ -199,6 +198,16 @@ def test_unlinked_citations_are_visible_but_not_invented_references(tmp_path, ci
     assert warning.line == len((spec() + '\n' + citation).splitlines())
     assert warning.message_locale == 'zh-Hans'
     assert not any(r.relation == 'links' for r in result.references)
+
+
+@pytest.mark.parametrize('citation', ['`docs/spec.md:48`', '`docs/spec.md:48-52`',
+                                     '`docs-snapshot/docs/spec.md:26`'])
+def test_a_file_reference_carrying_a_line_is_a_citation_not_a_destination(tmp_path, citation):
+    """A single line and a line range are one kind of citation, so they are
+    judged alike, and neither is asked to become a link: a Markdown link may
+    not carry a line number at all, which TAO-REF-004 reports as an error."""
+    result = check(tmp_path, spec() + '\nSource ' + citation + '.\n')
+    assert not result.diagnostics
 
 
 def test_linked_ids_examples_and_task_fields_do_not_warn(tmp_path):
