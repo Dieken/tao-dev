@@ -210,6 +210,39 @@ def test_a_file_reference_carrying_a_line_is_a_citation_not_a_destination(tmp_pa
     assert not result.diagnostics
 
 
+def test_a_record_keeps_the_citations_its_registered_digest_pins(tmp_path):
+    """Registering a round pins the report's sha256 in the workflow state, so
+    advice to rewrite its prose cannot be followed. A record describes the past
+    and its citations are the record, not a to-do."""
+    source = tmp_path / 'spec.md'
+    source.write_text(spec(), encoding='utf-8')
+    report = tmp_path / 'report.md'
+    report.write_text(review(CONSTRAINT=f'F1: {REQ}, `docs/handoff.md:64`.',
+                             RATIONALE=f'Compare `docs/spec.md` with {REQ}.'
+                             ).replace('../../spec.md', 'spec.md'), encoding='utf-8')
+    result = validate(tmp_path, [source, report])
+    assert result.valid, result.to_dict()
+    assert not result.diagnostics
+
+
+def test_a_record_citing_a_retired_id_is_not_asked_for_the_replacement(tmp_path):
+    """The record cites what existed when it was written; the later retirement
+    is not a finding against it, while an active document still gets the hint."""
+    from test_relationships import OLD, record, retirement
+    retirement(tmp_path, json.dumps(record()) + '\n')
+    source = tmp_path / 'spec.md'
+    source.write_text(spec(), encoding='utf-8')
+    report = tmp_path / 'report.md'
+    report.write_text(review(CONSTRAINT=f'F1: {{need}}`{OLD}` was merged into {{need}}`{REQ}`.',
+                             RATIONALE=f'{{need}}`{OLD}`').replace('../../spec.md', 'spec.md'), encoding='utf-8')
+    result = validate(tmp_path, [source, report], baseline_ids={OLD})
+    assert result.valid, result.to_dict()
+    assert not [d for d in result.diagnostics if d.rule_id == 'TAO-REF-003']
+    source.write_text(spec() + f'\n{{need}}`{OLD}`\n', encoding='utf-8')
+    warned = validate(tmp_path, [source, report], baseline_ids={OLD})
+    assert [d.path for d in warned.diagnostics if d.rule_id == 'TAO-REF-003'] == ['spec.md']
+
+
 def test_linked_ids_examples_and_task_fields_do_not_warn(tmp_path):
     text = spec() + f'''
 {{need}}`{REQ}` [{REQ}](spec.md#{REQ})

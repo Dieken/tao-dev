@@ -47,4 +47,4 @@ def term(validator, token, section, doc, offset):
             error('Define a preferred term only once per scope.')
             return
     doc.terms.append(options | {'preferred': preferred, 'definition': definition, 'avoid': avoid, 'line': line})
-    validator.inline(validator.md.parse(definition), doc.path, line + pos)
+    validator.inline(validator.md.parse(definition), doc.path, line + pos, doc)
