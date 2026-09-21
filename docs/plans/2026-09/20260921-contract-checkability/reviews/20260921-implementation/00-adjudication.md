@@ -71,7 +71,7 @@ coverage: "partial"
 
 无阻断。上述两项残留缺口如实记录，不因本轮无发现而视为已覆盖。
 
-**对下一步的影响:** 必需审查 `independent-implementation-review` 已取得对应本受检版本的记录。本裁决不代表交付授权。
+**对下一步的影响:** 本批次未产出必需审查的记录：第 1 轮的 attestation 因记述错误而实际未导入，第 2 轮未取得机器可校验的 attestation。必需审查由用户明确发起的后续批次承担。本裁决不代表交付授权。
 
 <!-- tao:section retention -->
 ## 证据保存
