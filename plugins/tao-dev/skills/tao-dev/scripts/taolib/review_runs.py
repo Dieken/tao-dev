@@ -248,10 +248,17 @@ def finish(project, identity, expected, result):
         # it, so an unreadable report leaves nothing to record. Validating here
         # also keeps the digest matching the file: a report fixed afterwards
         # cannot be registered again once the round has ended.
-        if saved:
+        managed = {path.relative_to(owner.root).as_posix() for path in owner.sources()}
+        for entry in saved:
+            # A report the project does not manage as a document is allowed to
+            # use another format, but then it is not validated, and saying so is
+            # the point: an unchecked report must not read as a checked one.
+            entry['validated'] = entry['path'] in managed
+        if any(entry['validated'] for entry in saved):
             from .documents import validate as validate_documents
             result_index = validate_documents(owner.root, owner.sources())
-            faults = [d for d in result_index.diagnostics if d.severity == 'error' and d.path in set(reports)]
+            checked = {entry['path'] for entry in saved if entry['validated']}
+            faults = [d for d in result_index.diagnostics if d.severity == 'error' and d.path in checked]
             if faults:
                 raise ConflictError(Message('Review report does not validate: {arg0}:{arg1} {arg2}.',
                                             faults[0].path, faults[0].line, faults[0].rule_id))
