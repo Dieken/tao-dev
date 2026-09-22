@@ -49,7 +49,8 @@ def arguments(argv):
             command.add_argument('--bin-dir', type=Path,
                                  help='CLI launcher directory; defaults to ~/.local/bin.')
         elif name == 'upgrade':
-            command.add_argument('--id', help='Installation identifier shown by tao list.')
+            command.add_argument('--id', help='Installation identifier shown by tao list; '
+                                              'selects that installation whatever --project says.')
         elif name == 'uninstall':
             command.add_argument('--list', action='store_true', help='Only discover installations.')
             command.add_argument('--id', help='Installation identifier shown by tao list.')
@@ -493,6 +494,49 @@ def install(args):
         raise InstallError(str(exc), collapse_paths(files + getattr(exc, 'files', []))) from exc
 
 
+def applies_to(row, project):
+    """Report whether a recorded installation serves this project.
+
+    A user installation serves every project; every other one serves a
+    single directory, matched exactly. A worktree lives inside its main
+    checkout, so accepting an enclosing directory would renew the
+    checkout's installation from inside the worktree.
+    """
+    recorded = row.get('project')
+    return not recorded or Path(recorded).resolve() == project
+
+
+def unmanaged(client, project):
+    """Return installations the client reports and tao holds no receipt for."""
+    try:
+        return [row for row in discover(client, project) if row.get('native')]
+    except (OSError, ValueError, RuntimeError):
+        return []
+
+
+def unselected(args, known):
+    """Explain a failed upgrade selection in terms of the meant installation."""
+    candidates = unmanaged(args.client, args.project)
+    if args.id:
+        native = next((row for row in candidates if row['id'] == args.id), None)
+    else:
+        native = next((row for row in candidates if row.get('project') in (None, str(args.project))), None)
+    if native:
+        where = '' if native['scope'] == 'user' else f' --project {native["project"]}'
+        return (f'{native["id"]} is a native installation that tao does not manage, so it records no '
+                f'source to renew. Take it over with tao install --client {args.client} '
+                f'--scope {native["scope"]}{where}, then upgrade it.')
+    if args.id:
+        return (f'no installation with id {args.id}. Run tao list --client {args.client} to see them, '
+                'or tao install to create one.')
+    if known:
+        return (f'no recorded installation serves {args.project}; tao records '
+                + ', '.join(f'{row["id"]} ({row.get("project") or "all projects"})' for row in known)
+                + '. Name one with --id, or run tao install to create one for this project.')
+    return (f'no recorded installation. Run tao list --client {args.client} to see them, '
+            'or tao install to create one.')
+
+
 def upgrade(args):
     """Renew a recorded installation in place.
 
@@ -500,12 +544,20 @@ def upgrade(args):
     scope and project that identify the installation: its --scope default of
     user quietly creates a second installation instead. Upgrading a recorded
     one never has to guess those, and never creates one.
+
+    Without --id the candidates are the recorded installations that serve
+    --project, which defaults to the working directory. Selecting the only
+    recorded installation whatever the project renews another project's
+    installation from here, under a report that reads like success. --id
+    still reaches any recorded installation deliberately.
     """
-    rows = [row for row in state.records(args.client) if not args.id or row['id'] == args.id]
+    known = state.records(args.client)
+    if args.id:
+        rows = [row for row in known if row['id'] == args.id]
+    else:
+        rows = [row for row in known if applies_to(row, args.project)]
     if not rows:
-        known = 'no recorded installation' if not args.id else f'no installation with id {args.id}'
-        raise InstallError(f'Cannot upgrade {args.client}: {known}. '
-                           f'Run tao list --client {args.client} to see them, or tao install to create one.')
+        raise InstallError(f'Cannot upgrade {args.client}: {unselected(args, known)}')
     if len(rows) > 1:
         raise InstallError('Several installations match; choose one with --id: '
                            + ', '.join(sorted(row['id'] for row in rows)))

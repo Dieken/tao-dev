@@ -419,7 +419,7 @@ def usage():
         "  tao doctor                      Diagnose the runtime, read-only",
         "  tao env prepare                 Prepare the core and publication runtimes",
         "  tao install --client <client>   Install the complete plugin",
-        "  tao upgrade --client <client>   Renew a recorded installation in place",
+        "  tao upgrade --client <client>   Renew this project's recorded installation in place",
         "  tao list --client <client>      Show installations and what removal would touch",
         "  tao uninstall --client <client> Select and remove an installation",
         "",
