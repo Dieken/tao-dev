@@ -298,7 +298,7 @@ def test_upgrade_renews_a_recorded_installation_and_never_creates_one(tmp_path, 
     monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
     project = tmp_path / 'work'
     project.mkdir()
-    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path)])
+    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(project)])
     with pytest.raises(install.InstallError, match='tao list'):
         install.upgrade(args)
     state.save_record(stored(tmp_path, 'project', project))
@@ -310,12 +310,58 @@ def test_upgrade_renews_a_recorded_installation_and_never_creates_one(tmp_path, 
     install.upgrade(args)
     assert captured[0].scope == 'project' and captured[0].project == project
     assert captured[0].source is None and captured[0].marketplace is None and captured[0].bin_dir is None
+    # A user installation serves this project too, so the choice is now the caller's.
     state.save_record(stored(tmp_path, 'user'))
     with pytest.raises(install.InstallError, match='--id'):
         install.upgrade(args)
-    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path),
+    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(project),
                                        '--id', state.install_id('codex', 'user', None)]))
-    assert captured[1].scope == 'user' and captured[1].project == tmp_path
+    assert captured[1].scope == 'user' and captured[1].project == project
+
+
+def test_upgrade_does_not_renew_an_installation_recorded_for_another_directory(tmp_path, monkeypatch):
+    """A worktree sits inside its main checkout, and renews nothing there.
+
+    Selecting the only recorded installation whatever the project renewed
+    the enclosing checkout from inside the worktree, and reported that as
+    a successful upgrade.
+    """
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    checkout = tmp_path / 'work'
+    worktree = checkout / '.worktrees/feature'
+    worktree.mkdir(parents=True)
+    state.save_record(stored(tmp_path, 'project', checkout))
+    captured = []
+    monkeypatch.setattr(install, 'install', lambda selected: captured.append(selected))
+    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(worktree)])
+    with pytest.raises(install.InstallError) as failure:
+        install.upgrade(args)
+    message = str(failure.value)
+    assert not captured
+    assert str(args.project) in message and str(checkout) in message
+    assert state.install_id('codex', 'project', checkout) in message and '--id' in message
+    # Naming it renews it deliberately, from anywhere.
+    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(worktree),
+                                       '--id', state.install_id('codex', 'project', checkout)]))
+    assert captured[0].project == checkout
+
+
+def test_upgrade_names_the_takeover_for_a_native_installation(tmp_path, monkeypatch):
+    """tao list shows native installations; upgrade records no source for one."""
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
+    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path)])
+    native = {'native': True, 'id': 'native-0123456789abcdef', 'plugin_id': 'tao-dev@test',
+              'scope': 'project', 'project': str(args.project), 'version': '0.5.0', 'files': []}
+    monkeypatch.setattr(install, 'discover', lambda *_args: [native])
+    monkeypatch.setattr(install, 'install',
+                        lambda *_args: pytest.fail('a native installation records no source'))
+    for selection in ([], ['--id', native['id']]):
+        with pytest.raises(install.InstallError) as failure:
+            install.upgrade(install.arguments(['upgrade', '--client', 'codex',
+                                               '--project', str(tmp_path), *selection]))
+        message = str(failure.value)
+        assert native['id'] in message
+        assert f'tao install --client codex --scope project --project {args.project}' in message
 
 
 def test_list_reports_installations_without_offering_removal(tmp_path, monkeypatch, capsys):
