@@ -13,11 +13,11 @@ updated: "2026-09-17"
 <!-- tao:section scope -->
 ## 目标与边界
 
-本文供 tao-dev 维护者准备环境、运行检查、构建手册和生成发布包。消费项目的使用入口见 [README](../../README.md)，运行环境规则见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
+本文供 tao-dev 维护者准备环境、运行检查、构建手册和生成发布包。使用方项目的使用入口见 [README](../../README.md)，运行环境规则见 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md)。
 
 本目录是独立 Git 仓库。遵循 [AGENTS.md](../../AGENTS.md)，使用仓库内的 skill、共享 profile 和模板开发；CLAUDE.md 导入同一维护入口，无需全局安装。文档职责与校验范围见 [文档契约](documentation/contract.md)，分发边界见 [插件设计](plugin-design.md)。
 
-项目以简体中文维护权威正文，代码标识、文件名、schema 键、状态值、规则号及代码注释使用英文；语言取舍见 [项目语言决定](decisions/project-language.md)。消费项目按自己的语言约定生成内容。
+项目以简体中文维护权威正文，代码标识、文件名、schema 键、状态值、规则号及代码注释使用英文；语言取舍见 [项目语言决定](decisions/project-language.md)。使用方项目按自己的语言约定生成内容。
 
 <!-- tao:section prerequisites -->
 ## 前置条件

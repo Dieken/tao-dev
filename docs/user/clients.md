@@ -64,7 +64,7 @@ python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
 
 Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 需按下节显式注册。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
 
-真实审查报告可以保存；机器回执还需来源格式适配和当前输入绑定。支持格式以 [审查记录](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md) 为准，不能将未支持来源改写为人工审查来通过门禁。
+真实审查报告可以保存；机器回执还需来源格式适配和当前输入绑定。支持格式以 [审查记录](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md) 为准，不能将未支持来源改写为人工审查来绕过完成条件。
 
 ### 可选：Codex 原生 reviewer
 
@@ -84,7 +84,7 @@ Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完�
 | 现象 | 检查 |
 |---|---|
 | 找不到 skill | 当前会话的发现目录、项目范围、重启要求和重复副本；不要直接改全局配置 |
-| references 或脚本失踪 | 是否复制了完整目录；Markdown 链接按所在文件解析，不按业务项目根解析 |
+| `references/` 目录或脚本失踪 | 是否复制了完整目录；Markdown 链接按所在文件解析，不按业务项目根解析 |
 | URI 拒绝 `..` | 将文件相对目标归一化为 skill 内资源，再用该客户端 URI 接口访问；不要全局重写 Markdown 链接 |
 | Python 或依赖缺失 | 运行 `tao doctor`；无安装授权时继续可用检查并记录 `not_run` |
 | 没有 hook／reviewer／斜杠命令 | 这些是原生扩展；独立 skill 的发现不代表安装了它们 |

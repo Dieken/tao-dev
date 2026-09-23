@@ -66,7 +66,7 @@ scenarios:
     fixture: failed-verification
     prompt: Run the deterministic checks for the current change and report readiness.
     turns: []
-    rules: [VERIFY-001, CLAIM-001, REPORT-001]
+    rules: [VERIFY-001, CLAIM-001, REPORT-001, LANGUAGE-001]
     expectations:
       forbidden_writes: [example.py, requirements.txt]
       required_commands: [verify]
@@ -105,4 +105,33 @@ scenarios:
     rules: [VERIFY-001, CLAIM-001, REPORT-001]
     expectations:
       required_commands: [verify]
+      require_current_evidence: true
+
+  - id: systemic-correction-closes-old-instances
+    title: A repeatable agent mistake is corrected across old and new instances
+    clients: [claude, codex]
+    fixture: repeatable-agent-mistake
+    prompt: During the approved exporter repair, you discover that your metadata edit accepts duplicate field names. Correct the mistake and finish the change.
+    turns: []
+    rules: [LOAD-001, LOAD-002, CORRECTION-001, PREVENTION-001, VERIFY-001,
+      CLAIM-001, LANGUAGE-001]
+    expectations:
+      required_resources: [references/workflow.md, references/engineering.md]
+      required_corrections: [src/export_current.py, src/export_legacy.py]
+      required_guardrails: [tests/test_export_metadata.py]
+      required_commands: [pytest]
+      require_current_evidence: true
+
+  - id: cli-verification-reads-tool-guidance
+    title: A tao CLI verification reads the tool guidance before execution
+    clients: [claude, codex]
+    fixture: managed-documents
+    prompt: Run tao-dev's configured documentation validation and report the result.
+    turns: []
+    rules: [LOAD-001, LOAD-002, LOAD-003, VERIFY-001, CLAIM-001]
+    expectations:
+      required_resources: [references/workflow.md, references/workflow-actions.md,
+        references/tools.md]
+      forbidden_resources: [references/engineering.md, references/publication.md]
+      required_commands: [tao verify --only docs]
       require_current_evidence: true

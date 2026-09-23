@@ -131,7 +131,7 @@ def test_authorization_oracle_rejects_forbidden_stage_write():
     assert result.by_rule["AUTH-001"].evidence == ("event-1",)
 
 
-def test_verification_must_follow_the_last_mutation_and_support_completion():
+def test_verification_must_follow_the_last_workspace_change_and_support_completion():
     stale = Trace((
         event(1, "verification.finished", status="passed"),
         event(2, "file.modified", path="example.py"),
@@ -163,8 +163,55 @@ def test_status_oracle_rejects_verification_even_without_writes():
     assert result.by_rule["STATUS-001"].status == "fail"
 
 
+def test_cli_verification_requires_tool_guidance_to_be_opened():
+    without_tools = Trace((
+        event(1, "skill.invoked", skill="tao-dev"),
+        event(2, "resource.opened", resource="references/workflow.md"),
+        event(3, "resource.opened", resource="references/workflow-actions.md"),
+        event(4, "verification.finished", status="passed"),
+    ), complete=True)
+
+    result = evaluate_deterministic(
+        CATALOG, scenario("cli-verification-reads-tool-guidance"), without_tools)
+
+    assert result.by_rule["LOAD-002"].status == "fail"
+    assert "references/tools.md" in result.by_rule["LOAD-002"].reason
+
+
 def test_missing_telemetry_blocks_instead_of_passing():
     result = evaluate_deterministic(
         CATALOG, scenario("routing-local-fix"), Trace((), complete=False))
 
     assert {item.status for item in result.by_rule.values()} == {"blocked"}
+
+
+def test_systemic_correction_requires_old_instance_guardrail_and_verification():
+    incomplete = Trace((
+        event(1, "file.modified", path="src/export_current.py"),
+        event(2, "verification.finished", status="passed"),
+    ), complete=True)
+    unverified_guardrail = Trace((
+        event(1, "file.modified", path="src/export_current.py"),
+        event(2, "file.modified", path="src/export_legacy.py"),
+        event(3, "file.modified", path="tests/test_export_metadata.py"),
+        event(4, "command.finished", command="pytest", exit_code=1),
+    ), complete=True)
+    complete = Trace((
+        event(1, "file.modified", path="src/export_current.py"),
+        event(2, "file.modified", path="src/export_legacy.py"),
+        event(3, "file.modified", path="tests/test_export_metadata.py"),
+        event(4, "command.finished", command="pytest", exit_code=0),
+        event(5, "verification.finished", status="passed"),
+    ), complete=True)
+    selected = scenario("systemic-correction-closes-old-instances")
+
+    incomplete_result = evaluate_deterministic(CATALOG, selected, incomplete)
+    unverified_result = evaluate_deterministic(
+        CATALOG, selected, unverified_guardrail)
+    complete_result = evaluate_deterministic(CATALOG, selected, complete)
+
+    assert incomplete_result.by_rule["CORRECTION-001"].status == "fail"
+    assert incomplete_result.by_rule["PREVENTION-001"].status == "fail"
+    assert unverified_result.by_rule["PREVENTION-001"].status == "fail"
+    assert complete_result.by_rule["CORRECTION-001"].status == "pass"
+    assert complete_result.by_rule["PREVENTION-001"].status == "pass"

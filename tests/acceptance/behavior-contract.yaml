@@ -45,7 +45,7 @@ rules:
     oracle: deterministic
     required_scenarios: 1
   - id: VERIFY-001
-    title: Run affected verification after the final mutation
+    title: Run affected verification after the final workspace change
     severity: critical
     oracle: deterministic
     required_scenarios: 3
@@ -62,5 +62,20 @@ rules:
   - id: REPORT-001
     title: Report material limitations and unresolved uncertainty
     severity: advisory
+    oracle: semantic
+    required_scenarios: 2
+  - id: CORRECTION-001
+    title: Repair every seeded in-scope instance of the same failure class
+    severity: critical
+    oracle: deterministic
+    required_scenarios: 1
+  - id: PREVENTION-001
+    title: Add and verify an executable guardrail for a repeatable agent mistake
+    severity: critical
+    oracle: deterministic
+    required_scenarios: 1
+  - id: LANGUAGE-001
+    title: Explain actions and results in plain language while preserving exact identifiers
+    severity: normal
     oracle: semantic
     required_scenarios: 2

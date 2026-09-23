@@ -54,7 +54,7 @@ tao-dev/
       hooks/hooks.json               # 按需：Claude Code hook 配置
 ```
 
-是否分发资源，以消费项目中的实际读取者或运行调用方为准：LLM 按需读取的工程、流程、审查和文档规则放 references/；CLI 加载的格式注册表、模板和显示资源放 assets/；实际执行代码放 scripts/。只有工具读取的资源无需进入 LLM 上下文。本项目的需求、实现理由、研发任务及验收报告留在 docs/；可复用或自举时有用，本身不构成分发理由。混合职责的文档按段落拆分，包内规则不依赖开发仓库。
+是否分发资源，以使用方项目中的实际读取者或运行调用方为准：LLM 按需读取的工程、流程、审查和文档规则放 references/；CLI 加载的格式注册表、模板和显示资源放 assets/；实际执行代码放 scripts/。只有工具读取的资源无需进入 LLM 上下文。本项目的需求、实现理由、研发任务及验收报告留在 docs/；可复用或自举时有用，本身不构成分发理由。混合职责的文档按段落拆分，包内规则不依赖开发仓库。
 
 运行源码仅放入分发所需内容。打包脚本从 plugins/tao-dev/ 复制运行目录，排除 Python 字节码；公共格式复制运行目录（排除 .codex-plugin/），从 Codex manifest 的名称、版本、描述和 hook 路径生成根 plugin.json；Codex 兼容格式仅选 skills/、com.openai/ 和 .codex-plugin/。维护者应检查实际包内容，避免把开发文件放入运行源码目录；当前脚本不是逐文件白名单。
 
@@ -81,7 +81,7 @@ Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook
 
 Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；其 manifest 的名称、版本和描述与 Codex manifest 检查一致；公共格式由打包器派生。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 
-Codex 原生 reviewer 的 name、description、developer_instructions 与只读 sandbox 由 TOML 定义，不固化模型；正文只定位共享审查规程并限定受委派角色的职责。插件 manifest 没有原生角色注册字段，安装器不写用户 agent 配置。注册、更新和撤销方式见 [接入指南](../user/clients.md)；`agents/openai.yaml` 仍仅是 skill 的界面元数据，不能替代 TOML 角色。
+Codex 原生 reviewer 的 name、description、developer_instructions 与只读 sandbox 由 TOML 定义，不固定具体模型；正文只定位共享审查规程并限定受委派角色的职责。插件 manifest 没有原生角色注册字段，安装器不写用户 agent 配置。注册、更新和撤销方式见 [接入指南](../user/clients.md)；`agents/openai.yaml` 仍仅是 skill 的界面元数据，不能替代 TOML 角色。
 
 公共版本需要 MCP 时才增加根 `mcp.json`；Claude 兼容配置按其原生格式生成并单独验收。初版不为符合目录示意而引入 MCP 服务。
 
@@ -111,7 +111,7 @@ new 包装接收自然语言描述并保留会话上下文，调用共享流程�
 
 Claude command 与角色的运行引用使用客户端展开的 `${CLAUDE_PLUGIN_ROOT}`，不让模型从使用方目录猜测相对根。角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。插件根 `agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 0.154.0 的 command 迁移会跳过含 `$ARGUMENTS` 的包装；tao 的 11 个 command 均属此类，兼容包不分发它们。原生角色另行注册，不能由 Claude 目录推导自动发现。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
 
-初版 hook 使用确定性的 command handler，并分别验证两端事件载荷、输出、退出状态、超时和信任流程。静态配置以 PATH 中的 python3 直接调用 hook.py；Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT` 和独立参数。完整安装把解释器与脚本写成绝对路径，正确处理空格且不依赖 shell 启动包装。使用方的文档资产写入 docs/ 或其配置映射位置，派生索引与缓存默认放 tmp/tao/cache/；.tao/ 仅放配置。客户端自身的数据按其支持的目录管理，不能写入假定可修改的插件缓存。
+初版 hook 使用确定性的 command handler，并分别验证两端事件数据、输出、退出状态、超时和信任流程。静态配置以 PATH 中的 python3 直接调用 hook.py；Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT` 和独立参数。完整安装把解释器与脚本写成绝对路径，正确处理空格且不依赖 shell 启动包装。使用方的文档资产写入 docs/ 或其配置映射位置，派生索引与缓存默认放 tmp/tao/cache/；.tao/ 仅放配置。客户端自身的数据按其支持的目录管理，不能写入假定可修改的插件缓存。
 
 同名事件不直接推导语义等价，prompt／agent 类型 hook 也不视为两端共有能力。hook 未获信任、被禁用或执行失败时，说明哪些动作未运行，并提供显式检查路径。不能绕过客户端权限，也不能将缺失检查算作通过。[Codex hooks](https://learn.chatgpt.com/docs/hooks)、[Claude hooks](https://code.claude.com/docs/en/hooks)
 
@@ -134,7 +134,7 @@ Claude command 与角色的运行引用使用客户端展开的 `${CLAUDE_PLUGIN
 
 Codex 验收使用独立临时 CODEX_HOME：原生安装缓存留在该目录，客户端默认禁用 tao-dev，仅受信任的试验项目启用。必须同时检查原生 skills/list、hooks/list 和实际模型行为；plugin list 在项目外为空不足以证明技能未进入上下文。已有、未过期的访问凭据可在显式授权的试验中临时复用，副本权限为 0600，不携带刷新令牌，结束后删除；不登录、不刷新、不改个人认证。hook 信任只绑定已核对代码及原生清单中的精确哈希，写入试验配置，不跳过客户端信任检查。源码、环境与真实结果保存规则见 [客户端验收说明](../../tests/acceptance/README.md)。
 
-Claude 验收同样使用独立的 CLAUDE_CONFIG_DIR，通过原生命令分别安装到 user、project、local。访问令牌仅经子进程环境复用，保留既有模型和供应商选择；不携带刷新令牌，不写个人认证，前后核对已有凭据及监测配置。user 范围在同一隔离配置的其他目录可见属于预期；project／local 范围须做项目外不可见对照。模型入口同时检查实际原生组件调用和产物，不能用无认证时的初始化事件替代行为成功。维护适配及验收脚本留在 tests/acceptance/，不进入消费项目的运行包。
+Claude 验收同样使用独立的 CLAUDE_CONFIG_DIR，通过原生命令分别安装到 user、project、local。访问令牌仅经子进程环境复用，保留既有模型和供应商选择；不携带刷新令牌，不写个人认证，前后核对已有凭据及监测配置。user 范围在同一隔离配置的其他目录可见属于预期；project／local 范围须做项目外不可见对照。模型入口同时检查实际原生组件调用和产物，不能用无认证时的初始化事件替代行为成功。维护适配及验收脚本留在 tests/acceptance/，不进入使用方项目的运行包。
 
 | 验收项 | 两端都必须满足的结果 |
 |---|---|

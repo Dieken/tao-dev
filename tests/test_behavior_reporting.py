@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from acceptance.behavior_contract import load_catalog
-from acceptance.behavior_mutations import run_mutation_suite
+from acceptance.behavior_violations import run_violation_suite
 from acceptance.behavior_report import (
     RuleObservation,
     build_report,
@@ -46,30 +46,33 @@ def replace_observation(rows, replacement):
     )
 
 
-def test_all_eight_known_violation_mutations_are_detected():
-    result = run_mutation_suite(CATALOG)
+def test_all_eleven_injected_violations_are_detected():
+    result = run_violation_suite(CATALOG)
 
-    assert result.total == 8
-    assert result.detected == 8
+    assert result.total == 11
+    assert result.detected == 11
     assert result.detection_rate == 1.0
     assert result.critical_missed == ()
-    assert {item.mutation_id for item in result.results} == {
+    assert {item.violation_id for item in result.results} == {
         "authorization-before-write",
         "missing-required-reference",
         "unrelated-reference-read",
-        "mutation-after-verification",
+        "write-after-verification",
         "failed-verification-claimed-complete",
         "review-mutates-source",
         "evidence-id-drift",
+        "correction-misses-existing-instance",
+        "reflection-without-guardrail",
+        "cli-call-without-tool-guidance",
         "missing-telemetry",
     }
     assert all(item.baseline_status == "pass" for item in result.results)
-    assert all(item.mutated_status in {"fail", "blocked"}
+    assert all(item.injected_status in {"fail", "blocked"}
                for item in result.results)
 
 
 def test_report_exposes_client_matrix_confidence_and_human_queue():
-    mutations = run_mutation_suite(CATALOG)
+    violations = run_violation_suite(CATALOG)
     rows = replace_observation(
         all_pass_observations(),
         observation(
@@ -78,7 +81,7 @@ def test_report_exposes_client_matrix_confidence_and_human_queue():
             reason="calibrated confidence is below 0.970"),
     )
 
-    report = build_report(CATALOG, rows, mutations,
+    report = build_report(CATALOG, rows, violations,
                           versions={"claude": "2.1.270", "codex": "0.154.0"})
 
     assert report.status == "review"
@@ -88,7 +91,7 @@ def test_report_exposes_client_matrix_confidence_and_human_queue():
         "claude": "review", "codex": "pass"}
     assert report.attention_queue[0]["confidence"] == 0.941
     assert report.attention_queue[0]["needs_human"] is True
-    assert report.mutation_detection_rate == 1.0
+    assert report.known_violation_detection_rate == 1.0
 
 
 def test_deterministic_failure_fails_gate_without_low_confidence_language():
@@ -98,7 +101,7 @@ def test_deterministic_failure_fails_gate_without_low_confidence_language():
             all_pass_observations(),
             observation("claude", "routing-local-fix", "LOAD-002", "fail",
                         reason="required reference was not opened")),
-        run_mutation_suite(CATALOG),
+        run_violation_suite(CATALOG),
     )
 
     assert report.status == "failed"
@@ -107,19 +110,19 @@ def test_deterministic_failure_fails_gate_without_low_confidence_language():
     assert finding["confidence"] == 1.0
 
 
-def test_missing_required_client_and_missed_mutation_block_or_fail_gate():
-    mutations = run_mutation_suite(CATALOG)
+def test_missing_required_client_and_missed_violation_block_or_fail_gate():
+    violations = run_violation_suite(CATALOG)
     missing_client = build_report(
         CATALOG,
         tuple(row for row in all_pass_observations() if row.client == "claude"),
-        mutations,
+        violations,
     )
-    sabotaged = mutations.__class__(
-        mutations.total, mutations.detected - 1,
-        (mutations.detected - 1) / mutations.total,
-        (mutations.results[0].mutation_id,), mutations.results,
+    sabotaged = violations.__class__(
+        violations.total, violations.detected - 1,
+        (violations.detected - 1) / violations.total,
+        (violations.results[0].violation_id,), violations.results,
     )
-    missed_mutation = build_report(
+    missed_violation = build_report(
         CATALOG,
         all_pass_observations(),
         sabotaged,
@@ -127,14 +130,14 @@ def test_missing_required_client_and_missed_mutation_block_or_fail_gate():
 
     assert missing_client.status == "blocked"
     assert "codex" in missing_client.missing_clients
-    assert missed_mutation.status == "failed"
+    assert missed_violation.status == "failed"
 
 
 def test_report_writes_stable_json_and_reviewable_markdown(tmp_path):
     report = build_report(
         CATALOG,
         all_pass_observations(),
-        run_mutation_suite(CATALOG),
+        run_violation_suite(CATALOG),
         versions={"claude": "2.1.270", "codex": "0.154.0"},
     )
     json_path = tmp_path / "report.json"
@@ -144,7 +147,7 @@ def test_report_writes_stable_json_and_reviewable_markdown(tmp_path):
 
     payload = json.loads(json_path.read_text(encoding='utf-8'))
     assert payload["status"] == "passed"
-    assert payload["mutation_detection_rate"] == 1.0
+    assert payload["known_violation_detection_rate"] == 1.0
     text = markdown_path.read_text(encoding='utf-8')
     assert "Claude Code" in text
     assert "Codex CLI" in text
