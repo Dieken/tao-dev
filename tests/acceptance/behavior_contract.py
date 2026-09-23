@@ -116,7 +116,9 @@ def _load_rules(document):
 
 
 def _expectation_strings(expectations):
-    for key in ("required_resources", "forbidden_resources"):
+    for key in (
+            "required_resources", "forbidden_resources", "required_corrections",
+            "required_guardrails", "required_commands"):
         values = expectations.get(key, [])
         if not isinstance(values, list):
             raise CatalogError("invalid-expectations", f"{key} must be a list")

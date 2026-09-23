@@ -28,10 +28,10 @@ class BehaviorReport:
     client_matrix: dict[str, dict[str, str]]
     observations: tuple[RuleObservation, ...]
     attention_queue: tuple[dict, ...]
-    mutation_detection_rate: float
-    mutation_total: int
-    mutation_detected: int
-    critical_mutations_missed: tuple[str, ...]
+    known_violation_detection_rate: float
+    known_violation_total: int
+    known_violation_detected: int
+    critical_violations_missed: tuple[str, ...]
 
     def to_dict(self):
         return {
@@ -42,10 +42,10 @@ class BehaviorReport:
             "client_matrix": self.client_matrix,
             "observations": [asdict(item) for item in self.observations],
             "attention_queue": list(self.attention_queue),
-            "mutation_detection_rate": self.mutation_detection_rate,
-            "mutation_total": self.mutation_total,
-            "mutation_detected": self.mutation_detected,
-            "critical_mutations_missed": list(self.critical_mutations_missed),
+            "known_violation_detection_rate": self.known_violation_detection_rate,
+            "known_violation_total": self.known_violation_total,
+            "known_violation_detected": self.known_violation_detected,
+            "critical_violations_missed": list(self.critical_violations_missed),
         }
 
 
@@ -57,7 +57,7 @@ def _scenario_status(rows):
     return "blocked"
 
 
-def build_report(catalog, observations, mutations, *, versions=None):
+def build_report(catalog, observations, violations, *, versions=None):
     """Aggregate automated verdicts and isolate the small attention queue."""
     rows = tuple(observations)
     observed_clients = {row.client for row in rows}
@@ -122,7 +122,7 @@ def build_report(catalog, observations, mutations, *, versions=None):
         })
 
     statuses = {row.status for row in rows}
-    if mutations.critical_missed or "fail" in statuses:
+    if violations.critical_missed or "fail" in statuses:
         status = "failed"
     elif missing_clients or missing_observations or "blocked" in statuses:
         status = "blocked"
@@ -138,10 +138,10 @@ def build_report(catalog, observations, mutations, *, versions=None):
         matrix,
         rows,
         tuple(queue),
-        mutations.detection_rate,
-        mutations.total,
-        mutations.detected,
-        mutations.critical_missed,
+        violations.detection_rate,
+        violations.total,
+        violations.detected,
+        violations.critical_missed,
     )
 
 
@@ -152,9 +152,9 @@ def _markdown(report):
         "",
         f"Overall status: **{report.status}**",
         "",
-        ("Mutation detection: "
-         f"{report.mutation_detected}/{report.mutation_total} "
-         f"({report.mutation_detection_rate:.1%})"),
+        ("Known violation detection: "
+         f"{report.known_violation_detected}/{report.known_violation_total} "
+         f"({report.known_violation_detection_rate:.1%})"),
         "",
         "## Client versions",
         "",

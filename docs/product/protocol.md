@@ -49,11 +49,11 @@ updated: "2026-09-21"
 | [Trellis](https://github.com/mindfold-ai/trellis) | 按任务注入上下文、平台适配 | 不预设单一客户端 |
 | [GSD](https://github.com/open-gsd/gsd-core) | 行为验证区别于文件存在、状态恢复 | 不把派生进度当作有效证据 |
 | [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | `writing-plans` 的可验证任务；`verification-before-completion` 的新鲜证据 | 不按固定分钟数切任务，不强制重复审批或给每项计划预写完整实现 |
-| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、纵向任务 | 不固定计划／任务双文件；不要求每段代码都添加来源注释 |
+| [Addy Osmani 的 agent-skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | 文档记录理由、ADR 生命周期、按实际版本核实 API、端到端增量任务 | 不固定计划／任务双文件；不要求每段代码都添加来源注释 |
 | [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
 | [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
 | [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
-| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型编排和复杂常驻调度列为初版前提 |
+| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型协同执行和复杂常驻调度列为初版前提 |
 
 外部依据：[Kiro 规格结构](https://kiro.dev/docs/specs/)、[EARS 需求表达](https://alistairmavin.com/ears/)、[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
 
@@ -99,7 +99,7 @@ updated: "2026-09-21"
 tao-dev 随 skill 分发统一、版本化的文档契约、格式注册表和模板，约束元数据、章节、条目、ID、引用和任务格式；使用方无需自行定义 schema，CLI 与 skill 使用同一份格式定义。检查区分结构错误、质量提示和语义审查意见。规格、设计、计划和任务的关系具有明确目标类型；草稿可逐步完善，批准阶段时检查上游依据完整性。受控术语具有首选名称和定义，结构检查不代替用词语义审查。
 
 <!-- tao:field acceptance -->
-**验收：** 分发包离开开发仓库后，按 skill 提供的模板可写出受支持的文档；中英文共用结构键，CLI 从同包注册表取得规则。缺章节、重复 ID、悬空引用及非法任务格式能定位到文件和行；输出规则号、问题原因及修正建议。成对的契约标记未闭合、落单或出现在错误位置时同样报出定位与规则号，不得静默改变契约内容或转由其他条件以无关原因失败。本次新增或修改的需求须有任务承接，否则报错；确需延后的在计划中显式声明并写明触发条件，声明缺失时报错，不得静默缩小核对范围。格式通过不得被报告为需求正确或设计合理。
+**验收：** 分发包离开开发仓库后，按 skill 提供的模板可写出受支持的文档；中英文共用结构键，CLI 从同包注册表取得规则。缺章节、重复 ID、悬空引用及非法任务格式能定位到文件和行；输出规则号、问题原因及修正建议。成对的契约标记未闭合、缺少一端或出现在错误位置时同样报出定位与规则号，不得静默改变契约内容或转由其他条件以无关原因失败。本次新增或修改的需求须有任务承接，否则报错；确需延后的在计划中显式声明并写明触发条件，声明缺失时报错，不得静默缩小核对范围。格式通过不得被报告为需求正确或设计合理。
 
 <!-- tao:field source -->
 **来源：** Kiro 等参考项目的固定模板实践与 EARS 的条件化需求表达。本协议补充全局标识符、语法层、关系层与语义层的边界。

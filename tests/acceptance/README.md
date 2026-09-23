@@ -31,9 +31,9 @@ inside 核对实际发现、引用定位、doctor/status；outside 不使用工�
 
 plan 在明确授权的非 Git 微型维护样例中通过主 skill 创建计划，再调用 handoff；此例使用简化路径，不代表完整功能开发的阶段推进验收。产出完整计划及相同 CHG 的交接，校验实际文档，保留未实现任务。该微型场景的 Claude 调用明确使用低推理强度与简短文档指导，避免把大篇幅写作混入加载验收；不是对默认推理强度的耗时保证。verify 使用真实失败基线，通过 review 动作只运行确定性验证，预期如实报告失败而不修复代码或勾选任务。Claude 要核对真实 Skill 工具调用，不能仅凭命令出现在初始化列表就算验收。lifecycle.py 的 --client claude 与 --claude-scope 组合检查原生启停、版本更新及卸载；这些不调用模型的检查仍不能替代流程行为。
 
-routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev，并且只读取 [`references/engineering.md`](../../plugins/tao-dev/skills/tao-dev/references/engineering.md) 与 [`references/workflow.md`](../../plugins/tao-dev/skills/tao-dev/references/workflow.md)，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不相信模型自报；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有 prompt 都会采用相同读取路径，也不能充当修改前后的因果基线。
+routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev，并且只读取 [`references/engineering.md`](../../plugins/tao-dev/skills/tao-dev/references/engineering.md) 与 [`references/workflow.md`](../../plugins/tao-dev/skills/tao-dev/references/workflow.md)，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不采信模型自己的说明；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有任务指令都会采用相同读取路径，也不能充当修改前后的因果基线。
 
-behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用夹具只说明导出保留策略尚未决定，不在 prompt 或文件中泄漏 30 天及失败处理答案。首轮必须提出材料性问题且零写入；脚本仅在该可观察条件命中时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证编排，不启动模型。
+behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用测试项目只说明导出保留策略尚未决定，不在任务指令或文件中泄漏 30 天及失败处理答案。首轮必须提出会影响产品行为的关键问题，且不得写入文件；脚本仅在该可观察条件命中时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证执行流程，不启动模型。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
@@ -45,7 +45,7 @@ scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次�
 
 运行环境测试验证 Python 隔离启动，覆盖率只能统计实际接受 Coverage.py 注入的进程。发布环境不安装开发用 coverage，也不为提高数字关闭 Python 隔离模式；报告中的未观测行不能解释为行为测试未执行。
 
-独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录与客户端配置中调用既有 Claude 访问令牌。必须显式传 --reuse-claude-auth；复用上述认证适配，不携带刷新令牌、写认证文件或回退个人状态。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。超时或异常时终止子进程组并清理令牌环境，日志脱敏；凭据或监测配置变化时不生成可导入记录，不猜测回滚个人文件。只在实际固定树及材料的请求出站已有授权时执行；这不是消费项目必须安装的工具。调用形态为 `.venv/bin/python scripts/review_claude.py --reuse-claude-auth --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
+独立代码审查的维护入口为 [review_claude.py](../../scripts/review_claude.py)。它读取 `tao review <CHG-ID> --format json` 的请求及显式 Git tree／文件集合，先检查输入请求与工作区、固定树一致，再在独立临时目录与客户端配置中调用既有 Claude 访问令牌。必须显式传 --reuse-claude-auth；复用上述认证适配，不携带刷新令牌、写认证文件或回退个人状态。默认禁用模型工具与自定义组件，限时 240 秒、CLI 预算 2 美元；不加载 tao-dev、不安装或注册插件。超时或异常时终止子进程组并清理令牌环境，日志脱敏；凭据或监测配置变化时不生成可导入记录，不猜测回滚个人文件。只有在已获准把固定 Git tree 和所列文件发送给模型时才执行；使用方项目不需要安装这项维护工具。调用形态为 `.venv/bin/python scripts/review_claude.py --reuse-claude-auth --request tmp/tao/review-request.json --tree <固定树> --files <项目相对文件列表>`。
 
 脚本保留实际模型事件和运行摘要；只有调用完成、结论绑定一致且监测的个人配置未变时才生成待导入记录。监测变化、超时或未完成不能作为隔离验收通过；不要猜测原配置后回滚。真实客户端审查不进入普通 pytest，完整 verify 也不自动启动模型。
 

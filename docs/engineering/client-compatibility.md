@@ -48,7 +48,7 @@ created: "2026-09-16"
 | Claude commands／reviewer | 保留官方展开的 `${CLAUDE_PLUGIN_ROOT}`，包装仅定位共享规程并传递请求 |
 | hook JSON／shell | 保留客户端支持的根变量；安装器绑定解释器和脚本绝对路径，不能替换为依赖 cwd 的相对路径 |
 | 维护文档中的变量 | 用于解释真实行为的变量名保留；它们不是共享 skill 的运行依赖 |
-| `../scripts/tao.py` | 在 references 下正确指向同一 skill 的 scripts；不机械删除 `..` |
+| `../scripts/tao.py` | 在 `references/` 目录下正确指向同一 skill 的 `scripts/`；不机械删除 `..` |
 | URI 工具 | 先按包含文件解析链接并归一化，再转换成该客户端的资源标识；URI-only 不等于本地可执行 |
 
 Codex 0.154.0 源码的 Claude command 迁移是受限转换，不是原生 command 发现：含 `$ARGUMENTS` 等动态参数的命令会跳过。当前 tao 的 11 个 command 均有该参数；codex-legacy 包也不分发 Claude agents／commands。原生角色是另一接口，不能由目录同名推导兼容。[Codex 迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)
