@@ -443,6 +443,11 @@ def _check_claude_source(known, source, ref):
                           f'explicitly: registered {configured!r}, requested {source!r}')
 
 
+def _claude_scope_enabled(rows, plugin_id, scope, project):
+    return any(row.get('id') == plugin_id and row.get('scope') == scope and row.get('enabled') is True
+               and (scope == 'user' or Path(row.get('projectPath', '')).resolve() == project) for row in rows)
+
+
 def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None):
     project = Path(project).expanduser().resolve()
     scope = validate_scope(client, scope, project)
@@ -471,8 +476,10 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
             files.extend([str(settings), str(home / 'plugins/known_marketplaces.json')])
             exists = any(row['plugin_id'] == plugin_id and row['scope'] == scope and row['project'] == (None if scope == 'user' else str(project)) for row in prior)
             _run(['claude', 'plugin', 'update' if exists else 'install', plugin_id, '--scope', scope], project, json_output=False)
-            if exists and _read_json(settings).get('enabledPlugins', {}).get(plugin_id) is not True:
-                _run(['claude', 'plugin', 'enable', plugin_id, '--scope', scope], project, json_output=False)
+            if exists:
+                native = _run(['claude', 'plugin', 'list', '--json'], project)
+                if not _claude_scope_enabled(native, plugin_id, scope, project):
+                    _run(['claude', 'plugin', 'enable', plugin_id, '--scope', scope], project, json_output=False)
             entries = [row for row in discover(client, project) if row['plugin_id'] == plugin_id and row['scope'] == scope and row['project'] == (None if scope == 'user' else str(project))]
             if not entries:
                 raise ClientError('Claude did not report the installed tao-dev scope')
@@ -486,8 +493,7 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
             if python is not None:
                 _bind_hook(client, plugin, python)
             native = _run(['claude', 'plugin', 'list', '--json'], project)
-            if not any(row.get('id') == plugin_id and row.get('scope') == scope and row.get('enabled') is True
-                       and (scope == 'user' or Path(row.get('projectPath', '')).resolve() == project) for row in native):
+            if not _claude_scope_enabled(native, plugin_id, scope, project):
                 raise ClientError('Claude does not report the requested native scope as enabled')
             inventory = _run(['claude', 'plugin', 'details', plugin_id], project, json_output=False)
             if 'Skills (' not in inventory or 'Hooks (' not in inventory:

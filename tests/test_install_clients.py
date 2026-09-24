@@ -58,6 +58,44 @@ def test_claude_discovery_preserves_all_native_scopes(state):
     assert rows[1]['project'] is None
 
 
+@pytest.mark.parametrize('initially_enabled', [True, False])
+def test_claude_local_upgrade_uses_native_activation_state(state, monkeypatch, initially_enabled):
+    root, project = state
+    plugin_id = 'tao-dev@custom'
+    home = root / 'claude'
+    cache = home / 'plugins/cache/custom/tao-dev/1.2.3'
+    cache.mkdir(parents=True)
+    registry = home / 'plugins/installed_plugins.json'
+    registry.write_text(json.dumps({'plugins': {plugin_id: [{
+        'scope': 'local', 'projectPath': str(project),
+        'installPath': str(cache), 'version': '1.2.3'}]}}), encoding='utf-8')
+    (home / 'plugins/known_marketplaces.json').write_text(json.dumps({
+        'custom': {'source': {'source': 'directory', 'path': str(root / 'source')}}
+    }), encoding='utf-8')
+    commands = []
+    enabled = initially_enabled
+
+    def native(args, cwd, **kwargs):
+        nonlocal enabled
+        commands.append(args)
+        if args[1:3] == ['plugin', 'enable']:
+            assert not enabled, 'Claude rejects enable when local scope is already enabled'
+            enabled = True
+        if args[1:3] == ['plugin', 'list']:
+            return [{'id': plugin_id, 'scope': 'local', 'projectPath': str(root / 'other'),
+                     'enabled': True},
+                    {'id': plugin_id, 'scope': 'local', 'projectPath': str(project),
+                     'enabled': enabled}]
+        if args[1:3] == ['plugin', 'details']:
+            return 'Skills (1)\nHooks (1)'
+        return ''
+
+    monkeypatch.setattr(clients, '_run', native)
+    result = clients.install_plugin('claude', str(root / 'source'), plugin_id, 'local', project)
+    assert result['verification']['native_plugin_enabled']
+    assert [args[1:3] for args in commands].count(['plugin', 'enable']) == (0 if initially_enabled else 1)
+
+
 def test_codex_local_is_project_alias_even_with_tracked_config(state):
     root, project = state
     subprocess.run(['git', 'init', '-q', str(project)], check=True)
@@ -225,14 +263,15 @@ def test_native_toml_editor_preserves_comments_and_deletes_only_selected_key(sta
 
 
 @pytest.mark.skipif(not native_enabled(), reason='Set TAO_TEST_NATIVE_CLIENTS=1 for isolated installed-CLI probes')
-@pytest.mark.parametrize('client', ['claude', 'codex'])
-def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, client):
+@pytest.mark.parametrize(('client', 'scope'), [('claude', 'project'), ('claude', 'local'),
+                                                  ('codex', 'project')])
+def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, client, scope):
     root, project = state
     outside = root / 'outside'
     outside.mkdir()
     source = SCRIPTS.parents[4]
     plugin_id = 'tao-dev@tao-dev'
-    result = clients.install_plugin(client, str(source), plugin_id, 'project', project)
+    result = clients.install_plugin(client, str(source), plugin_id, scope, project)
     cached = Path(result['plugin_path'])
     assert cached.is_relative_to(root)
     def active(folder):
@@ -243,19 +282,19 @@ def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, 
         return any(row['id'] == plugin_id and row['enabled'] for row in clients._run(['claude', 'plugin', 'list', '--json'], folder))
     assert active(project)
     assert not active(outside)
-    again = clients.install_plugin(client, str(source), plugin_id, 'project', project)
+    again = clients.install_plugin(client, str(source), plugin_id, scope, project)
     assert again['plugin_path'] == result['plugin_path']
     assert not active(outside)
     clients.install_plugin(client, str(source), plugin_id, 'user', project)
     assert active(outside)
     # Installing project again must preserve a separately enabled user scope.
-    clients.install_plugin(client, str(source), plugin_id, 'project', project)
+    clients.install_plugin(client, str(source), plugin_id, scope, project)
     assert active(outside)
     clients.remove_activation(client, plugin_id, 'user', project)
     assert cached.is_dir()
     assert active(project)
     assert not active(outside)
-    clients.remove_activation(client, plugin_id, 'project', project)
+    clients.remove_activation(client, plugin_id, scope, project)
     assert clients.discover(client, project) == []
     assert not active(project)
 
