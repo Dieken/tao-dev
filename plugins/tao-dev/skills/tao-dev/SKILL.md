@@ -23,6 +23,4 @@ description: 在与用户协作开发软件时使用，也用于 tao-dev 工作�
 | 保存正式审查报告或裁决 | [报告写法](references/review-reports.md) 与所选模板 |
 | 调用 CLI 或配置项目 | [工具规程](references/tools.md)，再按操作进入 setup、状态、验证或运行环境接口 |
 
-只读取当前任务相关小节与模板；局部维护边界及授权见 [流程操作](references/workflow.md)，动作步骤见 [开发动作](references/workflow-actions.md)。
-
-已有授权内自主推进，按实际观察报告结果及缺口；输出与提问见 [流程操作](references/workflow.md) 的输出纪律。依赖操作结果前按工程规程核对目标状态；tao 的检查或记录只说明其覆盖范围，不构成验收、授权或身份认证。
+只读取当前任务相关小节与模板。按已有授权推进并报告实际结果；tao 的检查或记录只说明其覆盖范围，不构成验收或授权。

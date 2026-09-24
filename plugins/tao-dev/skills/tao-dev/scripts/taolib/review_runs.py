@@ -1,4 +1,4 @@
-"""Review scope snapshots and persistent round budgets; agents conduct reviews."""
+"""Review scope snapshots and persistent round limits; agents conduct reviews."""
 from datetime import datetime, timezone
 import os
 import subprocess
@@ -154,10 +154,12 @@ def repreview(project, state, request, *, started=False):
                    request.get('include'), request.get('output_files'), started=started)
 
 
-def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, budget_seconds=None, new_batch=False):
+def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, new_batch=False):
     workflows.text(decision)
     if mode not in ('serial', 'parallel') or type(reviewers) is not int or not 1 <= reviewers <= 3 or (mode == 'serial' and reviewers != 1):
         raise ConfigurationError('Use one serial reviewer or up to three parallel reviewers.')
+    if max_rounds is not None and (type(max_rounds) is not int or max_rounds <= 0):
+        raise ConfigurationError('Review round limit must be a positive integer.')
     if not isinstance(request, dict):
         raise ConfigurationError('Review scope must be a JSON object.')
     if 'change' not in request:
@@ -183,16 +185,13 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
         if series is None or new_batch:
             series = {'id': uuid.uuid4().hex, 'phase': state['phase'], 'decision': decision,
                       'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
-                      'budget_seconds': budget_seconds or 7200, 'runs': [], 'budget_decisions': []}
-        for field, value in (('max_rounds', max_rounds), ('budget_seconds', budget_seconds)):
-            if value is not None:
-                if type(value) is not int or value <= 0:
-                    raise ConfigurationError('Review budgets must be positive integers.')
-                if value != series[field]:
-                    series['budget_decisions'].append({'field': field, 'before': series[field], 'after': value, 'decision': decision})
-                    series[field] = value
-        if len(series['runs']) >= series['max_rounds'] or (now-datetime.fromisoformat(series['started_at'])).total_seconds() >= series['budget_seconds']:
-            raise ConflictError('Review budget exhausted; present unresolved issues and obtain an explicit new budget decision.')
+                      'runs': [], 'round_decisions': []}
+        elif max_rounds is not None and max_rounds != series['max_rounds']:
+            series.setdefault('round_decisions', []).append({'before': series['max_rounds'],
+                                                              'after': max_rounds, 'decision': decision})
+            series['max_rounds'] = max_rounds
+        if len(series['runs']) >= series['max_rounds']:
+            raise ConflictError('Review round limit reached; present unresolved issues and obtain an explicit new round decision.')
         if series['runs'] and series['runs'][-1]['outcome'] == 'passed' and series['runs'][-1]['request'] == request:
             raise ConflictError('These inputs already passed; no additional round is needed.')
         run_id = uuid.uuid4().hex
@@ -262,16 +261,13 @@ def finish(project, identity, expected, result):
             if faults:
                 raise ConflictError(Message('Review report does not validate: {arg0}:{arg1} {arg2}.',
                                             faults[0].path, faults[0].line, faults[0].rule_id))
-        # The verdict, the freshness of its inputs and the schedule window are three
-        # separate facts; recording them in one field loses whichever is written last.
+        # A verdict remains separate from the freshness of its reviewed inputs.
         try:
             fresh = repreview(owner, state, run['request'], started=True) == run['request']
         except (OSError, ValueError) as exc:
             run['input_error'] = str(exc)
             fresh = False
-        elapsed = (datetime.now(timezone.utc)-datetime.fromisoformat(series['started_at'])).total_seconds()
         run.update(outcome=result['outcome'], inputs='current' if fresh else 'stale',
-                   budget='within' if elapsed < series['budget_seconds'] else 'exceeded',
                    reports=saved, summary=result['summary'], ended_at=datetime.now(timezone.utc).isoformat())
         run['evidence_boundary'] = 'Scheduling record only. Required independent attestations use tao review imports; report existence does not prove correctness or identity.'
     return workflows.mutate(project, identity, expected, edit)

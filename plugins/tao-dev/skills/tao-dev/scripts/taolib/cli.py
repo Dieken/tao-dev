@@ -81,7 +81,6 @@ def arguments(argv):
             command.add_argument("--decision", required=True)
             command.add_argument("--new-batch", action="store_true")
             command.add_argument("--max-rounds", type=int)
-            command.add_argument("--budget-seconds", type=int)
     state = operations.add_parser("status", parents=[common])
     state.add_argument("change", nargs="?")
     for operation in ("checkpoint", "advance", "revise", "resume"):
