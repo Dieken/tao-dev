@@ -1,4 +1,4 @@
-"""Reviews bind cumulative changes and retain their finite budget across sessions."""
+"""Reviews bind cumulative changes and retain round limits across sessions."""
 import json
 from datetime import datetime, timedelta, timezone
 import zipfile
@@ -114,7 +114,7 @@ def test_rounds_require_fixed_inputs_and_do_not_reset_on_reload(tmp_path, capsys
     state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Reviewer unavailable'})
     (tmp_path / 'code.py').write_text('value = 2\n', encoding='utf-8')
     request = preview(Project(tmp_path), state, 'project', 'code')
-    with pytest.raises(ConflictError, match='budget'):
+    with pytest.raises(ConflictError, match='round limit'):
         begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'Try again')
 
 
@@ -132,23 +132,32 @@ def test_changed_preview_and_unreviewed_success_are_rejected(tmp_path, capsys):
         finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [], 'summary': 'Assume success'})
 
 
-def test_elapsed_budget_is_preserved_when_a_session_resumes(tmp_path, capsys):
+def test_legacy_time_budget_does_not_block_a_remaining_round(tmp_path, capsys):
     state = repository(tmp_path, capsys)
     from taolib.review_runs import preview, begin, finish
     from taolib.workflows import mutate
-    from taolib.project import Project, ConflictError
+    from taolib.project import Project
     project = Project(tmp_path)
-    state = begin(project, state['change'], 1, preview(project, state, 'project', 'code'), 'serial', 1, 'Review')
-    state = mutate(project, state['change'], state['revision'], lambda owner, current: current['reviews']['code'].update(started_at='2000-01-01T00:00:00+00:00'))
+    request = preview(project, state, 'project', 'code')
+    state = begin(project, state['change'], 1, request, 'serial', 1, 'Review')
+    def age_legacy_batch(owner, current):
+        current['reviews']['code'].update(started_at='2000-01-01T00:00:00+00:00', budget_seconds=7200)
+    state = mutate(project, state['change'], state['revision'], age_legacy_batch)
     (tmp_path / 'tmp/tao/report.md').write_text('Late review output', encoding='utf-8')
-    state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result'})
+    state = finish(project, state['change'], state['revision'], {'outcome': 'changes-requested', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result'})
     run = state['reviews']['code']['runs'][-1]
-    assert (run['outcome'], run['budget']) == ('passed', 'exceeded')  # The window does not rewrite the verdict.
-    with pytest.raises(ConflictError, match='budget'):
-        begin(Project(tmp_path), state['change'], state['revision'], preview(project, state, 'project', 'code'), 'serial', 1, 'New session')
+    assert run['outcome'] == 'changes-requested' and 'budget' not in run
+    state = begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'New session')
+    assert len(state['reviews']['code']['runs']) == 2
+    assert state['reviews']['code']['budget_seconds'] == 7200
+    state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted'})
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1,
+                  'Authorized another round', max_rounds=3)
+    assert state['reviews']['code']['round_decisions'] == [
+        {'before': 2, 'after': 3, 'decision': 'Authorized another round'}]
 
 
-def test_default_window_allows_discussion_but_expires_at_two_hours(tmp_path, capsys, monkeypatch):
+def test_discussion_across_days_does_not_consume_review_rounds(tmp_path, capsys, monkeypatch):
     from taolib import review_runs
     from taolib.project import Project
     state = repository(tmp_path, capsys)
@@ -164,41 +173,42 @@ def test_default_window_allows_discussion_but_expires_at_two_hours(tmp_path, cap
     monkeypatch.setattr(review_runs, 'datetime', Clock)
     request = review_runs.preview(project, state, 'project', 'code')
     state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review')
-    assert state['reviews']['code']['budget_seconds'] == 7200
+    assert state['reviews']['code']['max_rounds'] == 2
+    assert 'budget_seconds' not in state['reviews']['code']
     report = tmp_path / 'tmp/tao/report.md'
     report.write_text('A correction is required.', encoding='utf-8')
-    now = started + timedelta(minutes=40)
+    now = started + timedelta(days=1)
     state = review_runs.finish(project, state['change'], state['revision'], {
         'outcome': 'changes-requested', 'reports': ['tmp/tao/report.md'], 'summary': 'Correct the default',
     })
     assert state['reviews']['code']['runs'][-1]['outcome'] == 'changes-requested'
-    now = started + timedelta(seconds=7199)
+    now = started + timedelta(days=3)
     state = review_runs.begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'Recheck after discussion')
     assert state['reviews']['code']['started_at'] == started.isoformat()
-    now = started + timedelta(seconds=7200)
+    now = started + timedelta(days=4)
     state = review_runs.finish(project, state['change'], state['revision'], {
         'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Late result',
     })
     run = state['reviews']['code']['runs'][-1]
-    assert (run['outcome'], run['budget']) == ('passed', 'exceeded')
+    assert run['outcome'] == 'passed' and 'budget' not in run
 
 
-@pytest.mark.parametrize('budget', [1800, 9000])
-def test_resume_preserves_explicit_budget_and_new_batch_uses_default(tmp_path, capsys, budget):
+@pytest.mark.parametrize('limit', [3, 4])
+def test_resume_preserves_explicit_round_limit_and_new_batch_uses_default(tmp_path, capsys, limit):
     from taolib.review_runs import preview, begin, finish
     from taolib.project import Project
     state = repository(tmp_path, capsys)
     project = Project(tmp_path)
     request = preview(project, state, 'project', 'code')
-    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Explicit budget', budget_seconds=budget)
+    state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'Explicit limit', max_rounds=limit)
     state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted'})
     state = begin(Project(tmp_path), state['change'], state['revision'], request, 'serial', 1, 'Resume')
-    assert state['reviews']['code']['budget_seconds'] == budget
-    assert state['reviews']['code']['budget_decisions'] == []
+    assert state['reviews']['code']['max_rounds'] == limit
+    assert state['reviews']['code']['round_decisions'] == []
     state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted again'})
     state = begin(project, state['change'], state['revision'], request, 'serial', 1, 'User requests another batch', new_batch=True)
-    assert state['review_history']['code'][-1]['budget_seconds'] == budget
-    assert state['reviews']['code']['budget_seconds'] == 7200
+    assert state['review_history']['code'][-1]['max_rounds'] == limit
+    assert state['reviews']['code']['max_rounds'] == 2
 
 
 def test_index_is_in_scope_snapshot_and_freshness_even_when_worktree_reverted(tmp_path, capsys):
@@ -237,7 +247,7 @@ def test_failed_review_can_close_after_history_invalidates_comparison(tmp_path, 
     assert 'ancestor' in state['reviews']['code']['runs'][-1]['input_error']
 
 
-def test_explicit_new_batch_resets_budget_and_retains_previous_stage(tmp_path, capsys):
+def test_explicit_new_batch_resets_round_limit_and_retains_previous_stage(tmp_path, capsys):
     state = repository(tmp_path, capsys)
     from taolib.review_runs import preview, begin, finish
     from taolib.workflows import mutate
@@ -245,13 +255,13 @@ def test_explicit_new_batch_resets_budget_and_retains_previous_stage(tmp_path, c
     project = Project(tmp_path)
     (tmp_path/'spec.md').write_text('# Spec\n', encoding='utf-8')
     request = preview(project, state, 'project', 'docs')
-    state = begin(project, state['change'], 1, request, 'serial', 1, 'Review specification')
+    state = begin(project, state['change'], 1, request, 'serial', 1, 'Review specification', max_rounds=1)
     state = mutate(project, state['change'], state['revision'], lambda owner, current: current['reviews']['docs'].update(started_at='2000-01-01T00:00:00+00:00'))
     state = finish(project, state['change'], state['revision'], {'outcome': 'failed', 'reports': [], 'summary': 'Old review ended'})
     old = state['reviews']['docs']
     (tmp_path/'design.md').write_text('# Design\n', encoding='utf-8')
     request = preview(project, state, 'project', 'docs')
-    with pytest.raises(ConflictError, match='budget'):
+    with pytest.raises(ConflictError, match='round limit'):
         begin(project, state['change'], state['revision'], request, 'serial', 1, 'Continue prior review')
     state = begin(project, state['change'], state['revision'], request, 'serial', 1,
                   'User requests a new design review', new_batch=True)
@@ -389,8 +399,8 @@ def test_saved_preview_envelope_is_rejected_with_its_own_reason(tmp_path, capsys
     assert accepted['outputs']['reviews']['code']['runs'][-1]['outcome'] == 'running'
 
 
-def test_elapsed_window_does_not_veto_a_review_that_actually_passed(tmp_path, capsys):
-    """A passing review stays usable at the gate when discussion outlasted the window."""
+def test_old_budget_result_does_not_veto_a_review_that_passed(tmp_path, capsys):
+    """A legacy budget marker does not override the actual review verdict."""
     from taolib import review_runs, workflows
     from taolib.project import Project
     state = repository(tmp_path, capsys)
@@ -398,12 +408,12 @@ def test_elapsed_window_does_not_veto_a_review_that_actually_passed(tmp_path, ca
     request = review_runs.preview(project, state, 'project', 'code')
     state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review code')
     (tmp_path / 'tmp/tao/report.md').write_text('No findings.', encoding='utf-8')
-    state = workflows.mutate(project, state['change'], state['revision'],
-                             lambda owner, current: current['reviews']['code'].update(
-                                 started_at='2000-01-01T00:00:00+00:00'))
     state = review_runs.finish(project, state['change'], state['revision'], {
         'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Clean',
     })
+    state = workflows.mutate(project, state['change'], state['revision'],
+                             lambda owner, current: current['reviews']['code']['runs'][-1].update(
+                                 budget='exceeded'))
     run = state['reviews']['code']['runs'][-1]
     assert (run['outcome'], run['inputs'], run['budget']) == ('passed', 'current', 'exceeded')
     assert review_runs.passed(project, state, 'code')
@@ -511,4 +521,3 @@ def test_a_report_outside_the_document_globs_is_still_validated(tmp_path, capsys
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
     entry = state['reviews']['code']['runs'][-1]['reports'][0]
     assert entry['validated'] is False, 'an unchecked report must not read as a checked one'
-
