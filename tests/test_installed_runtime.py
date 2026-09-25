@@ -265,3 +265,19 @@ def test_shared_cli_routes_across_clients_to_each_native_inventory(registry, tmp
                              cwd=tmp_path, env=clean, capture_output=True, text=True, timeout=30, check=False, encoding='utf-8')
     assert missing.returncode == 2
     assert "tao install" in missing.stdout
+
+
+def test_kiro_activation_path_selects_record(registry, tmp_path, monkeypatch):
+    home = tmp_path / 'kiro-home'
+    monkeypatch.setenv('KIRO_HOME', str(home))
+    project = tmp_path / 'kiro-project'
+    project.mkdir()
+    record = receipt(registry, tmp_path, client='kiro', scope='project', project=project)
+    skill = project / '.kiro/skills/tao-dev'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('test', encoding='utf-8')
+    hook = project / '.kiro/hooks/tao-dev.json'
+    record['activation'] = {'schema': 1, 'skill': str(skill.absolute()), 'hook': str(hook.absolute()),
+                            'skill_digest': registry._tree_digest(skill), 'hook_digest': 'hook', 'machine_bound': True}
+    registry.save_record(record)
+    assert registry.binding(skill / 'scripts', project) == record

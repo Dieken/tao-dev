@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-CLIENTS = {"claude": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME", "cursor": "CURSOR_CONFIG_DIR"}
+CLIENTS = {"claude": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME", "cursor": "CURSOR_CONFIG_DIR", "kiro": "KIRO_HOME"}
 SCOPES = {"user": 0, "project": 1, "local": 2}
 
 
@@ -50,6 +50,19 @@ def shared_root():
 def cli_root():
     root = shared_root()
     return _unlinked(root / "cli", root)
+
+
+def _tree_digest(path):
+    digest = hashlib.sha256()
+    path = Path(path)
+    if not path.is_dir() or path.is_symlink():
+        return None
+    for child in sorted(path.rglob('*')):
+        if child.is_symlink():
+            return None
+        if child.is_file() and child.name != '.tao-owned.json':
+            digest.update(child.relative_to(path).as_posix().encode() + b'\0' + child.read_bytes())
+    return digest.hexdigest()
 
 
 def _unlinked(path, boundary):
@@ -138,6 +151,20 @@ def _validate(record, client=None):
     if runtime == owned or not runtime.resolve().is_relative_to(owned.resolve()):
         raise ValueError("Installation runtime must be inside its managed root.")
     plugin, base = _absolute(record["plugin_path"]), _absolute(record["plugin_base"])
+    if client == "kiro":
+        activation = record.get("activation")
+        if not isinstance(activation, dict) or activation.get("schema") != 1:
+            raise ValueError("Kiro installation activation is required.")
+        boundary = client_home(client) if scope == "user" else Path(project)
+        root = boundary if scope == "user" else boundary / ".kiro"
+        expected_skill = _unlinked(root / "skills/tao-dev", boundary)
+        expected_hook = _unlinked(root / "hooks/tao-dev.json", boundary)
+        if (_absolute(activation.get("skill")) != expected_skill.absolute()
+                or _absolute(activation.get("hook")) != expected_hook.absolute()
+                or not isinstance(activation.get("skill_digest"), str)
+                or not isinstance(activation.get("hook_digest"), str)
+                or activation.get("machine_bound") is not True):
+            raise ValueError("Invalid Kiro activation receipt.")
     if base.resolve() not in (plugin.resolve(), plugin.resolve().parent):
         raise ValueError("Plugin cache base must identify this plugin or its version parent.")
     # A cache base identifies one plugin, never an entire project/home tree.
@@ -219,8 +246,13 @@ def binding(scripts, cwd=None):
         for record in records(client):
             if record["status"] != "ready":
                 continue
-            if not shared and not any(scripts.is_relative_to(Path(record[key]).resolve())
-                                      for key in ("plugin_path", "plugin_base")):
+            roots = [Path(record[key]).resolve() for key in ("plugin_path", "plugin_base")]
+            if record["client"] == "kiro" and isinstance(record.get("activation"), dict):
+                skill = Path(record["activation"]["skill"])
+                if _tree_digest(skill) != record["activation"]["skill_digest"]:
+                    continue
+                roots.append(skill.absolute())
+            if not shared and not any(scripts.is_relative_to(root) for root in roots):
                 continue
             project = Path(record["project"]) if record["project"] else None
             if project is not None and not cwd.is_relative_to(project):

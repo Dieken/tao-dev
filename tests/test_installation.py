@@ -414,3 +414,10 @@ def test_shared_cli_replaces_itself_while_running_from_inside_it(tmp_path, monke
     served = subprocess.run([str(launcher), '--version'], capture_output=True, text=True,
                             encoding='utf-8', timeout=120)
     assert served.returncode == 0 and 'tao-dev ' in served.stdout
+
+
+@pytest.mark.parametrize('scope', ['repo', 'project', 'local'])
+def test_kiro_scope_aliases_have_one_identity(scope, tmp_path):
+    args = install.arguments(['install', '--client', 'kiro', '--scope', scope, '--project', str(tmp_path)])
+    assert args.scope == 'project'
+    assert state.install_id('kiro', args.scope, tmp_path) == state.install_id('kiro', 'project', tmp_path)

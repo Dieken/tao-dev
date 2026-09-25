@@ -53,6 +53,8 @@ tao-dev/
         hooks/hooks.json             # Cursor hook（postToolUse）；agents/commands 空目录避免误载 Claude 包装
         agents/
         commands/
+      com.kiro/
+        hooks/tao-dev.json            # Kiro V3 standalone hook 模板
       .claude-plugin/
         plugin.json                  # Claude Code 兼容 manifest
       agents/                        # 按需：Claude Code 原生角色入口

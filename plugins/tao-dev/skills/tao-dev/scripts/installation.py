@@ -33,7 +33,7 @@ def arguments(argv):
     commands = parser.add_subparsers(dest='command', required=True)
     for name in ('install', 'upgrade', 'uninstall', 'list'):
         command = commands.add_parser(name)
-        command.add_argument('--client', choices=('claude', 'codex', 'cursor'), required=True)
+        command.add_argument('--client', choices=('claude', 'codex', 'cursor', 'kiro'), required=True)
         command.add_argument('--project', type=Path, default=Path.cwd())
         command.add_argument('--format', choices=('text', 'json'), default='text')
         if name in ('install', 'upgrade'):
@@ -57,10 +57,10 @@ def arguments(argv):
             command.add_argument('--yes', action='store_true', help='Confirm only the explicit --id.')
     args = parser.parse_args(argv)
     if args.command == 'install':
-        if args.client in ('codex', 'cursor') and args.scope in ('repo', 'local'):
+        if args.client in ('codex', 'cursor', 'kiro') and args.scope in ('repo', 'local'):
             args.scope = 'project'
         elif args.client == 'claude' and args.scope == 'repo':
-            parser.error('Claude scopes are user, project and local; repo is a Codex/Cursor alias.')
+            parser.error('Claude scopes are user, project and local; repo is a Codex/Cursor/Kiro alias.')
     args.project = args.project.resolve()
     if not args.project.is_dir():
         parser.error('--project must be an existing directory.')
@@ -140,6 +140,7 @@ def catalog_plugin(source, client):
         'codex': ('.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json'),
         'claude': ('.claude-plugin/marketplace.json',),
         'cursor': ('.cursor-plugin/marketplace.json', '.claude-plugin/marketplace.json'),
+        'kiro': ('.claude-plugin/marketplace.json',),
     }[client]
     catalog = next((source / name for name in names if (source / name).is_file()), None)
     if catalog is None:
@@ -363,10 +364,16 @@ def ignore_runtime(project):
 def install(args):
     import install_clients as clients
     clients.validate_scope(args.client, args.scope, args.project)
-    # Cursor install is file-based (plugins/local + .cursor/settings.json); the
-    # `agent` CLI is optional. Claude/Codex still require their native CLIs.
-    if args.client != 'cursor' and not shutil.which(args.client):
-        raise InstallError(f'{args.client} CLI is not on PATH.')
+    # Cursor install is file-based and its CLI is optional. Kiro is file-based
+    # too, but requires a CLI that exposes the V3 harness used by its hook.
+    executable = 'kiro-cli' if args.client == 'kiro' else args.client
+    if args.client != 'cursor' and not shutil.which(executable):
+        raise InstallError(f'{executable} CLI is not on PATH.')
+    if args.client == 'kiro':
+        probe = subprocess.run([shutil.which(executable), '--help-all'], capture_output=True, text=True,
+                               encoding='utf-8', errors='replace', timeout=15, check=False)
+        if probe.returncode or '--v3' not in (probe.stdout + probe.stderr):
+            raise InstallError('kiro-cli does not expose the required V3 agent harness.')
     if not shutil.which('git'):
         raise InstallError('Git is required to manage plugin sources.')
     import runtime
@@ -442,6 +449,7 @@ def install(args):
                                    plugin_path=str(cached), plugin_base=installed['plugin_base'],
                                    python=str(python), runtime_dir=str(root / 'runtime'),
                                    version=installed['version'], source=spec, status='preparing',
+                                   activation=installed.get('activation'),
                                    wheelhouse=str(wheels) if wheels else None, files=collapse_paths(files))
                     if previous is None:
                         state.save_record(receipt)
@@ -589,8 +597,18 @@ def inventory(args):
 
 
 def guide(record):
-    invocation = '/tao-' if record['client'] == 'claude' else '$tao-dev '
-    return [f'Open a new {record["client"]} session in your project.',
+    if record['client'] == 'claude':
+        invocation = '/tao-'
+    elif record['client'] == 'kiro':
+        invocation = '/tao-dev '
+    else:
+        invocation = '$tao-dev '
+    lines = [f'Open a new {record["client"]} session in your project.']
+    if record['client'] == 'kiro':
+        lines += ['Kiro V2 is not supported; start this session with: kiro-cli --v3',
+                  'Persistent V3 default: kiro-cli settings chat.agentEngine v3',
+                  'Equivalent settings file entry: {"chat.agentEngine":"v3"}']
+    return lines + [
             f'Optional project checks: {invocation}setup',
             f'Start a feature: {invocation}new <your business requirement>',
             f'Check progress: {invocation}status; resume work: {invocation}continue',
@@ -722,7 +740,8 @@ def uninstall(args):
                 raise InstallError('Installation is busy; nothing was removed.')
     result = clients.remove_activation(args.client, selected['plugin_id'], selected['scope'],
                                        Path(selected.get('project') or args.project),
-                                       keep_plugin=bool(others), keep_activation=same_activation)
+                                       keep_plugin=bool(others), keep_activation=same_activation,
+                                       activation=selected.get('activation'))
     removed, warnings = list(result.get('files', [])), list(result.get('warnings', []))
     if not selected.get('native'):
         paths, notices = remove_owned(selected)

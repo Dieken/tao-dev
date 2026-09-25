@@ -39,13 +39,13 @@ install 是用户安装与升级的唯一完整入口。setup 一次准备相互
 <!-- tao:section contracts -->
 ## 接口与使用
 
-`tao install --client claude|codex|cursor --scope user|project|local` 默认使用 GitHub marketplace。`--source <插件目录、仓库目录或 Git URL>` 直接使用明确来源，生成仅本机使用的目录清单，不访问在线 marketplace。`--marketplace <目录或 GitHub 来源>` 显式选择 marketplace；与 --source 互斥。`--project <目录>` 默认当前目录；`--wheelhouse <目录>` 仅使用离线锁定 wheel；`--timeout <秒数>` 为每次依赖准备设定总时限，默认 300，0 取消上限。依赖准备逐包在 stderr 报告名称、版本、来源 URL、大小与实测速度，stdout 仍只有报告文档。文本默认输出路径、版本、范围、写入文件与使用指南；--format json 提供同一信息。
+`tao install --client claude|codex|cursor|kiro --scope user|project|local` 默认使用 GitHub marketplace。`--source <插件目录、仓库目录或 Git URL>` 直接使用明确来源，生成仅本机使用的目录清单，不访问在线 marketplace。`--marketplace <目录或 GitHub 来源>` 显式选择 marketplace；与 --source 互斥。`--project <目录>` 默认当前目录；`--wheelhouse <目录>` 仅使用离线锁定 wheel；`--timeout <秒数>` 为每次依赖准备设定总时限，默认 300，0 取消上限。依赖准备逐包在 stderr 报告名称、版本、来源 URL、大小与实测速度，stdout 仍只有报告文档。文本默认输出路径、版本、范围、写入文件与使用指南；--format json 提供同一信息。
 
 `tao upgrade --client claude|codex [--id <标识>]` 就地更新已记录的安装：从记录取回作用域、项目与来源，没有记录时报错而不新建；记录多于一份时要求 --id。不带 --id 只在服务于 --project（默认当前目录）的记录中选择：项目路径精确匹配，user 作用域的记录服务所有项目。工作树位于主检出之内，接受上层目录就会在工作树里更新主检出的那份安装，并按成功报告，因此不按上层目录匹配，与运行数据定位的最深匹配不同；跨项目升级显式给出 --project 或 --id。客户端自行安装的原生安装没有来源记录，无法升级，报错给出接管它的 tao install 命令。它接受 --ref、--wheelhouse 和 --timeout，不接受 --scope 和来源参数。`tao install` 重复执行同一 client、scope 和 project 同样是升级，但 --scope 默认 user，漏写就会新建另一份安装。
 
 `tao list --client claude|codex` 只读列出安装及其路径标注，不提供删除。`tao uninstall --client claude|codex` 列出已管理及可发现的原生安装并交互选择；--list 只读列出。确认前的清单按路径标注 delete、modify、keep 或 client（由客户端自身的插件移除处理），并附含义说明；取消时报告 status 为 cancelled。自动化可用 --id 与 --yes 删除明确的一份，不能以 --yes 隐式删除全部。未选择或输入结束不删除。
 
-Claude 使用原生 user/project/local。Codex 与 Cursor 只有 user 和 repo/project 两级；repo 与 local 参数均归一化为 project，不创建第三种范围。Cursor user 写入 `~/.cursor/plugins/local/tao-dev`，project 写入项目 `.cursor/settings.json`；安装后需 Reload Window。多个范围可共享原生缓存，移除一个范围不能卸载仍被另一范围使用的缓存。
+Claude 使用原生 user/project/local。Codex、Cursor 与 Kiro 只有 user 和 repo/project 两级；repo 与 local 参数均归一化为 project，不创建第三种范围。Cursor user 写入 `~/.cursor/plugins/local/tao-dev`，project 写入项目 `.cursor/settings.json`；安装后需 Reload Window。Kiro 写入 `${KIRO_HOME:-~/.kiro}` 或项目 `.kiro` 下的 skill 与 V3 standalone hook；项目内容是本机 activation，不用于团队共享。Kiro V2 不支持，安装器不修改 `chat.agentEngine`。多个范围可共享原生缓存，移除一个范围不能卸载仍被另一范围使用的缓存。
 
 <!-- tao:section invariants -->
 ## 不变量与边界

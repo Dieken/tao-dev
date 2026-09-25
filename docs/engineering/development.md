@@ -119,7 +119,7 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 安装记录模块负责验证安装标识、工具数据归属和运行绑定，客户端适配模块负责原生缓存及共享配置。共享 CLI 按当前目录或 --project 从两个客户端的记录中选择安装，先转交对应原生插件入口，使不同项目沿用各自版本的依赖清单；install/uninstall 继续使用共享安装器。运行数据目录优先采用显式 TAO 覆盖，其次采用匹配的安装记录，再回退到 Claude 数据目录和平台默认目录。记录中的解释器及运行位置不写进项目共享配置；未知或符号链接重定向的归属不能成为递归删除依据。共享 CLI 在最后一份安装卸载后仍保留，以便再次安装。
 
-Claude 保留 user、project、local 三种原生范围。Codex／Cursor 的 repo、local 参数均归一为 project，与 user 构成两个有效范围；不能把 local 描述为额外的个人项目配置。修改安装流程时同步相关行为测试，并分别报告模拟适配测试、实际依赖准备与原生客户端验收的范围。
+Claude 保留 user、project、local 三种原生范围。Codex／Cursor／Kiro 的 repo、local 参数均归一为 project，与 user 构成两个有效范围；不能把 local 描述为额外的个人项目配置。Kiro 仅支持 V3，项目安装是本机 activation，不支持团队共享。修改安装流程时同步相关行为测试，并分别报告模拟适配测试、实际依赖准备与原生客户端验收的范围。
 
 ### 版本与发布 tag
 

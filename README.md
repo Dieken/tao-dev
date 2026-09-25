@@ -34,7 +34,7 @@ new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写
 
 ## 安装
 
-需要 **Python 3.11–3.14（含 pip、venv）、Git**，以及已安装并登录的 Claude Code、Codex 或 Cursor。在目标项目目录执行一条命令（换成 `--client claude` 或 `--client cursor`）：
+需要 **Python 3.11–3.14（含 pip、venv）、Git**，以及已安装并登录的 Claude Code、Codex、Cursor 或 Kiro CLI。在目标项目目录执行一条命令（换成 `--client claude`、`--client cursor` 或 `--client kiro`）：
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Dieken/tao-dev/main/install.sh | sh -s -- --client codex --scope project
@@ -53,7 +53,8 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 
 安装器会取得 tao-dev、准备全部 Python 依赖（含 HTML 出版）、配置插件与 hook，最后自动执行 doctor；无需设置 PATH 或 TAO 环境变量。结束时输出版本、生效范围、`tao` 启动器位置和写入的文件。启动器默认在 `~/.local/bin/tao`（Windows 为 `%USERPROFILE%\.local\bin\tao.cmd`）；安装器不修改 PATH，若该目录不在 PATH 中，直接用摘要里的完整路径。
 
-- `--scope user` 当前用户的所有项目；`--scope project` 指定项目、配置可与团队共享；`--scope local` 仅 Claude，当前项目且仅自己使用。Codex／Cursor 的 `repo`／`local` 均归一为 `project`。
+- `--scope user` 当前用户的所有项目；`--scope project` 指定项目；`--scope local` 仅 Claude 保留独立的当前项目个人范围。Codex／Cursor／Kiro 的 `repo`／`local` 均归一为 `project`。Kiro 的项目安装是本机 activation，不用于团队共享。
+- Kiro 只支持 **V3 agent harness**，不支持 V2。单次启动用 `kiro-cli --v3`；持久启用可运行 `kiro-cli settings chat.agentEngine v3`，或在 `${KIRO_HOME:-~/.kiro}/settings/cli.json` 的顶层对象中合并 `{"chat.agentEngine":"v3"}`。安装器不会替你修改该设置。
 - **重复执行同一条安装命令即可升级**，匹配的依赖环境会复用，未重新指定来源时沿用原来源。
 - 从本地工作目录安装（包含未提交修改）用 `--source .`，安装到别的项目再加 `--project /path/to/project`：
 

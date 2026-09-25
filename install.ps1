@@ -1,6 +1,6 @@
 # Download the installer and delegate installation policy to tao install.
 param(
-    [ValidateSet('claude','codex','cursor')][string]$Client = 'codex',
+    [ValidateSet('claude','codex','cursor','kiro')][string]$Client = 'codex',
     [ValidateSet('user','project','repo','local')][string]$Scope = 'user',
     [string]$Project = (Get-Location).Path,
     [string]$Source,
