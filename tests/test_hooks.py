@@ -92,11 +92,23 @@ def test_static_client_hooks_invoke_python_without_platform_launchers():
     plugin = HOOK.parents[3]
     claude = json.loads((plugin / "hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]
     codex = json.loads((plugin / "com.openai/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]
+    cursor = json.loads((plugin / "com.cursor/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["postToolUse"][0]
     assert claude["command"] == "python3"
     assert claude["args"] == ["-I", "-B", "${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"]
     assert codex["command"] == 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+    assert cursor["command"] == 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+    assert cursor["matcher"] == "Write"
     assert not (HOOK.parent / "tao-launch.sh").exists()
     assert not (HOOK.parent / "tao-launch.ps1").exists()
+
+
+def test_cursor_hook_event_uses_additional_context(tmp_path):
+    project(tmp_path)
+    completed = invoke(tmp_path, "postToolUse")
+    assert completed.returncode == 0, completed.stderr
+    report = json.loads(completed.stdout)
+    assert "passed" in report["additional_context"]
+    assert "hookSpecificOutput" not in report
 
 
 def test_incomplete_hook_cache_is_rebuilt(tmp_path):

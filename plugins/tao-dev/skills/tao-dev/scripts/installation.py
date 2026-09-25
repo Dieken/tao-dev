@@ -33,7 +33,7 @@ def arguments(argv):
     commands = parser.add_subparsers(dest='command', required=True)
     for name in ('install', 'upgrade', 'uninstall', 'list'):
         command = commands.add_parser(name)
-        command.add_argument('--client', choices=('claude', 'codex'), required=True)
+        command.add_argument('--client', choices=('claude', 'codex', 'cursor'), required=True)
         command.add_argument('--project', type=Path, default=Path.cwd())
         command.add_argument('--format', choices=('text', 'json'), default='text')
         if name in ('install', 'upgrade'):
@@ -57,10 +57,10 @@ def arguments(argv):
             command.add_argument('--yes', action='store_true', help='Confirm only the explicit --id.')
     args = parser.parse_args(argv)
     if args.command == 'install':
-        if args.client == 'codex' and args.scope in ('repo', 'local'):
+        if args.client in ('codex', 'cursor') and args.scope in ('repo', 'local'):
             args.scope = 'project'
         elif args.client == 'claude' and args.scope == 'repo':
-            parser.error('Claude scopes are user, project and local; repo is a Codex alias.')
+            parser.error('Claude scopes are user, project and local; repo is a Codex/Cursor alias.')
     args.project = args.project.resolve()
     if not args.project.is_dir():
         parser.error('--project must be an existing directory.')
@@ -136,8 +136,11 @@ def plugin_root(source):
 
 
 def catalog_plugin(source, client):
-    names = ('.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json') if client == 'codex' else (
-        '.claude-plugin/marketplace.json',)
+    names = {
+        'codex': ('.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json'),
+        'claude': ('.claude-plugin/marketplace.json',),
+        'cursor': ('.cursor-plugin/marketplace.json', '.claude-plugin/marketplace.json'),
+    }[client]
     catalog = next((source / name for name in names if (source / name).is_file()), None)
     if catalog is None:
         raise InstallError('Marketplace has no supported catalog; use --source for a plugin directory.')
@@ -173,7 +176,8 @@ def local_catalog(source, destination, client, identifier):
         if path.is_file():
             digest.update(path.relative_to(plugin).as_posix().encode() + b'\0' + path.read_bytes())
     build = digest.hexdigest()[:12]
-    manifest_paths = [plugin / '.codex-plugin/plugin.json', plugin / '.claude-plugin/plugin.json']
+    manifest_paths = [plugin / '.codex-plugin/plugin.json', plugin / '.claude-plugin/plugin.json',
+                      plugin / '.cursor-plugin/plugin.json']
     public = plugin / 'plugin.json'
     if client == 'codex' and public.exists():
         manifest = json.loads(public.read_text(encoding='utf-8'))
@@ -196,6 +200,10 @@ def local_catalog(source, destination, client, identifier):
         entry.update(source={'source': 'local', 'path': './plugins/tao-dev'},
                      policy={'installation': 'AVAILABLE', 'authentication': 'ON_INSTALL'}, category='Productivity')
         path = destination / '.agents/plugins/marketplace.json'
+    elif client == 'cursor':
+        catalog['owner'] = {'name': 'tao-dev'}
+        entry['description'] = 'Evidence-based workflows for human-agent development.'
+        path = destination / '.cursor-plugin/marketplace.json'
     else:
         catalog['owner'] = {'name': 'tao-dev'}
         path = destination / '.claude-plugin/marketplace.json'
@@ -355,7 +363,9 @@ def ignore_runtime(project):
 def install(args):
     import install_clients as clients
     clients.validate_scope(args.client, args.scope, args.project)
-    if not shutil.which(args.client):
+    # Cursor install is file-based (plugins/local + .cursor/settings.json); the
+    # `agent` CLI is optional. Claude/Codex still require their native CLIs.
+    if args.client != 'cursor' and not shutil.which(args.client):
         raise InstallError(f'{args.client} CLI is not on PATH.')
     if not shutil.which('git'):
         raise InstallError('Git is required to manage plugin sources.')

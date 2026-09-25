@@ -569,7 +569,7 @@ def hook_main():
             raise ValueError("Expected a hook event object.")
         project = next((p for p in [Path.cwd(), *Path.cwd().parents]
                         if (p / ".tao/config.toml").is_file()), None)
-        if payload.get("hook_event_name") != "PostToolUse" or project is None:
+        if payload.get("hook_event_name") not in ("PostToolUse", "postToolUse") or project is None:
             print("{}")
             return 0
         import tomllib

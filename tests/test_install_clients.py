@@ -16,6 +16,7 @@ if spec.loader:
 @pytest.fixture
 def state(tmp_path, monkeypatch):
     for variable, name in [('CODEX_HOME', 'codex'), ('CLAUDE_CONFIG_DIR', 'claude'),
+                           ('CURSOR_CONFIG_DIR', 'cursor'),
                            ('XDG_CONFIG_HOME', 'xdg'), ('GIT_CONFIG_GLOBAL', 'gitconfig')]:
         monkeypatch.setenv(variable, str(tmp_path / name))
     project = tmp_path / 'project'
@@ -104,8 +105,67 @@ def test_codex_local_is_project_alias_even_with_tracked_config(state):
     target.write_text('# team config\n', encoding='utf-8')
     subprocess.run(['git', '-C', str(project), 'add', '.codex/config.toml'], check=True)
     assert clients.validate_scope('codex', 'local', project) == 'project'
+    assert clients.validate_scope('cursor', 'local', project) == 'project'
     assert target.read_text(encoding='utf-8') == '# team config\n'
     assert clients.validate_scope('claude', 'local', project) == 'local'
+
+
+def _cursor_marketplace(root):
+    import sys
+    marketplace = root / 'marketplace'
+    plugin = marketplace / 'plugins/tao-dev'
+    (plugin / '.cursor-plugin').mkdir(parents=True)
+    (plugin / 'com.cursor/hooks').mkdir(parents=True)
+    (plugin / 'com.cursor/agents').mkdir(parents=True)
+    (plugin / 'com.cursor/commands').mkdir(parents=True)
+    (plugin / 'skills/tao-dev/scripts').mkdir(parents=True)
+    (plugin / '.cursor-plugin/plugin.json').write_text(
+        json.dumps({'name': 'tao-dev', 'version': '1.2.3', 'description': 'test',
+                    'skills': './skills/', 'hooks': './com.cursor/hooks/hooks.json',
+                    'agents': './com.cursor/agents/', 'commands': './com.cursor/commands/'}),
+        encoding='utf-8')
+    (plugin / 'com.cursor/hooks/hooks.json').write_text(json.dumps({
+        'version': 1,
+        'hooks': {'postToolUse': [{'command': 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"',
+                                   'matcher': 'Write', 'timeout': 35}]}
+    }), encoding='utf-8')
+    (plugin / 'skills/tao-dev/scripts/hook.py').write_text('print("ok")\n', encoding='utf-8')
+    (marketplace / '.cursor-plugin').mkdir(parents=True)
+    (marketplace / '.cursor-plugin/marketplace.json').write_text(json.dumps({
+        'name': 'custom', 'owner': {'name': 'tao-dev'},
+        'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]
+    }), encoding='utf-8')
+    return marketplace, Path(sys.executable)
+
+
+def test_cursor_user_install_publishes_local_plugin(state):
+    root, project = state
+    marketplace, python = _cursor_marketplace(root)
+    result = clients.install_plugin('cursor', str(marketplace), 'tao-dev@custom', 'user', project, python=python)
+    local = root / 'cursor/plugins/local/tao-dev'
+    assert Path(result['plugin_path']) == local
+    assert (local / '.tao-owned.json').is_file()
+    assert (local / '.cursor-plugin/plugin.json').is_file()
+    hook = json.loads((local / 'com.cursor/hooks/hooks.json').read_text(encoding='utf-8'))
+    command = hook['hooks']['postToolUse'][0]['command']
+    assert 'CURSOR_PLUGIN_ROOT' not in command
+    assert str(local / 'skills/tao-dev/scripts/hook.py') in command
+    rows = clients.discover('cursor', project)
+    assert any(row['scope'] == 'user' and row['plugin_path'] == str(local) for row in rows)
+
+
+def test_cursor_project_install_writes_settings(state):
+    root, project = state
+    marketplace, python = _cursor_marketplace(root)
+    result = clients.install_plugin('cursor', str(marketplace), 'tao-dev@custom', 'local', project, python=python)
+    assert result['version'] == '1.2.3'
+    settings = json.loads((project / '.cursor/settings.json').read_text(encoding='utf-8'))
+    assert settings['plugins']['custom/tao-dev']['enabled'] is True
+    assert not (root / 'cursor/plugins/local/tao-dev').exists()
+    rows = clients.discover('cursor', project)
+    assert any(row['scope'] == 'project' and row['project'] == str(project) for row in rows)
+    clients.remove_activation('cursor', 'tao-dev@custom', 'project', project)
+    assert not (project / '.cursor/settings.json').exists()
 
 
 def test_codex_project_install_preserves_prior_user_activation(state, monkeypatch):
@@ -242,9 +302,10 @@ def test_discovery_does_not_follow_marketplace_cache_symlink(state):
     assert clients.discover('codex', project) == []
 
 
-def native_enabled():
-    import os
-    return os.environ.get('TAO_TEST_NATIVE_CLIENTS') == '1'
+def _require_native(*clients_needed):
+    import native_clients
+    for client in clients_needed:
+        native_clients.require(client)
 
 
 def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
@@ -267,8 +328,8 @@ def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
     assert config.read_text(encoding='utf-8') == '# preserved\nenabled = true\n'
 
 
-@pytest.mark.skipif(not native_enabled(), reason='Set TAO_TEST_NATIVE_CLIENTS=1 for isolated installed-CLI probes')
 def test_native_toml_editor_preserves_comments_and_deletes_only_selected_key(state):
+    _require_native('codex')
     root, project = state
     config = project / '.codex/config.toml'
     config.parent.mkdir()
@@ -282,10 +343,10 @@ def test_native_toml_editor_preserves_comments_and_deletes_only_selected_key(sta
     assert list(config.parent.iterdir()) == [config]
 
 
-@pytest.mark.skipif(not native_enabled(), reason='Set TAO_TEST_NATIVE_CLIENTS=1 for isolated installed-CLI probes')
 @pytest.mark.parametrize(('client', 'scope'), [('claude', 'project'), ('claude', 'local'),
-                                                  ('codex', 'project')])
+                                                  ('codex', 'project'), ('cursor', 'project')])
 def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, client, scope):
+    _require_native(client)
     root, project = state
     outside = root / 'outside'
     outside.mkdir()
@@ -294,12 +355,19 @@ def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, 
     result = clients.install_plugin(client, str(source), plugin_id, scope, project)
     cached = Path(result['plugin_path'])
     assert cached.is_relative_to(root)
+
     def active(folder):
         if client == 'codex':
             rows = clients._rpc('skills/list', {'cwds': [str(folder)], 'forceReload': True}, folder)['data']
             return any(skill.get('pluginId') == plugin_id and skill.get('enabled')
                        for row in rows for skill in row['skills'])
-        return any(row['id'] == plugin_id and row['enabled'] for row in clients._run(['claude', 'plugin', 'list', '--json'], folder))
+        if client == 'cursor':
+            return any(row['plugin_id'] == plugin_id and row['enabled'] and row['scope'] in ('user', 'project')
+                       for row in clients.discover('cursor', folder)
+                       if row['scope'] == 'user' or row['project'] == str(folder))
+        return any(row['id'] == plugin_id and row['enabled']
+                   for row in clients._run(['claude', 'plugin', 'list', '--json'], folder))
+
     assert active(project)
     assert not active(outside)
     again = clients.install_plugin(client, str(source), plugin_id, scope, project)
@@ -454,9 +522,9 @@ def test_late_install_error_exposes_attempted_cache(state, monkeypatch):
     assert failure.value.plugin_path == str(plugin)
 
 
-@pytest.mark.skipif(not native_enabled(), reason='Set TAO_TEST_NATIVE_CLIENTS=1 for isolated installed-CLI probes')
-@pytest.mark.parametrize('client', ['claude', 'codex'])
+@pytest.mark.parametrize('client', ['claude', 'codex', 'cursor'])
 def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(state, client):
+    _require_native(client)
     import shutil
     root, project = state
     source = root / 'catalog'
@@ -464,15 +532,20 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
     shutil.copytree(SCRIPTS.parents[2], plugin_source, ignore=shutil.ignore_patterns('__pycache__'))
     (source / '.agents/plugins').mkdir(parents=True)
     (source / '.claude-plugin').mkdir()
+    (source / '.cursor-plugin').mkdir()
     (source / '.agents/plugins/marketplace.json').write_text(json.dumps({
         'name': 'rollback-test', 'plugins': [{'name': 'tao-dev', 'source': {'source': 'local', 'path': './plugin'},
                                            'policy': {'installation': 'AVAILABLE', 'authentication': 'ON_INSTALL'},
                                            'category': 'Productivity'}]}), encoding='utf-8')
     (source / '.claude-plugin/marketplace.json').write_text(json.dumps({
         'name': 'rollback-test', 'owner': {'name': 'Test'}, 'plugins': [{'name': 'tao-dev', 'source': './plugin'}]}), encoding='utf-8')
+    (source / '.cursor-plugin/marketplace.json').write_text(json.dumps({
+        'name': 'rollback-test', 'owner': {'name': 'Test'}, 'plugins': [{'name': 'tao-dev', 'source': './plugin'}]}), encoding='utf-8')
     def version(value):
-        for name in ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json'):
+        for name in ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json', '.cursor-plugin/plugin.json'):
             manifest = plugin_source / name
+            if not manifest.is_file():
+                continue
             data = json.loads(manifest.read_text(encoding='utf-8'))
             data['version'] = value
             manifest.write_text(json.dumps(data), encoding='utf-8')
@@ -491,10 +564,16 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
     if previous_cache.exists():
         shutil.rmtree(previous_cache)
     shutil.copytree(backup, previous_cache)
-    unrelated = root / client / ('config.toml' if client == 'codex' else 'settings.json')
     if client == 'codex':
+        unrelated = root / 'codex' / 'config.toml'
         clients._write_config(unrelated, [('test_preserve', 'unrelated')])
+    elif client == 'claude':
+        unrelated = root / 'claude' / 'settings.json'
+        data = clients._read_json(unrelated)
+        data['test_preserve'] = 'unrelated'
+        unrelated.write_text(json.dumps(data), encoding='utf-8')
     else:
+        unrelated = project / '.cursor/settings.json'
         data = clients._read_json(unrelated)
         data['test_preserve'] = 'unrelated'
         unrelated.write_text(json.dumps(data), encoding='utf-8')
@@ -507,11 +586,14 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
     if client == 'codex':
         clients._verify_skills(project, plugin_id, previous_cache)
         assert clients._config(unrelated)['test_preserve'] == 'unrelated'
-    else:
+    elif client == 'claude':
         native = clients._run(['claude', 'plugin', 'list', '--json'], project)
         assert native[0]['enabled'] is True
         assert native[0]['installPath'] == str(previous_cache)
         assert clients._read_json(unrelated)['test_preserve'] == 'unrelated'
+    else:
+        assert clients._read_json(unrelated)['test_preserve'] == 'unrelated'
+        assert clients._read_json(unrelated)['plugins']['rollback-test/tao-dev']['enabled'] is True
 
 
 def test_deleted_codex_project_final_removal_uses_existing_neutral_cwd(state, monkeypatch):

@@ -13,19 +13,27 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_github_catalogs_resolve_one_complete_compatible_source():
     codex = json.loads((ROOT / '.agents/plugins/marketplace.json').read_text(encoding='utf-8'))
     claude = json.loads((ROOT / '.claude-plugin/marketplace.json').read_text(encoding='utf-8'))
-    assert codex['name'] == claude['name'] == 'tao-dev'
+    cursor = json.loads((ROOT / '.cursor-plugin/marketplace.json').read_text(encoding='utf-8'))
+    assert codex['name'] == claude['name'] == cursor['name'] == 'tao-dev'
     codex_entry, = codex['plugins']
     claude_entry, = claude['plugins']
+    cursor_entry, = cursor['plugins']
     plugin = (ROOT / codex_entry['source']['path']).resolve()
     assert plugin == (ROOT / claude_entry['source']).resolve()
+    assert plugin == (ROOT / cursor_entry['source']).resolve()
     # Codex 0.154.0 skips hooks when a portable root manifest takes precedence.
     assert not (plugin / 'plugin.json').exists()
     manifest = json.loads((plugin / '.codex-plugin/plugin.json').read_text(encoding='utf-8'))
     claude_manifest = json.loads((plugin / '.claude-plugin/plugin.json').read_text(encoding='utf-8'))
+    cursor_manifest = json.loads((plugin / '.cursor-plugin/plugin.json').read_text(encoding='utf-8'))
     for key in ('name', 'version', 'description'):
-        assert manifest[key] == claude_manifest[key]
+        assert manifest[key] == claude_manifest[key] == cursor_manifest[key]
     hooks = json.loads((plugin / manifest['hooks']).read_text(encoding='utf-8'))
     assert hooks['hooks']['PostToolUse']
+    cursor_hooks = json.loads((plugin / cursor_manifest['hooks']).read_text(encoding='utf-8'))
+    assert cursor_hooks['hooks']['postToolUse']
+    assert cursor_manifest['agents'] == './com.cursor/agents/'
+    assert cursor_manifest['commands'] == './com.cursor/commands/'
     assert (plugin / 'skills/tao-dev/scripts/tao.py').is_file()
 
 
@@ -48,7 +56,7 @@ def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format)
     assert plugin.is_relative_to(output)
     assert plugin.name == entry['name'] == 'tao-dev'
     folders = ('skills', 'com.openai') if package_format == 'codex-legacy' else (
-        'skills', 'agents', 'commands', 'hooks', '.claude-plugin')
+        'skills', 'agents', 'commands', 'hooks', 'com.cursor', '.claude-plugin', '.cursor-plugin')
     for folder in folders:
         source = ROOT / 'plugins/tao-dev' / folder
         for path in source.rglob('*'):

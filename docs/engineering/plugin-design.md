@@ -38,6 +38,8 @@ tao-dev/
     tao-dev/                         # 插件根，独立复制后可以安装
       .codex-plugin/
         plugin.json                  # Codex 兼容 manifest；公共格式由打包生成
+      .cursor-plugin/
+        plugin.json                  # Cursor Plugin manifest；hooks 指向 com.cursor
       skills/
         tao-dev/
           SKILL.md                   # 共享流程入口
@@ -47,6 +49,10 @@ tao-dev/
       com.openai/
         hooks/hooks.json             # Codex hook 配置，显式声明路径
         agents/tao-reviewer.toml      # 可选原生角色，需项目单独注册
+      com.cursor/
+        hooks/hooks.json             # Cursor hook（postToolUse）；agents/commands 空目录避免误载 Claude 包装
+        agents/
+        commands/
       .claude-plugin/
         plugin.json                  # Claude Code 兼容 manifest
       agents/                        # 按需：Claude Code 原生角色入口

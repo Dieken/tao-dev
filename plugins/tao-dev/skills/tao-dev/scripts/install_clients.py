@@ -29,7 +29,14 @@ class ClientError(ValueError):
 
 
 def _home(client):
-    variable, default = ('CODEX_HOME', '.codex') if client == 'codex' else ('CLAUDE_CONFIG_DIR', '.claude')
+    homes = {
+        'codex': ('CODEX_HOME', '.codex'),
+        'claude': ('CLAUDE_CONFIG_DIR', '.claude'),
+        'cursor': ('CURSOR_CONFIG_DIR', '.cursor'),
+    }
+    if client not in homes:
+        raise ClientError('Client must be claude/codex/cursor')
+    variable, default = homes[client]
     return Path(os.environ.get(variable, str(Path.home() / default))).expanduser().resolve()
 
 
@@ -177,13 +184,14 @@ def _write_config(path, values):
 
 
 def validate_scope(client, scope, project):
-    if client not in ('claude', 'codex') or scope not in ('user', 'project', 'local'):
-        raise ClientError('Client must be claude/codex and scope user/project/local')
+    if client not in ('claude', 'codex', 'cursor') or scope not in ('user', 'project', 'local'):
+        raise ClientError('Client must be claude/codex/cursor and scope user/project/local')
     project = Path(project).expanduser().resolve()
     if not project.is_dir():
         raise ClientError(f'Project directory does not exist: {project}')
-    # Codex has a repository scope. The local spelling is a compatibility alias.
-    return 'project' if client == 'codex' and scope == 'local' else scope
+    # Codex and Cursor have repository/user scopes only. Claude-style local
+    # spelling is a compatibility alias that maps to project for both.
+    return 'project' if client in ('codex', 'cursor') and scope == 'local' else scope
 
 
 def _valid_id(plugin_id):
@@ -202,45 +210,69 @@ def _command_line(argv, *, windows=None):
     return subprocess.list2cmdline(values) if windows else shlex.join(values)
 
 
+def _hook_relative(client):
+    return {
+        'claude': Path('hooks/hooks.json'),
+        'codex': Path('com.openai/hooks/hooks.json'),
+        'cursor': Path('com.cursor/hooks/hooks.json'),
+    }[client]
+
+
 def _bind_hook(client, plugin, python):
     """Replace the portable hook command with this installation's exact paths."""
     plugin = Path(plugin).resolve()
     python = Path(python).resolve()
     script = plugin / 'skills/tao-dev/scripts/hook.py'
-    relative = Path('hooks/hooks.json' if client == 'claude' else 'com.openai/hooks/hooks.json')
-    path = plugin / relative
-    if (client not in ('claude', 'codex') or path.is_symlink() or script.is_symlink()
+    path = plugin / _hook_relative(client)
+    if (client not in ('claude', 'codex', 'cursor') or path.is_symlink() or script.is_symlink()
             or not path.is_file() or not script.is_file()
             or not path.resolve().is_relative_to(plugin)):
         raise ClientError('Cannot bind an invalid tao-dev hook installation')
     definition = _read_json(path)
-    try:
-        groups = definition['hooks']['PostToolUse']
-        group = groups[0]
-        handlers = group['hooks']
-        handler = handlers[0]
-    except (KeyError, IndexError, TypeError) as exc:
-        raise ClientError('Cannot bind an invalid tao-dev hook definition') from exc
-    handler_keys = {'type', 'command', 'args', 'timeout'} if client == 'claude' else {
-        'type', 'command', 'timeout'}
-    if (set(definition) != {'hooks'} or set(definition.get('hooks', {})) != {'PostToolUse'}
-            or len(groups) != 1 or set(group) != {'matcher', 'hooks'}
-            or group.get('matcher') != ('Write|Edit' if client == 'claude' else 'Write|Edit|apply_patch')
-            or len(handlers) != 1 or set(handler) != handler_keys
-            or handler.get('type') != 'command' or handler.get('timeout') != 35):
-        raise ClientError('Cannot bind an unexpected tao-dev hook definition')
-    if client == 'claude':
-        portable = ('python3', ['-I', '-B', '${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py'])
-        bound = (str(python), ['-I', '-B', str(script)])
-        if (handler.get('command'), handler.get('args')) not in (portable, bound):
-            raise ClientError('Cannot bind an unexpected tao-dev hook command')
-        handler['command'], handler['args'] = bound
-    else:
-        portable = 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+    if client == 'cursor':
+        try:
+            handlers = definition['hooks']['postToolUse']
+            handler = handlers[0]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ClientError('Cannot bind an invalid tao-dev hook definition') from exc
+        if (set(definition) != {'version', 'hooks'} or definition.get('version') != 1
+                or set(definition.get('hooks', {})) != {'postToolUse'}
+                or len(handlers) != 1 or set(handler) != {'command', 'matcher', 'timeout'}
+                or handler.get('matcher') != 'Write' or handler.get('timeout') != 35):
+            raise ClientError('Cannot bind an unexpected tao-dev hook definition')
+        portable = 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
         bound = _command_line([python, '-I', '-B', script])
-        if handler.get('command') not in (portable, bound) or 'args' in handler or 'commandWindows' in handler:
+        if handler.get('command') not in (portable, bound):
             raise ClientError('Cannot bind an unexpected tao-dev hook command')
         handler['command'] = bound
+    else:
+        try:
+            groups = definition['hooks']['PostToolUse']
+            group = groups[0]
+            handlers = group['hooks']
+            handler = handlers[0]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ClientError('Cannot bind an invalid tao-dev hook definition') from exc
+        handler_keys = {'type', 'command', 'args', 'timeout'} if client == 'claude' else {
+            'type', 'command', 'timeout'}
+        if (set(definition) != {'hooks'} or set(definition.get('hooks', {})) != {'PostToolUse'}
+                or len(groups) != 1 or set(group) != {'matcher', 'hooks'}
+                or group.get('matcher') != ('Write|Edit' if client == 'claude' else 'Write|Edit|apply_patch')
+                or len(handlers) != 1 or set(handler) != handler_keys
+                or handler.get('type') != 'command' or handler.get('timeout') != 35):
+            raise ClientError('Cannot bind an unexpected tao-dev hook definition')
+        if client == 'claude':
+            portable = ('python3', ['-I', '-B', '${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py'])
+            bound = (str(python), ['-I', '-B', str(script)])
+            if (handler.get('command'), handler.get('args')) not in (portable, bound):
+                raise ClientError('Cannot bind an unexpected tao-dev hook command')
+            handler['command'], handler['args'] = bound
+        else:
+            portable = 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
+            bound = _command_line([python, '-I', '-B', script])
+            if handler.get('command') not in (portable, bound) or 'args' in handler or 'commandWindows' in handler:
+                raise ClientError('Cannot bind an unexpected tao-dev hook command')
+            handler['command'] = bound
     original = path.read_bytes()
     updated = (json.dumps(definition, indent=2) + '\n').encode()
     if path.read_bytes() != original:
@@ -264,9 +296,11 @@ def _native_row(plugin_id, scope, project, plugin, version, files, *, enabled=Tr
 
 def discover(client, project):
     project = Path(project).expanduser().resolve()
-    if client not in ('claude', 'codex'):
-        raise ClientError('Client must be claude/codex')
+    if client not in ('claude', 'codex', 'cursor'):
+        raise ClientError('Client must be claude/codex/cursor')
     home = _home(client)
+    if client == 'cursor':
+        return _discover_cursor(home, project)
     if client == 'claude':
         registry = home / 'plugins/installed_plugins.json'
         result = []
@@ -326,6 +360,168 @@ def discover(client, project):
             _, plugin, version = max(candidates, key=lambda row: (row[0], str(row[1])))
             result.append(_native_row(plugin_id, 'user' if target is None else 'project', target,
                                       plugin.resolve(), version, [str(config), str(base)], enabled=enabled))
+    return result
+
+
+def _cursor_plugin_key(plugin_id):
+    return f'{_valid_id(plugin_id)}/tao-dev'
+
+
+def _cursor_manifest(plugin):
+    path = plugin / '.cursor-plugin/plugin.json'
+    if not path.is_file():
+        raise ClientError(f'Cursor plugin is missing .cursor-plugin/plugin.json: {plugin}')
+    data = _read_json(path)
+    if data.get('name') != 'tao-dev':
+        raise ClientError(f'Cursor plugin name must be tao-dev: {plugin}')
+    return data
+
+
+def _cursor_plugin_from_marketplace(source):
+    source = Path(source).resolve()
+    catalog = source / '.cursor-plugin/marketplace.json'
+    if not catalog.is_file():
+        catalog = source / '.claude-plugin/marketplace.json'
+    if not catalog.is_file():
+        raise ClientError('Cursor marketplace has no .cursor-plugin/marketplace.json catalog')
+    data = _read_json(catalog)
+    entries = [entry for entry in data.get('plugins', []) if entry.get('name') == 'tao-dev']
+    if len(entries) != 1:
+        raise ClientError('Cursor marketplace must identify exactly one tao-dev plugin')
+    entry = entries[0].get('source')
+    if isinstance(entry, dict):
+        entry = entry.get('path')
+    if not isinstance(entry, str):
+        raise ClientError('Invalid Cursor marketplace plugin source')
+    plugin = (source / entry).resolve()
+    if not plugin.is_relative_to(source):
+        raise ClientError('Cursor marketplace plugin must stay inside its source directory')
+    _cursor_manifest(plugin)
+    return plugin, data.get('name') or 'tao-dev'
+
+
+def _publish_cursor_local(home, plugin, plugin_id):
+    """User-scope activation: Cursor discovers ~/.cursor/plugins/local/<name>."""
+    local_root = home / 'plugins/local'
+    local_root.mkdir(parents=True, exist_ok=True)
+    destination = local_root / 'tao-dev'
+    marker = destination / '.tao-owned.json'
+    if destination.exists():
+        if destination.is_symlink() or not marker.is_file() or _read_json(marker).get('id') != 'tao-dev':
+            raise ClientError(f'Refusing to replace unmanaged Cursor local plugin: {destination}')
+    stage = Path(tempfile.mkdtemp(prefix='.tao-cursor-local-', dir=local_root))
+    try:
+        shutil.copytree(plugin, stage / 'tao-dev', ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.git'))
+        (stage / 'tao-dev' / '.tao-owned.json').write_text(
+            json.dumps({'schema': 1, 'id': 'tao-dev', 'plugin_id': plugin_id}) + '\n',
+            encoding='utf-8', newline='\n')
+        backup = local_root / '.tao-dev-previous'
+        if backup.exists():
+            raise ClientError(f'Previous Cursor local plugin update needs inspection: {backup}')
+        if destination.exists():
+            destination.rename(backup)
+        (stage / 'tao-dev').rename(destination)
+        if backup.exists():
+            shutil.rmtree(backup)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    return destination
+
+
+def _enable_cursor_project(project, plugin_id, *, git_url=None, git_ref=None):
+    settings = project / '.cursor/settings.json'
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    data = _read_json(settings) if settings.exists() else {}
+    if settings.exists() and (not isinstance(data, dict) or (
+            'plugins' in data and not isinstance(data.get('plugins'), dict))):
+        raise ClientError(f'Cannot update Cursor project settings: {settings}')
+    plugins = data.setdefault('plugins', {})
+    entry = {'enabled': True}
+    if git_url:
+        entry['gitUrl'] = git_url
+        if git_ref:
+            entry['gitRef'] = git_ref
+    plugins[_cursor_plugin_key(plugin_id)] = entry
+    _write_json(settings, data)
+    return settings
+
+
+def _materialize_cursor_plugin(marketplace_source, plugin_id, home, *, ref=None):
+    marketplace = _valid_id(plugin_id)
+    source = Path(marketplace_source)
+    temporary = None
+    try:
+        if source.is_dir():
+            plugin_src, _ = _cursor_plugin_from_marketplace(source)
+        else:
+            temporary = Path(tempfile.mkdtemp(prefix='.tao-cursor-src-'))
+            argv = ['git', 'clone', '--depth', '1']
+            if ref:
+                argv += ['--branch=' + ref]
+            argv += ['--', marketplace_source, str(temporary / 'repository')]
+            completed = subprocess.run(argv, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            if completed.returncode:
+                raise ClientError(f'git clone failed: {(completed.stderr or completed.stdout).strip()}')
+            plugin_src, _ = _cursor_plugin_from_marketplace(temporary / 'repository')
+        version = _cursor_manifest(plugin_src).get('version', '0.0.0')
+        base = home / 'plugins/cache' / marketplace / 'tao-dev'
+        base.mkdir(parents=True, exist_ok=True)
+        destination = base / version
+        if destination.exists():
+            if destination.is_symlink() or not (destination / '.cursor-plugin/plugin.json').is_file():
+                raise ClientError(f'Refusing to replace unmanaged Cursor plugin cache: {destination}')
+            shutil.rmtree(destination)
+        stage = Path(tempfile.mkdtemp(prefix='.tao-cursor-cache-', dir=base))
+        try:
+            shutil.copytree(plugin_src, stage / 'plugin',
+                            ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.git'))
+            (stage / 'plugin').rename(destination)
+        finally:
+            shutil.rmtree(stage, ignore_errors=True)
+        return destination, version
+    finally:
+        if temporary is not None:
+            shutil.rmtree(temporary, ignore_errors=True)
+
+
+def _discover_cursor(home, project):
+    result = []
+    local = home / 'plugins/local/tao-dev'
+    marker = local / '.tao-owned.json'
+    if local.is_dir() and not local.is_symlink() and marker.is_file():
+        ownership = _read_json(marker)
+        if ownership.get('id') == 'tao-dev':
+            plugin_id = ownership.get('plugin_id') or 'tao-dev@tao-dev'
+            try:
+                version = _cursor_manifest(local).get('version', local.name)
+            except ClientError:
+                version = local.name
+            result.append(_native_row(plugin_id, 'user', None, local, version,
+                                      [str(local), str(marker)]))
+    settings = project / '.cursor/settings.json'
+    if settings.is_file():
+        for key, entry in _read_json(settings).get('plugins', {}).items():
+            if not isinstance(entry, dict) or entry.get('enabled') is not True:
+                continue
+            name = key.split('/', 1)[-1]
+            marketplace = key.split('/', 1)[0] if '/' in key else 'tao-dev'
+            if name != 'tao-dev':
+                continue
+            plugin_id = f'tao-dev@{marketplace}'
+            base = home / 'plugins/cache' / marketplace / 'tao-dev'
+            plugin = None
+            version = 'unknown'
+            if base.is_dir() and not base.is_symlink():
+                candidates = [path for path in base.iterdir()
+                              if path.is_dir() and not path.is_symlink()
+                              and (path / '.cursor-plugin/plugin.json').is_file()]
+                if candidates:
+                    plugin = max(candidates, key=lambda path: path.stat().st_mtime_ns)
+                    version = _cursor_manifest(plugin).get('version', plugin.name)
+            if plugin is None:
+                continue
+            result.append(_native_row(plugin_id, 'project', project, plugin, version,
+                                      [str(settings), str(plugin.parent)]))
     return result
 
 
@@ -457,14 +653,38 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
     home = _home(client)
     watched = [home / 'config.toml', home / 'settings.json',
                home / 'plugins/installed_plugins.json', home / 'plugins/known_marketplaces.json',
-               home / 'plugins/cache' / marketplace / 'tao-dev',
+               home / 'plugins/cache' / marketplace / 'tao-dev', home / 'plugins/local/tao-dev',
                project / '.codex/config.toml', project / '.claude/settings.json',
-               project / '.claude/settings.local.json']
+               project / '.claude/settings.local.json', project / '.cursor/settings.json']
     before = {path: _snapshot(path) for path in watched}
     files = []
     warnings = []
     try:
         home.mkdir(parents=True, exist_ok=True)
+        if client == 'cursor':
+            plugin, version = _materialize_cursor_plugin(marketplace_source, plugin_id, home, ref=ref)
+            files.append(str(plugin.parent))
+            git_url = None if Path(marketplace_source).is_dir() else marketplace_source
+            if scope == 'user':
+                local = _publish_cursor_local(home, plugin, plugin_id)
+                if python is not None:
+                    _bind_hook(client, local, python)
+                files.extend([str(local), str(local / '.tao-owned.json')])
+                plugin = local
+            else:
+                if python is not None:
+                    _bind_hook(client, plugin, python)
+                settings = _enable_cursor_project(project, plugin_id, git_url=git_url, git_ref=ref)
+                files.append(str(settings))
+            verification = {
+                'native_plugin_enabled': True,
+                'method': ('~/.cursor/plugins/local/tao-dev' if scope == 'user'
+                           else '.cursor/settings.json plugins entry'),
+                'cursor_reload_required': True,
+            }
+            return {'plugin_id': plugin_id, 'plugin_path': str(plugin), 'plugin_base': str(plugin.parent),
+                    'version': version, 'files': list(dict.fromkeys(files)), 'warnings': warnings,
+                    'verification': verification}
         if client == 'claude':
             prior = discover(client, project)
             known = _read_json(home / 'plugins/known_marketplaces.json')
@@ -563,9 +783,9 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
 
 def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, keep_activation=False):
     project = Path(project).expanduser().resolve()
-    if client not in ('claude', 'codex') or scope not in ('user', 'project', 'local'):
-        raise ClientError('Client must be claude/codex and scope user/project/local')
-    scope = 'project' if client == 'codex' and scope == 'local' else scope
+    if client not in ('claude', 'codex', 'cursor') or scope not in ('user', 'project', 'local'):
+        raise ClientError('Client must be claude/codex/cursor and scope user/project/local')
+    scope = 'project' if client in ('codex', 'cursor') and scope == 'local' else scope
     _valid_id(plugin_id)
     if keep_activation:
         return {'files': [], 'warnings': ['Shared activation is still used by another installation.']}
@@ -573,13 +793,13 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
     rows = discover(client, project)
     selected_project = None if scope == 'user' else str(project)
     selected = [row for row in rows if row['plugin_id'] == plugin_id and row['project'] == selected_project
-                and (row['scope'] == scope or client == 'codex')]
+                and (row['scope'] == scope or client in ('codex', 'cursor'))]
     others = [row for row in rows if row['plugin_id'] == plugin_id and
-              not (row['project'] == selected_project and (row['scope'] == scope or client == 'codex'))]
+              not (row['project'] == selected_project and (row['scope'] == scope or client in ('codex', 'cursor')))]
     watched = [home / 'config.toml', home / 'settings.json', home / 'plugins/installed_plugins.json',
-               home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev',
+               home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev', home / 'plugins/local/tao-dev',
                project / '.codex/config.toml', project / '.claude/settings.json',
-               project / '.claude/settings.local.json']
+               project / '.claude/settings.local.json', project / '.cursor/settings.json']
     before = {path: _snapshot(path) for path in watched}
     files = []
     warnings = []
@@ -587,10 +807,44 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
         if row['plugin_id'] == plugin_id and row['project'] == selected_project:
             base = home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev'
             cached = Path(row['plugin_path']).resolve()
+            local = home / 'plugins/local/tao-dev'
+            if client == 'cursor' and cached == local.resolve():
+                continue
             if not cached.is_relative_to(base) or cached == base:
                 raise ClientError(f'Refusing native uninstall with an unowned cache path: {cached}')
     try:
-        if client == 'claude':
+        if client == 'cursor':
+            if scope == 'user':
+                local = home / 'plugins/local/tao-dev'
+                marker = local / '.tao-owned.json'
+                if local.exists():
+                    if local.is_symlink() or not marker.is_file() or _read_json(marker).get('id') != 'tao-dev':
+                        raise ClientError(f'Refusing to remove unmanaged Cursor local plugin: {local}')
+                    shutil.rmtree(local)
+                    files.append(str(local))
+            else:
+                settings = project / '.cursor/settings.json'
+                if settings.exists():
+                    data = _read_json(settings)
+                    plugins = data.get('plugins', {})
+                    key = _cursor_plugin_key(plugin_id)
+                    if key in plugins:
+                        plugins.pop(key)
+                        if plugins:
+                            data['plugins'] = plugins
+                        else:
+                            data.pop('plugins', None)
+                        if data:
+                            _write_json(settings, data)
+                        else:
+                            settings.unlink()
+                        files.append(str(settings))
+            if selected and not others and not keep_plugin:
+                base = home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev'
+                if base.is_dir() and not base.is_symlink():
+                    shutil.rmtree(base)
+                    files.append(str(base))
+        elif client == 'claude':
             settings = home / 'settings.json' if scope == 'user' else project / ('.claude/settings.local.json' if scope == 'local' else '.claude/settings.json')
             if not selected:
                 data = _read_json(settings)
@@ -719,6 +973,14 @@ def snapshot_activation(client, plugin_id, scope, project):
                             if key.startswith(plugin_id + ':'))
             snapshot['configs'].append({'path': str(path), 'format': 'toml',
                                         'entries': _capture_entries(data, keys)})
+    elif client == 'cursor':
+        if scope == 'user':
+            local = home / 'plugins/local/tao-dev'
+            snapshot['local_plugin'] = str(local) if local.exists() else None
+        else:
+            path = project / '.cursor/settings.json'
+            snapshot['configs'].append({'path': str(path), 'format': 'json', 'entries': _capture_entries(
+                _read_json(path) if path.exists() else {}, [['plugins', _cursor_plugin_key(plugin_id)]])})
     else:
         paths = [home / 'settings.json']
         if scope != 'user':
@@ -814,7 +1076,9 @@ def restore_activation(snapshot, *, attempted_plugin_path=None):
                 if (attempted.is_symlink() or attempted.resolve().parent != base or
                         not attempted.is_dir()):
                     raise ClientError(f'Refusing rollback of unowned plugin cache: {attempted}')
-                manifest = next((attempted / name for name in ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json', 'plugin.json')
+                manifest = next((attempted / name for name in (
+                    '.codex-plugin/plugin.json', '.claude-plugin/plugin.json',
+                    '.cursor-plugin/plugin.json', 'plugin.json')
                                  if (attempted / name).is_file()), None)
                 if manifest is None or _read_json(manifest).get('name') != 'tao-dev':
                     raise ClientError(f'Cannot verify the attempted cache identity: {attempted}')
