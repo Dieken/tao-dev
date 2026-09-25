@@ -1,11 +1,13 @@
 """Prepare real isolated tool environments for entry-point regression tests."""
 
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
+
+PREPARE_TIMEOUT = 300
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -19,9 +21,13 @@ def tool_runtime(tmp_path_factory):
     os.environ.update(TAO_RUNTIME_DIR=str(data), TAO_PYTHON=sys.executable)
     try:
         entry = root / "plugins/tao-dev/skills/tao-dev/scripts/tao.py"
+        # The CLI owns the preparation budget; keep the parent alive for the
+        # same startup and final-reporting margin used by installations.
         completed = subprocess.run([sys.executable, str(entry), "env", "prepare",
-                                    "--wheelhouse", str(wheels), "--format", "json"],
-                                   capture_output=True, text=True, encoding='utf-8', timeout=60)
+                                    "--wheelhouse", str(wheels), "--format", "json",
+                                    "--timeout", str(PREPARE_TIMEOUT)],
+                                   capture_output=True, text=True, encoding='utf-8',
+                                   timeout=PREPARE_TIMEOUT + 60, check=False)
         assert completed.returncode == 0, completed.stdout + completed.stderr
         yield data
     finally:
