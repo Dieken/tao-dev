@@ -87,7 +87,8 @@ def terminate(process, number):
     if os.name == 'posix':
         os.killpg(process.pid, number)
     else:
-        process.kill()
+        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                       capture_output=True, timeout=5, check=False)
 
 
 def _renumber(events, turn, client, start):

@@ -80,8 +80,9 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 |---|---|
 | macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.270 的安装、升级、回滚和卸载已在隔离环境验证；其他场景见验收记录 |
 | Codex 原生 hook | 安装器使用兼容 manifest，并检查 skill、hook 与信任状态 |
-| 其他 coding agent | 独立 skill 接入指南覆盖九种客户端；本机缺少对应 CLI，尚未原生验收，见 [兼容矩阵](docs/engineering/client-compatibility.md) |
-| 其他平台与版本 | CI 在 Linux、macOS、Windows 上按 Python 3.11–3.14 跑同一套回归，并在三个平台执行原生安装探针；探针不调用模型，原生 Windows 客户端行为验收仍未完成 |
+| Cursor／Kiro 原生 hook | Cursor CLI 2026.09.23 和 Kiro CLI 2.24.0 V3 的隔离真实写入与 hook 触发已通过；Kiro 使用 TUI，headless 不在该结论内 |
+| 其他 coding agent | 独立 skill 接入指南覆盖其他客户端；尚未原生验收的范围见 [兼容矩阵](docs/engineering/client-compatibility.md) |
+| 其他平台与版本 | CI 在 Linux、macOS、Windows 上按 Python 3.11–3.14 跑同一套回归，自动安装四种 CLI 并执行无模型安装探针；无登录时真实会话自动跳过，原生 Windows 会话仍未验收 |
 | 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
 
 具体受检版本、环境、结果和剩余工作以 [运行环境验收记录](docs/plans/2026-09/20260914-portable-runtime.md) 为准。`tao docs build` 只产出本地 HTML，不包含站点部署——本仓库自己的手册由本仓库 CI 发布到 GitHub Pages；当前未实现 PDF 出版。
@@ -96,7 +97,7 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 uv run --no-config --locked --extra publication python -m pytest
 ```
 
-第二步显式下载测试所需 wheel；准备后普通回归离线运行，不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
+第二步显式下载测试所需 wheel；准备后确定性回归离线运行。普通 pytest 还会按统一 readiness 检查 Cursor/Kiro：CLI 已安装且已登录时自动运行一次限时、可计费的真实 hook 会话，否则跳过；GitHub CI 无凭据，因此不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
 
 本仓库通过 [AGENTS.md](AGENTS.md) 使用自身的 skill；运行材料在 `plugins/tao-dev/`，仅供维护的资料在 `docs/`。
 

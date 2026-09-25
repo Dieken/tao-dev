@@ -1,31 +1,36 @@
-"""Native client readiness skips probes when a CLI is missing or logged out."""
+"""Native readiness uses the same CLI/session rules locally and in CI."""
 
 import json
-from pathlib import Path
 
 import native_clients
 
 
-def test_skip_reason_reports_missing_cli(monkeypatch):
+def test_cli_probe_only_requires_executable(monkeypatch):
+    monkeypatch.setattr(native_clients.shutil, 'which', lambda name: '/bin/true')
+    monkeypatch.setattr(native_clients, 'logged_in', lambda client: False)
+    for client in ('claude', 'codex', 'cursor', 'kiro'):
+        assert native_clients.cli_skip_reason(client) is None
+
+
+def test_cli_probe_reports_missing_executable(monkeypatch):
     monkeypatch.setattr(native_clients.shutil, 'which', lambda name: None)
-    assert 'not installed' in native_clients.skip_reason('codex')
+    for client in ('claude', 'codex', 'cursor', 'kiro'):
+        assert 'not installed' in native_clients.cli_skip_reason(client)
+        assert 'not installed' in native_clients.session_skip_reason(client)
 
 
-def test_skip_reason_reports_logged_out_without_ci_override(monkeypatch, tmp_path):
-    monkeypatch.delenv('TAO_TEST_NATIVE_CLIENTS', raising=False)
+def test_session_probe_requires_existing_login(monkeypatch):
     monkeypatch.setattr(native_clients.shutil, 'which', lambda name: '/bin/true')
-    monkeypatch.setattr(native_clients, '_claude_logged_in', lambda: False)
-    monkeypatch.setattr(native_clients, '_codex_logged_in', lambda: False)
-    monkeypatch.setattr(native_clients, '_cursor_logged_in', lambda: False)
-    for client in ('claude', 'codex', 'cursor'):
-        assert 'not logged in' in native_clients.skip_reason(client)
+    monkeypatch.setattr(native_clients, 'logged_in', lambda client: False)
+    for client in ('claude', 'codex', 'cursor', 'kiro'):
+        assert 'not logged in' in native_clients.session_skip_reason(client)
 
 
-def test_ci_override_skips_login_requirement(monkeypatch):
-    monkeypatch.setenv('TAO_TEST_NATIVE_CLIENTS', '1')
+def test_session_probe_accepts_installed_logged_in_client(monkeypatch):
     monkeypatch.setattr(native_clients.shutil, 'which', lambda name: '/bin/true')
-    monkeypatch.setattr(native_clients, '_claude_logged_in', lambda: False)
-    assert native_clients.skip_reason('claude') is None
+    monkeypatch.setattr(native_clients, 'logged_in', lambda client: True)
+    for client in ('claude', 'codex', 'cursor', 'kiro'):
+        assert native_clients.session_skip_reason(client) is None
 
 
 def test_cursor_login_accepts_cli_config_auth_info(monkeypatch, tmp_path):
@@ -38,3 +43,21 @@ def test_cursor_login_accepts_cli_config_auth_info(monkeypatch, tmp_path):
     monkeypatch.setattr(native_clients.subprocess, 'run',
                         lambda *a, **k: (_ for _ in ()).throw(native_clients.subprocess.TimeoutExpired('agent', 1)))
     assert native_clients._cursor_logged_in() is True
+
+
+def test_kiro_login_uses_read_only_whoami(monkeypatch):
+    calls = []
+
+    class Result:
+        returncode = 0
+        stdout = 'Logged in with a test provider'
+        stderr = ''
+
+    def run(arguments, **kwargs):
+        calls.append((arguments, kwargs))
+        return Result()
+
+    monkeypatch.setattr(native_clients.subprocess, 'run', run)
+    assert native_clients._kiro_logged_in() is True
+    assert calls[0][0] == ['kiro-cli', 'whoami']
+    assert calls[0][1]['check'] is False

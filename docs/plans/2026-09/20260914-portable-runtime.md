@@ -148,7 +148,7 @@ Claude Code 2.1.268 的补充行为验收使用 macOS x86_64、Python 3.12.13、
 | macos-26-arm64／CPython 3.11–3.14 | 四格各 435 项通过、5 项跳过，340–477 秒；首次覆盖 arm64 |
 | ubuntu-24.04／CPython 3.11–3.14 | 四格各 435 项通过、5 项跳过，326–417 秒 |
 
-同一 run 的原生客户端作业在三个平台安装当前 Claude Code 2.1.274 与 codex-cli 0.154.0，以 `TAO_TEST_NATIVE_CLIENTS=1` 执行 15 项探针并全部通过（windows-latest 211.85 秒、macos-latest 39.42 秒、ubuntu-latest 31.70 秒），覆盖原生安装、scope 选择、重复安装、失败升级回滚与移除。runner 上本无这两个 CLI 与个人状态；作业不调用模型、不使用凭据。该结果不含真实客户端会话、hook 模型反馈与 PowerShell 安装器，因此不等于原生 Windows 客户端行为验收。
+同一 run 的原生客户端作业在三个平台安装当前 Claude Code 2.1.274 与 codex-cli 0.154.0，以当时的无凭据模式执行 15 项探针并全部通过（windows-latest 211.85 秒、macos-latest 39.42 秒、ubuntu-latest 31.70 秒），覆盖原生安装、scope 选择、重复安装、失败升级回滚与移除。runner 上本无这两个 CLI 与个人状态；作业不调用模型、不使用凭据。该结果不含真实客户端会话、hook 模型反馈与 PowerShell 安装器，因此不等于原生 Windows 客户端行为验收。
 
 原生 Windows 客户端行为验收和绑定当前输入的有效独立审查尚未完成。客户端保证只覆盖本节列明的版本、包格式、平台、认证方式与合成场景，不推及其他组合。
 

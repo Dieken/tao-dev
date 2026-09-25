@@ -55,7 +55,7 @@ jobs:
   native-clients:
     name: Native clients / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -67,14 +67,65 @@ jobs:
         with:
           node-version: "22"
 
-      # Floating versions: a client release that breaks plugin installation
-      # should surface here. The printed versions record what was tested.
-      - name: Install coding-agent CLIs
+      # Floating versions intentionally detect native client compatibility
+      # changes. Real sessions still require an existing login and therefore
+      # skip on credential-free GitHub runners.
+      - name: Install Claude Code and Codex
         run: |
           npm install -g @anthropic-ai/claude-code
           npm install -g @openai/codex
           claude --version
           codex --version
+
+      - name: Install Cursor CLI (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$HOME/.cursor/bin:$PATH"
+          agent --version
+
+      - name: Install Cursor CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm 'https://cursor.com/install?win32=true' | iex
+          "$HOME\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$HOME\.cursor\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          $env:Path = "$HOME\.local\bin;$HOME\.cursor\bin;$env:Path"
+          agent --version
+
+      - name: Install Kiro CLI (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL https://cli.kiro.dev/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          kiro-cli --version
+
+      - name: Install Kiro CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $base = 'https://prod.download.cli.kiro.dev/stable'
+          $manifest = Invoke-RestMethod "$base/latest/manifest.json"
+          $package = $manifest.packages | Where-Object {
+            $_.os -eq 'windows' -and $_.architecture -eq 'x86_64'
+          } | Select-Object -First 1
+          if (!$package) { throw 'Kiro manifest has no Windows x86_64 package.' }
+          $msi = Join-Path $env:RUNNER_TEMP 'kiro-cli.msi'
+          Invoke-WebRequest "$base/$($package.download)" -OutFile $msi
+          $actual = (Get-FileHash $msi -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $package.sha256) { throw 'Kiro MSI checksum mismatch.' }
+          $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi, '/qn', '/norestart') -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Kiro MSI failed: $($process.ExitCode)" }
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path', 'User')
+          $env:Path | Out-File -FilePath $env:GITHUB_PATH -Append
+          kiro-cli --version
 
       - uses: astral-sh/setup-uv@v10.1.0
         with:
@@ -87,13 +138,13 @@ jobs:
       - name: Prepare locked wheels
         run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
 
-      # The runner starts with no claude or codex installation and no personal
-      # client state, so these probes need no extra isolation. They drive plugin
-      # install, scope and removal only; no model call and no credential.
-      - name: Run isolated native client probes
-        env:
-          TAO_TEST_NATIVE_CLIENTS: "1"
+      # Every environment uses the same rules. Installation probes need only
+      # the executable; model sessions additionally require an existing login.
+      - name: Run native installation probes
         run: uv run --no-config --locked --extra publication python -m pytest tests/test_install_clients.py -k native -q
+
+      - name: Check real-session readiness
+        run: uv run --no-config --locked --extra publication python -m pytest tests/test_native_sessions.py -q
 
       - name: Upload diagnostics
         if: failure()

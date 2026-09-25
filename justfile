@@ -26,8 +26,8 @@ prepare:
 check: prepare
     {{ tao }} verify --only code --format json
     {{ uvrun }} python scripts/export_dependencies.py --check
-    # Native probes auto-skip any of claude/codex/cursor that is missing or not
-    # logged in. CI sets TAO_TEST_NATIVE_CLIENTS=1 to require only the CLI.
+    # Native probes use the same readiness rules locally and in CI: install
+    # probes require a CLI; real sessions also require an existing login.
     {{ uvrun }} python -m pytest tests/test_install_clients.py -k native -q
 
 # Check every managed document, then build the book and print its entry point.

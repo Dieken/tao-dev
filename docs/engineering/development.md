@@ -31,7 +31,7 @@ uv sync --no-config --locked --extra publication
 uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
 ```
 
-第二条命令显式下载带锁定哈希的 wheel 到 tmp/tao/wheels；普通回归离线使用它们，缺少时报告前提未满足。测试通过真实独立 venv 验证运行入口，不向业务环境安装依赖。
+第二条命令显式下载带锁定哈希的 wheel 到 tmp/tao/wheels；确定性回归离线使用它们，缺少时报告前提未满足。测试通过真实独立 venv 验证运行入口，不向业务环境安装依赖；已登录 Cursor/Kiro 的普通 pytest 还会运行限时原生 hook 会话，需要客户端服务网络。
 
 <!-- tao:section steps -->
 ## 操作步骤
@@ -48,7 +48,7 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 uv run --no-config --locked --extra publication python -m pytest
 ```
 
-普通 pytest 不调用模型。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。真实客户端试验单独按 [验收说明](../../tests/acceptance/README.md) 显式运行。
+普通 pytest 运行确定性回归，并对 Cursor/Kiro 应用统一 session readiness：CLI 已安装且只读登录检查通过时各自动运行一次 45 秒内、可计费的真实写入与 hook 触发，否则跳过。GitHub CI 安装 CLI 但无凭据，因此不会调用模型。其他长流程真实客户端试验仍按 [验收说明](../../tests/acceptance/README.md) 显式运行。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。
 
 安装相关回归可单独运行：
 
@@ -60,7 +60,7 @@ uv run --no-config --locked --extra publication python -m pytest
 
 ### 持续集成
 
-`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台分别安装当前版本的 Claude Code 与 Codex CLI，以 `TAO_TEST_NATIVE_CLIENTS=1` 执行原生安装与卸载探测（只要求 CLI 存在，不要求登录）。本机 `just check` 与同名 pytest 对 Claude／Codex／Cursor 按「已安装且已登录」自动启用探针，缺 CLI 或未登录则跳过。CI 不调用模型，也不使用任何客户端凭据；runner 上本来就没有这两个 CLI 的安装和个人状态，不适用本机实验的隔离约束。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
+`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台自动安装当前 Claude Code、Codex、Cursor 与 Kiro CLI。所有环境使用同一 readiness：不调用模型的安装／范围／卸载探针只检查 CLI；真实会话与 hook 测试还检查既有登录，缺少任一前提即跳过。GitHub runner 不配置客户端凭据，因此运行四端安装探针并跳过真实会话，不调用模型。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
 
 本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。原生探测覆盖插件安装、启用范围与卸载，不覆盖真实会话行为；后者仍按 [验收说明](../../tests/acceptance/README.md) 单独执行。
 

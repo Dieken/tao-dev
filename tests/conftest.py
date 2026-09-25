@@ -21,7 +21,7 @@ def tool_runtime(tmp_path_factory):
         entry = root / "plugins/tao-dev/skills/tao-dev/scripts/tao.py"
         completed = subprocess.run([sys.executable, str(entry), "env", "prepare",
                                     "--wheelhouse", str(wheels), "--format", "json"],
-                                   capture_output=True, text=True, encoding='utf-8')
+                                   capture_output=True, text=True, encoding='utf-8', timeout=60)
         assert completed.returncode == 0, completed.stdout + completed.stderr
         yield data
     finally:
