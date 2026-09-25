@@ -247,6 +247,26 @@ def native_enabled():
     return os.environ.get('TAO_TEST_NATIVE_CLIENTS') == '1'
 
 
+def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
+    _, project = state
+    config = project / 'config.toml'
+    config.write_text('# preserved\n', encoding='utf-8')
+
+    def edit(method, params, cwd, *, home, staged_config):
+        target = Path(params['filePath'])
+        assert method == 'config/batchWrite'
+        assert target == Path(cwd) / 'config.toml'
+        assert home == target.parent
+        assert not target.exists()
+        target.write_bytes(staged_config)
+        assert target.read_text(encoding='utf-8') == '# preserved\n'
+        target.write_text('# preserved\nenabled = true\n', encoding='utf-8')
+
+    monkeypatch.setattr(clients, '_rpc', edit)
+    clients._write_config(config, [('enabled', True)])
+    assert config.read_text(encoding='utf-8') == '# preserved\nenabled = true\n'
+
+
 @pytest.mark.skipif(not native_enabled(), reason='Set TAO_TEST_NATIVE_CLIENTS=1 for isolated installed-CLI probes')
 def test_native_toml_editor_preserves_comments_and_deletes_only_selected_key(state):
     root, project = state
