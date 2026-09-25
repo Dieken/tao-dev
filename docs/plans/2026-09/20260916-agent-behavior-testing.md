@@ -18,7 +18,7 @@ updated: "2026-09-17"
 
 实现可执行行为契约、多轮场景、确定性判定器、LLM 语义置信度、违规注入测试和汇总报告，并通过真实 Claude Code CLI 与 Codex CLI 验收 tao-dev 的文档加载、工作流和交互行为。其他 coding agent CLI 暂不实现。
 
-每个任务采用测试先行，完成相称验证后单独提交。普通 pytest 不调用模型；真实 CLI 运行保持显式、隔离、限时、可计费并保存脱敏证据。工作分支为 `codex/agent-behavior-testing`，基线为 `1dd6d47`，基线回归为 382 passed、5 skipped。
+每个任务采用测试先行，完成相称验证后单独提交。当时普通 pytest 不调用模型；当前 Cursor/Kiro hook 探针在 CLI 已安装且已登录时由普通 pytest 自动运行，保持隔离、45 秒硬超时、可计费并保存脱敏证据。其他真实 CLI 长流程仍显式启动。工作分支为 `codex/agent-behavior-testing`，基线为 `1dd6d47`，基线回归为 382 passed、5 skipped。
 
 人工复核默认仅处理低置信度、评审分歧、未知事件和持续基础设施阻断；高风险授权与写入规则必须优先确定性化。
 

@@ -128,7 +128,7 @@ def _cursor_marketplace(root):
     (plugin / 'com.cursor/hooks/hooks.json').write_text(json.dumps({
         'version': 1,
         'hooks': {'postToolUse': [{'command': 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"',
-                                   'matcher': 'Write', 'timeout': 35}]}
+                                   'matcher': 'Write|Edit', 'timeout': 35}]}
     }), encoding='utf-8')
     (plugin / 'skills/tao-dev/scripts/hook.py').write_text('print("ok")\n', encoding='utf-8')
     (marketplace / '.cursor-plugin').mkdir(parents=True)
@@ -306,7 +306,7 @@ def test_discovery_does_not_follow_marketplace_cache_symlink(state):
 def _require_native(*clients_needed):
     import native_clients
     for client in clients_needed:
-        native_clients.require(client)
+        native_clients.require_cli(client)
 
 
 def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
@@ -345,7 +345,8 @@ def test_native_toml_editor_preserves_comments_and_deletes_only_selected_key(sta
 
 
 @pytest.mark.parametrize(('client', 'scope'), [('claude', 'project'), ('claude', 'local'),
-                                                  ('codex', 'project'), ('cursor', 'project')])
+                                                  ('codex', 'project'), ('cursor', 'project'),
+                                                  ('kiro', 'project')])
 def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, client, scope):
     _require_native(client)
     root, project = state
@@ -353,7 +354,8 @@ def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, 
     outside.mkdir()
     source = SCRIPTS.parents[4]
     plugin_id = 'tao-dev@tao-dev'
-    result = clients.install_plugin(client, str(source), plugin_id, scope, project)
+    options = {'python': Path(sys.executable)} if client == 'kiro' else {}
+    result = clients.install_plugin(client, str(source), plugin_id, scope, project, **options)
     cached = Path(result['plugin_path'])
     assert cached.is_relative_to(root)
 
@@ -362,22 +364,22 @@ def test_native_install_repeat_shared_scope_removal_and_outside_boundary(state, 
             rows = clients._rpc('skills/list', {'cwds': [str(folder)], 'forceReload': True}, folder)['data']
             return any(skill.get('pluginId') == plugin_id and skill.get('enabled')
                        for row in rows for skill in row['skills'])
-        if client == 'cursor':
+        if client in ('cursor', 'kiro'):
             return any(row['plugin_id'] == plugin_id and row['enabled'] and row['scope'] in ('user', 'project')
-                       for row in clients.discover('cursor', folder)
+                       for row in clients.discover(client, folder)
                        if row['scope'] == 'user' or row['project'] == str(folder))
         return any(row['id'] == plugin_id and row['enabled']
                    for row in clients._run(['claude', 'plugin', 'list', '--json'], folder))
 
     assert active(project)
     assert not active(outside)
-    again = clients.install_plugin(client, str(source), plugin_id, scope, project)
+    again = clients.install_plugin(client, str(source), plugin_id, scope, project, **options)
     assert again['plugin_path'] == result['plugin_path']
     assert not active(outside)
-    clients.install_plugin(client, str(source), plugin_id, 'user', project)
+    clients.install_plugin(client, str(source), plugin_id, 'user', project, **options)
     assert active(outside)
     # Installing project again must preserve a separately enabled user scope.
-    clients.install_plugin(client, str(source), plugin_id, scope, project)
+    clients.install_plugin(client, str(source), plugin_id, scope, project, **options)
     assert active(outside)
     clients.remove_activation(client, plugin_id, 'user', project)
     assert cached.is_dir()
@@ -523,7 +525,7 @@ def test_late_install_error_exposes_attempted_cache(state, monkeypatch):
     assert failure.value.plugin_path == str(plugin)
 
 
-@pytest.mark.parametrize('client', ['claude', 'codex', 'cursor'])
+@pytest.mark.parametrize('client', ['claude', 'codex', 'cursor', 'kiro'])
 def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(state, client):
     _require_native(client)
     import shutil
@@ -552,13 +554,14 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
             manifest.write_text(json.dumps(data), encoding='utf-8')
     plugin_id = 'tao-dev@rollback-test'
     version('1.0.0')
-    before = clients.install_plugin(client, str(source), plugin_id, 'project', project)
+    options = {'python': Path(sys.executable)} if client == 'kiro' else {}
+    before = clients.install_plugin(client, str(source), plugin_id, 'project', project, **options)
     snapshot = clients.snapshot_activation(client, plugin_id, 'project', project)
     previous_cache = Path(before['plugin_path'])
     backup = root / 'previous-cache'
     shutil.copytree(previous_cache, backup)
     version('2.0.0')
-    attempted = clients.install_plugin(client, str(source), plugin_id, 'project', project)
+    attempted = clients.install_plugin(client, str(source), plugin_id, 'project', project, **options)
     assert attempted['version'] == '2.0.0'
     # Caller restores old source/cache bytes before the adapter restores keys.
     version('1.0.0')
@@ -573,11 +576,15 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
         data = clients._read_json(unrelated)
         data['test_preserve'] = 'unrelated'
         unrelated.write_text(json.dumps(data), encoding='utf-8')
-    else:
+    elif client == 'cursor':
         unrelated = project / '.cursor/settings.json'
         data = clients._read_json(unrelated)
         data['test_preserve'] = 'unrelated'
         unrelated.write_text(json.dumps(data), encoding='utf-8')
+    else:
+        unrelated = project / '.kiro/unrelated.json'
+        unrelated.parent.mkdir(exist_ok=True)
+        unrelated.write_text(json.dumps({'test_preserve': 'unrelated'}), encoding='utf-8')
     clients.restore_activation(snapshot, attempted_plugin_path=attempted['plugin_path'])
     assert previous_cache.is_dir()
     assert not Path(attempted['plugin_path']).exists()
@@ -592,9 +599,11 @@ def test_native_failed_upgrade_rollback_restores_prior_cache_and_activation(stat
         assert native[0]['enabled'] is True
         assert native[0]['installPath'] == str(previous_cache)
         assert clients._read_json(unrelated)['test_preserve'] == 'unrelated'
-    else:
+    elif client == 'cursor':
         assert clients._read_json(unrelated)['test_preserve'] == 'unrelated'
         assert clients._read_json(unrelated)['plugins']['rollback-test/tao-dev']['enabled'] is True
+    else:
+        assert clients._read_json(unrelated)['test_preserve'] == 'unrelated'
 
 
 def test_deleted_codex_project_final_removal_uses_existing_neutral_cwd(state, monkeypatch):

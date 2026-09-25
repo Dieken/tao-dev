@@ -1,6 +1,8 @@
 # 实际客户端试验
 
-这些试验会调用已配置的模型，须在已获准使用客户端与费用的环境中显式运行；普通 pytest 不启动它们。使用开发环境的 Python 调用 clients.py，workspace 选择不继承开发仓库指导文件的独立临时目录。脚本不安装客户端、不重新登录、不修改个人配置；原生安装试验仅写独立客户端状态。
+这些试验包含会调用已配置模型的真实会话。`tests/test_native_sessions.py` 对 Cursor 与 Kiro 使用统一 readiness：CLI 不存在或只读登录检查失败时自动跳过，否则普通 pytest 会自动运行一次受限、可计费的真实写入和 hook 触发；本地与 CI 规则相同。其他长流程仍通过下列命令显式运行。所有 workspace 都选择不继承开发仓库指导文件的独立临时目录；脚本不安装客户端、不重新登录、不修改个人配置。
+
+无需登录的原生安装、scope、升级和卸载探针只要求相应 CLI 存在，缺失时跳过。GitHub CI 自动安装 Claude Code、Codex、Cursor 与 Kiro CLI，但不配置凭据，因此运行安装探针并跳过真实会话。所有模型子进程都有按场景设置的硬超时；Cursor/Kiro hook 探针为 45 秒，超时后终止进程组并保存摘要。
 
 先按 [开发指南](../../docs/engineering/development.md) 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
@@ -37,7 +39,7 @@ behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 co
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
-模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留未知；不要以两个 CLI 的名称断言两个供应商。每例默认 180 秒，到期终止该试验进程组。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
+模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留 unknown；不要以两个 CLI 的名称断言两个供应商。Cursor/Kiro 自动 hook 会话硬上限 45 秒；`clients.py` 与 `behavior_live.py` 的真实会话默认且最多 60 秒。到期终止完整进程树并调查原因。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
 
 recover 创建新的隔离项目，用实际 CLI 生成计划、执行失败基线并保存 handoff，然后启动没有旧会话历史的客户端。模型只能修改导出实现及已有计划；验收者另行检查 ID 保持、回归通过和修改范围。quality.py 用 Coverage.py 的 subprocess 支持执行维护测试并汇总报告，不调用模型；所有覆盖率数据位于 tmp/tao/coverage/。
 
@@ -52,3 +54,13 @@ scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次�
 章节重定向回归通过 Python 开发依赖 mini-racer 内嵌的 V8 引擎，实际执行生成的解析页脚本，检查旧片段、编码片段和默认入口；另在 PATH 为空时验证不需要外部 Node.js。该依赖由 uv sync 安装，仅用于本项目测试，不进入插件核心或出版运行环境。浏览器脚本仍是 JavaScript；用 Python 模拟跳转结果不能代替实际脚本执行。
 
 维护审查目录限制为 0700；两端模型事件和错误日志均以排他创建、0600 权限打开，防护从写入前开始，结束后的脱敏只作为补充。凭据前置条件失败时 clients.py 保存 blocked 摘要并返回 2。审查执行器在公布 review.json 前复用正式记录校验；拒绝的草稿、额外字段或缺少最终 result 的会话不能手工整理成有效审查。
+
+
+## 自动原生测试
+
+```sh
+.venv/bin/python -m pytest tests/test_install_clients.py -k native -q
+.venv/bin/python -m pytest tests/test_native_sessions.py -q
+```
+
+第一条只要求对应 CLI 已安装，不检查登录；第二条要求 CLI 已安装且只读登录检查通过。Cursor 探针使用官方项目 `.cursor/hooks.json` 入口和 `agent -p --force`，Kiro 探针使用 V3 TUI 的受限伪终端；Kiro 2.24.0 的 `--no-interactive` 路径实测未执行 standalone hook，不能用它替代 TUI 验收。两端都在临时客户端 home 和临时 Git 项目中安装同一受检 hook，以原生写入后的 `tmp/tao/cache/hook.json` 作为直接触发证据，不依赖模型自述。

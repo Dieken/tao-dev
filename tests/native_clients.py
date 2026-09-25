@@ -1,20 +1,19 @@
-"""Readiness checks for optional native Claude / Codex / Cursor probes.
+"""Readiness checks for optional native coding-agent probes.
 
-Personal credentials are inspected read-only. Probes never log in, refresh
-tokens, or write authentication files. CI sets TAO_TEST_NATIVE_CLIENTS=1 so
-install/scope/removal probes can run on runners that have the CLI but no login.
+CLI-only probes require just the executable. Real sessions additionally require
+read-only evidence of an existing login. Tests never log in or refresh tokens,
+and local development and CI use the same rules.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-CLI = {'claude': 'claude', 'codex': 'codex', 'cursor': 'agent'}
+CLI = {'claude': 'claude', 'codex': 'codex', 'cursor': 'agent', 'kiro': 'kiro-cli'}
 
 
 def cli_name(client):
@@ -84,25 +83,59 @@ def _cursor_logged_in():
     return bool(info.get('email') or info.get('userId') or info.get('authId'))
 
 
+def _kiro_logged_in():
+    try:
+        result = subprocess.run(['kiro-cli', 'whoami'], capture_output=True, text=True,
+                                timeout=8, check=False, encoding='utf-8')
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    output = (result.stdout or result.stderr or '').lower()
+    return result.returncode == 0 and bool(output.strip()) and 'not logged in' not in output
+
+
 def logged_in(client):
-    return {'claude': _claude_logged_in, 'codex': _codex_logged_in, 'cursor': _cursor_logged_in}[client]()
+    probes = {
+        'claude': _claude_logged_in,
+        'codex': _codex_logged_in,
+        'cursor': _cursor_logged_in,
+        'kiro': _kiro_logged_in,
+    }
+    return probes[client]()
+
+
+def cli_skip_reason(client):
+    """Why a CLI-only probe should skip, or None when it can run."""
+    name = cli_name(client)
+    return None if installed(client) else f'{client} CLI ({name}) is not installed'
+
+
+def session_skip_reason(client):
+    """Why a real client session should skip, or None when it can run."""
+    reason = cli_skip_reason(client)
+    if reason:
+        return reason
+    return None if logged_in(client) else f'{client} is not logged in'
+
+
+def require_cli(client):
+    import pytest
+    reason = cli_skip_reason(client)
+    if reason:
+        pytest.skip(reason)
+
+
+def require_session(client):
+    import pytest
+    reason = session_skip_reason(client)
+    if reason:
+        pytest.skip(reason)
 
 
 def skip_reason(client):
-    """Why a native probe for this client should be skipped, or None to run."""
-    name = cli_name(client)
-    if not installed(client):
-        return f'{client} CLI ({name}) is not installed'
-    # CI and explicit maintainer overrides exercise install without credentials.
-    if os.environ.get('TAO_TEST_NATIVE_CLIENTS') == '1':
-        return None
-    if not logged_in(client):
-        return f'{client} is not logged in'
-    return None
+    """Backward-compatible name for the stricter real-session check."""
+    return session_skip_reason(client)
 
 
 def require(client):
-    import pytest
-    reason = skip_reason(client)
-    if reason:
-        pytest.skip(reason)
+    """Backward-compatible guard for real sessions."""
+    require_session(client)

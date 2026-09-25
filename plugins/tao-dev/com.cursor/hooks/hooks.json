@@ -4,7 +4,7 @@
     "postToolUse": [
       {
         "command": "python3 -I -B \"${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py\"",
-        "matcher": "Write",
+        "matcher": "Write|Edit",
         "timeout": 35
       }
     ]

@@ -37,7 +37,8 @@ def terminate(process, number):
     if os.name == 'posix':
         os.killpg(process.pid, number)
     else:
-        process.kill()
+        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                       capture_output=True, timeout=5, check=False)
 
 
 def reference_reads(path, client):
@@ -148,7 +149,7 @@ def main():
     parser.add_argument('--client', choices=['claude', 'codex'], required=True)
     parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write', 'recover', 'plan', 'verify', 'routing'], required=True)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--timeout', type=int, default=180)
+    parser.add_argument('--timeout', type=int, default=60)
     parser.add_argument('--isolated-codex', action='store_true', help='Use fresh experiment-only native plugin state.')
     parser.add_argument('--reuse-codex-auth', action='store_true', help='Temporarily reuse existing unexpired access credentials without a refresh token.')
     parser.add_argument('--codex-legacy', action='store_true', help='Test the generated compatibility package required for 0.154.0 native hooks.')
@@ -165,8 +166,8 @@ def main():
         parser.error('Codex packaging and hook options require isolated native probes.')
     if args.disable_hooks and not (args.isolated_codex or args.claude_scope):
         parser.error('Hook disabling requires isolated native probes.')
-    if args.timeout <= 0:
-        parser.error('timeout must be positive.')
+    if not 1 <= args.timeout <= 60:
+        parser.error('timeout must be between 1 and 60 seconds.')
     if (args.isolated_codex or args.claude_scope) and (args.workspace.exists() and any(args.workspace.iterdir()) or args.workspace.resolve().is_relative_to(ROOT)):
         parser.error('Isolated client probes require a fresh workspace outside the repository.')
     if not (args.isolated_codex or args.claude_scope):

@@ -97,7 +97,7 @@ def test_static_client_hooks_invoke_python_without_platform_launchers():
     assert claude["args"] == ["-I", "-B", "${CLAUDE_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"]
     assert codex["command"] == 'python3 -I -B "${PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
     assert cursor["command"] == 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
-    assert cursor["matcher"] == "Write"
+    assert cursor["matcher"] == "Write|Edit"
     assert not (HOOK.parent / "tao-launch.sh").exists()
     assert not (HOOK.parent / "tao-launch.ps1").exists()
 

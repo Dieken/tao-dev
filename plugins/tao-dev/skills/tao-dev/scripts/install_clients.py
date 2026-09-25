@@ -241,7 +241,7 @@ def _bind_hook(client, plugin, python):
         if (set(definition) != {'version', 'hooks'} or definition.get('version') != 1
                 or set(definition.get('hooks', {})) != {'postToolUse'}
                 or len(handlers) != 1 or set(handler) != {'command', 'matcher', 'timeout'}
-                or handler.get('matcher') != 'Write' or handler.get('timeout') != 35):
+                or handler.get('matcher') != 'Write|Edit' or handler.get('timeout') != 35):
             raise ClientError('Cannot bind an unexpected tao-dev hook definition')
         portable = 'python3 -I -B "${CURSOR_PLUGIN_ROOT}/skills/tao-dev/scripts/hook.py"'
         bound = _command_line([python, '-I', '-B', script])
