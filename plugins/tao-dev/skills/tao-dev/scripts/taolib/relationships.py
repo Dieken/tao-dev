@@ -206,13 +206,23 @@ def retirements(validator, directory, overrides=None):
 
     rule = validator.registry["retirement_records"]
     path = validator.root / directory
+    from .project import relative_pattern
     try:
-        path.resolve().relative_to(validator.root)
-    except ValueError:
+        if not relative_pattern(str(directory)):
+            raise ValueError()
+        if path.exists() or path.is_symlink():
+            path.resolve().relative_to(validator.root)
+        else:
+            for parent in path.parents:
+                if parent == validator.root:
+                    break
+                if parent.is_symlink():
+                    parent.resolve().relative_to(validator.root)
+    except (ValueError, OSError, RuntimeError):
         validator.error("TAO-REF-004", str(directory), 1, "Retirement directory is outside the project.")
         return
     overrides = overrides or {}
-    files = set(path.glob("*.jsonl"))
+    files = set(path.glob("*.jsonl")) if path.exists() else set()
     files.update(validator.root / name for name in overrides
                  if Path(name).parent == Path(directory) and Path(name).suffix == '.jsonl')
     for full in sorted(files):

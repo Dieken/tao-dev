@@ -143,7 +143,17 @@ def test_id_allocation_does_not_ignore_unreadable_index_scope(tmp_path):
 def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
     command = [sys.executable, str(ENTRY), "--project", str(tmp_path), "--format", "json", "new", "--slug", "same", "--locale", "en"]
     processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8") for _ in range(2)]
-    results = [(p.communicate(), p.returncode) for p in processes]
+    results = []
+    try:
+        for process in processes:
+            results.append((process.communicate(timeout=60), process.returncode))
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+        for process in processes:
+            if process.poll() is None:
+                process.communicate(timeout=5)
     # The reports travel with the assertion: a platform that answers a taken
     # destination with an unexpected code is otherwise only a bare exit code.
     assert sorted(code for _, code in results) == [0, 1], results
@@ -240,3 +250,40 @@ def test_equals_json_format_is_preserved_on_parser_failure(tmp_path):
     assert completed.returncode == 2
     result = json.loads(completed.stdout)
     assert result['status'] == 'not_run'
+
+
+def test_absent_retirement_directory_is_not_resolved(tmp_path, monkeypatch):
+    from taolib.documents import validate
+
+    retired = tmp_path / 'docs/retired'
+    original = Path.resolve
+
+    def resolve(path, *args, **kwargs):
+        if path == retired:
+            raise OSError('simulated concurrent parent update')
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'resolve', resolve)
+    result = validate(tmp_path, [], retirement_directory='docs/retired')
+    assert result.valid, result.to_dict()
+
+
+def test_absent_retirement_directory_still_validates_boundary_and_overrides(tmp_path):
+    from taolib.documents import validate
+
+    outside = validate(tmp_path, [], retirement_directory='../outside/retired')
+    assert not outside.valid
+    assert any(item.rule_id == 'TAO-REF-004' for item in outside.diagnostics)
+
+    identity = 'REQ_20260914_0000000000000001'
+    record = json.dumps({
+        'id': identity,
+        'retired_on': '2026-09-14',
+        'reason': 'Replaced by a current requirement.',
+        'replaced_by': [],
+    }) + '\n'
+    result = validate(tmp_path, [], retirement_directory='docs/retired', overrides={
+        'docs/retired/20260914.jsonl': record,
+    })
+    assert result.valid, result.to_dict()
+    assert result.definitions[identity].status == 'retired'
