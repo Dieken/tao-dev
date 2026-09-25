@@ -90,7 +90,7 @@ def test_hook_without_python_packages_is_quiet_outside_and_diagnostic_inside(tmp
 
 def test_static_client_hooks_invoke_python_without_platform_launchers():
     plugin = HOOK.parents[3]
-    claude = json.loads((plugin / "hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]
+    claude = json.loads((plugin / "com.anthropic/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]
     codex = json.loads((plugin / "com.openai/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]
     cursor = json.loads((plugin / "com.cursor/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["postToolUse"][0]
     assert claude["command"] == "python3"

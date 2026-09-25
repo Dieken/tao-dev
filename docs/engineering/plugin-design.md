@@ -53,13 +53,14 @@ tao-dev/
         hooks/hooks.json             # Cursor hook（postToolUse）；agents/commands 空目录避免误载 Claude 包装
         agents/
         commands/
+      com.anthropic/
+        hooks/hooks.json             # Claude Code hook；manifest 显式声明
+        agents/reviewer.md           # Claude Code 原生角色
+        commands/                    # Claude Code 斜杠命令（tao-<动作>.md）
       com.kiro/
         hooks/tao-dev.json            # Kiro V3 standalone hook 模板
       .claude-plugin/
-        plugin.json                  # Claude Code 兼容 manifest
-      agents/                        # 按需：Claude Code 原生角色入口
-      commands/                      # 按需：Claude Code 斜杠命令入口（tao-<动作>.md）
-      hooks/hooks.json               # 按需：Claude Code hook 配置
+        plugin.json                  # Claude Code 兼容 manifest；hooks/agents/commands 指向 com.anthropic
 ```
 
 是否分发资源，以使用方项目中的实际读取者或运行调用方为准：LLM 按需读取的工程、流程、审查和文档规则放 references/；CLI 加载的格式注册表、模板和显示资源放 assets/；实际执行代码放 scripts/。只有工具读取的资源无需进入 LLM 上下文。本项目的需求、实现理由、研发任务及验收报告留在 docs/；可复用或自举时有用，本身不构成分发理由。混合职责的文档按段落拆分，包内规则不依赖开发仓库。
@@ -83,11 +84,11 @@ tao-dev/
 
 `$schema` 标识标准版本，`version` 标识产品版本。顶层只使用规范允许的字段，不自行加入 `agents`、`commands` 或 `hooks`。平台信息放在正式支持的扩展或兼容 manifest 中；元数据校验采用固定版本 schema，不在插件加载时从网络取回执行规则。[Manifest 约定](https://agent-plugins.org/plugin-authors/manifest)
 
-源码的 `.codex-plugin/plugin.json` 显式将 hooks 指向 `./com.openai/hooks/hooks.json`，避免误载 Claude 默认 hook。GitHub 清单直接引用这个兼容源码目录；公共包由打包器将同一路径写入根 manifest 的 `extensions.com.openai.hooks`。运行资源只维护一份，平台格式在打包边界转换。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
+源码的 `.codex-plugin/plugin.json` 显式将 hooks 指向 `./com.openai/hooks/hooks.json`，避免误载其他客户端的 hook。GitHub 清单直接引用这个兼容源码目录；公共包由打包器将同一路径写入根 manifest 的 `extensions.com.openai.hooks`。运行资源只维护一份，平台格式在打包边界转换。[OpenAI 插件构建](https://developers.openai.com/plugins/build/plugins)
 
 Codex CLI 0.154.0 实测可发现公共包的 skill，却不发现其中的 hook；同一运行代码采用兼容 manifest 后可以发现。因此 GitHub 分发目录不放优先级更高的根 plugin.json；仅追加兼容 manifest，或移除公共 manifest 的 inline extension，均不能让该版本发现 hook。维护入口 `scripts/package_plugin.py --format codex-legacy --output <新目录>` 复制兼容 manifest、skills/ 与 com.openai/。兼容副本不包含优先级更高的根 manifest，也不带 Claude command／agent；Codex 通过 skill 执行相同操作。默认 public 输出保留公共布局。两种输出均不包含开发文档，不安装或注册插件，不覆盖已有目录。
 
-Claude Code 使用 `.claude-plugin/plugin.json` 及其原生组件目录；其 manifest 的名称、版本和描述与 Codex manifest 检查一致；公共格式由打包器派生。`agents/`、`commands/`、`hooks/` 位于插件根，不放进 `.claude-plugin/`。这些是 Claude 的兼容布局，不冒充公共规范；不自行假设一个未被客户端实现的扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
+Claude Code 使用 `.claude-plugin/plugin.json`；其名称、版本和描述与 Codex／Cursor manifest 检查一致；公共格式由打包器派生。`agents`、`commands`、`hooks` 放在 `com.anthropic/`，并由 Claude manifest 显式指向：`hooks` 为 hooks 文件路径，`commands` 为命令目录，`agents` 为各角色 `.md` 文件路径列表（Claude 不接受 agents 目录路径）。这些是 Claude 的官方 manifest 路径字段，不是公共 Agent Plugins 扩展命名空间。[Claude 插件参考](https://code.claude.com/docs/en/plugins-reference)
 
 Codex 原生 reviewer 的 name、description、developer_instructions 与只读 sandbox 由 TOML 定义，不固定具体模型；正文只定位共享审查规程并限定受委派角色的职责。插件 manifest 没有原生角色注册字段，安装器不写用户 agent 配置。注册、更新和撤销方式见 [接入指南](../user/clients.md)；`agents/openai.yaml` 仍仅是 skill 的界面元数据，不能替代 TOML 角色。
 
@@ -107,8 +108,8 @@ Codex 原生 reviewer 的 name、description、developer_instructions 与只读 
 | 组件 | 公共定义与格式 | Codex CLI | Claude Code CLI |
 |---|---|---|---|
 | skill | `skills/<name>/SKILL.md`；YAML 元数据＋Markdown 正文；必需字段为 `name`、`description` | 通过原生 skill 发现与显式调用使用 | 通过插件 skill 发现及带插件命名空间的入口使用 |
-| agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 可选 com.openai/agents/tao-reviewer.toml，复制到项目 .codex/agents/ 后按原生机制发现 | 按需用 `agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式 |
-| 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `commands/tao-<动作>.md` 提供仅转发操作与参数的斜杠命令包装 |
+| agent | 角色的职责、输入、输出和验证规程在共享 skill 资源中维护；不自建公共 agent manifest | 可选 com.openai/agents/tao-reviewer.toml，复制到项目 .codex/agents/ 后按原生机制发现 | 按需用 `com.anthropic/agents/*.md` 定义原生子代理，采用官方 frontmatter 和正文格式；manifest 列出各文件 |
+| 斜杠命令（slash command） | 操作语义由 skill 维护；命令只选择操作和传递参数 | 使用 `/skills` 或 `$` 选择 skill；不假设会加载 Claude 的 `commands/` | 优先使用 skill 提供的命名空间入口；必要时以 `com.anthropic/commands/tao-<动作>.md` 提供仅转发操作与参数的斜杠命令包装 |
 | hook | 共享可确定的检查逻辑；事件绑定与输入输出由平台适配 | 使用 Codex hook JSON、受支持事件与执行类型 | 使用 Claude hook JSON、受支持事件与执行类型 |
 
 Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](https://agentskills.io/specification)。本项目内部文档的 `tao.*` profile、章节键和研发条目不能直接套到运行 [SKILL.md](../../plugins/tao-dev/skills/tao-dev/SKILL.md)、agent 或 command 的 frontmatter；这些文件按各自标准检查。平台专有元数据只在有明确支持的组件中使用。
@@ -117,7 +118,7 @@ Skill 的名称与目录、元数据字段、文件引用遵循 [Agent Skills](h
 
 new 包装接收自然语言描述并保留会话上下文，调用共享流程规程，由 agent 整理输入并填写草稿；不能仅转发到终端生成器就宣称完成。CLI 使用显式 --slug，不能把描述当作 slug 或 shell 命令；两层契约见 [CLI 设计](cli-design.md)。
 
-Claude command 与角色的运行引用使用客户端展开的 `${CLAUDE_PLUGIN_ROOT}`，不让模型从使用方目录猜测相对根。角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。插件根 `agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 0.154.0 的 command 迁移会跳过含 `$ARGUMENTS` 的包装；tao 的 11 个 command 均属此类，兼容包不分发它们。原生角色另行注册，不能由 Claude 目录推导自动发现。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
+Claude command 与角色的运行引用使用客户端展开的 `${CLAUDE_PLUGIN_ROOT}`，不让模型从使用方目录猜测相对根。角色入口复用实际运行材料，不引用内部设计文档；不把同一工作规程复制为 skill、agent 和 command 三份正文。`com.anthropic/agents/` 的子代理定义与某些 skill 内的 `agents/openai.yaml` 界面元数据职责不同，不能互相替代。Codex 0.154.0 的 command 迁移会跳过含 `$ARGUMENTS` 的包装；tao 的 11 个 command 均属此类，兼容包不分发它们。原生角色另行注册，不能由 Claude 目录推导自动发现。[OpenAI 兼容迁移说明](https://developers.openai.com/plugins/guides/submit-claude-plugin)、[Claude 子代理](https://code.claude.com/docs/en/sub-agents)
 
 初版 hook 使用确定性的 command handler，并分别验证两端事件数据、输出、退出状态、超时和信任流程。静态配置以 PATH 中的 python3 直接调用 hook.py；Codex 使用 `PLUGIN_ROOT`，Claude 使用 `CLAUDE_PLUGIN_ROOT` 和独立参数。完整安装把解释器与脚本写成绝对路径，正确处理空格且不依赖 shell 启动包装。使用方的文档资产写入 docs/ 或其配置映射位置，派生索引与缓存默认放 tmp/tao/cache/；.tao/ 仅放配置。客户端自身的数据按其支持的目录管理，不能写入假定可修改的插件缓存。
 

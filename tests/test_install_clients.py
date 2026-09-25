@@ -255,7 +255,7 @@ def test_complete_install_binds_hook_to_exact_python(state, client):
     shutil.copytree(source, plugin)
     python = root / 'Python Runtime/python3'
     clients._bind_hook(client, plugin, python)
-    relative = 'hooks/hooks.json' if client == 'claude' else 'com.openai/hooks/hooks.json'
+    relative = 'com.anthropic/hooks/hooks.json' if client == 'claude' else 'com.openai/hooks/hooks.json'
     hook = json.loads((plugin / relative).read_text(encoding='utf-8'))['hooks']['PostToolUse'][0]['hooks'][0]
     script = plugin / 'skills/tao-dev/scripts/hook.py'
     if client == 'claude':

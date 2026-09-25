@@ -62,7 +62,7 @@ python3 .agents/skills/tao-dev/scripts/tao.py --project . verify --only docs
 
 ### 原生入口与独立审查
 
-Claude 插件的 `agents/`、`commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 需按下节显式注册。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
+Claude 插件的 `com.anthropic/agents/`、`com.anthropic/commands/` 是 Claude 原生包装；Codex 的完整插件包通过共享 skill 执行动作。Codex 可选 reviewer 需按下节显式注册。其他客户端使用自身委派能力执行共享审查规程；缺少独立执行能力时只能明确记录自检与未执行范围。
 
 真实审查报告可以保存；机器回执还需来源格式适配和当前输入绑定。支持格式以 [审查记录](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md) 为准，不能将未支持来源改写为人工审查来绕过完成条件。
 

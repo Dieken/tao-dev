@@ -34,6 +34,9 @@ def test_github_catalogs_resolve_one_complete_compatible_source():
     assert cursor_hooks['hooks']['postToolUse']
     assert cursor_manifest['agents'] == './com.cursor/agents/'
     assert cursor_manifest['commands'] == './com.cursor/commands/'
+    assert claude_manifest['hooks'] == './com.anthropic/hooks/hooks.json'
+    assert claude_manifest['agents'] == ['./com.anthropic/agents/reviewer.md']
+    assert claude_manifest['commands'] == './com.anthropic/commands/'
     assert (plugin / 'skills/tao-dev/scripts/tao.py').is_file()
 
 
@@ -56,7 +59,7 @@ def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format)
     assert plugin.is_relative_to(output)
     assert plugin.name == entry['name'] == 'tao-dev'
     folders = ('skills', 'com.openai') if package_format == 'codex-legacy' else (
-        'skills', 'agents', 'commands', 'hooks', 'com.cursor', '.claude-plugin', '.cursor-plugin')
+        'skills', 'com.anthropic', 'com.cursor', '.claude-plugin', '.cursor-plugin')
     for folder in folders:
         source = ROOT / 'plugins/tao-dev' / folder
         for path in source.rglob('*'):
