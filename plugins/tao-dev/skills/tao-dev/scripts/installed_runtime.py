@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-CLIENTS = {"claude": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME"}
+CLIENTS = {"claude": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME", "cursor": "CURSOR_CONFIG_DIR"}
 SCOPES = {"user": 0, "project": 1, "local": 2}
 
 

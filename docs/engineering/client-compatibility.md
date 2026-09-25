@@ -26,7 +26,7 @@ created: "2026-09-16"
 |---|---|---|---|---|
 | Claude Code 2.1.270 | 原生 skills、插件根变量 | 已有隔离安装／hook 验收；本次模型调用被服务端 403 阻断 | 已实现 | Claude commands、Markdown reviewer、hook |
 | Codex 0.154.0 | 原生 skills、显式资源路径 | 本次项目内 skill／TOML 角色发现与委派通过，项目外均缺席 | 已实现 | hook；可选 TOML reviewer |
-| Cursor | SKILL.md、配套文件、项目目录 | 未运行：无 CLI | 未实现 | 不复制 Claude 原生包装作为支持承诺 |
+| Cursor | SKILL.md、配套文件、`.cursor-plugin`、Cursor hook | 包装与 `tao install --client cursor` 已实现；本机原生会话验收仍待补 | 已实现 | Cursor Plugin + `com.cursor` hook；不复制 Claude commands／agents |
 | Oh My Pi | SKILL.md；skill URI 只接受归一化的根内资源路径 | 未运行：无 CLI | 未实现 | 使用本机能力，单独验收 |
 | Crush | SKILL.md、配套文件、可配置目录 | 未运行：无 CLI | 未实现 | 同上 |
 | Kiro | SKILL.md、自定义 agent 的 skill 资源配置 | 未运行：无 CLI | 未实现 | 同上 |
@@ -57,7 +57,7 @@ Codex 0.154.0 源码的 Claude command 迁移是受限转换，不是原生 comm
 
 独立 skill 回归需复制完整 skill 到含空格路径，不携带外层 manifest；从另一 cwd 使用显式 --project，验证未准备诊断、显式离线 setup、局部检查和资源目录未写入。CLI 来源适配需验证真实事件及拒绝反例。当前执行记录见 [兼容性计划](../plans/2026-09/20260916-client-portability.md)。
 
-本次不扩展 `install --client`：九个新增 CLI 不在本机，无法核验注册、信任、升级、卸载与项目外缺席。后续针对确有需求且可隔离验证的客户端逐个实现；共享 skill 接入不受此阻塞。模型／供应商未出现在原始来源中时记 unknown，原生 reviewer 角色名也不证明模型多样性。
+本次不扩展 `install --client`：九个新增 CLI 不在本机，无法核验注册、信任、升级、卸载与项目外缺席。后续针对确有需求且可隔离验证的客户端逐个实现；共享 skill 接入不受此阻塞。模型／供应商未出现在原始来源中时记 unknown，原生 reviewer 角色名也不证明模型多样性。原生 Claude／Codex／Cursor 探针在本机按「已安装且已登录」自动启用；未安装或未登录则跳过。CI 设置 `TAO_TEST_NATIVE_CLIENTS=1` 时只要求 CLI 存在（runner 无凭据，仅测安装／范围／卸载）。
 
 <!-- tao:section troubleshooting -->
 ## 结果解释

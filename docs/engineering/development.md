@@ -60,7 +60,7 @@ uv run --no-config --locked --extra publication python -m pytest
 
 ### 持续集成
 
-`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台分别安装当前版本的 Claude Code 与 Codex CLI，以 `TAO_TEST_NATIVE_CLIENTS=1` 执行原生安装与卸载探测。CI 不调用模型，也不使用任何客户端凭据；runner 上本来就没有这两个 CLI 的安装和个人状态，不适用本机实验的隔离约束。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
+`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台分别安装当前版本的 Claude Code 与 Codex CLI，以 `TAO_TEST_NATIVE_CLIENTS=1` 执行原生安装与卸载探测（只要求 CLI 存在，不要求登录）。本机 `just check` 与同名 pytest 对 Claude／Codex／Cursor 按「已安装且已登录」自动启用探针，缺 CLI 或未登录则跳过。CI 不调用模型，也不使用任何客户端凭据；runner 上本来就没有这两个 CLI 的安装和个人状态，不适用本机实验的隔离约束。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
 
 本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。原生探测覆盖插件安装、启用范围与卸载，不覆盖真实会话行为；后者仍按 [验收说明](../../tests/acceptance/README.md) 单独执行。
 
@@ -119,7 +119,7 @@ uv run --no-config --locked --extra publication python scripts/export_dependenci
 
 安装记录模块负责验证安装标识、工具数据归属和运行绑定，客户端适配模块负责原生缓存及共享配置。共享 CLI 按当前目录或 --project 从两个客户端的记录中选择安装，先转交对应原生插件入口，使不同项目沿用各自版本的依赖清单；install/uninstall 继续使用共享安装器。运行数据目录优先采用显式 TAO 覆盖，其次采用匹配的安装记录，再回退到 Claude 数据目录和平台默认目录。记录中的解释器及运行位置不写进项目共享配置；未知或符号链接重定向的归属不能成为递归删除依据。共享 CLI 在最后一份安装卸载后仍保留，以便再次安装。
 
-Claude 保留 user、project、local 三种原生范围。Codex 的 repo、local 参数均归一为 project，与 user 构成两个有效范围；不能把 local 描述为额外的个人项目配置。修改安装流程时同步相关行为测试，并分别报告模拟适配测试、实际依赖准备与原生客户端验收的范围。
+Claude 保留 user、project、local 三种原生范围。Codex／Cursor 的 repo、local 参数均归一为 project，与 user 构成两个有效范围；不能把 local 描述为额外的个人项目配置。修改安装流程时同步相关行为测试，并分别报告模拟适配测试、实际依赖准备与原生客户端验收的范围。
 
 ### 版本与发布 tag
 

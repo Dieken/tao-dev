@@ -26,7 +26,9 @@ prepare:
 check: prepare
     {{ tao }} verify --only code --format json
     {{ uvrun }} python scripts/export_dependencies.py --check
-    TAO_TEST_NATIVE_CLIENTS=1 {{ uvrun }} python -m pytest tests/test_install_clients.py -k native -q
+    # Native probes auto-skip any of claude/codex/cursor that is missing or not
+    # logged in. CI sets TAO_TEST_NATIVE_CLIENTS=1 to require only the CLI.
+    {{ uvrun }} python -m pytest tests/test_install_clients.py -k native -q
 
 # Check every managed document, then build the book and print its entry point.
 docs: prepare

@@ -13,12 +13,17 @@ from taolib.project import ConfigurationError, Project, contained, mutation_lock
 from tao_messages import Message, configured_locale, diagnostic
 
 
-def feedback(message):
+def feedback(message, event="PostToolUse"):
+    # Claude/Codex use nested hookSpecificOutput; Cursor postToolUse uses
+    # additional_context at the top level.
+    if event == "postToolUse":
+        return {"additional_context": message}
     return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": message}}
 
 
 def run(payload):
-    if payload.get("hook_event_name") != "PostToolUse":
+    event = payload.get("hook_event_name")
+    if event not in ("PostToolUse", "postToolUse"):
         return {}
     # The host's working directory determines scope; untrusted tool input
     # never selects the project or becomes an executable command.
@@ -53,7 +58,7 @@ def run(payload):
         with path.open("rb") as stream:
             while chunk := stream.read(131072):
                 if time.monotonic() >= deadline:
-                    return feedback(display("tao docs not_run: input scan exceeded the hook budget; run explicit verification."))
+                    return feedback(display("tao docs not_run: input scan exceeded the hook budget; run explicit verification."), event)
                 digest.update(chunk)
         digest.update(b"\0")
     fingerprint = digest.hexdigest()
@@ -65,7 +70,7 @@ def run(payload):
         except (ValueError, TypeError):
             previous = {}
         if isinstance(previous, dict) and previous.get("fingerprint") == fingerprint and isinstance(previous.get("message"), str):
-            return feedback(display(Message('tao docs feedback (unchanged inputs): {arg0}', previous['message'])))
+            return feedback(display(Message('tao docs feedback (unchanged inputs): {arg0}', previous['message'])), event)
         command = [sys.executable, str(scripts / "tao.py"), "--project", str(project.root), "verify", "--only", "docs", "--format", "json"]
         try:
             completed = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=max(0.001, deadline - time.monotonic()))
@@ -73,25 +78,28 @@ def run(payload):
             details = "; ".join(f"{d.get('path', '')}:{d.get('line', 1)} {d['rule_id']}: {d['message']}" for d in report["diagnostics"][:8])
             message = display(Message('{arg0} (docs only, partial; not delivery acceptance). {arg1}', report['status'], details))[:3000]
         except subprocess.TimeoutExpired:
-            return feedback(display("tao docs not_run: hook time budget exceeded; run explicit verification with an appropriate budget."))
+            return feedback(display("tao docs not_run: hook time budget exceeded; run explicit verification with an appropriate budget."), event)
         except (ValueError, KeyError):
-            return feedback(display("tao docs not_run: validator could not return a report; check its Python dependencies with the trusted entry point."))
+            return feedback(display("tao docs not_run: validator could not return a report; check its Python dependencies with the trusted entry point."), event)
         text = json.dumps({"fingerprint": fingerprint, "message": message}, ensure_ascii=False) + "\n"
         if before is None:
             create_file(project.root, cache, text)
         else:
             replace_file(project.root, cache, text, before)
-        return feedback(display(Message('tao docs feedback: {arg0}', message)))
+        return feedback(display(Message('tao docs feedback: {arg0}', message)), event)
 
 
 def main():
+    event = "PostToolUse"
     try:
         payload = json.loads(sys.stdin.read(1_000_001))
         if not isinstance(payload, dict):
             raise ValueError("Expected a hook event object.")
+        event = payload.get("hook_event_name") or event
         response = run(payload)
     except (OSError, ValueError) as exc:
-        response = feedback('tao docs not_run: ' + diagnostic(exc, configured_locale())['message'])
+        response = feedback('tao docs not_run: ' + diagnostic(exc, configured_locale())['message'],
+                            event if event in ("PostToolUse", "postToolUse") else "PostToolUse")
     print(json.dumps(response, ensure_ascii=False))
     return 0
 

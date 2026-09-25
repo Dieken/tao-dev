@@ -22,7 +22,7 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["plugins/tao-dev/skills/tao-dev/scripts"]
+pythonpath = ["plugins/tao-dev/skills/tao-dev/scripts", "tests"]
 addopts = "-ra"
 
 [tool.coverage.run]

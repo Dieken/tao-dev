@@ -1,0 +1,13 @@
+{
+  "name": "tao-dev",
+  "owner": {
+    "name": "Dieken"
+  },
+  "plugins": [
+    {
+      "name": "tao-dev",
+      "source": "./plugins/tao-dev",
+      "description": "Evidence-based workflows for human-agent development."
+    }
+  ]
+}
