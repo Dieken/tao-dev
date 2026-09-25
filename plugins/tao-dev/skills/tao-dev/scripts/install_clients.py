@@ -215,7 +215,7 @@ def _command_line(argv, *, windows=None):
 
 def _hook_relative(client):
     return {
-        'claude': Path('hooks/hooks.json'),
+        'claude': Path('com.anthropic/hooks/hooks.json'),
         'codex': Path('com.openai/hooks/hooks.json'),
         'cursor': Path('com.cursor/hooks/hooks.json'),
     }[client]

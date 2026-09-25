@@ -45,7 +45,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 客户端入口只选择动作并传递完整请求，共用 skill 中的流程规程；原生调用语法集中在 [接入指南](../user/clients.md)。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
 
-Claude 的斜杠命令包装统一命名为 `/tao-<动作>`，文件名即 `commands/tao-<动作>.md`。动作名本身保持不带前缀，供自然语言和其他客户端使用。前缀的作用是让包装命令不与客户端内置命令重名：new、review、status、docs 在 Claude 或 Codex 中都是已占用的斜杠命令，其中 Codex 的 `/new` 会开启新会话。没有前缀时 Claude 会把裸名解析到本插件，从而养成在 Codex 中误用的习惯。
+Claude 的斜杠命令包装统一命名为 `/tao-<动作>`，文件名即 `com.anthropic/commands/tao-<动作>.md`。动作名本身保持不带前缀，供自然语言和其他客户端使用。前缀的作用是让包装命令不与客户端内置命令重名：new、review、status、docs 在 Claude 或 Codex 中都是已占用的斜杠命令，其中 Codex 的 `/new` 会开启新会话。没有前缀时 Claude 会把裸名解析到本插件，从而养成在 Codex 中误用的习惯。
 
 Claude 按插件名注册命令，正式名恒为 `/tao-dev:tao-<动作>`。每个命令文件另需 frontmatter `name: tao-<动作>`，Claude 据此注册同名别名，`/tao-<动作>` 才可直接调用；缺少该字段时裸名报未知命令。新增命令必须同时提供文件名和该字段。
 

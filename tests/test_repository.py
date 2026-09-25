@@ -44,7 +44,7 @@ def test_tracked_markdown_outside_document_scope_has_a_runtime_or_entry_role():
     """A new reports/ or reviews/ tree must not silently escape schema checks."""
     entry_points = {'AGENTS.md', 'CLAUDE.md', 'README.md', 'tests/acceptance/README.md'}
     runtime_roots = (
-        'plugins/tao-dev/agents/', 'plugins/tao-dev/commands/',
+        'plugins/tao-dev/com.anthropic/agents/', 'plugins/tao-dev/com.anthropic/commands/',
         'plugins/tao-dev/skills/tao-dev/references/',
         'plugins/tao-dev/skills/tao-dev/assets/templates/',
     )
