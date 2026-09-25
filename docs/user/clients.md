@@ -14,7 +14,7 @@ created: "2026-09-16"
 
 | 方式 | 获得的能力 | 入口 |
 |---|---|---|
-| Claude／Codex／Cursor 完整插件 | 共享 skill、CLI、模板、对应客户端 hook 与安装管理 | [README](../../README.md) |
+| Claude／Codex／Cursor／Kiro 完整插件 | 共享 skill、CLI、模板、对应客户端 hook 与安装管理 | [README](../../README.md) |
 | 独立 skill | 同一份规程、模板与 Python CLI；客户端原生扩展另行接入 | 下文 |
 
 共享 skill 不依赖 Claude command、子代理或根目录变量。客户端能读懂 SKILL.md，不代表已验证脚本执行、独立审查、hook 或自动安装；各层的依据见 [兼容矩阵](../engineering/client-compatibility.md)。
@@ -41,7 +41,7 @@ created: "2026-09-16"
 | Cursor | `.cursor/skills/` 或 `.agents/skills/` | [Skills](https://cursor.com/docs/skills) |
 | Oh My Pi | `.omp/skills/` 或 `.agents/skills/` | [Skills](https://github.com/can1357/oh-my-pi/blob/main/docs/skills.md) |
 | Crush | `.crush/skills/` 或 `.agents/skills/` | [Agent Skills](https://github.com/charmbracelet/crush#agent-skills) |
-| Kiro | `.kiro/skills/`；自定义 agent 的资源配置另见原生文档 | [Skills](https://kiro.dev/docs/skills/) |
+| Kiro | `tao install --client kiro`（V3）；手工接入仍可用 `.kiro/skills/` | [Skills](https://kiro.dev/docs/skills/) |
 | Qwen Code | `.qwen/skills/` | [Skills](https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/) |
 | Kimi Code | `.agents/skills/` | [Skills](https://moonshotai.github.io/kimi-code/en/customization/skills) |
 | OpenCode | `.opencode/skills/` 或 `.agents/skills/` | [Skills](https://opencode.ai/docs/skills/) |

@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ if spec.loader:
 @pytest.fixture
 def state(tmp_path, monkeypatch):
     for variable, name in [('CODEX_HOME', 'codex'), ('CLAUDE_CONFIG_DIR', 'claude'),
-                           ('CURSOR_CONFIG_DIR', 'cursor'),
+                           ('CURSOR_CONFIG_DIR', 'cursor'), ('KIRO_HOME', 'kiro'),
                            ('XDG_CONFIG_HOME', 'xdg'), ('GIT_CONFIG_GLOBAL', 'gitconfig')]:
         monkeypatch.setenv(variable, str(tmp_path / name))
     project = tmp_path / 'project'
@@ -638,3 +639,172 @@ def test_missing_claude_registration_still_cleans_only_selected_settings_key(sta
     monkeypatch.setattr(clients, '_run', lambda *a, **kw: pytest.fail('Registry already removed'))
     clients.remove_activation('claude', 'tao-dev@custom', 'project', project)
     assert clients._read_json(config) == {'enabledPlugins': {'other@catalog': True}, 'unrelated': 5}
+
+
+@pytest.mark.parametrize('scope', ['user', 'project', 'local'])
+def test_kiro_v3_file_install_discover_and_remove(state, scope):
+    root, project = state
+    source = SCRIPTS.parents[4]
+    result = clients.install_plugin('kiro', str(source), 'tao-dev@tao-dev', scope, project,
+                                    python=Path(sys.executable))
+    normalized = 'project' if scope == 'local' else scope
+    base = root / 'kiro' if normalized == 'user' else project / '.kiro'
+    skill = base / 'skills/tao-dev'
+    hook = base / 'hooks/tao-dev.json'
+    assert Path(result['plugin_path']).is_dir()
+    assert (skill / 'SKILL.md').is_file()
+    definition = json.loads(hook.read_text(encoding='utf-8'))
+    command = definition['hooks'][0]['action']['command']
+    assert definition['version'] == 'v1'
+    assert definition['hooks'][0]['trigger'] == 'PostToolUse'
+    assert '--host kiro' in command
+    rows = clients.discover('kiro', project)
+    assert any(row['scope'] == normalized and row['enabled'] for row in rows)
+    clients.remove_activation('kiro', 'tao-dev@tao-dev', normalized, project)
+    assert not skill.exists() and not hook.exists()
+
+
+def test_kiro_refuses_unmanaged_skill(state):
+    root, project = state
+    skill = root / 'kiro/skills/tao-dev'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('mine', encoding='utf-8')
+    with pytest.raises(clients.ClientError, match='unmanaged Kiro skill'):
+        clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                               python=Path(sys.executable))
+    assert (skill / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+
+
+def test_kiro_rejects_symlinked_project_root(state):
+    root, project = state
+    outside = root / 'outside-kiro'
+    outside.mkdir()
+    (project / '.kiro').symlink_to(outside, target_is_directory=True)
+    with pytest.raises(clients.ClientError, match='symlinked Kiro activation'):
+        clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'project', project,
+                               python=Path(sys.executable))
+    assert not list(outside.iterdir())
+
+
+def test_kiro_modified_skill_is_not_overwritten(state):
+    _, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    skill = Path(result['activation']['skill'])
+    (skill / 'SKILL.md').write_text('user change', encoding='utf-8')
+    with pytest.raises(clients.ClientError, match='modified Kiro skill'):
+        clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                               python=Path(sys.executable))
+    assert (skill / 'SKILL.md').read_text(encoding='utf-8') == 'user change'
+
+
+def test_kiro_uninstall_removes_hook_when_skill_is_missing(state):
+    _, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    skill = Path(result['activation']['skill'])
+    hook = Path(result['activation']['hook'])
+    import shutil
+    shutil.rmtree(skill)
+    clients.remove_activation('kiro', 'tao-dev@tao-dev', 'user', project,
+                              activation=result['activation'])
+    assert not hook.exists()
+
+
+def test_kiro_restore_includes_private_git_exclude(state):
+    _, project = state
+    subprocess.run(['git', '-C', str(project), 'init', '-q'], check=True)
+    exclude = project / '.git/info/exclude'
+    before = exclude.read_bytes()
+    snapshot = clients.snapshot_activation('kiro', 'tao-dev@tao-dev', 'project', project)
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'project', project,
+                                    python=Path(sys.executable))
+    assert exclude.read_bytes() != before
+    clients.restore_activation(snapshot, attempted_plugin_path=result['plugin_path'])
+    assert exclude.read_bytes() == before
+
+
+def test_kiro_rejects_symlinked_cache_ancestor(state):
+    root, project = state
+    outside = root / 'outside-cache'
+    outside.mkdir()
+    home = root / 'kiro'
+    home.mkdir()
+    (home / 'plugins').symlink_to(outside, target_is_directory=True)
+    with pytest.raises(clients.ClientError, match='symlinked Kiro plugin cache'):
+        clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                               python=Path(sys.executable))
+    assert not list(outside.iterdir())
+
+
+def test_kiro_uninstall_preserves_foreign_cache_content(state):
+    root, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    base = Path(result['plugin_base'])
+    foreign = base / 'foreign/keep.txt'
+    foreign.parent.mkdir()
+    foreign.write_text('mine', encoding='utf-8')
+    clients.remove_activation('kiro', 'tao-dev@tao-dev', 'user', project,
+                              activation=result['activation'])
+    assert foreign.read_text(encoding='utf-8') == 'mine'
+
+
+def test_kiro_cache_owner_symlink_never_authorizes_replacement(state):
+    root, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    cached = Path(result['plugin_path'])
+    owner = cached / '.tao-owned.json'
+    external = root / 'fake-owner.json'
+    external.write_text(json.dumps({'component': 'kiro-cache', 'plugin_id': 'tao-dev@tao-dev'}), encoding='utf-8')
+    owner.unlink()
+    owner.symlink_to(external)
+    valuable = cached / 'valuable.txt'
+    valuable.write_text('mine', encoding='utf-8')
+    with pytest.raises(clients.ClientError, match='unmanaged Kiro plugin cache'):
+        clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                               python=Path(sys.executable))
+    assert valuable.read_text(encoding='utf-8') == 'mine'
+
+
+def test_kiro_uninstall_rejects_cache_ancestor_replaced_by_symlink(state):
+    root, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    plugins = root / 'kiro/plugins'
+    outside = root / 'moved-plugins'
+    plugins.rename(outside)
+    plugins.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(clients.ClientError, match='symlinked Kiro plugin cache'):
+        clients.remove_activation('kiro', 'tao-dev@tao-dev', 'user', project,
+                                  activation=result['activation'])
+    assert Path(result['activation']['skill']).exists()
+
+
+def test_kiro_uninstall_ignores_malformed_foreign_cache_marker(state):
+    _, project = state
+    result = clients.install_plugin('kiro', str(SCRIPTS.parents[4]), 'tao-dev@tao-dev', 'user', project,
+                                    python=Path(sys.executable))
+    base = Path(result['plugin_base'])
+    foreign = base / 'foreign'
+    foreign.mkdir()
+    (foreign / '.tao-owned.json').write_text('{broken', encoding='utf-8')
+    (foreign / 'keep.txt').write_text('mine', encoding='utf-8')
+    clients.remove_activation('kiro', 'tao-dev@tao-dev', 'user', project,
+                              activation=result['activation'])
+    assert (foreign / 'keep.txt').read_text(encoding='utf-8') == 'mine'
+    assert not Path(result['activation']['skill']).exists()
+
+
+def test_kiro_snapshot_rejects_internal_symlink_without_change(state):
+    root, project = state
+    skill = root / 'kiro/skills/tao-dev'
+    skill.mkdir(parents=True)
+    target = root / 'keep.txt'
+    target.write_text('mine', encoding='utf-8')
+    link = skill / 'linked.txt'
+    link.symlink_to(target)
+    with pytest.raises(clients.ClientError, match='snapshot symlinked Kiro activation'):
+        clients.snapshot_activation('kiro', 'tao-dev@tao-dev', 'user', project)
+    assert link.is_symlink() and target.read_text(encoding='utf-8') == 'mine'

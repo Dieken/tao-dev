@@ -357,5 +357,7 @@
   "Review outputs must be exact project-relative Markdown paths.": "审查输出必须使用精确的项目相对 Markdown 路径。",
   "Reserve a new review output file before starting: {arg0}": "开始审查前请预留新的输出文件：{arg0}",
   "Tracked inputs cannot be reserved as review outputs.": "已跟踪的输入文件不能预留为审查输出。",
-  "Runtime check did not finish within {arg0} seconds; retry when the machine is less loaded.": "运行环境检查未在 {arg0} 秒内完成；请在机器负载较低时重试。"
+  "Runtime check did not finish within {arg0} seconds; retry when the machine is less loaded.": "运行环境检查未在 {arg0} 秒内完成；请在机器负载较低时重试。",
+  "Kiro installation activation is required.": "Kiro 安装必须包含 activation 信息。",
+  "Invalid Kiro activation receipt.": "Kiro activation 安装记录无效。"
 }

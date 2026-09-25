@@ -7,9 +7,11 @@ are deliberately retained on uninstall.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import queue
+import re
 import shlex
 import shutil
 import subprocess
@@ -33,9 +35,10 @@ def _home(client):
         'codex': ('CODEX_HOME', '.codex'),
         'claude': ('CLAUDE_CONFIG_DIR', '.claude'),
         'cursor': ('CURSOR_CONFIG_DIR', '.cursor'),
+        'kiro': ('KIRO_HOME', '.kiro'),
     }
     if client not in homes:
-        raise ClientError('Client must be claude/codex/cursor')
+        raise ClientError('Client must be claude/codex/cursor/kiro')
     variable, default = homes[client]
     return Path(os.environ.get(variable, str(Path.home() / default))).expanduser().resolve()
 
@@ -184,14 +187,14 @@ def _write_config(path, values):
 
 
 def validate_scope(client, scope, project):
-    if client not in ('claude', 'codex', 'cursor') or scope not in ('user', 'project', 'local'):
-        raise ClientError('Client must be claude/codex/cursor and scope user/project/local')
+    if client not in ('claude', 'codex', 'cursor', 'kiro') or scope not in ('user', 'project', 'local'):
+        raise ClientError('Client must be claude/codex/cursor/kiro and scope user/project/local')
     project = Path(project).expanduser().resolve()
     if not project.is_dir():
         raise ClientError(f'Project directory does not exist: {project}')
-    # Codex and Cursor have repository/user scopes only. Claude-style local
-    # spelling is a compatibility alias that maps to project for both.
-    return 'project' if client in ('codex', 'cursor') and scope == 'local' else scope
+    # Codex, Cursor, and Kiro have repository/user scopes only. Claude-style
+    # local spelling is a compatibility alias that maps to project.
+    return 'project' if client in ('codex', 'cursor', 'kiro') and scope == 'local' else scope
 
 
 def _valid_id(plugin_id):
@@ -288,6 +291,212 @@ def _bind_hook(client, plugin, python):
     return path
 
 
+def _tree_digest(path):
+    digest = hashlib.sha256()
+    path = Path(path)
+    if path.is_file():
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    for child in sorted(path.rglob('*')):
+        if child.is_symlink():
+            raise ClientError(f'Refusing symlinked Kiro activation content: {child}')
+        if child.is_file() and child.name != '.tao-owned.json':
+            digest.update(child.relative_to(path).as_posix().encode() + b'\0' + child.read_bytes())
+    return digest.hexdigest()
+
+
+def _kiro_paths(home, project, scope):
+    boundary = home if scope == 'user' else project
+    root = home if scope == 'user' else project / '.kiro'
+    root = root.absolute()
+    if not root.is_relative_to(boundary.absolute()):
+        raise ClientError('Kiro activation escapes its scope root')
+    if scope == 'project' and root == home.absolute():
+        raise ClientError('KIRO_HOME overlaps this project .kiro directory; user and project scopes would collide')
+    skill, hook = root / 'skills/tao-dev', root / 'hooks/tao-dev.json'
+    for path in (root, root / 'skills', skill, root / 'hooks', hook):
+        if path.is_symlink():
+            raise ClientError(f'Refusing symlinked Kiro activation path: {path}')
+    return skill, hook
+
+
+def _kiro_plugin_from_marketplace(source):
+    source = Path(source).resolve()
+    catalog = source / '.claude-plugin/marketplace.json'
+    if not catalog.is_file():
+        raise ClientError('Kiro source has no tao-dev marketplace catalog')
+    data = _read_json(catalog)
+    entries = [entry for entry in data.get('plugins', []) if entry.get('name') == 'tao-dev']
+    if len(entries) != 1 or not isinstance(entries[0].get('source'), str):
+        raise ClientError('Kiro marketplace must identify exactly one tao-dev plugin')
+    plugin = (source / entries[0]['source']).resolve()
+    if not plugin.is_relative_to(source) or not (plugin / 'skills/tao-dev/SKILL.md').is_file():
+        raise ClientError('Kiro marketplace plugin must stay inside its source and contain tao-dev skill')
+    return plugin
+
+
+def _kiro_cache_base(home, plugin_id):
+    marketplace = _valid_id(plugin_id)
+    base = home / 'plugins/cache' / marketplace / 'tao-dev'
+    for path in (home / 'plugins', home / 'plugins/cache', home / 'plugins/cache' / marketplace, base):
+        if path.is_symlink():
+            raise ClientError(f'Refusing symlinked Kiro plugin cache path: {path}')
+    return base
+
+
+def _materialize_kiro_plugin(source, plugin_id, home, *, ref=None):
+    temporary = None
+    try:
+        source_path = Path(source)
+        if source_path.is_dir():
+            plugin_src = _kiro_plugin_from_marketplace(source_path)
+        else:
+            temporary = Path(tempfile.mkdtemp(prefix='.tao-kiro-src-'))
+            argv = ['git', 'clone', '--depth', '1']
+            if ref:
+                argv += ['--branch=' + ref]
+            argv += ['--', source, str(temporary / 'repository')]
+            completed = subprocess.run(argv, capture_output=True, text=True, encoding='utf-8',
+                                       errors='replace', check=False)
+            if completed.returncode:
+                raise ClientError(f'git clone failed: {(completed.stderr or completed.stdout).strip()}')
+            plugin_src = _kiro_plugin_from_marketplace(temporary / 'repository')
+        manifest = _read_json(plugin_src / '.claude-plugin/plugin.json')
+        if manifest.get('name') != 'tao-dev':
+            raise ClientError('Kiro source has an invalid tao-dev manifest')
+        version = manifest.get('version', '0.0.0')
+        if not isinstance(version, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,127}', version):
+            raise ClientError('Kiro plugin version must be a safe single path segment')
+        base = _kiro_cache_base(home, plugin_id)
+        base.mkdir(parents=True, exist_ok=True)
+        destination = base / version
+        if destination.resolve().parent != base.resolve():
+            raise ClientError('Kiro plugin cache path escapes its owner')
+        owner = destination / '.tao-owned.json'
+        if destination.exists():
+            if (destination.is_symlink() or owner.is_symlink() or not owner.is_file()
+                    or _read_json(owner).get('component') != 'kiro-cache'
+                    or _read_json(owner).get('plugin_id') != plugin_id):
+                raise ClientError(f'Refusing to replace unmanaged Kiro plugin cache: {destination}')
+            shutil.rmtree(destination)
+        stage = Path(tempfile.mkdtemp(prefix='.tao-kiro-cache-', dir=base))
+        try:
+            shutil.copytree(plugin_src, stage / 'plugin', ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.git'))
+            (stage / 'plugin/.tao-owned.json').write_text(json.dumps({
+                'schema': 1, 'component': 'kiro-cache', 'plugin_id': plugin_id}) + '\n', encoding='utf-8')
+            (stage / 'plugin').rename(destination)
+        finally:
+            shutil.rmtree(stage, ignore_errors=True)
+        return destination, version
+    finally:
+        if temporary is not None:
+            shutil.rmtree(temporary, ignore_errors=True)
+
+
+def _kiro_git_info(project):
+    completed = subprocess.run(['git', '-C', str(project), 'rev-parse', '--show-toplevel', '--git-path', 'info/exclude'],
+                               capture_output=True, text=True, encoding='utf-8', errors='replace', check=False)
+    lines = completed.stdout.splitlines()
+    if completed.returncode or len(lines) != 2:
+        return None, None
+    root, exclude = Path(lines[0]).resolve(), Path(lines[1])
+    if not exclude.is_absolute():
+        exclude = (project / exclude).resolve()
+    return root, exclude
+
+
+def _kiro_private_exclude(project, paths):
+    root, exclude = _kiro_git_info(project)
+    if root is None:
+        return None
+    entries = []
+    for path in paths:
+        try:
+            relative = path.resolve().relative_to(root).as_posix()
+        except ValueError:
+            continue
+        tracked = subprocess.run(['git', '-C', str(root), 'ls-files', '--error-unmatch', '--', relative],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        if tracked.returncode == 0:
+            raise ClientError(f'Refusing to replace tracked Kiro activation: {path}')
+        entries.append('/' + relative.rstrip('/') + ('/' if path.suffix == '' else ''))
+    current = exclude.read_text(encoding='utf-8') if exclude.exists() else ''
+    missing = [entry for entry in entries if entry not in current.splitlines()]
+    if missing:
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        exclude.write_text(current + ('\n' if current and not current.endswith('\n') else '') + '\n'.join(missing) + '\n',
+                           encoding='utf-8', newline='\n')
+    return exclude
+
+
+def _publish_kiro(plugin, plugin_id, version, scope, home, project, python):
+    skill, hook = _kiro_paths(home, project, scope)
+    marker = skill / '.tao-owned.json'
+    if skill.exists() and (skill.is_symlink() or not marker.is_file() or _read_json(marker).get('plugin_id') != plugin_id):
+        raise ClientError(f'Refusing to replace unmanaged Kiro skill: {skill}')
+    previous = _read_json(marker) if marker.is_file() else {}
+    if skill.exists() and previous.get('skill_digest') != _tree_digest(skill):
+        raise ClientError(f'Refusing to replace modified Kiro skill: {skill}')
+    if hook.exists() and previous.get('hook_digest') != _tree_digest(hook):
+        raise ClientError(f'Refusing to replace unmanaged or modified Kiro hook: {hook}')
+    exclude = _kiro_private_exclude(project, [skill, hook]) if scope == 'project' else None
+    skill.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix='.tao-kiro-skill-', dir=skill.parent))
+    try:
+        shutil.copytree(plugin / 'skills/tao-dev', stage / 'tao-dev',
+                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        definition = _read_json(plugin / 'com.kiro/hooks/tao-dev.json')
+        definition['hooks'][0]['action']['command'] = _command_line([
+            Path(python).resolve(), '-I', '-B', skill / 'scripts/hook.py', '--host', 'kiro'])
+        hook.parent.mkdir(parents=True, exist_ok=True)
+        hook_bytes = (json.dumps(definition, indent=2) + '\n').encode()
+        hook_digest = hashlib.sha256(hook_bytes).hexdigest()
+        skill_digest = _tree_digest(stage / 'tao-dev')
+        (stage / 'tao-dev/.tao-owned.json').write_text(json.dumps({
+            'schema': 1, 'id': 'tao-dev', 'plugin_id': plugin_id, 'plugin_path': str(plugin),
+            'version': version, 'scope': scope, 'project': None if scope == 'user' else str(project),
+            'skill_digest': skill_digest, 'hook_digest': hook_digest}) + '\n', encoding='utf-8', newline='\n')
+        backup = skill.with_name('.tao-dev-previous')
+        if backup.exists():
+            raise ClientError(f'Previous Kiro skill update needs inspection: {backup}')
+        if skill.exists():
+            skill.rename(backup)
+        (stage / 'tao-dev').rename(skill)
+        descriptor, temporary = tempfile.mkstemp(prefix='.tao-kiro-hook-', dir=hook.parent)
+        try:
+            with os.fdopen(descriptor, 'wb') as stream:
+                stream.write(hook_bytes)
+            os.replace(temporary, hook)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+        shutil.rmtree(backup, ignore_errors=True)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    files = [str(skill), str(hook)]
+    if exclude is not None:
+        files.append(str(exclude))
+    return skill, hook, files
+
+
+def _discover_kiro(home, project):
+    result = []
+    for scope, target in [('user', None), ('project', project)]:
+        try:
+            skill, hook = _kiro_paths(home, project, scope)
+        except ClientError:
+            continue
+        marker = skill / '.tao-owned.json'
+        if not skill.is_dir() or skill.is_symlink() or not marker.is_file():
+            continue
+        owned = _read_json(marker)
+        plugin = Path(owned.get('plugin_path', ''))
+        if owned.get('id') != 'tao-dev' or not plugin.is_absolute() or not plugin.is_dir():
+            continue
+        result.append(_native_row(owned.get('plugin_id', 'tao-dev@tao-dev'), scope, target, plugin,
+                                  owned.get('version', 'unknown'), [str(skill), str(hook)],
+                                  enabled=hook.is_file() and owned.get('hook_digest') == _tree_digest(hook)))
+    return result
+
+
 def _native_row(plugin_id, scope, project, plugin, version, files, *, enabled=True):
     return {'native': True, 'id': plugin_id, 'plugin_id': plugin_id, 'scope': scope,
             'project': str(project) if project is not None else None,
@@ -296,9 +505,11 @@ def _native_row(plugin_id, scope, project, plugin, version, files, *, enabled=Tr
 
 def discover(client, project):
     project = Path(project).expanduser().resolve()
-    if client not in ('claude', 'codex', 'cursor'):
-        raise ClientError('Client must be claude/codex/cursor')
+    if client not in ('claude', 'codex', 'cursor', 'kiro'):
+        raise ClientError('Client must be claude/codex/cursor/kiro')
     home = _home(client)
+    if client == 'kiro':
+        return _discover_kiro(home, project)
     if client == 'cursor':
         return _discover_cursor(home, project)
     if client == 'claude':
@@ -459,7 +670,8 @@ def _materialize_cursor_plugin(marketplace_source, plugin_id, home, *, ref=None)
             if ref:
                 argv += ['--branch=' + ref]
             argv += ['--', marketplace_source, str(temporary / 'repository')]
-            completed = subprocess.run(argv, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            completed = subprocess.run(argv, capture_output=True, text=True, encoding='utf-8',
+                                       errors='replace', check=False)
             if completed.returncode:
                 raise ClientError(f'git clone failed: {(completed.stderr or completed.stdout).strip()}')
             plugin_src, _ = _cursor_plugin_from_marketplace(temporary / 'repository')
@@ -619,6 +831,41 @@ def _check_codex_source(catalog, source):
                           f'explicitly: registered {configured!r}, requested {source!r}')
 
 
+def _content_snapshot(path):
+    path = Path(path)
+    if not path.exists():
+        return None
+    if path.is_symlink():
+        raise ClientError(f'Refusing to snapshot symlinked Kiro activation: {path}')
+    if path.is_file():
+        return {'type': 'file', 'content': path.read_bytes()}
+    if any(child.is_symlink() for child in path.rglob('*')):
+        raise ClientError(f'Refusing to snapshot symlinked Kiro activation content: {path}')
+    return {'type': 'directory', 'files': {
+        child.relative_to(path).as_posix(): child.read_bytes()
+        for child in path.rglob('*') if child.is_file()
+    }}
+
+
+def _restore_content(path, saved):
+    path = Path(path)
+    if path.exists():
+        if path.is_symlink():
+            raise ClientError(f'Refusing to restore over symlinked Kiro activation: {path}')
+        shutil.rmtree(path) if path.is_dir() else path.unlink()
+    if saved is None:
+        return
+    if saved['type'] == 'file':
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(saved['content'])
+        return
+    path.mkdir(parents=True, exist_ok=True)
+    for relative, content in saved['files'].items():
+        target = path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+
+
 def _snapshot(path):
     if path.is_file():
         return path.read_bytes()
@@ -656,11 +903,30 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
                home / 'plugins/cache' / marketplace / 'tao-dev', home / 'plugins/local/tao-dev',
                project / '.codex/config.toml', project / '.claude/settings.json',
                project / '.claude/settings.local.json', project / '.cursor/settings.json']
+    if client == 'kiro':
+        skill, hook = _kiro_paths(home, project, scope)
+        watched.extend([skill, hook])
     before = {path: _snapshot(path) for path in watched}
     files = []
     warnings = []
     try:
         home.mkdir(parents=True, exist_ok=True)
+        if client == 'kiro':
+            if python is None:
+                raise ClientError('Kiro installation requires the validated Python interpreter')
+            plugin, version = _materialize_kiro_plugin(marketplace_source, plugin_id, home, ref=ref)
+            skill, hook, activation_files = _publish_kiro(
+                plugin, plugin_id, version, scope, home, project, python)
+            files.extend([str(plugin.parent), *activation_files])
+            return {
+                'plugin_id': plugin_id, 'plugin_path': str(plugin), 'plugin_base': str(plugin.parent),
+                'version': version, 'files': list(dict.fromkeys(files)), 'warnings': warnings,
+                'activation': {'schema': 1, 'skill': str(skill), 'hook': str(hook),
+                               'skill_digest': _tree_digest(skill), 'hook_digest': _tree_digest(hook),
+                               'machine_bound': True},
+                'verification': {'native_skills_enabled': True, 'native_hook_installed': True,
+                                 'kiro_engine': 'v3', 'method': 'Kiro V3 filesystem discovery'},
+            }
         if client == 'cursor':
             plugin, version = _materialize_cursor_plugin(marketplace_source, plugin_id, home, ref=ref)
             files.append(str(plugin.parent))
@@ -781,11 +1047,12 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
         raise failure from exc
 
 
-def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, keep_activation=False):
+def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, keep_activation=False,
+                      activation=None):
     project = Path(project).expanduser().resolve()
-    if client not in ('claude', 'codex', 'cursor') or scope not in ('user', 'project', 'local'):
-        raise ClientError('Client must be claude/codex/cursor and scope user/project/local')
-    scope = 'project' if client in ('codex', 'cursor') and scope == 'local' else scope
+    if client not in ('claude', 'codex', 'cursor', 'kiro') or scope not in ('user', 'project', 'local'):
+        raise ClientError('Client must be claude/codex/cursor/kiro and scope user/project/local')
+    scope = 'project' if client in ('codex', 'cursor', 'kiro') and scope == 'local' else scope
     _valid_id(plugin_id)
     if keep_activation:
         return {'files': [], 'warnings': ['Shared activation is still used by another installation.']}
@@ -793,9 +1060,9 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
     rows = discover(client, project)
     selected_project = None if scope == 'user' else str(project)
     selected = [row for row in rows if row['plugin_id'] == plugin_id and row['project'] == selected_project
-                and (row['scope'] == scope or client in ('codex', 'cursor'))]
+                and (row['scope'] == scope or client in ('codex', 'cursor', 'kiro'))]
     others = [row for row in rows if row['plugin_id'] == plugin_id and
-              not (row['project'] == selected_project and (row['scope'] == scope or client in ('codex', 'cursor')))]
+              not (row['project'] == selected_project and (row['scope'] == scope or client in ('codex', 'cursor', 'kiro')))]
     watched = [home / 'config.toml', home / 'settings.json', home / 'plugins/installed_plugins.json',
                home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev', home / 'plugins/local/tao-dev',
                project / '.codex/config.toml', project / '.claude/settings.json',
@@ -803,6 +1070,8 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
     before = {path: _snapshot(path) for path in watched}
     files = []
     warnings = []
+    if client == 'kiro':
+        _kiro_cache_base(home, plugin_id)
     for row in rows:
         if row['plugin_id'] == plugin_id and row['project'] == selected_project:
             base = home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev'
@@ -813,7 +1082,45 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
             if not cached.is_relative_to(base) or cached == base:
                 raise ClientError(f'Refusing native uninstall with an unowned cache path: {cached}')
     try:
-        if client == 'cursor':
+        if client == 'kiro':
+            skill, hook = _kiro_paths(home, project, scope)
+            marker = skill / '.tao-owned.json'
+            owned = _read_json(marker) if marker.is_file() and not marker.is_symlink() else {}
+            expected_skill = owned.get('skill_digest') or (activation or {}).get('skill_digest')
+            expected_hook = owned.get('hook_digest') or (activation or {}).get('hook_digest')
+            if skill.exists():
+                if (skill.is_symlink() or marker.is_symlink() or not marker.is_file()
+                        or owned.get('plugin_id') != plugin_id or expected_skill != _tree_digest(skill)):
+                    raise ClientError(f'Refusing to remove modified or unmanaged Kiro skill: {skill}')
+            if hook.exists() and expected_hook != _tree_digest(hook):
+                raise ClientError(f'Refusing to remove modified or unmanaged Kiro hook: {hook}')
+            base = _kiro_cache_base(home, plugin_id)
+            owned_caches = []
+            if not others and not keep_plugin and base.is_dir():
+                for cached in list(base.iterdir()):
+                    owner = cached / '.tao-owned.json'
+                    if not cached.is_dir() or cached.is_symlink() or owner.is_symlink() or not owner.is_file():
+                        continue
+                    try:
+                        owner_data = _read_json(owner)
+                    except ClientError:
+                        continue
+                    if (owner_data.get('component') == 'kiro-cache'
+                            and owner_data.get('plugin_id') == plugin_id):
+                        owned_caches.append(cached)
+            if skill.exists():
+                shutil.rmtree(skill)
+                files.append(str(skill))
+            if hook.exists():
+                hook.unlink()
+                files.append(str(hook))
+            for cached in owned_caches:
+                shutil.rmtree(cached)
+                files.append(str(cached))
+            if base.is_dir() and not any(base.iterdir()):
+                base.rmdir()
+                files.append(str(base))
+        elif client == 'cursor':
             if scope == 'user':
                 local = home / 'plugins/local/tao-dev'
                 marker = local / '.tao-owned.json'
@@ -960,7 +1267,18 @@ def snapshot_activation(client, plugin_id, scope, project):
     home = _home(client)
     snapshot = {'client': client, 'plugin_id': plugin_id, 'scope': scope,
                 'project': str(project), 'home': str(home), 'configs': []}
-    if client == 'codex':
+    if client == 'kiro':
+        skill, hook = _kiro_paths(home, project, scope)
+        snapshot['kiro_activation'] = [
+            {'path': str(skill), 'saved': _content_snapshot(skill)},
+            {'path': str(hook), 'saved': _content_snapshot(hook)},
+        ]
+        if scope == 'project':
+            _, exclude = _kiro_git_info(project)
+            if exclude is not None:
+                snapshot['kiro_activation'].append(
+                    {'path': str(exclude), 'saved': _content_snapshot(exclude)})
+    elif client == 'codex':
         paths = [home / 'config.toml']
         if scope != 'user':
             paths.append(project / '.codex/config.toml')
@@ -1037,6 +1355,10 @@ def restore_activation(snapshot, *, attempted_plugin_path=None):
     files = []
     warnings = []
     try:
+        if client == 'kiro':
+            for item in snapshot.get('kiro_activation', []):
+                _restore_content(Path(item['path']), item['saved'])
+                files.append(item['path'])
         for config in snapshot['configs']:
             path = Path(config['path'])
             entries = list(config['entries'])

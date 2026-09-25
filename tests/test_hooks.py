@@ -122,3 +122,17 @@ def test_incomplete_hook_cache_is_rebuilt(tmp_path):
     assert observed.returncode == 0, observed.stderr
     assert 'passed' in json.loads(observed.stdout)['hookSpecificOutput']['additionalContext']
     assert 'message' in json.loads(cache.read_text(encoding="utf-8"))
+
+
+def test_kiro_hook_uses_plain_text_and_empty_noop(tmp_path):
+    script = HOOK
+    outside = subprocess.run([sys.executable, '-I', '-B', str(script), '--host', 'kiro'], cwd=tmp_path,
+                             input='{}', capture_output=True, text=True, encoding='utf-8', check=False)
+    assert outside.returncode == 0 and outside.stdout == ''
+    (tmp_path / '.tao').mkdir()
+    (tmp_path / '.tao/config.toml').write_text('', encoding='utf-8')
+    inside = subprocess.run([sys.executable, '-I', '-B', str(script), '--host', 'kiro'], cwd=tmp_path,
+                            input='{}', capture_output=True, text=True, encoding='utf-8')
+    assert inside.returncode == 0
+    assert 'not_run' in inside.stdout
+    assert not inside.stdout.startswith('{')

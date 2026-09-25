@@ -71,7 +71,11 @@ def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format)
         portable = json.loads((plugin / 'plugin.json').read_text(encoding='utf-8'))
         assert portable['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
         assert (plugin / portable['extensions']['com.openai']['hooks']).is_file()
+        kiro = json.loads((plugin / 'com.kiro/hooks/tao-dev.json').read_text(encoding='utf-8'))
+        assert kiro['version'] == 'v1' and kiro['hooks'][0]['trigger'] == 'PostToolUse'
         assert not (plugin / '.codex-plugin').exists()
+    else:
+        assert not (plugin / 'com.kiro').exists()
     previous = catalog_path.read_bytes()
     repeated = subprocess.run(command, capture_output=True, text=True, check=False, encoding='utf-8')
     assert repeated.returncode != 0

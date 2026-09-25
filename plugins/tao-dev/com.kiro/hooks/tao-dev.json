@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "tao-dev-document-feedback",
+      "description": "Provide bounded tao-dev documentation feedback after agent writes.",
+      "trigger": "PostToolUse",
+      "matcher": "write|fs_write|str_replace",
+      "action": {
+        "type": "command",
+        "command": "python3 -I -B .kiro/skills/tao-dev/scripts/hook.py --host kiro"
+      },
+      "timeout": 35,
+      "enabled": true
+    }
+  ]
+}

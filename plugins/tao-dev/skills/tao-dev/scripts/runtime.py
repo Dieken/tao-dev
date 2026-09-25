@@ -559,7 +559,7 @@ def main(argv=None, entry="tao.py"):
         return emit(command, outputs, error, json_output, configured_locale(argv))
 
 
-def hook_main():
+def hook_main(host=None):
     """Check project activation before inspecting or creating any tool data."""
     utf8_streams()
     started = time.monotonic()
@@ -567,11 +567,19 @@ def hook_main():
         payload = json.loads(sys.stdin.read(1_000_001))
         if not isinstance(payload, dict):
             raise ValueError("Expected a hook event object.")
+        if host == "kiro":
+            payload["hook_event_name"] = "PostToolUse"
         project = next((p for p in [Path.cwd(), *Path.cwd().parents]
                         if (p / ".tao/config.toml").is_file()), None)
         if payload.get("hook_event_name") not in ("PostToolUse", "postToolUse") or project is None:
-            print("{}")
+            if host != "kiro":
+                print("{}")
             return 0
+        if host == "kiro":
+            project_scripts = (project / ".kiro/skills/tao-dev/scripts").resolve()
+            project_hook = project / ".kiro/hooks/tao-dev.json"
+            if project_hook.is_file() and project_scripts.is_dir() and SCRIPTS.resolve() != project_scripts:
+                return 0
         import tomllib
         config_path = project / ".tao/config.toml"
         if not config_path.resolve().is_relative_to(project.resolve()):
@@ -581,7 +589,8 @@ def hook_main():
         if not isinstance(hooks, dict):
             raise ValueError("Invalid hooks configuration.")
         if hooks.get("docs_enabled", True) is False:
-            print("{}")
+            if host != "kiro":
+                print("{}")
             return 0
         budget = hooks.get("timeout_seconds", 5)
         if type(budget) is not int or not 1 <= budget <= 30:
@@ -598,14 +607,25 @@ def hook_main():
             remaining = budget - (time.monotonic() - started)
             if remaining <= 0:
                 raise ValueError("Hook time budget exceeded during runtime inspection.")
-            completed = subprocess.run([str(python_in(directory)), "-I", "-B", str(SCRIPTS / "hook.py")],
-                                       env=child_env, input=json.dumps(payload), capture_output=True,
-                                       text=True, encoding="utf-8", timeout=remaining)
+            command = [str(python_in(directory)), "-I", "-B", str(SCRIPTS / "hook.py")]
+            if host == "kiro":
+                command += ["--host", "kiro"]
+            completed = subprocess.run(command, env=child_env, input=json.dumps(payload), capture_output=True,
+                                       text=True, encoding="utf-8", timeout=remaining, check=False)
             if completed.returncode:
                 raise ValueError("Hook process could not complete.")
-            response = json.loads(completed.stdout)
+            response = completed.stdout if host == "kiro" else json.loads(completed.stdout)
     except (OSError, ValueError, ImportError, subprocess.TimeoutExpired) as exc:
-        response = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                    "additionalContext": 'tao docs not_run: ' + diagnostic(exc, configured_locale())['message']}}
-    print(json.dumps(response, ensure_ascii=False))
+        message = 'tao docs not_run: ' + diagnostic(exc, configured_locale())['message']
+        response = message if host == "kiro" else {"hookSpecificOutput": {
+            "hookEventName": "PostToolUse", "additionalContext": message}}
+    if host == "kiro":
+        if isinstance(response, str):
+            print(response, end="")
+        else:
+            message = response.get("hookSpecificOutput", {}).get("additionalContext") or response.get("additional_context", "")
+            if message:
+                print(message, end="")
+    else:
+        print(json.dumps(response, ensure_ascii=False))
     return 0
