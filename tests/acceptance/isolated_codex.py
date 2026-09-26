@@ -173,43 +173,124 @@ def check_boundary(workspace, inside):
     return rows
 
 
+def _token_expiry(token):
+    """Return a JWT expiry when present, or None for opaque provider tokens."""
+    try:
+        segment = token.split('.')[1]
+        payload = json.loads(base64.urlsafe_b64decode(segment + '=' * (-len(segment) % 4)))
+        value = payload['exp']
+    except (ValueError, KeyError, IndexError, TypeError, json.JSONDecodeError):
+        return None
+    return float(value)
+
+
+def _toml_value(value):
+    if isinstance(value, (str, bool, int, float)):
+        return json.dumps(value)
+    if isinstance(value, list) and all(isinstance(item, (str, bool, int, float)) for item in value):
+        return json.dumps(value)
+    raise RuntimeError('The selected Codex provider contains an unsupported setting.')
+
+
+def _provider_prefix(config, provider_name, provider):
+    lines = []
+    for key in ('model', 'model_provider', 'model_reasoning_summary', 'model_reasoning_effort'):
+        if key in config:
+            lines.append(key + ' = ' + _toml_value(config[key]))
+    table = ['[model_providers.' + json.dumps(provider_name) + ']']
+    for key, value in provider.items():
+        name = str(key) if str(key).isidentifier() else json.dumps(str(key))
+        table.append(name + ' = ' + _toml_value(value))
+    return '\n'.join(lines) + '\n', '\n'.join(table) + '\n'
+
+
+def _standard_prefix(config):
+    keys = ('model', 'model_provider', 'openai_base_url', 'chatgpt_base_url',
+            'forced_login_method', 'forced_chatgpt_workspace_id')
+    prefix = '\n'.join(key + ' = ' + json.dumps(config[key]) for key in keys if key in config)
+    return prefix + '\ncli_auth_credentials_store = "file"\nmodel_reasoning_effort = "low"\nweb_search = "disabled"\n'
+
+
+def _config_credentials(timeout):
+    path = Path.home() / '.codex/config.toml'
+    try:
+        config = tomllib.loads(path.read_text(encoding='utf-8'))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise RuntimeError('Existing Codex configuration credentials are unavailable; no login attempted.') from exc
+    provider_name = config.get('model_provider')
+    providers = config.get('model_providers') or {}
+    provider = providers.get(provider_name) if isinstance(providers, dict) else None
+    if not isinstance(provider_name, str) or not isinstance(provider, dict):
+        raise RuntimeError('Existing Codex configuration has no selected authenticated provider.')  # noqa: TRY004
+    bearer = provider.get('experimental_bearer_token')
+    env_key = provider.get('env_key')
+    if isinstance(bearer, str) and bearer.strip():
+        token = bearer
+    elif isinstance(env_key, str) and env_key and os.environ.get(env_key, '').strip():
+        token = os.environ[env_key]
+    else:
+        raise RuntimeError('Existing Codex provider has no usable access credential; no login attempted.')
+    expiry = _token_expiry(token)
+    if expiry is not None and expiry - time.time() <= timeout + 120:
+        raise RuntimeError('Existing Codex access token cannot cover this probe; no refresh or login attempted.')
+    return _provider_prefix(config, provider_name, provider), [token]
+
+
 @contextmanager
 def access_snapshot(workspace, timeout):
-    """Reuse a current file-backed ChatGPT access token without token rotation."""
+    """Reuse explicit existing Codex auth only inside the experiment workspace."""
     state = workspace / 'client-state'
     original = Path.home() / '.codex/auth.json'
-    source = json.loads(original.read_text(encoding='utf-8'))
-    if source.get('auth_mode') != 'chatgpt':
-        raise RuntimeError('This opt-in adapter requires existing file-backed ChatGPT authentication.')
-    tokens = source['tokens']
-    access = tokens['access_token']
-    try:
-        segment = access.split('.')[1]
-        expires = json.loads(base64.urlsafe_b64decode(segment + '=' * (-len(segment) % 4)))['exp']
-    except (ValueError, KeyError, IndexError) as exc:
-        raise RuntimeError('Cannot determine the existing access token lifetime.') from exc
-    if expires - time.time() <= timeout + 120:
-        raise RuntimeError('Existing access token cannot cover this probe; no refresh or login attempted.')
-    data = {key: source[key] for key in ('auth_mode', 'last_refresh') if key in source}
-    data['tokens'] = {key: tokens[key] for key in ('access_token', 'id_token', 'account_id') if key in tokens}
-    data['tokens']['refresh_token'] = ''
-    config = tomllib.loads((Path.home() / '.codex/config.toml').read_text(encoding='utf-8'))
-    if config.get('model_providers') or config.get('profile'):
-        raise RuntimeError('Custom provider/profile authentication needs a separately reviewed adapter.')
-    keys = ('model', 'model_provider', 'openai_base_url', 'chatgpt_base_url', 'forced_login_method', 'forced_chatgpt_workspace_id')
-    prefix = '\n'.join(key + ' = ' + json.dumps(config[key]) for key in keys if key in config)
-    prefix += '\ncli_auth_credentials_store = "file"\nmodel_reasoning_effort = "low"\nweb_search = "disabled"\n'
-    current = (state / 'config.toml').read_text(encoding='utf-8')
+    source = None
+    if original.is_file():
+        try:
+            source = json.loads(original.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError, TypeError):
+            source = None
+    tokens = None
+    access = None
+    if isinstance(source, dict) and source.get('auth_mode') == 'chatgpt':
+        tokens = source.get('tokens') or {}
+        access = tokens.get('access_token')
+    if isinstance(access, str) and access:
+        expires = _token_expiry(access)
+        if expires is None:
+            raise RuntimeError('Cannot determine the existing access token lifetime.')
+        if expires - time.time() <= timeout + 120:
+            raise RuntimeError('Existing access token cannot cover this probe; no refresh or login attempted.')
+        config_path = Path.home() / '.codex/config.toml'
+        try:
+            config = tomllib.loads(config_path.read_text(encoding='utf-8'))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise RuntimeError('Existing Codex configuration is unavailable; no login attempted.') from exc
+        prefix = _standard_prefix(config)
+        data = {key: source[key] for key in ('auth_mode', 'last_refresh') if key in source}
+        data['tokens'] = {key: tokens[key] for key in ('access_token', 'id_token', 'account_id') if key in tokens}
+        data['tokens']['refresh_token'] = ''
+        secrets = [value for value in tokens.values() if isinstance(value, str) and value]
+        auth_mode = 'file'
+        provider_table = ''
+    else:
+        (prefix, provider_table), secrets = _config_credentials(timeout)
+        data = None
+        auth_mode = 'provider'
+    config_path = state / 'config.toml'
+    current = config_path.read_bytes()
+    original_mode = config_path.stat().st_mode & 0o777
     path = state / 'auth.json'
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
-        with os.fdopen(descriptor, 'w') as stream:
-            json.dump(data, stream)
-        (state / 'config.toml').write_text(prefix + current, encoding='utf-8')
-        yield [v for k, v in tokens.items() if k.endswith('_token') and isinstance(v, str) and v]
+        if data is not None:
+            descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(descriptor, 'w') as stream:
+                json.dump(data, stream)
+        config_path.write_text(prefix + current.decode('utf-8') + provider_table, encoding='utf-8')
+        if auth_mode == 'provider':
+            os.chmod(config_path, 0o600)
+        yield secrets
     finally:
         path.unlink(missing_ok=True)
-        (state / 'config.toml').write_text(current, encoding='utf-8')
+        config_path.write_bytes(current)
+        os.chmod(config_path, original_mode)
 
 
 def private_log(path):

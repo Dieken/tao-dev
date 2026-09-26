@@ -123,3 +123,35 @@ def test_expiring_credentials_produce_a_structured_runner_failure(tmp_path, monk
     assert 'no refresh' in result['reason']
     saved = next((tmp_path / 'source/tmp/tao/client-acceptance').glob('*.summary.json'))
     assert json.loads(saved.read_text(encoding='utf-8')) == result
+
+
+
+def test_install_command_is_noninteractive_without_unsupported_json(tmp_path):
+    command = adapter.install_arguments('project')
+    assert command == [
+        'plugin', 'install', 'tao-dev@tao-runtime-test',
+        '--scope', 'project', '--yes',
+    ]
+    assert '--json' not in command
+
+
+
+def test_configured_settings_auth_is_scoped_to_child(tmp_path, monkeypatch):
+    monkeypatch.setattr(Path, 'home', lambda: tmp_path)
+    monkeypatch.setattr(adapter, 'read_credentials',
+                        lambda: (_ for _ in ()).throw(RuntimeError('no keychain')))
+    settings = tmp_path / '.claude/settings.json'
+    settings.parent.mkdir(parents=True)
+    original = json.dumps({'env': {
+        'ANTHROPIC_AUTH_TOKEN': 'settings-access',
+        'ANTHROPIC_BASE_URL': 'https://models.example.test',
+        'ANTHROPIC_MODEL': 'test-model',
+    }})
+    settings.write_text(original, encoding='utf-8')
+    before = settings.read_bytes()
+    with adapter.access_environment(tmp_path / 'experiment', 90) as (env, secrets):
+        assert env['ANTHROPIC_AUTH_TOKEN'] == 'settings-access'
+        assert env['ANTHROPIC_BASE_URL'] == 'https://models.example.test'
+        assert env['ANTHROPIC_MODEL'] == 'test-model'
+        assert 'settings-access' in secrets
+    assert settings.read_bytes() == before

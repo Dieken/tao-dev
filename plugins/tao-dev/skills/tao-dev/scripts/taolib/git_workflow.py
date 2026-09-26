@@ -1,13 +1,16 @@
 """Git-specific workspace operations; ordinary document checks need no VCS."""
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
 from tao_messages import Message
+
 from .project import ConfigurationError, ConflictError, Project, contained, create_file
 
 
 def run(root, *args, required=True):
     try:
-        result = subprocess.run(['git', '-C', str(root), *args], capture_output=True, timeout=30)
+        result = subprocess.run(['git', '-C', str(root), *args], capture_output=True,
+                                timeout=30, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         if not required:
             return None
@@ -24,7 +27,7 @@ def context(root):
     if not top or Path(top).resolve() != root.resolve():
         return None
     return {'branch': run(root, 'branch', '--show-current'),
-            'base_commit': run(root, 'rev-parse', 'HEAD'),
+            'base_commit': run(root, 'rev-parse', 'HEAD', required=False),
             'base_branch': run(root, 'branch', '--show-current')}
 
 

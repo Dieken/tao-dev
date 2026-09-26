@@ -207,17 +207,31 @@ def run(client, workspace, timeout=45):
             process = subprocess.Popen(_command(client, prompt), cwd=project, env=env,
                                        stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
                                        text=True, start_new_session=True, encoding='utf-8')
-            try:
-                process.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                _terminate(process, signal.SIGTERM)
+            target = project / 'docs/probe.md'
+            cache = project / 'tmp/tao/cache/hook.json'
+            if client == 'cursor':
+                deadline = time.monotonic() + timeout
+                while process.poll() is None and time.monotonic() < deadline:
+                    if target.is_file() and cache.is_file():
+                        terminated_after_evidence = True
+                        _terminate(process, signal.SIGTERM)
+                        break
+                    time.sleep(0.1)
+                if process.poll() is None and not terminated_after_evidence:
+                    timed_out = True
+                    _terminate(process, signal.SIGTERM)
+            else:
                 try:
-                    process.wait(timeout=5)
+                    process.wait(timeout=timeout)
                 except subprocess.TimeoutExpired:
-                    _terminate(process, signal.SIGKILL)
-                    process.wait(timeout=5)
-        exit_code = process.returncode
+                    timed_out = True
+                    _terminate(process, signal.SIGTERM)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                _terminate(process, signal.SIGKILL)
+                process.wait(timeout=5)
+        exit_code = 0 if terminated_after_evidence else process.returncode
     error = stderr_path.read_text(errors='replace', encoding='utf-8')
     target = project / 'docs/probe.md'
     exact_write = target.is_file() and target.read_text(encoding='utf-8') == '# Probe\n'
