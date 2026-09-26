@@ -146,6 +146,10 @@ def test_configured_settings_auth_is_scoped_to_child(tmp_path, monkeypatch):
         'ANTHROPIC_AUTH_TOKEN': 'settings-access',
         'ANTHROPIC_BASE_URL': 'https://models.example.test',
         'ANTHROPIC_MODEL': 'test-model',
+        'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'test-haiku',
+        'ANTHROPIC_SMALL_FAST_MODEL': 'test-fast',
+        'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '0',
+        'CLAUDE_CODE_ATTRIBUTION_HEADER': 'test-attribution',
     }})
     settings.write_text(original, encoding='utf-8')
     before = settings.read_bytes()
@@ -153,5 +157,9 @@ def test_configured_settings_auth_is_scoped_to_child(tmp_path, monkeypatch):
         assert env['ANTHROPIC_AUTH_TOKEN'] == 'settings-access'
         assert env['ANTHROPIC_BASE_URL'] == 'https://models.example.test'
         assert env['ANTHROPIC_MODEL'] == 'test-model'
+        assert env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] == 'test-haiku'
+        assert env['ANTHROPIC_SMALL_FAST_MODEL'] == 'test-fast'
+        assert env['CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'] == '0'
+        assert env['CLAUDE_CODE_ATTRIBUTION_HEADER'] == 'test-attribution'
         assert 'settings-access' in secrets
     assert settings.read_bytes() == before
