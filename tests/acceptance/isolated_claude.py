@@ -86,6 +86,16 @@ def lifecycle(workspace, scope):
     inside = workspace / 'claude/inside'
     inside.mkdir(parents=True)
     configure(workspace, inside, scope)
+
+    manifest = workspace / 'marketplace/plugins/tao-dev/.claude-plugin/plugin.json'
+    data = json.loads(manifest.read_text(encoding='utf-8'))
+    initial_version = data['version']
+    match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', initial_version)
+    if match is None:
+        raise RuntimeError(
+            f'Claude lifecycle requires a three-part semantic version; got {initial_version!r}.')
+    major, minor, patch = match.groups()
+    updated_version = f'{major}.{minor}.{int(patch) + 1}'
     runs = []
 
     def command(*arguments):
@@ -104,17 +114,15 @@ def lifecycle(workspace, scope):
         if not Path(rows[0]['installPath']).resolve().is_relative_to(workspace):
             raise RuntimeError('Native Claude installation escaped the experiment.')
 
-    installed(True, '0.3.0')
+    installed(True, initial_version)
     command('disable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(False, '0.3.0')
+    installed(False, initial_version)
     command('enable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(True, '0.3.0')
-    manifest = workspace / 'marketplace/plugins/tao-dev/.claude-plugin/plugin.json'
-    data = json.loads(manifest.read_text(encoding='utf-8'))
-    data['version'] = '0.3.1'
+    installed(True, initial_version)
+    data['version'] = updated_version
     manifest.write_text(json.dumps(data), encoding='utf-8')
     command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
-    installed(True, '0.3.1')
+    installed(True, updated_version)
     command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
     if any(item['id'] == 'tao-dev@tao-runtime-test' for item in command('list', '--json')):
         raise RuntimeError('Uninstalled Claude plugin still appears in native state.')
