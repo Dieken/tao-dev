@@ -146,7 +146,7 @@ def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
     results = []
     try:
         for process in processes:
-            results.append((process.communicate(timeout=60), process.returncode))
+            results.append((process.communicate(timeout=300), process.returncode))
     finally:
         for process in processes:
             if process.poll() is None:

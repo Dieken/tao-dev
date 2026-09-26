@@ -57,7 +57,7 @@ def policy(project):
             output = contained(project.root, metric['path']).resolve()
             if not output.is_relative_to(project.output('temporary').resolve()):
                 raise ConfigurationError('Metric outputs must be inside the configured temporary directory.')
-        if type(check.get('timeout_seconds', 60)) is not int or check.get('timeout_seconds', 60) <= 0:
+        if type(check.get('timeout_seconds', 300)) is not int or check.get('timeout_seconds', 300) <= 0:
             raise ConfigurationError('Check timeout must be a positive integer.')
     for key, default in [('budget_seconds', 300), ('reuse_seconds', 3600)]:
         if type(value.get(key, default)) is not int or value.get(key, default) < 0:
@@ -305,7 +305,7 @@ def execute(project, config):
                 with log.open('x', encoding='utf-8') as stream:
                     process = subprocess.Popen(check['argv'], cwd=project.root, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
                     try:
-                        process.wait(timeout=min(remaining, check.get('timeout_seconds', 60)))
+                        process.wait(timeout=min(remaining, check.get('timeout_seconds', 300)))
                         row.update(status='passed' if process.returncode == 0 else 'failed', exit_code=process.returncode)
                     except subprocess.TimeoutExpired:
                         if os.name == 'posix':
