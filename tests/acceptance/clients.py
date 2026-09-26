@@ -234,7 +234,13 @@ def main():
     if args.case in ('inside', 'outside'):
         prompt = boundary + ('Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not search the filesystem. If available, invoke its status operation, follow its required starting references and run its doctor/status with the configured Python interpreter. Report limitations accurately. Interpreter: ' + sys.executable if args.case == 'inside' else 'Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not use any tools or search the filesystem. Reply with a short JSON object.')
     elif args.case == 'recover':
-        prompt = boundary + 'Use tao-dev continue to reconcile the current files and the persisted handoff at ' + recovery['handoff'] + '. Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. Detect stale evidence after the code change, run configured verification, and update the existing task checkbox and plan summary only using actual results. Do not create a new plan or ask for already supplied requirements. Use Python interpreter ' + sys.executable + '. Finish with the measured checks, outcomes and limits.'
+        tao_entry = plugin / 'skills/tao-dev/scripts/tao.py'
+        tao_command = (f'{sys.executable} {tao_entry} --project {directory} --format json')
+        prompt = boundary + ('Use the tao-dev skill to continue the current change from the persisted handoff at ' + str(directory / recovery['handoff']) + '. '
+                             'Do not invoke a command named tao-dev and do not search PATH. When a tao CLI operation is needed, run exactly: ' + tao_command + '. '
+                             'Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. '
+                             'Detect stale evidence after the code change, run configured verification, and update the existing task checkbox, preserve its existing evidence link, and update the plan verification results only using actual results. '
+                             'Do not create a new plan or ask for already supplied requirements. Finish with the measured checks, outcomes and limits.')
     elif args.case == 'review':
         prompt = boundary + 'Use the available tao-dev review guidance to independently review example.py against requirements.txt. Do not change either file. Identify a concrete trigger, evidence and minimal fix; do not invent findings. This is your first review: no other reviewer conclusions are provided. Keep the response concise.'
     elif args.case == 'plan':

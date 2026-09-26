@@ -129,6 +129,11 @@ def _boundary(workspace):
         "or change global skills, plugins, hooks, marketplaces, authentication, or "
         "client configuration. Work only inside the experiment workspace at "
         f"{workspace}. Do not search outside it, use network tools, or delegate. "
+        "The client may load the advertised tao-dev skill resources; for project files, "
+        "inspect only example.py and requirements.txt. Do not run find, rg, ls, pwd, "
+        "directory scans, or inspect unrelated plugin/runtime files. "
+        "On the first turn, ask the single material question before writing anything, "
+        "and wait for the user's reply before editing. "
     )
 
 
