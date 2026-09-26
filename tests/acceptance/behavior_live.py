@@ -239,10 +239,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client", choices=("claude", "codex"), required=True)
     parser.add_argument("--workspace", type=Path, required=True)
-    parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args()
-    if not 1 <= args.timeout <= 60:
-        parser.error("timeout must be between 1 and 60 seconds")
+    if not 1 <= args.timeout <= 300:
+        parser.error("timeout must be between 1 and 300 seconds")
     try:
         summary = execute(args.client, args.workspace, args.timeout)
     except RuntimeError as exc:

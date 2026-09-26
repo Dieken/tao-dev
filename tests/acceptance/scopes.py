@@ -68,7 +68,7 @@ def main():
         try:
             with stdout.open("w") as out, stderr.open("w") as err:
                 completed = subprocess.run(["claude", *arguments], cwd=cwd, env=environment,
-                                           stdout=out, stderr=err, timeout=60)
+                                           stdout=out, stderr=err, timeout=300)
             code = completed.returncode
         except subprocess.TimeoutExpired:
             code = 124

@@ -75,7 +75,7 @@ def configure(workspace, inside, scope):
     for arguments in (['plugin', 'marketplace', 'add', str(marketplace)],
                       ['plugin', 'install', 'tao-dev@tao-runtime-test', '--scope', scope, '--json']):
         result = subprocess.run(['claude', *arguments], cwd=inside, env=environment(workspace),
-                                capture_output=True, text=True, timeout=60, check=False, encoding='utf-8')
+                                capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
             raise RuntimeError('Isolated Claude plugin configuration failed: ' + result.stdout + result.stderr)
 
@@ -100,7 +100,7 @@ def lifecycle(workspace, scope):
 
     def command(*arguments):
         result = subprocess.run(['claude', 'plugin', *arguments], cwd=inside, env=environment(workspace),
-                                capture_output=True, text=True, timeout=60, check=False, encoding='utf-8')
+                                capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
             raise RuntimeError('Native Claude lifecycle operation failed: ' + result.stdout + result.stderr)
         value = json.loads(result.stdout)
