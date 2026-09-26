@@ -13,6 +13,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+SETTINGS_ENV_KEYS = (
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+    'ANTHROPIC_SMALL_FAST_MODEL',
+    'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC',
+    'CLAUDE_CODE_ATTRIBUTION_HEADER',
+)
+
 
 def environment(workspace):
     return os.environ | {'CLAUDE_CONFIG_DIR': str(workspace / 'client-config'),
@@ -31,6 +38,15 @@ def read_credentials():
     if path.is_file():
         return path.read_text(encoding='utf-8')
     raise RuntimeError('Existing Claude file/Keychain access credentials are unavailable; no login attempted.')
+
+
+def _forward_settings_env(env, configured):
+    for key in SETTINGS_ENV_KEYS:
+        if key != 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC' or key in configured:
+            env.pop(key, None)
+        value = configured.get(key)
+        if isinstance(value, str) and (key in configured):
+            env[key] = value
 
 
 @contextmanager
@@ -53,6 +69,7 @@ def access_environment(workspace, timeout):
             raise RuntimeError('Existing Claude access token cannot cover this probe; no refresh attempted.')
         if settings.get('apiKeyHelper') or any(env.get(key) or settings.get('env', {}).get(key) for key in routing):
             raise RuntimeError('Custom Claude provider routing needs a separately reviewed adapter.')
+        _forward_settings_env(env, settings.get('env') or {})
         env['CLAUDE_CODE_OAUTH_TOKEN'] = data['accessToken']
         if (isinstance(settings.get('model'), str)
                 and re.fullmatch(r'[A-Za-z0-9._-]+', settings['model'])):
@@ -72,6 +89,7 @@ def access_environment(workspace, timeout):
             value = configured.get(key)
             if isinstance(value, str) and value.strip():
                 env[key] = value
+        _forward_settings_env(env, configured)
         token = configured[token_keys[0]]
         env[token_keys[0]] = token
         model = configured.get('ANTHROPIC_MODEL')
