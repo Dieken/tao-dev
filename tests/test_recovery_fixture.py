@@ -10,6 +10,9 @@ def test_recovery_fixture_produces_valid_plan_and_handoff(tmp_path):
     report = recovery.prepare(tmp_path, plugin)
     assert (tmp_path / report['plan']).is_file()
     assert (tmp_path / report['handoff']).is_file()
+    plan_text = (tmp_path / report['plan']).read_text(encoding='utf-8')
+    assert '  - evidence: [Verification](#DOC_' in plan_text
+    assert '--verification)' in plan_text
     result = validate(tmp_path, list((tmp_path / 'docs').rglob('*.md')))
     assert result.valid, result.to_dict()
 
