@@ -35,30 +35,65 @@ def read_credentials():
 
 @contextmanager
 def access_environment(workspace, timeout):
-    raw = read_credentials()
-    digest = hashlib.sha256(raw.encode()).digest()
-    data = json.loads(raw).get('claudeAiOauth', {})
-    if not data.get('accessToken') or data.get('expiresAt', 0) / 1000 - time.time() <= timeout + 120:
-        raise RuntimeError('Existing Claude access token cannot cover this probe; no refresh attempted.')
     settings_path = Path.home() / '.claude/settings.json'
     settings = json.loads(settings_path.read_text(encoding='utf-8')) if settings_path.exists() else {}
+    try:
+        raw = read_credentials()
+    except RuntimeError:
+        raw = None
     env = environment(workspace)
     routing = ('ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL',
                'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY')
-    if settings.get('apiKeyHelper') or any(env.get(key) or settings.get('env', {}).get(key) for key in routing):
-        raise RuntimeError('Custom Claude provider routing needs a separately reviewed adapter.')
     env.pop('CLAUDE_CODE_OAUTH_REFRESH_TOKEN', None)
     env.pop('CLAUDE_CODE_OAUTH_SCOPES', None)
-    env['CLAUDE_CODE_OAUTH_TOKEN'] = data['accessToken']
-    if (isinstance(settings.get('model'), str)
-            and re.fullmatch(r'[A-Za-z0-9._-]+', settings['model'])):
-        env['ANTHROPIC_MODEL'] = settings['model']
+    if raw is not None:
+        digest = hashlib.sha256(raw.encode()).digest()
+        data = json.loads(raw).get('claudeAiOauth', {})
+        if not data.get('accessToken') or data.get('expiresAt', 0) / 1000 - time.time() <= timeout + 120:
+            raise RuntimeError('Existing Claude access token cannot cover this probe; no refresh attempted.')
+        if settings.get('apiKeyHelper') or any(env.get(key) or settings.get('env', {}).get(key) for key in routing):
+            raise RuntimeError('Custom Claude provider routing needs a separately reviewed adapter.')
+        env['CLAUDE_CODE_OAUTH_TOKEN'] = data['accessToken']
+        if (isinstance(settings.get('model'), str)
+                and re.fullmatch(r'[A-Za-z0-9._-]+', settings['model'])):
+            env['ANTHROPIC_MODEL'] = settings['model']
+        secrets = [value for key, value in data.items() if key.endswith('Token') and isinstance(value, str)]
+        source = 'credentials'
+    else:
+        configured = settings.get('env') or {}
+        token_keys = [key for key in ('ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN')
+                      if isinstance(configured.get(key), str) and configured[key].strip()]
+        if settings.get('apiKeyHelper') or len(token_keys) != 1:
+            raise RuntimeError('Existing Claude file/Keychain access credentials are unavailable; no login attempted.')
+        for key in routing:
+            env.pop(key, None)
+        env.pop('ANTHROPIC_MODEL', None)
+        for key in routing:
+            value = configured.get(key)
+            if isinstance(value, str) and value.strip():
+                env[key] = value
+        token = configured[token_keys[0]]
+        env[token_keys[0]] = token
+        model = configured.get('ANTHROPIC_MODEL')
+        if isinstance(model, str) and re.fullmatch(r'[A-Za-z0-9._-]+', model):
+            env['ANTHROPIC_MODEL'] = model
+        secrets = [token]
+        digest = hashlib.sha256(settings_path.read_bytes()).digest()
+        source = 'settings'
     try:
-        yield env, [value for key, value in data.items() if key.endswith('Token') and isinstance(value, str)]
+        yield env, secrets
     finally:
         env.pop('CLAUDE_CODE_OAUTH_TOKEN', None)
-        if hashlib.sha256(read_credentials().encode()).digest() != digest:
-            raise RuntimeError('Personal Claude credentials changed during the experiment; no restoration attempted.')
+        if source == 'credentials':
+            if hashlib.sha256(read_credentials().encode()).digest() != digest:
+                raise RuntimeError('Personal Claude credentials changed during the experiment; no restoration attempted.')
+        elif hashlib.sha256(settings_path.read_bytes()).digest() != digest:
+            raise RuntimeError('Personal Claude settings changed during the experiment; no restoration attempted.')
+
+
+def install_arguments(scope):
+    """Return a non-interactive install command supported by current Claude CLIs."""
+    return ['plugin', 'install', 'tao-dev@tao-runtime-test', '--scope', scope, '--yes']
 
 
 def configure(workspace, inside, scope):
@@ -73,7 +108,7 @@ def configure(workspace, inside, scope):
         'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]}), encoding='utf-8')
     (inside / '.gitignore').write_text('.claude/settings.local.json\n', encoding='utf-8')
     for arguments in (['plugin', 'marketplace', 'add', str(marketplace)],
-                      ['plugin', 'install', 'tao-dev@tao-runtime-test', '--scope', scope, '--json']):
+                      install_arguments(scope)):
         result = subprocess.run(['claude', *arguments], cwd=inside, env=environment(workspace),
                                 capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
@@ -103,7 +138,10 @@ def lifecycle(workspace, scope):
                                 capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
             raise RuntimeError('Native Claude lifecycle operation failed: ' + result.stdout + result.stderr)
-        value = json.loads(result.stdout)
+        try:
+            value = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            value = result.stdout.strip()
         runs.append({'operation': arguments[0], 'result': value})
         return value
 
@@ -115,15 +153,15 @@ def lifecycle(workspace, scope):
             raise RuntimeError('Native Claude installation escaped the experiment.')
 
     installed(True, initial_version)
-    command('disable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
+    command('disable', 'tao-dev@tao-runtime-test', '--scope', scope)
     installed(False, initial_version)
-    command('enable', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
+    command('enable', 'tao-dev@tao-runtime-test', '--scope', scope)
     installed(True, initial_version)
     data['version'] = updated_version
     manifest.write_text(json.dumps(data), encoding='utf-8')
-    command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
+    command('update', 'tao-dev@tao-runtime-test', '--scope', scope, '--yes')
     installed(True, updated_version)
-    command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--json')
+    command('uninstall', 'tao-dev@tao-runtime-test', '--scope', scope, '--yes')
     if any(item['id'] == 'tao-dev@tao-runtime-test' for item in command('list', '--json')):
         raise RuntimeError('Uninstalled Claude plugin still appears in native state.')
     return {'client': 'claude', 'scope': scope, 'runs': runs, 'model_called': False}

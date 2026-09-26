@@ -4,11 +4,12 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import time
+from pathlib import Path
 
+from isolated_claude import install_arguments
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -54,7 +55,7 @@ def main():
     before = snapshot()
     runs = []
     commands = [(inside, ["plugin", "marketplace", "add", str(marketplace)]),
-                (inside, ["plugin", "install", "tao-dev@tao-runtime-test", "--scope", args.scope, "--json"]),
+                (inside, install_arguments(args.scope)),
                 (inside, ["plugin", "list", "--json"]),
                 (outside, ["plugin", "list", "--json"])]
     if args.probe:
@@ -68,7 +69,7 @@ def main():
         try:
             with stdout.open("w") as out, stderr.open("w") as err:
                 completed = subprocess.run(["claude", *arguments], cwd=cwd, env=environment,
-                                           stdout=out, stderr=err, timeout=300)
+                                           stdout=out, stderr=err, timeout=300, check=False)
             code = completed.returncode
         except subprocess.TimeoutExpired:
             code = 124
@@ -98,10 +99,12 @@ def main():
         present = any(p.get("name", "").startswith("tao-dev") for p in run.get("initialized_plugins", []))
         expected = args.scope == "user" or run["cwd"] == "inside"
         activation.append("initialized_plugins" in run and present == expected)
+    scope_loading = None if not args.probe else len(activation) == 2 and all(activation)
+    model_execution = None if not args.probe else len(probes) == 2 and all(run["exit_code"] == 0 for run in probes)
     report = {"scope": args.scope, "configuration_directory": str(config), "runs": runs,
               "personal_configuration_unchanged": unchanged,
-              "scope_loading_verified": len(activation) == 2 and all(activation),
-              "model_execution_verified": len(probes) == 2 and all(run["exit_code"] == 0 for run in probes),
+              "scope_loading_verified": scope_loading,
+              "model_execution_verified": model_execution,
               "model_probe_requested": args.probe}
     (workspace / "report.json").write_text(json.dumps(report, indent=2), encoding='utf-8')
     print(json.dumps(report, indent=2))

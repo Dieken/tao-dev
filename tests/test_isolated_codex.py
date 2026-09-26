@@ -34,10 +34,9 @@ def test_access_copy_excludes_refresh_and_cleans_up_after_failure(tmp_path, monk
     config = workspace / 'client-state/config.toml'
     original_config = config.read_bytes()
     copy = workspace / 'client-state/auth.json'
-    with pytest.raises(RuntimeError, match='probe failed'):
-        with adapter.access_snapshot(workspace, 90):
-            if os.name == 'posix':
-                assert stat.S_IMODE(copy.stat().st_mode) == 0o600
+    with pytest.raises(RuntimeError, match='probe failed'), adapter.access_snapshot(workspace, 90):
+        if os.name == 'posix':
+            assert stat.S_IMODE(copy.stat().st_mode) == 0o600
             assert json.loads(copy.read_text(encoding='utf-8'))['tokens']['refresh_token'] == ''
             assert 'must-never-be-copied' not in copy.read_text(encoding='utf-8')
             raise RuntimeError('probe failed')
@@ -52,9 +51,8 @@ def test_access_copy_excludes_refresh_and_cleans_up_after_failure(tmp_path, monk
 def test_expiring_access_fails_before_writing_credentials(tmp_path, monkeypatch):
     workspace, source = fake_auth(tmp_path, monkeypatch, expires=150)
     before = source.read_bytes()
-    with pytest.raises(RuntimeError, match='no refresh'):
-        with adapter.access_snapshot(workspace, 90):
-            pytest.fail('Expired credentials must not be exposed.')
+    with pytest.raises(RuntimeError, match='no refresh'), adapter.access_snapshot(workspace, 90):
+        pytest.fail('Expired credentials must not be exposed.')
     assert not (workspace / 'client-state/auth.json').exists()
     assert source.read_bytes() == before
 
@@ -81,7 +79,7 @@ def test_secret_values_are_removed_from_probe_logs(tmp_path):
 
 def test_codex_compatibility_package_has_one_manifest_and_original_runtime(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(adapter.ROOT / 'scripts'))
-    from package_plugin import build, SOURCE
+    from package_plugin import SOURCE, build
     target = build(tmp_path / 'plugin', codex_legacy=True)
     assert not (target / 'plugin.json').exists()
     assert not (target / '.claude-plugin').exists()
@@ -116,3 +114,53 @@ def test_private_logs_never_overwrite_existing_files(tmp_path, symlink):
     with pytest.raises(FileExistsError):
         private_log(log)
     assert target.read_text(encoding='utf-8') == 'keep these bytes'
+
+
+
+def provider_auth(tmp_path, monkeypatch, *, env_key=False):
+    home = tmp_path / 'personal'
+    (home / '.codex').mkdir(parents=True)
+    token = 'opaque-provider-token'
+    credential = 'TAO_TEST_CODEX_TOKEN'
+    provider_key = 'env_key' if env_key else 'experimental_bearer_token'
+    value = provider_key + ' = ' + (json.dumps(token) if not env_key else json.dumps(credential))
+    config = (
+        'model = "provider-model"\n'
+        'model_provider = "test-provider"\n'
+        'model_reasoning_summary = "none"\n'
+        '[model_providers."test-provider"]\n'
+        'base_url = "https://models.example.test/v1"\n'
+        + value + '\n'
+        'requires_openai_auth = false\n'
+    )
+    (home / '.codex/config.toml').write_text(config, encoding='utf-8')
+    if env_key:
+        monkeypatch.setenv(credential, token)
+    monkeypatch.setattr(Path, 'home', lambda: home)
+    workspace = tmp_path / 'experiment'
+    state = workspace / 'client-state'
+    state.mkdir(parents=True)
+    original = 'check_for_update_on_startup = false\n'
+    (state / 'config.toml').write_text(original, encoding='utf-8')
+    return workspace, state / 'config.toml', token, original
+
+
+def test_provider_bearer_is_scoped_and_cleaned_up(tmp_path, monkeypatch):
+    workspace, config, token, original = provider_auth(tmp_path, monkeypatch)
+    with adapter.access_snapshot(workspace, 90) as secrets:
+        assert secrets == [token]
+        assert not (workspace / 'client-state/auth.json').exists()
+        assert token in config.read_text(encoding='utf-8')
+        if os.name == 'posix':
+            assert stat.S_IMODE(config.stat().st_mode) == 0o600
+    assert config.read_text(encoding='utf-8') == original
+    assert token not in config.read_text(encoding='utf-8')
+
+
+def test_provider_env_key_is_reused_without_writing_secret(tmp_path, monkeypatch):
+    workspace, config, token, original = provider_auth(tmp_path, monkeypatch, env_key=True)
+    with adapter.access_snapshot(workspace, 90) as secrets:
+        assert secrets == [token]
+        assert token not in config.read_text(encoding='utf-8')
+        assert 'env_key = "TAO_TEST_CODEX_TOKEN"' in config.read_text(encoding='utf-8')
+    assert config.read_text(encoding='utf-8') == original
