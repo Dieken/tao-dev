@@ -287,3 +287,23 @@ def test_time_limit_advice_mentions_an_index_only_when_none_is_configured(tmp_pa
         runtime.prepare(ctx)
     assert "index-url" in str(unmirrored.value) and "--timeout" in str(unmirrored.value)
     assert "index-url" not in str(mirrored.value) and "--timeout" in str(mirrored.value)
+
+
+
+def test_lock_release_retries_transient_permission_error(tmp_path, monkeypatch):
+    lock = tmp_path / "prepare.lock"
+    lock.mkdir()
+    original = Path.rmdir
+    attempts = 0
+
+    def flaky(path):
+        nonlocal attempts
+        if path == lock and attempts == 0:
+            attempts += 1
+            raise PermissionError("transient Windows handle")
+        return original(path)
+
+    monkeypatch.setattr(Path, "rmdir", flaky)
+    runtime.release_lock(lock)
+    assert attempts == 1
+    assert not lock.exists()
