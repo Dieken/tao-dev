@@ -39,7 +39,7 @@ def test_access_copy_excludes_refresh_and_cleans_up_after_failure(tmp_path, monk
             assert stat.S_IMODE(copy.stat().st_mode) == 0o600
             assert json.loads(copy.read_text(encoding='utf-8'))['tokens']['refresh_token'] == ''
             assert 'must-never-be-copied' not in copy.read_text(encoding='utf-8')
-            raise RuntimeError('probe failed')
+        raise RuntimeError('probe failed')
     assert not copy.exists()
     assert source.read_bytes() == before
     assert config.read_bytes() == original_config

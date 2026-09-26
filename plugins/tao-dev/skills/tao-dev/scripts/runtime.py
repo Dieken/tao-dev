@@ -339,6 +339,21 @@ def atomic_json(path, value):
         Path(temporary).unlink(missing_ok=True)
 
 
+def release_lock(lock):
+    """Release a preparation lock across transient Windows handle races."""
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            lock.rmdir()
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.05)
+
+
 def prepare(ctx, wheelhouse=None, deadline=None, stream=None):
     if wheelhouse is not None and not wheelhouse.is_dir():
         raise RuntimeFailure("Offline wheelhouse must be an existing directory.")
@@ -393,7 +408,7 @@ def prepare(ctx, wheelhouse=None, deadline=None, stream=None):
         atomic_json(slot / "active.json", {"generation": directory.name})
         return directory
     finally:
-        lock.rmdir()
+        release_lock(lock)
 
 
 def tool_version():

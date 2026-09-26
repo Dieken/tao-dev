@@ -86,7 +86,7 @@ def _run(args, project, *, json_output=True):
         raise ClientError(f'{name} returned invalid JSON: {result.stdout[:300]}') from exc
 
 
-def _rpc(method, params, project, *, home=None, staged_config=None):
+def _rpc(method, params, project, *, home=None):
     """Portable, bounded JSON-RPC exchange; stdout reader works on Windows too."""
     env = os.environ.copy()
     if home is not None:
@@ -135,10 +135,6 @@ def _rpc(method, params, project, *, home=None, staged_config=None):
                                    'capabilities': {'experimentalApi': True}})
         process.stdin.write(json.dumps({'method': 'initialized'}) + '\n')
         process.stdin.flush()
-        # Keep the copied input out of Codex's startup config load. On Windows,
-        # that load can hold the file while batchWrite replaces it atomically.
-        if staged_config is not None:
-            (Path(home) / 'config.toml').write_bytes(staged_config)
         return exchange(2, method, params)
     except (BrokenPipeError, OSError) as exc:
         raise ClientError(f'Codex app-server communication failed: {exc}') from exc
@@ -168,9 +164,11 @@ def _write_config(path, values):
     with tempfile.TemporaryDirectory(prefix='tao-config-') as temporary:
         scratch = Path(temporary).resolve()
         target = scratch / 'config.toml'
+        if original is not None:
+            target.write_bytes(original)
         _rpc('config/batchWrite', {'filePath': str(target), 'edits': [
             {'keyPath': key, 'value': value, 'mergeStrategy': 'replace'} for key, value in values
-        ]}, scratch, home=scratch, staged_config=original)
+        ]}, scratch, home=scratch)
         updated = target.read_bytes()
     if (path.read_bytes() if path.exists() else None) != original:
         raise ClientError(f'Client configuration changed concurrently; retry: {path}')

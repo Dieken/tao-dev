@@ -314,13 +314,11 @@ def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
     config = project / 'config.toml'
     config.write_text('# preserved\n', encoding='utf-8')
 
-    def edit(method, params, cwd, *, home, staged_config):
+    def edit(method, params, cwd, *, home):
         target = Path(params['filePath'])
         assert method == 'config/batchWrite'
         assert target == Path(cwd) / 'config.toml'
         assert home == target.parent
-        assert not target.exists()
-        target.write_bytes(staged_config)
         assert target.read_text(encoding='utf-8') == '# preserved\n'
         target.write_text('# preserved\nenabled = true\n', encoding='utf-8')
 
