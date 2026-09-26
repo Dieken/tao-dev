@@ -39,15 +39,15 @@ Run the repository tests with the project-local Python environment and
 validate only explicitly managed sources against supported profiles.
 Use the bundled tao.py doctor output to identify available CLI commands.
 Local HTML publication, configured code checks and evidence freshness
-checks are available. Input-bound review imports are available. Native macOS client acceptance is recorded for the tested versions and
-package formats. CI runs the maintained regression on Linux, macOS and
-Windows across Python 3.11 to 3.14, and the native install probes with
-the current Claude Code and Codex CLIs on the same three platforms.
-Those probes drive installation, scope and removal only: no model call,
-no client credential and no PowerShell launcher. Native Windows client
-behavior acceptance and the current independent review therefore remain
-incomplete; partial checks do not establish delivery readiness.
-
+checks are available. Input-bound review imports are available. Native
+macOS client acceptance is recorded for the tested versions and package
+formats. CI runs the maintained regression on Linux, macOS and Windows
+across Python 3.11 to 3.14, and the native install probes with all
+supported agent CLIs on the same three platforms. Those probes drive
+installation, scope and removal only: no model call, no client credential
+and no PowerShell launcher. Native Windows client behavior acceptance and
+the current independent review therefore remain incomplete; partial
+checks do not establish delivery readiness.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`
 declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
 rewrites every registry and wheel URL in `uv.lock`, producing a large
@@ -61,9 +61,9 @@ intended, it came from a bare `uv` invocation: restore it with
 # CLI experiments
 
 These constraints govern experiments on a maintainer machine, where they
-exist to protect personal client state. Use the existing `claude` and
-`codex` commands and their configured authentication; do not reinstall
-or reconfigure either CLI for testing.
+exist to protect personal client state. Use the existing agent CLI commands
+and their configured authentication; do not reinstall or reconfigure any
+agent CLI for testing.
 
 Enable tao-dev only inside an isolated experiment project, using a
 verified project-local or invocation-local loading mechanism. Changing
@@ -79,7 +79,7 @@ blocked rather than falling back to a global installation.
 
 An ephemeral CI runner starts with neither CLI installed and holds no
 personal state or credentials, so these constraints do not bind it. Its
-workflow installs both CLIs and defines its own scope.
+workflow installs the required agent CLIs and defines its own scope.
 
 # Commits
 
