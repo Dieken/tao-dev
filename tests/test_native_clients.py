@@ -33,6 +33,49 @@ def test_session_probe_accepts_installed_logged_in_client(monkeypatch):
         assert native_clients.session_skip_reason(client) is None
 
 
+def test_claude_login_accepts_configured_third_party_auth(monkeypatch, tmp_path):
+    home = tmp_path / 'home'
+    settings = home / '.claude/settings.json'
+    settings.parent.mkdir(parents=True)
+    settings.write_text(json.dumps({'env': {
+        'ANTHROPIC_AUTH_TOKEN': 'test-token',
+        'ANTHROPIC_BASE_URL': 'https://models.example.test',
+        'ANTHROPIC_MODEL': 'test-model',
+    }}), encoding='utf-8')
+    monkeypatch.setattr(native_clients.Path, 'home', classmethod(lambda cls: home))
+    monkeypatch.setattr(native_clients.sys, 'platform', 'linux')
+    assert native_clients._claude_logged_in() is True
+
+
+def test_codex_login_accepts_configured_third_party_provider(monkeypatch, tmp_path):
+    home = tmp_path / 'home'
+    config = home / '.codex/config.toml'
+    config.parent.mkdir(parents=True)
+    config.write_text(
+        'model_provider = "yingmi"\n'
+        '[model_providers.yingmi]\n'
+        'base_url = "https://models.example.test/v1"\n'
+        'experimental_bearer_token = "test-token"\n'
+        'requires_openai_auth = false\n',
+        encoding='utf-8')
+    monkeypatch.setattr(native_clients.Path, 'home', classmethod(lambda cls: home))
+    assert native_clients._codex_logged_in() is True
+
+
+def test_codex_login_rejects_provider_without_auth_material(monkeypatch, tmp_path):
+    home = tmp_path / 'home'
+    config = home / '.codex/config.toml'
+    config.parent.mkdir(parents=True)
+    config.write_text(
+        'model_provider = "yingmi"\n'
+        '[model_providers.yingmi]\n'
+        'base_url = "https://models.example.test/v1"\n'
+        'requires_openai_auth = false\n',
+        encoding='utf-8')
+    monkeypatch.setattr(native_clients.Path, 'home', classmethod(lambda cls: home))
+    assert native_clients._codex_logged_in() is False
+
+
 def test_cursor_login_accepts_cli_config_auth_info(monkeypatch, tmp_path):
     home = tmp_path / 'home'
     home.mkdir()

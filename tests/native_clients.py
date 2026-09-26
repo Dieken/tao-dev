@@ -8,9 +8,11 @@ and local development and CI use the same rules.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 CLI = {'claude': 'claude', 'codex': 'codex', 'cursor': 'agent', 'kiro': 'kiro-cli'}
@@ -27,6 +29,19 @@ def installed(client):
     return shutil.which(cli_name(client)) is not None
 
 
+def _claude_config_logged_in():
+    path = Path.home() / '.claude/settings.json'
+    if not path.is_file():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+        env = data.get('env') or {}
+    except (OSError, ValueError, TypeError):
+        return False
+    tokens = (env.get('ANTHROPIC_AUTH_TOKEN'), env.get('ANTHROPIC_API_KEY'))
+    return any(isinstance(token, str) and bool(token.strip()) for token in tokens)
+
+
 def _claude_logged_in():
     raw = None
     if sys.platform == 'darwin':
@@ -41,28 +56,47 @@ def _claude_logged_in():
     if raw is None:
         path = Path.home() / '.claude/.credentials.json'
         if not path.is_file():
-            return False
+            return _claude_config_logged_in()
         try:
             raw = path.read_text(encoding='utf-8')
         except OSError:
-            return False
+            return _claude_config_logged_in()
     try:
         data = json.loads(raw).get('claudeAiOauth', {})
     except (ValueError, TypeError):
+        return _claude_config_logged_in()
+    return (isinstance(data.get('accessToken'), str) and bool(data['accessToken'])) or _claude_config_logged_in()
+
+
+def _codex_config_logged_in():
+    path = Path.home() / '.codex/config.toml'
+    if not path.is_file():
         return False
-    return isinstance(data.get('accessToken'), str) and bool(data['accessToken'])
+    try:
+        data = tomllib.loads(path.read_text(encoding='utf-8'))
+        provider_name = data.get('model_provider')
+        providers = data.get('model_providers') or {}
+        provider = providers.get(provider_name) or {}
+    except (OSError, tomllib.TOMLDecodeError, TypeError):
+        return False
+    bearer_token = provider.get('experimental_bearer_token')
+    if isinstance(bearer_token, str) and bearer_token.strip():
+        return True
+    env_key = provider.get('env_key')
+    return isinstance(env_key, str) and bool(os.environ.get(env_key, '').strip())
 
 
 def _codex_logged_in():
     path = Path.home() / '.codex/auth.json'
-    if not path.is_file():
-        return False
-    try:
-        data = json.loads(path.read_text(encoding='utf-8'))
-        tokens = data.get('tokens') or {}
-        return bool(data.get('auth_mode') and tokens.get('access_token'))
-    except (OSError, ValueError, TypeError):
-        return False
+    if path.is_file():
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            tokens = data.get('tokens') or {}
+            if data.get('auth_mode') and tokens.get('access_token'):
+                return True
+        except (OSError, ValueError, TypeError):
+            pass
+    return _codex_config_logged_in()
 
 
 def _cursor_logged_in():
