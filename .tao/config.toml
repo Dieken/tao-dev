@@ -7,7 +7,7 @@ book_root = "docs/index.md"
 
 [verification]
 inputs = ["plugins/**/*", "tests/**/*", "docs/**/*.md", "pyproject.toml", "uv.lock", "scripts/**/*", "AGENTS.md", "CLAUDE.md", "README.md"]
-budget_seconds = 1860
+budget_seconds = 7200
 reuse_seconds = 3600
 required_reviews = ["independent-implementation-review"]
 
@@ -24,7 +24,7 @@ timeout_seconds = 120
 [[verification.checks]]
 id = "python-tests"
 argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "tests/acceptance/quality.py"]
-timeout_seconds = 1800
+timeout_seconds = 7200
 metrics = {format = "coverage-json", path = "tmp/tao/coverage/coverage.json"}
 
 [[verification.checks]]

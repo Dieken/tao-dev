@@ -1,8 +1,8 @@
 # 实际客户端试验
 
-这些试验包含会调用已配置模型的真实会话。`tests/test_native_sessions.py` 对 Cursor 与 Kiro 使用统一 readiness：CLI 不存在或只读登录检查失败时自动跳过，否则普通 pytest 会自动运行一次受限、可计费的真实写入和 hook 触发；本地与 CI 规则相同。其他长流程仍通过下列命令显式运行。所有 workspace 都选择不继承开发仓库指导文件的独立临时目录；脚本不安装客户端、不重新登录、不修改个人配置。
+这些试验包含会调用已配置模型的真实会话。`just check` 通过 pytest 自动运行本文列出的 Claude/Codex 长流程，以及 Cursor/Kiro 的原生 hook 测试；CLI 不存在或只读登录检查失败时自动跳过，否则会在独立 workspace 中运行并可能产生费用。生命周期探针只要求相应 CLI 存在。所有 workspace 都选择不继承开发仓库指导文件的独立临时目录；脚本不安装客户端、不重新登录、不修改个人配置。
 
-无需登录的原生安装、scope、升级和卸载探针只要求相应 CLI 存在，缺失时跳过。GitHub CI 自动安装 Claude Code、Codex、Cursor 与 Kiro CLI，但不配置凭据，因此运行安装探针并跳过真实会话。所有模型子进程都有按场景设置的硬超时；Cursor/Kiro hook 探针为 45 秒，超时后终止进程组并保存摘要。
+无认证时，真实模型测试由统一 readiness 在启动 acceptance 脚本前跳过；认证存在但过期、路由不受支持或模型服务拒绝调用时，测试会报告失败或 blocked，而不是把已启动的验收伪装成 skip。所有模型子进程都有按场景设置的硬超时；Cursor/Kiro hook 探针为 45 秒，Claude/Codex 长流程默认为 600 秒，超时后终止进程组并保存摘要。CI 可以安装 CLI 但不配置凭据，因此只运行无模型的原生探针并跳过真实会话。
 
 先按 [开发指南](../../docs/engineering/development.md) 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 

@@ -115,6 +115,11 @@ def arguments(argv):
     verify.add_argument("--only")
     verify.add_argument("--scope", choices=("changed", "all"), default="changed")
     verify.add_argument("--dry-run", action="store_true")
+    verify.add_argument(
+        "--no-reuse",
+        action="store_true",
+        help="Execute configured checks instead of reusing saved evidence.",
+    )
     docs = commands.add_parser("docs", parents=[common])
     docs.add_subparsers(dest="operation", required=True).add_parser("build", parents=[common])
     args = parser.parse_args(argv)
@@ -211,7 +216,7 @@ def verify(project, args, report):
                     report['outputs']['budget_reason'] = f'{key} exceeded before starting project checks.'
                     return report, 1
     if "code" in selected:
-        execution = execute(project, config)
+        execution = execute(project, config, reuse=not args.no_reuse)
         report["outputs"]["execution"] = execution
         codes.append(0 if execution["status"] == "passed" else 2 if execution["status"] == "not_run" else 1)
     if "evidence" in selected:

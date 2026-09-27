@@ -446,3 +446,14 @@ def test_full_verification_fails_on_the_declared_range_without_a_baseline(tmp_pa
     code, result = report(tmp_path, 'verify', CHG)
     assert code == 0, result
     assert result['outputs']['requirement_coverage']['scope']['uncovered'] == []
+
+
+
+def test_no_reuse_forces_configured_checks_to_execute_again(tmp_path):
+    configured(tmp_path, 'from pathlib import Path\np=Path("tmp/tao/calls")\np.write_text(p.read_text()+"x" if p.exists() else "x")')
+    assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
+    code, result = report(tmp_path, 'verify', '--only', 'code', '--no-reuse')
+    assert code == 0
+    assert result['outputs']['execution']['reused'] is False
+    assert all(not row['reused'] for row in result['outputs']['execution']['checks'])
+    assert (tmp_path / 'tmp/tao/calls').read_text(encoding='utf-8') == 'xx'

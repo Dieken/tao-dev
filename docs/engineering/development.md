@@ -38,7 +38,7 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 
 ### 常用入口
 
-安装 [just](https://github.com/casey/just) 后，`just --list` 展示维护入口：`check` 执行配置的检查策略、依赖导出核对与原生客户端探测，`docs` 检查受管文档并构建手册，`package` 生成两种插件格式，`tao` 转发源码自举的 CLI，`bump-version` 同步发布版本。它们都自动准备运行环境。
+安装 [just](https://github.com/casey/just) 后，`just --list` 展示维护入口：`check` 执行配置的检查策略、依赖导出核对与完整回归，`docs` 检查受管文档并构建手册，`package` 生成两种插件格式，`tao` 转发源码自举的 CLI，`bump-version` 同步发布版本。它们都自动准备运行环境。
 
 这些 recipe 只是把下文的命令收拢起来；检查内容仍以 `.tao/config.toml` 的策略为准，未安装 just 时按下文直接执行。
 
@@ -48,7 +48,7 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 uv run --no-config --locked --extra publication python -m pytest
 ```
 
-普通 pytest 运行确定性回归，并对 Cursor/Kiro 应用统一 session readiness：CLI 已安装且只读登录检查通过时各自动运行一次 45 秒内、可计费的真实写入与 hook 触发，否则跳过。GitHub CI 安装 CLI 但无凭据，因此不会调用模型。其他长流程真实客户端试验仍按 [验收说明](../../tests/acceptance/README.md) 显式运行。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。
+普通 pytest 运行确定性回归、原生安装／生命周期探针，以及文档中列出的 Claude/Codex 长流程 acceptance。`just check` 对配置化代码检查使用 `--no-reuse`，所以每次都会实际执行本段回归；直接调用 `tao verify` 仍可按默认策略复用有效证据。四端 CLI 的安装检查只要求 executable；需要模型的测试还要求只读登录检查，缺少任一前提即跳过。具备认证时，Claude/Codex acceptance 会使用独立实验 workspace、复用短时 access token 并可能产生费用；Cursor/Kiro hook 会话也有 45 秒上限。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。输入绑定的独立 review 和 scope probe 仍按 [验收说明](../../tests/acceptance/README.md) 显式运行。
 
 安装相关回归可单独运行：
 
@@ -60,9 +60,9 @@ uv run --no-config --locked --extra publication python -m pytest
 
 ### 持续集成
 
-`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 运行同一条 `tests/acceptance/quality.py`，并在三个平台自动安装当前 Claude Code、Codex、Cursor 与 Kiro CLI。所有环境使用同一 readiness：不调用模型的安装／范围／卸载探针只检查 CLI；真实会话与 hook 测试还检查既有登录，缺少任一前提即跳过。GitHub runner 不配置客户端凭据，因此运行四端安装探针并跳过真实会话，不调用模型。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
+`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 调用同一个 `just check`。每个矩阵单元安装 Claude Code、Codex、Cursor 与 Kiro CLI；不配置凭据时，CLI-only 探针运行，需认证的 Claude/Codex、Cursor/Kiro 真实会话自动跳过。具备本地认证时，`just check` 会运行隔离的长流程 acceptance，并可能产生费用。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
 
-本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。原生探测覆盖插件安装、启用范围与卸载，不覆盖真实会话行为；后者仍按 [验收说明](../../tests/acceptance/README.md) 单独执行。
+本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。`just check` 的 Python 测试、原生探针和可用的真实会话统一执行；输入绑定的独立 review、scope probe 及出版构建仍按 [验收说明](../../tests/acceptance/README.md) 单独运行。
 
 ### 在本仓库使用 tao
 

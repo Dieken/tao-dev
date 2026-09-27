@@ -17,7 +17,7 @@ jobs:
   tests:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -26,51 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          python-version: ${{ matrix.python }}
-          enable-cache: true
-
-      - name: Sync locked environment
-        run: uv sync --no-config --locked --extra publication
-
-      # Wheels are interpreter- and platform-specific, so each matrix cell
-      # downloads its own set instead of reusing another cell's wheelhouse.
-      - name: Prepare locked wheels
-        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
-
-      # Same entry point as the project's own python-tests check in
-      # .tao/config.toml, so CI and `tao verify --only code` cannot diverge.
-      - name: Run maintained regression
-        run: uv run --no-config --locked --extra publication python tests/acceptance/quality.py
-
-      - name: Upload diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: diagnostics-${{ matrix.os }}-py${{ matrix.python }}
-          path: tmp/tao/
-          if-no-files-found: ignore
-
-  native-clients:
-    name: Native clients / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
       # Floating versions intentionally detect native client compatibility
-      # changes. Real sessions still require an existing login and therefore
-      # skip on credential-free GitHub runners.
+      # changes. No credentials are configured, so authenticated model
+      # acceptance tests skip while CLI-only probes still execute.
       - name: Install Claude Code and Codex
+        shell: bash
         run: |
           npm install -g @anthropic-ai/claude-code
           npm install -g @openai/codex
@@ -127,52 +91,29 @@ jobs:
           $env:Path | Out-File -FilePath $env:GITHUB_PATH -Append
           kiro-cli --version
 
+      - uses: extractions/setup-just@v2
+        with:
+          just-version: "1.40.0"
+
       - uses: astral-sh/setup-uv@v10.1.0
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           enable-cache: true
 
       - name: Sync locked environment
         run: uv sync --no-config --locked --extra publication
 
-      - name: Prepare locked wheels
-        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
-
-      # Every environment uses the same rules. Installation probes need only
-      # the executable; model sessions additionally require an existing login.
-      - name: Run native installation probes
-        run: uv run --no-config --locked --extra publication python -m pytest tests/test_install_clients.py -k native -q
-
-      - name: Check real-session readiness
-        run: uv run --no-config --locked --extra publication python -m pytest tests/test_native_sessions.py -q
+      # The same entry point is used locally and in every CI matrix cell.
+      # just check prepares locked wheels, runs the configured full pytest
+      # suite, runs optional live acceptance when readiness allows it, and
+      # performs dependency/lint verification.
+      - name: Run unified check
+        run: just check
 
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: native-diagnostics-${{ matrix.os }}
+          name: diagnostics-${{ matrix.os }}-py${{ matrix.python }}
           path: tmp/tao/
           if-no-files-found: ignore
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          python-version: "3.12"
-          enable-cache: true
-
-      - name: Sync locked environment
-        run: uv sync --no-config --locked --extra publication
-
-      # Same argv as the project's own python-lint check in .tao/config.toml.
-      - name: Run configured lint check
-        run: |
-          mkdir -p tmp/tao
-          uv run --no-config --locked --extra publication python -m ruff check \
-            --select E9,F63,F7,F82 --output-format json --output-file tmp/tao/ruff.json \
-            plugins/tao-dev/skills/tao-dev/scripts tests

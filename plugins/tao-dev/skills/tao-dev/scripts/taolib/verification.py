@@ -262,11 +262,11 @@ def carried(project, config, current, existing):
     return rows
 
 
-def execute(project, config):
+def execute(project, config, *, reuse=True):
     with mutation_lock(project):
         before = snapshot(project, config)
-        existing = evidence(project, config, before)
-        if existing['state'] == 'reusable':
+        existing = evidence(project, config, before) if reuse else {'state': 'missing'}
+        if reuse and existing['state'] == 'reusable':
             # Nothing ran, so every row is carried: each keeps its own
             # execution moment, elapsed time and log and says it was reused,
             # exactly as a row carried through a partial reuse does.
@@ -277,7 +277,7 @@ def execute(project, config):
         directory = project.output('temporary', 'verification')
         directory.mkdir(parents=True, exist_ok=True)
         rows = []
-        previous = carried(project, config, before, existing)
+        previous = carried(project, config, before, existing) if reuse else {}
         for check in config['checks']:
             prior = previous.get(check['id'])
             if prior is not None and prior.get('argv') == check['argv']:
