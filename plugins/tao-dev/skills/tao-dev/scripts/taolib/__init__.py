@@ -1,3 +1,3 @@
 """Runtime components distributed with the tao-dev skill."""
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"
