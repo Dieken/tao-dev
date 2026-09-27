@@ -1,6 +1,7 @@
 """Native adapter boundaries, with all client state isolated from personal data."""
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,15 @@ def cache(root, marketplace='custom'):
     (plugin / '.codex-plugin').mkdir(parents=True)
     (plugin / '.codex-plugin/plugin.json').write_text(json.dumps({'name': 'tao-dev', 'version': '1.2.3'}), encoding='utf-8')
     return plugin
+
+
+def upgrade_versions():
+    manifest = SCRIPTS.parents[2] / '.claude-plugin/plugin.json'
+    current = json.loads(manifest.read_text(encoding='utf-8'))['version']
+    match = re.match(r'^(\d+)\.(\d+)\.(\d+)', current)
+    assert match is not None
+    major, minor, patch = map(int, match.groups())
+    return current, f'{major}.{minor}.{patch + 1}'
 
 
 def test_discover_codex_only_enabled_scopes_and_arbitrary_marketplace(state):
@@ -99,23 +109,25 @@ def test_claude_local_upgrade_uses_native_activation_state(state, monkeypatch, i
     assert [args[1:3] for args in commands].count(['plugin', 'enable']) == (0 if initially_enabled else 1)
 
 
-@pytest.mark.parametrize('reinstalled_version', ['0.12.0', '0.11.1'])
+@pytest.mark.parametrize('reinstall_new_version', [True, False])
 def test_claude_worktree_upgrade_reinstalls_only_stale_local_scope(state, monkeypatch,
-                                                                   reinstalled_version):
+                                                                   reinstall_new_version):
     root, parent = state
+    old_version, new_version = upgrade_versions()
+    reinstalled_version = new_version if reinstall_new_version else old_version
     child = parent / '.worktrees/child'
     child.mkdir(parents=True)
     home = root / 'claude'
     base = home / 'plugins/cache/custom/tao-dev'
-    old, new = base / '0.11.1', base / '0.12.0'
+    old, new = base / old_version, base / new_version
     old.mkdir(parents=True)
     new.mkdir()
     plugin_id = 'tao-dev@custom'
     registry = home / 'plugins/installed_plugins.json'
     parent_entry = {'scope': 'local', 'projectPath': str(parent),
-                    'installPath': str(new), 'version': '0.12.0'}
+                    'installPath': str(new), 'version': new_version}
     child_entry = {'scope': 'local', 'projectPath': str(child),
-                   'installPath': str(old), 'version': '0.11.1'}
+                   'installPath': str(old), 'version': old_version}
     registry.write_text(json.dumps({'plugins': {plugin_id: [parent_entry, child_entry]}}),
                         encoding='utf-8')
     source = root / 'source'
@@ -134,7 +146,7 @@ def test_claude_worktree_upgrade_reinstalls_only_stale_local_scope(state, monkey
         elif args[1:3] == ['plugin', 'install']:
             data = json.loads(registry.read_text(encoding='utf-8'))
             data['plugins'][plugin_id].append(child_entry | {
-                'installPath': str(new if reinstalled_version == '0.12.0' else old),
+                'installPath': str(new if reinstall_new_version else old),
                 'version': reinstalled_version})
             registry.write_text(json.dumps(data), encoding='utf-8')
         elif args[1:3] == ['plugin', 'list']:
@@ -145,14 +157,14 @@ def test_claude_worktree_upgrade_reinstalls_only_stale_local_scope(state, monkey
         return ''
 
     monkeypatch.setattr(clients, '_run', native)
-    if reinstalled_version == '0.12.0':
+    if reinstall_new_version:
         result = clients.install_plugin('claude', str(source), plugin_id, 'local', child,
-                                        expected_version='0.12.0')
-        assert result['version'] == '0.12.0'
+                                        expected_version=new_version)
+        assert result['version'] == new_version
     else:
         with pytest.raises(clients.ClientError, match='left the selected installation'):
             clients.install_plugin('claude', str(source), plugin_id, 'local', child,
-                                   expected_version='0.12.0')
+                                   expected_version=new_version)
     assert commands[:4] == [['plugin', 'marketplace'], ['plugin', 'update'],
                             ['plugin', 'uninstall'], ['plugin', 'install']]
     entries = json.loads(registry.read_text(encoding='utf-8'))['plugins'][plugin_id]
@@ -163,6 +175,7 @@ def test_claude_worktree_upgrade_reinstalls_only_stale_local_scope(state, monkey
 def test_native_claude_upgrade_inside_git_worktree_preserves_parent(state):
     _require_native('claude')
     root, parent = state
+    old_version, new_version = upgrade_versions()
     subprocess.run(['git', 'init', '-q', str(parent)], check=True)
     (parent / 'README.md').write_text('isolated test\n', encoding='utf-8')
     subprocess.run(['git', '-C', str(parent), 'add', 'README.md'], check=True)
@@ -189,12 +202,12 @@ def test_native_claude_upgrade_inside_git_worktree_preserves_parent(state):
                                         expected_version=version)
         assert result['version'] == version
 
-    install_version(parent, '0.12.0')
-    install_version(child, '0.11.1')
-    install_version(child, '0.12.0')
+    install_version(parent, new_version)
+    install_version(child, old_version)
+    install_version(child, new_version)
     rows = [row for row in clients.discover('claude', child) if row['plugin_id'] == plugin_id]
     assert {(row['project'], row['version']) for row in rows} == {
-        (str(parent), '0.12.0'), (str(child), '0.12.0')}
+        (str(parent), new_version), (str(child), new_version)}
 
 
 def test_codex_local_is_project_alias_even_with_tracked_config(state):
