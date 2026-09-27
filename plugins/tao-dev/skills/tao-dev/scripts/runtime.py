@@ -362,7 +362,10 @@ def prepare(ctx, wheelhouse=None, deadline=None, stream=None):
         raise RuntimeFailure("Runtime slot escapes data directory.")
     slot.mkdir(parents=True, exist_ok=True)
     lock = slot / "prepare.lock"
-    waiting = time.monotonic() + 120 if deadline is None else min(time.monotonic() + 120, deadline)
+    # A caller-provided deadline already bounds the whole preparation. Let a
+    # concurrent waiter use that same remaining budget instead of failing at
+    # an unrelated, shorter lock-specific limit.
+    waiting = time.monotonic() + 120 if deadline is None else deadline
     while True:
         try:
             lock.mkdir()

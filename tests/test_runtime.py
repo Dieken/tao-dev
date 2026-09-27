@@ -145,11 +145,11 @@ def test_concurrent_preparation_publishes_one_complete_environment(bare_python, 
     argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"]
     processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8') for _ in range(2)]
     # Drain both children at once: reading them in turn stalls whichever one
-    # fills a pipe while the other is waited on. The budget clears the 120
-    # second lock wait, which is the bound preparation actually promises, so
-    # the loser of the race has time to wait out the winner.
+    # fills a pipe while the other is waited on. The CLI's 300 second whole-
+    # preparation budget gives the loser of the race time to wait out a slow
+    # winner, while this larger test timeout still guards against a hang.
     with ThreadPoolExecutor(max_workers=len(processes)) as pool:
-        pending = [pool.submit(process.communicate, timeout=180) for process in processes]
+        pending = [pool.submit(process.communicate, timeout=360) for process in processes]
         outputs = [result.result() for result in pending]
     assert all(p.returncode == 0 for p in processes), outputs
     reports = [json.loads(stdout)["outputs"]["runtime"] for stdout, _ in outputs]
