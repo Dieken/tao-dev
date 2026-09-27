@@ -33,8 +33,14 @@ def test_native_session_termination_stops_process_group():
     time.sleep(0.2)
     _terminate(process, signal.SIGTERM)
     process.wait(timeout=5)
-    with pytest.raises(ProcessLookupError):
-        os.killpg(process.pid, 0)
+    for _ in range(100):
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.05)
+    else:
+        pytest.fail('process group still exists after termination')
 
 
 def test_native_hook_timeout_cannot_exceed_45_seconds(tmp_path):
