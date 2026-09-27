@@ -20,6 +20,7 @@ UPDATED = (
     "pyproject.toml",
     "plugins/tao-dev/.claude-plugin/plugin.json",
     "plugins/tao-dev/.codex-plugin/plugin.json",
+    "plugins/tao-dev/.cursor-plugin/plugin.json",
     "plugins/tao-dev/skills/tao-dev/scripts/taolib/__init__.py",
 )
 # Rewritten by their own generators once the sources above change.
