@@ -163,13 +163,28 @@ def _key(*parts):
     return '.'.join(part if part and all(c.isascii() and (c.isalnum() or c in '_-') for c in part) else json.dumps(part, ensure_ascii=False) for part in parts)
 
 
+def _remove_temporary_directory(path):
+    """Remove a Codex scratch home after Windows descendants release handles."""
+    deadline = time.monotonic() + 5 if os.name == 'nt' else None
+    while True:
+        try:
+            shutil.rmtree(path)
+            return
+        except PermissionError as exc:
+            if (os.name != 'nt' or getattr(exc, 'winerror', None) not in (5, 32)
+                    or time.monotonic() >= deadline):
+                raise
+            time.sleep(0.05)
+
+
 def _write_config(path, values):
     """Native lossless TOML editing, with optimistic protection of the input."""
     path = Path(path)
     if path.is_symlink() or path.parent.is_symlink():
         raise ClientError(f'Refusing to replace symlinked client configuration: {path}')
     original = path.read_bytes() if path.exists() else None
-    with tempfile.TemporaryDirectory(prefix='tao-config-') as temporary:
+    temporary = tempfile.mkdtemp(prefix='tao-config-')
+    try:
         scratch = Path(temporary).resolve()
         target = scratch / 'config.toml'
         if original is not None:
@@ -178,6 +193,8 @@ def _write_config(path, values):
             {'keyPath': key, 'value': value, 'mergeStrategy': 'replace'} for key, value in values
         ]}, scratch, home=scratch)
         updated = target.read_bytes()
+    finally:
+        _remove_temporary_directory(temporary)
     if (path.read_bytes() if path.exists() else None) != original:
         raise ClientError(f'Client configuration changed concurrently; retry: {path}')
     path.parent.mkdir(parents=True, exist_ok=True)

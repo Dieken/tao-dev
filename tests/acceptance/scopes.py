@@ -11,6 +11,11 @@ from pathlib import Path
 
 from isolated_claude import install_arguments
 
+try:
+    from acceptance.commands import cli_executable
+except ModuleNotFoundError:
+    from commands import cli_executable
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -68,7 +73,7 @@ def main():
         stdout, stderr = workspace / f"{number}.jsonl", workspace / f"{number}.stderr"
         try:
             with stdout.open("w") as out, stderr.open("w") as err:
-                completed = subprocess.run(["claude", *arguments], cwd=cwd, env=environment,
+                completed = subprocess.run([cli_executable('claude'), *arguments], cwd=cwd, env=environment,
                                            stdout=out, stderr=err, timeout=300, check=False)
             code = completed.returncode
         except subprocess.TimeoutExpired:

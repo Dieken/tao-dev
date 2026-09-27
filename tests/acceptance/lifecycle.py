@@ -8,6 +8,11 @@ import subprocess
 import isolated_codex
 from clients import global_configuration, prepare
 
+try:
+    from acceptance.commands import cli_executable
+except ModuleNotFoundError:
+    from commands import cli_executable
+
 
 def run(workspace, *, codex_legacy=False):
     if workspace.exists() and any(workspace.iterdir()):
@@ -42,7 +47,7 @@ def run(workspace, *, codex_legacy=False):
         hooks_file.write_text(json.dumps(definition), encoding='utf-8')
     state_config = workspace / 'client-state/config.toml'
     default_disabled = state_config.read_text(encoding='utf-8')
-    updated = subprocess.run(['codex', 'plugin', 'add', isolated_codex.PLUGIN_ID, '--json'],
+    updated = subprocess.run([cli_executable('codex'), 'plugin', 'add', isolated_codex.PLUGIN_ID, '--json'],
                              cwd=inside, env=isolated_codex.environment(workspace),
                              capture_output=True, text=True, timeout=45, check=True, encoding='utf-8')
     state_config.write_text(default_disabled, encoding='utf-8')
@@ -57,7 +62,7 @@ def run(workspace, *, codex_legacy=False):
         if (len(hooks) != 1 or '/0.3.1/' not in hooks[0]['sourcePath'] or
                 hooks[0]['currentHash'] == initial_hook['currentHash'] or hooks[0]['trustStatus'] == 'trusted'):
             raise RuntimeError('Updated hook must use the new cache and require fresh trust.')
-    removed = subprocess.run(['codex', 'plugin', 'remove', isolated_codex.PLUGIN_ID, '--json'],
+    removed = subprocess.run([cli_executable('codex'), 'plugin', 'remove', isolated_codex.PLUGIN_ID, '--json'],
                              cwd=inside, env=isolated_codex.environment(workspace),
                              capture_output=True, text=True, timeout=45, check=True, encoding='utf-8')
     after_removal = isolated_codex.skills(workspace, [inside, workspace / 'codex/outside'])

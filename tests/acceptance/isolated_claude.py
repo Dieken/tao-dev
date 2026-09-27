@@ -11,6 +11,11 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+try:
+    from acceptance.commands import cli_executable
+except ModuleNotFoundError:
+    from commands import cli_executable
+
 ROOT = Path(__file__).resolve().parents[2]
 
 SETTINGS_ENV_KEYS = (
@@ -127,7 +132,7 @@ def configure(workspace, inside, scope):
     (inside / '.gitignore').write_text('.claude/settings.local.json\n', encoding='utf-8')
     for arguments in (['plugin', 'marketplace', 'add', str(marketplace)],
                       install_arguments(scope)):
-        result = subprocess.run(['claude', *arguments], cwd=inside, env=environment(workspace),
+        result = subprocess.run([cli_executable('claude'), *arguments], cwd=inside, env=environment(workspace),
                                 capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
             raise RuntimeError('Isolated Claude plugin configuration failed: ' + result.stdout + result.stderr)
@@ -152,7 +157,7 @@ def lifecycle(workspace, scope):
     runs = []
 
     def command(*arguments):
-        result = subprocess.run(['claude', 'plugin', *arguments], cwd=inside, env=environment(workspace),
+        result = subprocess.run([cli_executable('claude'), 'plugin', *arguments], cwd=inside, env=environment(workspace),
                                 capture_output=True, text=True, timeout=300, check=False, encoding='utf-8')
         if result.returncode:
             raise RuntimeError('Native Claude lifecycle operation failed: ' + result.stdout + result.stderr)

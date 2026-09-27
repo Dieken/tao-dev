@@ -5,6 +5,8 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+from acceptance.commands import cli_executable
+
 
 @dataclass(frozen=True)
 class InvocationRequest:
@@ -27,7 +29,7 @@ class ClientAdapter:
         requested_session_id = session_id
         if self.client == "claude":
             command = [
-                "claude", "-p", "--output-format", "stream-json", "--verbose",
+                cli_executable("claude"), "-p", "--output-format", "stream-json", "--verbose",
                 "--strict-mcp-config", "--permission-mode", "acceptEdits",
                 "--permission-prompts", "none", "--max-budget-usd", "2",
                 "--tools", "Read,Glob,Grep,Skill,Bash,Write,Edit",
@@ -39,7 +41,7 @@ class ClientAdapter:
                 requested_session_id = str(uuid.uuid4())
                 command.extend(("--session-id", requested_session_id))
         else:
-            command = ["codex", "-a", "never", "exec"]
+            command = [cli_executable("codex"), "-a", "never", "exec"]
             if resume:
                 command.extend(("resume", "--json", "--skip-git-repo-check",
                                 session_id, "-"))

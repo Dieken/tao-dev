@@ -944,3 +944,19 @@ def test_windows_codex_app_server_cleanup_terminates_process_tree(monkeypatch):
     clients._terminate_process_tree(Process())
     assert calls[0][0] == (['taskkill', '/PID', '123', '/T', '/F'],)
     assert calls[0][1]['check'] is False
+
+
+def test_windows_codex_scratch_cleanup_retries_sharing_violation(monkeypatch, tmp_path):
+    attempts = []
+
+    def remove(path):
+        attempts.append(path)
+        if len(attempts) < 3:
+            error = PermissionError('file is in use')
+            error.winerror = 32
+            raise error
+
+    monkeypatch.setattr(clients.os, 'name', 'nt')
+    monkeypatch.setattr(clients.shutil, 'rmtree', remove)
+    clients._remove_temporary_directory(tmp_path / 'scratch')
+    assert attempts == [tmp_path / 'scratch'] * 3

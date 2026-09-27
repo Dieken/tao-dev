@@ -14,6 +14,7 @@ from acceptance.behavior_contract import load_catalog
 from acceptance.behavior_runner import SubprocessExecutor, run_scenario
 from acceptance.behavior_trace import FILE_EVENTS
 from acceptance.clients import global_configuration, prepare
+from acceptance.commands import cli_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -106,7 +107,7 @@ def summarize_usage(log_paths, client):
 
 def _version(client):
     result = subprocess.run(
-        [client, "--version"], capture_output=True, text=True, timeout=15,
+        [cli_executable(client), "--version"], capture_output=True, text=True, timeout=15,
         check=False, encoding='utf-8')
     return (result.stdout or result.stderr).strip()
 

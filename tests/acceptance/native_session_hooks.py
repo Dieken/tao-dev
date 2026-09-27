@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+from acceptance.commands import cli_executable
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -74,8 +76,8 @@ def _install(client, workspace, project, env):
 
 def _command(client, prompt):
     if client == 'cursor':
-        return ['agent', '-p', '--force', '--output-format', 'stream-json', prompt]
-    return ['kiro-cli', 'chat', '--v3', '--no-interactive', '--trust-all-tools',
+        return [cli_executable('cursor'), '-p', '--force', '--output-format', 'stream-json', prompt]
+    return [cli_executable('kiro'), 'chat', '--v3', '--no-interactive', '--trust-all-tools',
             '--output-format', 'stream-json', prompt]
 
 
@@ -91,7 +93,7 @@ def _run_kiro_tui(prompt, project, env, stdout_path, timeout):
         os.chdir(project)
         os.environ.clear()
         os.environ.update(env)
-        os.execvp('kiro-cli', ['kiro-cli', 'chat', '--v3', '--trust-all-tools', prompt])
+        os.execvp(cli_executable('kiro'), [cli_executable('kiro'), 'chat', '--v3', '--trust-all-tools', prompt])
     accepted = False
     timed_out = False
     evidence = False

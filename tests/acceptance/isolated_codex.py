@@ -14,6 +14,11 @@ import tomllib
 from contextlib import contextmanager
 from pathlib import Path
 
+try:
+    from acceptance.commands import cli_executable
+except ModuleNotFoundError:
+    from commands import cli_executable
+
 PLUGIN_ID = 'tao-dev@tao-acceptance'
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -46,7 +51,7 @@ def configure(workspace, inside, plugin):
     config = ('check_for_update_on_startup = false\n[features]\nremote_plugin = false\napps = false\n[agents]\nenabled = false\n[projects.' + json.dumps(str(inside)) +
               ']\ntrust_level = "trusted"\n')
     (state / 'config.toml').write_text(config, encoding='utf-8')
-    installed = subprocess.run(['codex', 'plugin', 'add', PLUGIN_ID, '--json'], cwd=inside,
+    installed = subprocess.run([cli_executable('codex'), 'plugin', 'add', PLUGIN_ID, '--json'], cwd=inside,
                                env=environment(workspace), capture_output=True, text=True, timeout=45, check=False, encoding='utf-8')
     if installed.returncode:
         raise RuntimeError('Isolated plugin installation failed: ' + installed.stderr)
@@ -62,7 +67,7 @@ def configure(workspace, inside, plugin):
 
 def discover(workspace, directories, kind):
     with (workspace / 'skills-query.stderr').open('w') as errors:
-        process = subprocess.Popen(['codex', 'app-server'], cwd=workspace,
+        process = subprocess.Popen([cli_executable('codex'), 'app-server'], cwd=workspace,
                                    env=environment(workspace), stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=errors)
         buffer = b''

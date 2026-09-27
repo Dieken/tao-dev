@@ -5,6 +5,7 @@ import json
 from acceptance.behavior_clients import adapter_for
 from acceptance.behavior_contract import Scenario
 from acceptance.behavior_runner import InvocationResult, run_scenario
+from acceptance.commands import cli_executable
 
 
 def scenario(*, turns=(), rules=("AUTH-001",), expectations=None):
@@ -168,8 +169,8 @@ def test_adapters_build_real_cli_commands_without_other_agents(tmp_path):
     codex = adapter_for("codex").request(
         "Prompt", tmp_path, tmp_path / "codex.jsonl", 1, None)
 
-    assert claude.command[0] == "claude"
+    assert claude.command[0] == cli_executable("claude")
     assert "--session-id" in claude.command
-    assert codex.command[0] == "codex"
+    assert codex.command[0] == cli_executable("codex")
     assert "exec" in codex.command
     assert {claude.client, codex.client} == {"claude", "codex"}
