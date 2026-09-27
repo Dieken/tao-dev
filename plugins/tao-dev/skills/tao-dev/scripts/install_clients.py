@@ -1173,19 +1173,24 @@ def remove_activation(client, plugin_id, scope, project, *, keep_plugin=False, k
             # Explicit false prevents native default enablement when project
             # scopes still retain a shared installed cache.
             values = [(key + '.enabled', False)] if scope == 'user' and (others or keep_plugin) else [(key, None)]
-            if config.exists():
+            remove_native = selected and not others and not keep_plugin
+            if config.exists() and not remove_native:
                 _write_config(config, values)
                 files.append(str(config))
-            if selected and not others and not keep_plugin:
+            if remove_native:
+                # Native removal owns the final activation and cache cleanup.
+                # Avoid a preceding key deletion: Windows Codex can fail to
+                # persist an empty config through config/batchWrite.
                 with _command_directory(project) as cwd:
                     _run(['codex', 'plugin', 'remove', plugin_id, '--json'], cwd)
-                files.extend([str(home / 'config.toml'), str(home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev')])
+                files.extend([str(config), str(home / 'config.toml'),
+                              str(home / 'plugins/cache' / _valid_id(plugin_id) / 'tao-dev')])
                 trust = _config(home / 'config.toml').get('hooks', {}).get('state', {})
                 owned = [(_key('hooks', 'state', key), None) for key in trust if key.startswith(plugin_id + ':')]
                 if owned:
                     _write_config(home / 'config.toml', owned)
-        if others or keep_plugin:
-            warnings.append('Native cache remains shared with another installation.')
+            if others or keep_plugin:
+                warnings.append('Native cache remains shared with another installation.')
         warnings.append('Marketplace registrations are retained because other plugins may use them.')
         return {'files': list(dict.fromkeys(files)), 'warnings': warnings}
     except (ValueError, OSError) as exc:

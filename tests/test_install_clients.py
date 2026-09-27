@@ -309,7 +309,7 @@ def _require_native(*clients_needed):
         native_clients.require_cli(client)
 
 
-def test_config_editor_stages_existing_config_after_startup(state, monkeypatch):
+def test_config_editor_preserves_existing_config(state, monkeypatch):
     _, project = state
     config = project / 'config.toml'
     config.write_text('# preserved\n', encoding='utf-8')
