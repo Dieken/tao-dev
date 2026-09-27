@@ -138,11 +138,42 @@ def handoff_observation(project, state):
             'handoff_path': path, 'handoff_digest': digest}
 
 
+def available_actions(project, state, stale):
+    if stale:
+        return ['refine']
+    phase = state['phase']
+    blocked = bool(state.get('blockers') or state.get('operations'))
+    if phase in DOC_PHASES:
+        actions = ['refine', 'review-docs']
+        if not blocked:
+            actions.append('approve-and-advance')
+        return actions
+    if phase == 'implement':
+        actions = ['refine', 'continue']
+        if not blocked:
+            actions.append('approve-and-advance')
+        return actions
+    if phase == 'review':
+        actions = ['refine', 'review-code']
+        if not blocked:
+            from .review_runs import passed
+            try:
+                if passed(project, state, 'code'):
+                    actions.append('approve-and-advance')
+            except (KeyError, OSError, ValueError, ConflictError):
+                pass
+        return actions
+    if phase == 'finish':
+        return ['refine'] if blocked else ['refine', 'approve-and-advance']
+    return []
+
+
 def observe(project, state):
     stale = [phase for phase, approval in state['approvals'].items()
              if phase in DOC_PHASES and artifact_digest(project, state, phase) != approval['digest']]
     return state | handoff_observation(project, state) | {'project': str(project.root), 'stale_approvals': stale,
                     'next_action': 'refine' if stale else 'continue',
+                    'available_actions': available_actions(project, state, stale),
                     'observation': 'Read-only; inspect live operations and actual files before resuming.'}
 
 
