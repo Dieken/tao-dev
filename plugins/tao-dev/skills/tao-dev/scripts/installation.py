@@ -438,9 +438,11 @@ def install(args):
                         marketplace = str(target)
                     else:
                         marketplace = spec['location']
+                    expected_version = (json.loads((plugin / '.claude-plugin/plugin.json').read_text(
+                        encoding='utf-8'))['version'] if args.client == 'claude' else None)
                     installed = clients.install_plugin(args.client, marketplace, plugin_id, args.scope, args.project,
                                                        ref=spec.get('ref') if spec['kind'] == 'marketplace' else None,
-                                                       python=python)
+                                                       python=python, expected_version=expected_version)
                     files.extend(installed.get('files', []))
                     cached = Path(installed['plugin_path'])
                     receipt = dict(schema=1, id=identifier, client=args.client, scope=args.scope,

@@ -891,7 +891,8 @@ def _claude_scope_enabled(rows, plugin_id, scope, project):
                and (scope == 'user' or Path(row.get('projectPath', '')).resolve() == project) for row in rows)
 
 
-def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None):
+def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None,
+                   expected_version=None):
     project = Path(project).expanduser().resolve()
     scope = validate_scope(client, scope, project)
     marketplace = _valid_id(plugin_id)
@@ -960,13 +961,36 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
                 _run(['claude', 'plugin', 'marketplace', 'update', marketplace], project, json_output=False)
             settings = home / 'settings.json' if scope == 'user' else project / ('.claude/settings.local.json' if scope == 'local' else '.claude/settings.json')
             files.extend([str(settings), str(home / 'plugins/known_marketplaces.json')])
-            exists = any(row['plugin_id'] == plugin_id and row['scope'] == scope and row['project'] == (None if scope == 'user' else str(project)) for row in prior)
+            selected_project = None if scope == 'user' else str(project)
+            previous = next((row for row in prior if row['plugin_id'] == plugin_id
+                             and row['scope'] == scope and row['project'] == selected_project), None)
+            exists = previous is not None
             _run(['claude', 'plugin', 'update' if exists else 'install', plugin_id, '--scope', scope], project, json_output=False)
+            def selected_entries():
+                return [row for row in discover(client, project) if row['plugin_id'] == plugin_id
+                        and row['scope'] == scope and row['project'] == selected_project]
+
+            entries = selected_entries()
+            if (previous and expected_version and previous['version'] != expected_version
+                    and entries and entries[0]['version'] == previous['version']):
+                # Claude can report an enclosing Git checkout's newer local
+                # installation as up to date while leaving this worktree old.
+                _run(['claude', 'plugin', 'uninstall', plugin_id, '--scope', scope, '--keep-data'],
+                     project, json_output=False)
+                if selected_entries():
+                    raise ClientError('Claude did not remove the selected installation before reinstalling it')
+                _run(['claude', 'plugin', 'install', plugin_id, '--scope', scope], project,
+                     json_output=False)
+                entries = selected_entries()
+            if (previous and expected_version and previous['version'] != expected_version
+                    and entries and entries[0]['version'] == previous['version']):
+                raise ClientError(f'Claude left the selected installation at {previous["version"]}; '
+                                  f'the source provides {expected_version}')
             if exists:
                 native = _run(['claude', 'plugin', 'list', '--json'], project)
                 if not _claude_scope_enabled(native, plugin_id, scope, project):
                     _run(['claude', 'plugin', 'enable', plugin_id, '--scope', scope], project, json_output=False)
-            entries = [row for row in discover(client, project) if row['plugin_id'] == plugin_id and row['scope'] == scope and row['project'] == (None if scope == 'user' else str(project))]
+            entries = selected_entries()
             if not entries:
                 raise ClientError('Claude did not report the installed tao-dev scope')
             entry = entries[0]

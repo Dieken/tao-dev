@@ -1,6 +1,7 @@
 """Native adapter boundaries, with all client state isolated from personal data."""
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -96,6 +97,104 @@ def test_claude_local_upgrade_uses_native_activation_state(state, monkeypatch, i
     result = clients.install_plugin('claude', str(root / 'source'), plugin_id, 'local', project)
     assert result['verification']['native_plugin_enabled']
     assert [args[1:3] for args in commands].count(['plugin', 'enable']) == (0 if initially_enabled else 1)
+
+
+@pytest.mark.parametrize('reinstalled_version', ['0.12.0', '0.11.1'])
+def test_claude_worktree_upgrade_reinstalls_only_stale_local_scope(state, monkeypatch,
+                                                                   reinstalled_version):
+    root, parent = state
+    child = parent / '.worktrees/child'
+    child.mkdir(parents=True)
+    home = root / 'claude'
+    base = home / 'plugins/cache/custom/tao-dev'
+    old, new = base / '0.11.1', base / '0.12.0'
+    old.mkdir(parents=True)
+    new.mkdir()
+    plugin_id = 'tao-dev@custom'
+    registry = home / 'plugins/installed_plugins.json'
+    parent_entry = {'scope': 'local', 'projectPath': str(parent),
+                    'installPath': str(new), 'version': '0.12.0'}
+    child_entry = {'scope': 'local', 'projectPath': str(child),
+                   'installPath': str(old), 'version': '0.11.1'}
+    registry.write_text(json.dumps({'plugins': {plugin_id: [parent_entry, child_entry]}}),
+                        encoding='utf-8')
+    source = root / 'source'
+    source.mkdir()
+    (home / 'plugins/known_marketplaces.json').write_text(json.dumps({
+        'custom': {'source': {'source': 'directory', 'path': str(source)}}
+    }), encoding='utf-8')
+    commands = []
+
+    def native(args, cwd, **kwargs):
+        commands.append(args[1:3])
+        if args[1:3] == ['plugin', 'uninstall']:
+            data = json.loads(registry.read_text(encoding='utf-8'))
+            data['plugins'][plugin_id] = [parent_entry]
+            registry.write_text(json.dumps(data), encoding='utf-8')
+        elif args[1:3] == ['plugin', 'install']:
+            data = json.loads(registry.read_text(encoding='utf-8'))
+            data['plugins'][plugin_id].append(child_entry | {
+                'installPath': str(new if reinstalled_version == '0.12.0' else old),
+                'version': reinstalled_version})
+            registry.write_text(json.dumps(data), encoding='utf-8')
+        elif args[1:3] == ['plugin', 'list']:
+            return [{'id': plugin_id, 'scope': 'local', 'projectPath': str(child),
+                     'enabled': True}]
+        elif args[1:3] == ['plugin', 'details']:
+            return 'Skills (1)\nHooks (1)'
+        return ''
+
+    monkeypatch.setattr(clients, '_run', native)
+    if reinstalled_version == '0.12.0':
+        result = clients.install_plugin('claude', str(source), plugin_id, 'local', child,
+                                        expected_version='0.12.0')
+        assert result['version'] == '0.12.0'
+    else:
+        with pytest.raises(clients.ClientError, match='left the selected installation'):
+            clients.install_plugin('claude', str(source), plugin_id, 'local', child,
+                                   expected_version='0.12.0')
+    assert commands[:4] == [['plugin', 'marketplace'], ['plugin', 'update'],
+                            ['plugin', 'uninstall'], ['plugin', 'install']]
+    entries = json.loads(registry.read_text(encoding='utf-8'))['plugins'][plugin_id]
+    assert entries[0] == parent_entry
+    assert entries[1]['projectPath'] == str(child) and entries[1]['version'] == reinstalled_version
+
+
+def test_native_claude_upgrade_inside_git_worktree_preserves_parent(state):
+    _require_native('claude')
+    root, parent = state
+    subprocess.run(['git', 'init', '-q', str(parent)], check=True)
+    (parent / 'README.md').write_text('isolated test\n', encoding='utf-8')
+    subprocess.run(['git', '-C', str(parent), 'add', 'README.md'], check=True)
+    subprocess.run(['git', '-C', str(parent), '-c', 'user.name=Test',
+                    '-c', 'user.email=test@example.com', 'commit', '-qm', 'init'], check=True)
+    child = parent / '.worktrees/child'
+    subprocess.run(['git', '-C', str(parent), 'worktree', 'add', '-qb', 'child', str(child)], check=True)
+    source = root / 'marketplace'
+    plugin = source / 'plugins/tao-dev'
+    shutil.copytree(SCRIPTS.parents[2], plugin, ignore=shutil.ignore_patterns('__pycache__'))
+    catalog = source / '.claude-plugin/marketplace.json'
+    catalog.parent.mkdir(parents=True)
+    catalog.write_text(json.dumps({'name': 'tao-native-nested', 'owner': {'name': 'Test'},
+                                   'plugins': [{'name': 'tao-dev', 'source': './plugins/tao-dev'}]}),
+                       encoding='utf-8')
+    manifest = plugin / '.claude-plugin/plugin.json'
+    data = json.loads(manifest.read_text(encoding='utf-8'))
+    plugin_id = 'tao-dev@tao-native-nested'
+
+    def install_version(project, version):
+        data['version'] = version
+        manifest.write_text(json.dumps(data), encoding='utf-8')
+        result = clients.install_plugin('claude', str(source), plugin_id, 'local', project,
+                                        expected_version=version)
+        assert result['version'] == version
+
+    install_version(parent, '0.12.0')
+    install_version(child, '0.11.1')
+    install_version(child, '0.12.0')
+    rows = [row for row in clients.discover('claude', child) if row['plugin_id'] == plugin_id]
+    assert {(row['project'], row['version']) for row in rows} == {
+        (str(parent), '0.12.0'), (str(child), '0.12.0')}
 
 
 def test_codex_local_is_project_alias_even_with_tracked_config(state):
