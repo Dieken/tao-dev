@@ -86,6 +86,14 @@ def _run(args, project, *, json_output=True):
         raise ClientError(f'{name} returned invalid JSON: {result.stdout[:300]}') from exc
 
 
+def _terminate_process_tree(process):
+    if os.name == 'nt':
+        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                       capture_output=True, timeout=5, check=False)
+    elif process.poll() is None:
+        process.terminate()
+
+
 def _rpc(method, params, project, *, home=None):
     """Portable, bounded JSON-RPC exchange; stdout reader works on Windows too."""
     env = os.environ.copy()
@@ -139,12 +147,12 @@ def _rpc(method, params, project, *, home=None):
     except (BrokenPipeError, OSError) as exc:
         raise ClientError(f'Codex app-server communication failed: {exc}') from exc
     finally:
-        if process.poll() is None:
-            process.terminate()
+        if os.name == 'nt' or process.poll() is None:
+            _terminate_process_tree(process)
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            process.kill()
+            _terminate_process_tree(process)
             process.wait(timeout=5)
         reader.join(timeout=1)
         process.stdin.close()

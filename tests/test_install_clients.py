@@ -927,3 +927,20 @@ def test_kiro_snapshot_rejects_internal_symlink_without_change(state):
     with pytest.raises(clients.ClientError, match='snapshot symlinked Kiro activation'):
         clients.snapshot_activation('kiro', 'tao-dev@tao-dev', 'user', project)
     assert link.is_symlink() and target.read_text(encoding='utf-8') == 'mine'
+
+
+def test_windows_codex_app_server_cleanup_terminates_process_tree(monkeypatch):
+    calls = []
+
+    class Process:
+        pid = 123
+
+    monkeypatch.setattr(clients.os, 'name', 'nt')
+    monkeypatch.setattr(
+        clients.subprocess,
+        'run',
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    clients._terminate_process_tree(Process())
+    assert calls[0][0] == (['taskkill', '/PID', '123', '/T', '/F'],)
+    assert calls[0][1]['check'] is False
