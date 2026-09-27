@@ -69,7 +69,7 @@ def test_adapters_resume_the_same_observed_session(tmp_path):
         workspace.mkdir()
         executor = FakeExecutor(client, [
             {"session_id": "$requested" if client == "claude" else "codex-session",
-             "text": "How long should I keep it?"},
+             "text": "How long should I keep it?\n[TAO_MATERIAL_QUESTION]"},
             {"session_id": "$same", "text": "Done."},
         ])
 
@@ -86,7 +86,7 @@ def test_adapters_resume_the_same_observed_session(tmp_path):
 def test_lost_or_changed_session_blocks_multiturn_acceptance(tmp_path):
     turns = ({"when": "asks-material-question", "user": "Thirty days."},)
     executor = FakeExecutor("codex", [
-        {"session_id": "original", "text": "How many days?"},
+        {"session_id": "original", "text": "How many days?\n[TAO_MATERIAL_QUESTION]"},
         {"session_id": "independent", "text": "Done."},
     ])
 

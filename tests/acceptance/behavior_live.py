@@ -133,7 +133,9 @@ def _boundary(workspace):
         "inspect only example.py and requirements.txt. Do not run find, rg, ls, pwd, "
         "directory scans, or inspect unrelated plugin/runtime files. "
         "On the first turn, ask the single material question before writing anything, "
-        "and wait for the user's reply before editing. "
+        "and wait for the user's reply before editing. If a product decision is "
+        "needed, put the exact standalone line [TAO_MATERIAL_QUESTION] in the "
+        "response; do not emit that marker for any other reason. "
     )
 
 

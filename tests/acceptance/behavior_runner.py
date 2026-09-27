@@ -16,6 +16,9 @@ from acceptance.behavior_trace import (
 )
 
 
+MATERIAL_QUESTION_MARKER = "[TAO_MATERIAL_QUESTION]"
+
+
 @dataclass(frozen=True)
 class InvocationResult:
     returncode: int | None
@@ -108,8 +111,8 @@ def _condition_met(condition, events):
     if condition == "asks-material-question":
         return any(
             event.kind == "message.assistant"
-            and ("?" in event.data.get("text", "")
-                 or "？" in event.data.get("text", ""))
+            and any(line.strip() == MATERIAL_QUESTION_MARKER
+                    for line in event.data.get("text", "").splitlines())
             for event in events
         )
     return False

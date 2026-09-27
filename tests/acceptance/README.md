@@ -35,7 +35,7 @@ plan 在明确授权的非 Git 微型维护样例中通过主 skill 创建计划
 
 routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev，并且只读取 [`references/engineering.md`](../../plugins/tao-dev/skills/tao-dev/references/engineering.md) 与 [`references/workflow.md`](../../plugins/tao-dev/skills/tao-dev/references/workflow.md)，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不采信模型自己的说明；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有任务指令都会采用相同读取路径，也不能充当修改前后的因果基线。
 
-behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用测试项目只说明导出保留策略尚未决定，不在任务指令或文件中泄漏 30 天及失败处理答案。首轮必须提出会影响产品行为的关键问题，且不得写入文件；脚本仅在该可观察条件命中时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证执行流程，不启动模型。
+behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用测试项目只说明导出保留策略尚未决定，不在任务指令或文件中泄漏 30 天及失败处理答案。首轮必须提出会影响产品行为的关键问题，且不得写入文件；脚本要求 agent 在需要产品决策时输出独立的 `[TAO_MATERIAL_QUESTION]` 标记，避免依赖不同语言的问号标点；仅在该标记实际出现时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证执行流程，不启动模型。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
