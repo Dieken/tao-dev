@@ -14,7 +14,6 @@ default:
 # Sync the locked environment, fetch the hash-pinned wheels and build the runtime.
 [private]
 prepare:
-    {{ uvrun }} --help
     {{ uvrun }} python tests/acceptance/runtime.py --download
     {{ tao }} env prepare --wheelhouse tmp/tao/wheels --format json
 
