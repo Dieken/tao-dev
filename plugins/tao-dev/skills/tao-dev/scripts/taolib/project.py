@@ -115,6 +115,16 @@ class Project:
         return contained(self.root, Path(self.paths[key]) / suffix)
 
 
+def _publish_exclusively(source, destination):
+    """Publish a temporary file without replacing an existing destination."""
+    if os.name == "nt":
+        # Windows rename refuses an existing destination, while its hard-link
+        # API can report access denied for the same concurrent publication.
+        os.rename(source, destination)
+    else:
+        os.link(source, destination)
+
+
 def create_file(root, path, text):
     """Publish a complete file exclusively; never overwrite a concurrent writer."""
     contained(root, path)
@@ -128,7 +138,7 @@ def create_file(root, path, text):
             stream.flush()
             os.fsync(stream.fileno())
         try:
-            os.link(temporary, path)
+            _publish_exclusively(temporary, path)
         except OSError as exc:
             # A taken destination is the condition, not the error number
             # reporting it: a platform may answer an existing link name with

@@ -168,23 +168,22 @@ def test_a_taken_destination_is_a_conflict_whatever_the_platform_reports(tmp_pat
     from taolib.project import ConflictError, create_file
 
     path = tmp_path / "docs/plans/2026-09/20260914-same.md"
-    original = os.link
+    publisher = "rename" if os.name == "nt" else "link"
 
     def taken(source, destination):
         Path(destination).write_text("the winner", encoding="utf-8")
         raise PermissionError(13, "Access is denied")
 
-    monkeypatch.setattr(os, "link", taken)
+    monkeypatch.setattr(os, publisher, taken)
     with pytest.raises(ConflictError):
         create_file(tmp_path, path, "the loser")
     assert path.read_text(encoding="utf-8") == "the winner"
     assert not list(path.parent.glob(".tao-new-*"))
 
-    monkeypatch.setattr(os, "link", lambda source, destination: (_ for _ in ()).throw(OSError(5, "Input/output error")))
+    monkeypatch.setattr(os, publisher, lambda source, destination: (_ for _ in ()).throw(OSError(5, "Input/output error")))
     with pytest.raises(OSError) as raised:
         create_file(tmp_path, tmp_path / "docs/other.md", "text")
     assert not isinstance(raised.value, ConflictError)
-    monkeypatch.setattr(os, "link", original)
 
 
 def test_id_collision_limit_and_full_random_alphabet():
