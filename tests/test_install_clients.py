@@ -427,8 +427,11 @@ def test_config_editor_preserves_existing_config(state, monkeypatch):
     config = project / 'config.toml'
     config.write_text('# preserved\n', encoding='utf-8')
 
+    attempts = []
+
     def edit(method, params, cwd, *, home, before_request):
         target = Path(params['filePath'])
+        attempts.append(home)
         assert method == 'config/batchWrite'
         assert target == home / 'config.toml'
         assert Path(cwd) != home
@@ -436,10 +439,20 @@ def test_config_editor_preserves_existing_config(state, monkeypatch):
         assert not target.exists()
         before_request()
         assert target.read_text(encoding='utf-8') == '# preserved\n'
+        if len(attempts) == 1:
+            rpc_error = {
+                'code': -32603,
+                'message': f'failed to persist config.toml: failed to persist config at {target}',
+            }
+            raise clients.ClientError(
+                'Codex config/batchWrite: ' + json.dumps(rpc_error),
+                rpc_method='config/batchWrite', rpc_error=rpc_error)
         target.write_text('# preserved\nenabled = true\n', encoding='utf-8')
 
     monkeypatch.setattr(clients, '_rpc', edit)
+    monkeypatch.setattr(clients.time, 'sleep', lambda _seconds: None)
     clients._write_config(config, [('enabled', True)])
+    assert len(set(attempts)) == 2
     assert config.read_text(encoding='utf-8') == '# preserved\nenabled = true\n'
 
 
@@ -941,6 +954,9 @@ def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch,
     ]
 
     class Input:
+        def __init__(self):
+            self.closed = False
+
         def write(self, _value):
             pass
 
@@ -948,7 +964,7 @@ def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch,
             pass
 
         def close(self):
-            pass
+            self.closed = True
 
     class Output:
         def __iter__(self):
@@ -993,7 +1009,7 @@ def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch,
         clients._rpc('skills/list', {}, tmp_path)
 
     assert calls[0][1]['start_new_session'] is (clients.os.name != 'nt')
-    assert process.terminated
+    assert process.stdin.closed
 
 
 @pytest.mark.skipif(clients.os.name == 'nt', reason='POSIX-only process-group behavior')

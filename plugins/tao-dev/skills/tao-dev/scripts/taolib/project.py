@@ -3,6 +3,7 @@
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
+import time
 import tomllib
 from contextlib import contextmanager
 from tao_messages import valid_locale, Message
@@ -141,11 +142,15 @@ def create_file(root, path, text):
             _publish_exclusively(temporary, path)
         except OSError as exc:
             # A taken destination is the condition, not the error number
-            # reporting it: a platform may answer an existing link name with
-            # something other than EEXIST, and reading that as an unexpected
-            # failure turns a lost race into a crash instead of a conflict.
-            if not isinstance(exc, FileExistsError) and not path.exists():
-                raise
+            # reporting it. Windows can delay visibility of a concurrently
+            # renamed destination after returning an access error.
+            if not isinstance(exc, FileExistsError):
+                if isinstance(exc, PermissionError):
+                    deadline = time.monotonic() + 1
+                    while not path.exists() and not path.is_symlink() and time.monotonic() < deadline:
+                        time.sleep(0.01)
+                if not path.exists() and not path.is_symlink():
+                    raise
             raise ConflictError(Message('Concurrent file creation: {arg0}', path.relative_to(root))) from exc
     finally:
         Path(temporary).unlink(missing_ok=True)

@@ -69,13 +69,61 @@ def configure(workspace, inside, plugin):
 
 def _terminate_process_tree(process, *, force=False):
     if os.name == 'nt':
-        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
-                       capture_output=True, timeout=5, check=False)
+        result = subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                                capture_output=True, text=True, encoding='utf-8', errors='replace',
+                                timeout=5, check=False)
+        if getattr(result, 'returncode', 0) and process.poll() is None:
+            detail = (result.stderr or result.stdout).strip()
+            raise OSError(f'taskkill failed with exit {result.returncode}: {detail}')
     else:
         try:
             os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
         except ProcessLookupError:
             pass
+
+
+def _shutdown_process(process, reader):
+    problems = []
+    try:
+        _terminate_process_tree(process)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        problems.append(f'terminate process tree: {exc}')
+    try:
+        process.stdin.close()
+    except (OSError, ValueError) as exc:
+        problems.append(f'close stdin: {exc}')
+    retry_shutdown = False
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        retry_shutdown = True
+    except OSError as exc:
+        problems.append(f'wait for process: {exc}')
+        retry_shutdown = True
+    if retry_shutdown:
+        try:
+            _terminate_process_tree(process, force=True)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'force process tree shutdown: {exc}')
+        try:
+            process.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'wait after forced shutdown: {exc}')
+    reader.join(timeout=5)
+    if reader.is_alive():
+        try:
+            _terminate_process_tree(process, force=True)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'repeated process tree shutdown: {exc}')
+        reader.join(timeout=5)
+    if reader.is_alive():
+        problems.append('output reader did not stop')
+    else:
+        try:
+            process.stdout.close()
+        except (OSError, ValueError) as exc:
+            problems.append(f'close stdout: {exc}')
+    return '; '.join(problems)
 
 
 def discover(workspace, directories, kind):
@@ -90,6 +138,8 @@ def discover(workspace, directories, kind):
             try:
                 for line in process.stdout:
                     responses.put(line)
+            except (OSError, ValueError):
+                pass
             finally:
                 responses.put(None)
 
@@ -119,6 +169,8 @@ def discover(workspace, directories, kind):
                     return value['result']
             raise RuntimeError('Native skill query did not return a bounded response.')
 
+        failure = None
+        result = None
         try:
             send({'id': 1, 'method': 'initialize', 'params': {'clientInfo': {'name': 'tao-acceptance', 'version': '0.1'},
                                                            'capabilities': {'experimentalApi': True}}})
@@ -129,18 +181,21 @@ def discover(workspace, directories, kind):
                 params['forceReload'] = True
             send({'id': 2, 'method': kind + '/list', 'params': params})
             result = receive(2)
-        finally:
-            _terminate_process_tree(process)
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                _terminate_process_tree(process, force=True)
-                process.wait(timeout=5)
-            reader.join(timeout=1)
-            if reader.is_alive():
-                raise RuntimeError('Native skill query output reader did not stop.')
-            process.stdin.close()
-            process.stdout.close()
+        except BaseException as exc:
+            failure = exc
+        cleanup = _shutdown_process(process, reader)
+        if failure is not None:
+            if cleanup:
+                detail = 'app-server cleanup failed: ' + cleanup
+                if isinstance(failure, Exception):
+                    combined = RuntimeError(f'{failure}; {detail}')
+                    combined.__cause__ = failure
+                    failure = combined
+                else:
+                    failure.add_note(detail)
+            raise failure
+        if cleanup:
+            raise RuntimeError('Native skill query cleanup failed: ' + cleanup)
     return result['data']
 
 

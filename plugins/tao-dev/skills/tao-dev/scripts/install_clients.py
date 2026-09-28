@@ -27,9 +27,15 @@ from pathlib import Path
 
 class ClientError(ValueError):
     """Native client failure, including resources already changed."""
-    def __init__(self, message, files=()):
+    def __init__(self, message, files=(), *, rpc_method=None, rpc_error=None,
+                 rpc_timeout=False, rpc_exited=False):
         super().__init__(message)
         self.files = list(files)
+        self.rpc_method = rpc_method
+        self.rpc_error = rpc_error
+        self.rpc_timeout = rpc_timeout
+        self.rpc_exited = rpc_exited
+        self.cleanup_failed = False
 
 
 def _home(client):
@@ -90,13 +96,62 @@ def _run(args, project, *, json_output=True):
 
 def _terminate_process_tree(process, *, force=False):
     if os.name == 'nt':
-        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
-                       capture_output=True, timeout=5, check=False)
+        result = subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                                capture_output=True, text=True, encoding='utf-8', errors='replace',
+                                timeout=5, check=False)
+        if getattr(result, 'returncode', 0) and process.poll() is None:
+            detail = (result.stderr or result.stdout).strip()
+            raise OSError(f'taskkill failed with exit {result.returncode}: {detail}')
     else:
         try:
             os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
         except ProcessLookupError:
             pass
+
+
+def _shutdown_rpc_process(process, reader):
+    """Return bounded cleanup diagnostics without masking a request result."""
+    problems = []
+    try:
+        _terminate_process_tree(process)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        problems.append(f'terminate process tree: {exc}')
+    try:
+        process.stdin.close()
+    except (OSError, ValueError) as exc:
+        problems.append(f'close stdin: {exc}')
+    retry_shutdown = False
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        retry_shutdown = True
+    except OSError as exc:
+        problems.append(f'wait for process: {exc}')
+        retry_shutdown = True
+    if retry_shutdown:
+        try:
+            _terminate_process_tree(process, force=True)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'force process tree shutdown: {exc}')
+        try:
+            process.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'wait after forced shutdown: {exc}')
+    reader.join(timeout=5)
+    if reader.is_alive():
+        try:
+            _terminate_process_tree(process, force=True)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f'repeated process tree shutdown: {exc}')
+        reader.join(timeout=5)
+    if reader.is_alive():
+        problems.append('output reader did not stop')
+    else:
+        try:
+            process.stdout.close()
+        except (OSError, ValueError) as exc:
+            problems.append(f'close stdout: {exc}')
+    return '; '.join(problems)
 
 
 def _rpc(method, params, project, *, home=None, before_request=None):
@@ -117,6 +172,8 @@ def _rpc(method, params, project, *, home=None, before_request=None):
         try:
             for line in process.stdout:
                 responses.put(line)
+        except (OSError, ValueError):
+            pass
         finally:
             responses.put(None)
 
@@ -130,13 +187,13 @@ def _rpc(method, params, project, *, home=None, before_request=None):
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise ClientError(f'Codex {name} timed out')
+                raise ClientError(f'Codex {name} timed out', rpc_method=name, rpc_timeout=True)
             try:
                 line = responses.get(timeout=remaining)
             except queue.Empty as exc:
-                raise ClientError(f'Codex {name} timed out') from exc
+                raise ClientError(f'Codex {name} timed out', rpc_method=name, rpc_timeout=True) from exc
             if line is None:
-                raise ClientError(f'Codex exited before answering {name}')
+                raise ClientError(f'Codex exited before answering {name}', rpc_method=name, rpc_exited=True)
             try:
                 value = json.loads(line)
             except ValueError as exc:
@@ -144,9 +201,12 @@ def _rpc(method, params, project, *, home=None, before_request=None):
             if value.get('id') != identity:
                 continue
             if 'error' in value:
-                raise ClientError(f'Codex {name}: {json.dumps(value["error"])}')
+                raise ClientError(f'Codex {name}: {json.dumps(value["error"])}',
+                                  rpc_method=name, rpc_error=value['error'])
             return value['result']
 
+    failure = None
+    result = None
     try:
         exchange(1, 'initialize', {'clientInfo': {'name': 'tao-installer', 'version': '0.1'},
                                    'capabilities': {'experimentalApi': True}})
@@ -154,21 +214,31 @@ def _rpc(method, params, project, *, home=None, before_request=None):
         process.stdin.flush()
         if before_request is not None:
             before_request()
-        return exchange(2, method, params)
-    except (BrokenPipeError, OSError) as exc:
-        raise ClientError(f'Codex app-server communication failed: {exc}') from exc
-    finally:
-        _terminate_process_tree(process)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            _terminate_process_tree(process, force=True)
-            process.wait(timeout=5)
-        reader.join(timeout=1)
-        if reader.is_alive():
-            raise ClientError('Codex app-server output reader did not stop')
-        process.stdin.close()
-        process.stdout.close()
+        result = exchange(2, method, params)
+    except BaseException as exc:
+        if isinstance(exc, (BrokenPipeError, OSError)):
+            failure = ClientError(f'Codex app-server communication failed: {exc}')
+            failure.__cause__ = exc
+        else:
+            failure = exc
+    cleanup = _shutdown_rpc_process(process, reader)
+    if failure is not None:
+        if cleanup:
+            detail = 'app-server cleanup failed: ' + cleanup
+            if isinstance(failure, ClientError):
+                failure.args = (str(failure) + '; ' + detail,)
+                failure.cleanup_failed = True
+            elif isinstance(failure, Exception):
+                combined = ClientError(f'{failure}; {detail}')
+                combined.__cause__ = failure
+                combined.cleanup_failed = True
+                failure = combined
+            else:
+                failure.add_note(detail)
+        raise failure
+    if cleanup:
+        raise ClientError('Codex app-server cleanup failed: ' + cleanup)
+    return result
 
 
 def _key(*parts):
@@ -195,31 +265,72 @@ def _remove_temporary_directory(path):
         time.sleep(0.05)
 
 
+def _retryable_config_edit_failure(error, target):
+    if error.cleanup_failed:
+        return False
+    if error.rpc_method == 'initialize':
+        return error.rpc_timeout or error.rpc_exited
+    rpc_error = error.rpc_error
+    expected = f'failed to persist config.toml: failed to persist config at {target}'
+    return (error.rpc_method == 'config/batchWrite' and isinstance(rpc_error, dict) and
+            rpc_error.get('code') == -32603 and rpc_error.get('message') == expected)
+
+
 def _write_config(path, values):
     """Native lossless TOML editing, with optimistic protection of the input."""
     path = Path(path)
     if path.is_symlink() or path.parent.is_symlink():
         raise ClientError(f'Refusing to replace symlinked client configuration: {path}')
     original = path.read_bytes() if path.exists() else None
-    temporary = tempfile.mkdtemp(prefix='tao-config-')
-    try:
-        scratch = Path(temporary).resolve()
-        home = scratch / 'home'
-        work = scratch / 'work'
-        target = home / 'config.toml'
-        home.mkdir()
-        work.mkdir()
+    for attempt in range(3):
+        temporary = tempfile.mkdtemp(prefix='tao-config-')
+        failure = None
+        cleanup_failure = None
+        try:
+            scratch = Path(temporary).resolve()
+            home = scratch / 'home'
+            work = scratch / 'work'
+            target = home / 'config.toml'
+            home.mkdir()
+            work.mkdir()
 
-        def stage_input():
-            if original is not None:
-                target.write_bytes(original)
+            def stage_input():
+                if original is not None:
+                    target.write_bytes(original)
 
-        _rpc('config/batchWrite', {'filePath': str(target), 'edits': [
-            {'keyPath': key, 'value': value, 'mergeStrategy': 'replace'} for key, value in values
-        ]}, work, home=home, before_request=stage_input)
-        updated = target.read_bytes()
-    finally:
-        _remove_temporary_directory(temporary)
+            _rpc('config/batchWrite', {'filePath': str(target), 'edits': [
+                {'keyPath': key, 'value': value, 'mergeStrategy': 'replace'} for key, value in values
+            ]}, work, home=home, before_request=stage_input)
+            updated = target.read_bytes()
+        except BaseException as exc:
+            failure = exc
+        finally:
+            try:
+                _remove_temporary_directory(temporary)
+            except BaseException as exc:
+                cleanup_failure = exc
+        if failure is not None:
+            if cleanup_failure is not None:
+                detail = f'scratch cleanup failed: {cleanup_failure}'
+                if isinstance(failure, ClientError):
+                    failure.args = (str(failure) + '; ' + detail,)
+                    failure.cleanup_failed = True
+                elif isinstance(failure, Exception):
+                    combined = ClientError(f'{failure}; {detail}')
+                    combined.__cause__ = failure
+                    combined.cleanup_failed = True
+                    failure = combined
+                else:
+                    failure.add_note(detail)
+                raise failure
+            if (attempt < 2 and isinstance(failure, ClientError) and
+                    _retryable_config_edit_failure(failure, target)):
+                time.sleep(0.1 * (attempt + 1))
+                continue
+            raise failure
+        if cleanup_failure is not None:
+            raise cleanup_failure
+        break
     if (path.read_bytes() if path.exists() else None) != original:
         raise ClientError(f'Client configuration changed concurrently; retry: {path}')
     path.parent.mkdir(parents=True, exist_ok=True)

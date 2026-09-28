@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import threading
 
 import pytest
 
@@ -170,13 +171,20 @@ def test_a_taken_destination_is_a_conflict_whatever_the_platform_reports(tmp_pat
     path = tmp_path / "docs/plans/2026-09/20260914-same.md"
     publisher = "rename" if os.name == "nt" else "link"
 
+    winner = None
+
     def taken(source, destination):
-        Path(destination).write_text("the winner", encoding="utf-8")
+        nonlocal winner
+        winner = threading.Timer(0.05, Path(destination).write_text,
+                                 args=('the winner',), kwargs={'encoding': 'utf-8'})
+        winner.start()
         raise PermissionError(13, "Access is denied")
 
     monkeypatch.setattr(os, publisher, taken)
     with pytest.raises(ConflictError):
         create_file(tmp_path, path, "the loser")
+    winner.join(timeout=1)
+    assert not winner.is_alive()
     assert path.read_text(encoding="utf-8") == "the winner"
     assert not list(path.parent.glob(".tao-new-*"))
 
