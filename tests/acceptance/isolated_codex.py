@@ -7,8 +7,10 @@ Authentication snapshots carry no refresh token and are removed after use.
 import base64
 import json
 import os
-import select
+import queue
+import signal
 import subprocess
+import threading
 import time
 import tomllib
 from contextlib import contextmanager
@@ -65,35 +67,56 @@ def configure(workspace, inside, plugin):
     return cached
 
 
+def _terminate_process_tree(process, *, force=False):
+    if os.name == 'nt':
+        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                       capture_output=True, timeout=5, check=False)
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+
 def discover(workspace, directories, kind):
     with (workspace / 'skills-query.stderr').open('w') as errors:
         process = subprocess.Popen([cli_executable('codex'), 'app-server'], cwd=workspace,
                                    env=environment(workspace), stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=errors)
-        buffer = b''
+                                   stdout=subprocess.PIPE, stderr=errors, text=True,
+                                   encoding='utf-8', start_new_session=os.name != 'nt')
+        responses = queue.Queue()
+
+        def read():
+            try:
+                for line in process.stdout:
+                    responses.put(line)
+            finally:
+                responses.put(None)
+
+        reader = threading.Thread(target=read, daemon=True)
+        reader.start()
 
         def send(value):
-            process.stdin.write((json.dumps(value) + '\n').encode())
+            process.stdin.write(json.dumps(value) + '\n')
             process.stdin.flush()
 
         def receive(identity):
-            nonlocal buffer
             deadline = time.monotonic() + 20
-            while time.monotonic() < deadline:
-                while b'\n' in buffer:
-                    line, buffer = buffer.split(b'\n', 1)
-                    value = json.loads(line)
-                    if value.get('id') == identity:
-                        if 'error' in value:
-                            raise RuntimeError('Native skill query failed: ' + json.dumps(value['error']))
-                        return value['result']
-                ready, _, _ = select.select([process.stdout], [], [], max(0, deadline - time.monotonic()))
-                if not ready:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
                     break
-                chunk = os.read(process.stdout.fileno(), 65536)
-                if not chunk:
+                try:
+                    line = responses.get(timeout=remaining)
+                except queue.Empty:
                     break
-                buffer += chunk
+                if line is None:
+                    break
+                value = json.loads(line)
+                if value.get('id') == identity:
+                    if 'error' in value:
+                        raise RuntimeError('Native skill query failed: ' + json.dumps(value['error']))
+                    return value['result']
             raise RuntimeError('Native skill query did not return a bounded response.')
 
         try:
@@ -107,12 +130,17 @@ def discover(workspace, directories, kind):
             send({'id': 2, 'method': kind + '/list', 'params': params})
             result = receive(2)
         finally:
-            process.terminate()
+            _terminate_process_tree(process)
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+                _terminate_process_tree(process, force=True)
+                process.wait(timeout=5)
+            reader.join(timeout=1)
+            if reader.is_alive():
+                raise RuntimeError('Native skill query output reader did not stop.')
+            process.stdin.close()
+            process.stdout.close()
     return result['data']
 
 

@@ -1,4 +1,5 @@
 """Native adapter boundaries, with all client state isolated from personal data."""
+import errno
 import importlib.util
 import json
 import re
@@ -929,6 +930,86 @@ def test_kiro_snapshot_rejects_internal_symlink_without_change(state):
     assert link.is_symlink() and target.read_text(encoding='utf-8') == 'mine'
 
 
+def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch, tmp_path):
+    messages = [
+        {'id': 1, 'result': {}},
+        {'method': 'server/notification', 'params': {}},
+        'invalid JSON that must remain unread after the deadline',
+    ]
+
+    class Input:
+        def write(self, _value):
+            pass
+
+        def flush(self):
+            pass
+
+        def close(self):
+            pass
+
+    class Output:
+        def __iter__(self):
+            return iter((json.dumps(message) if not isinstance(message, str) else message) + '\n'
+                        for message in messages)
+
+        def close(self):
+            pass
+
+    class Process:
+        pid = 123
+
+        def __init__(self):
+            self.stdin = Input()
+            self.stdout = Output()
+            self.terminated = False
+
+        def poll(self):
+            return 0
+
+        def terminate(self):
+            self.terminated = True
+
+        def wait(self, timeout=None):
+            return 0
+
+    process = Process()
+    calls = []
+
+    def start(*args, **kwargs):
+        calls.append((args, kwargs))
+        return process
+
+    moments = iter((0, 0, 0, 0, 30))
+    monkeypatch.setattr(clients.os, 'name', 'posix')
+    monkeypatch.setattr(clients, '_executable', lambda name: name)
+    monkeypatch.setattr(clients.subprocess, 'Popen', start)
+    monkeypatch.setattr(clients, '_terminate_process_tree',
+                        lambda child, force=False: child.terminate())
+    monkeypatch.setattr(clients.time, 'monotonic', lambda: next(moments))
+
+    with pytest.raises(clients.ClientError, match='skills/list timed out'):
+        clients._rpc('skills/list', {}, tmp_path)
+
+    assert calls[0][1]['start_new_session'] is (clients.os.name != 'nt')
+    assert process.terminated
+
+
+def test_posix_codex_app_server_cleanup_terminates_process_group(monkeypatch):
+    calls = []
+
+    class Process:
+        pid = 123
+
+        def poll(self):
+            return 0
+
+    monkeypatch.setattr(clients.os, 'name', 'posix')
+    monkeypatch.setattr(clients.os, 'killpg', lambda pid, operation: calls.append((pid, operation)))
+    clients._terminate_process_tree(Process())
+    clients._terminate_process_tree(Process(), force=True)
+    assert calls == [(123, clients.signal.SIGTERM), (123, clients.signal.SIGKILL)]
+
+
 def test_windows_codex_app_server_cleanup_terminates_process_tree(monkeypatch):
     calls = []
 
@@ -960,3 +1041,50 @@ def test_windows_codex_scratch_cleanup_retries_sharing_violation(monkeypatch, tm
     monkeypatch.setattr(clients.shutil, 'rmtree', remove)
     clients._remove_temporary_directory(tmp_path / 'scratch')
     assert attempts == [tmp_path / 'scratch'] * 3
+
+
+def test_codex_scratch_cleanup_retries_nonempty_directory(monkeypatch, tmp_path):
+    attempts = []
+
+    def remove(path):
+        attempts.append(path)
+        if len(attempts) < 3:
+            raise OSError(errno.ENOTEMPTY, 'Directory not empty')
+
+    monkeypatch.setattr(clients.shutil, 'rmtree', remove)
+    monkeypatch.setattr(clients.time, 'sleep', lambda _seconds: None)
+    clients._remove_temporary_directory(tmp_path / 'scratch')
+    assert attempts == [tmp_path / 'scratch'] * 3
+
+
+def test_codex_scratch_cleanup_stops_at_deadline(monkeypatch, tmp_path):
+    attempts = []
+    sleeps = []
+    moments = iter((10, 14, 15))
+
+    def remove(path):
+        attempts.append(path)
+        raise OSError(errno.ENOTEMPTY, 'Directory not empty')
+
+    monkeypatch.setattr(clients.shutil, 'rmtree', remove)
+    monkeypatch.setattr(clients.time, 'monotonic', lambda: next(moments))
+    monkeypatch.setattr(clients.time, 'sleep', sleeps.append)
+    with pytest.raises(OSError) as raised:
+        clients._remove_temporary_directory(tmp_path / 'scratch')
+    assert raised.value.errno == errno.ENOTEMPTY
+    assert attempts == [tmp_path / 'scratch'] * 2
+    assert sleeps == [0.05]
+
+
+def test_codex_scratch_cleanup_does_not_retry_unrelated_error(monkeypatch, tmp_path):
+    attempts = []
+
+    def remove(path):
+        attempts.append(path)
+        raise OSError(errno.EACCES, 'Permission denied')
+
+    monkeypatch.setattr(clients.shutil, 'rmtree', remove)
+    with pytest.raises(OSError) as raised:
+        clients._remove_temporary_directory(tmp_path / 'scratch')
+    assert raised.value.errno == errno.EACCES
+    assert attempts == [tmp_path / 'scratch']

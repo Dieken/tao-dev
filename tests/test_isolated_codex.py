@@ -94,6 +94,93 @@ def test_codex_compatibility_package_has_one_manifest_and_original_runtime(tmp_p
         build(target, codex_legacy=True)
 
 
+def fake_app_server(monkeypatch, messages):
+    class Input:
+        def __init__(self):
+            self.writes = []
+
+        def write(self, value):
+            self.writes.append(value)
+
+        def flush(self):
+            pass
+
+        def close(self):
+            pass
+
+    class Output:
+        def __iter__(self):
+            return iter((json.dumps(message) if not isinstance(message, str) else message) + '\n'
+                        for message in messages)
+
+        def close(self):
+            pass
+
+    class Process:
+        pid = 123
+
+        def __init__(self):
+            self.stdin = Input()
+            self.stdout = Output()
+            self.terminated = False
+
+        def poll(self):
+            return 0 if self.terminated else None
+
+        def terminate(self):
+            self.terminated = True
+
+        def wait(self, timeout=None):
+            self.terminated = True
+            return 0
+
+    process = Process()
+    calls = []
+
+    def start(*args, **kwargs):
+        calls.append((args, kwargs))
+        return process
+
+    monkeypatch.setattr(adapter.subprocess, 'Popen', start)
+    monkeypatch.setattr(adapter, '_terminate_process_tree',
+                        lambda child, force=False: child.terminate())
+    return process, calls
+
+
+def test_native_discovery_uses_portable_bounded_pipe_reader(tmp_path, monkeypatch):
+    process, calls = fake_app_server(monkeypatch, [
+        {'method': 'server/notification', 'params': {}},
+        {'id': 1, 'result': {}},
+        {'id': 2, 'result': {'data': [{'cwd': str(tmp_path)}]}},
+    ])
+
+    result = adapter.discover(tmp_path, [tmp_path], 'skills')
+
+    assert result == [{'cwd': str(tmp_path)}]
+    assert calls[0][1]['text'] is True
+    assert calls[0][1]['encoding'] == 'utf-8'
+    assert calls[0][1]['start_new_session'] is (os.name != 'nt')
+    requests = [json.loads(value) for value in process.stdin.writes]
+    assert [request['method'] for request in requests] == ['initialize', 'initialized', 'skills/list']
+    assert requests[2]['params'] == {'cwds': [str(tmp_path)], 'forceReload': True}
+    assert process.terminated
+
+
+def test_native_discovery_deadline_is_not_extended_by_queued_notifications(tmp_path, monkeypatch):
+    process, _ = fake_app_server(monkeypatch, [
+        {'id': 1, 'result': {}},
+        {'method': 'server/notification', 'params': {}},
+        'invalid JSON that must remain unread after the deadline',
+    ])
+    moments = iter((0, 0, 0, 0, 20))
+    monkeypatch.setattr(adapter.time, 'monotonic', lambda: next(moments))
+
+    with pytest.raises(RuntimeError, match='bounded response'):
+        adapter.discover(tmp_path, [tmp_path], 'skills')
+
+    assert process.terminated
+
+
 def test_unexpected_hooks_cannot_be_trusted(tmp_path, monkeypatch):
     inside = tmp_path / 'codex/inside'
     monkeypatch.setattr(adapter, 'hook_inventory', lambda *args: [

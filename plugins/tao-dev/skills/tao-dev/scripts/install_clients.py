@@ -7,6 +7,7 @@ are deliberately retained on uninstall.
 """
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ import queue
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -86,12 +88,15 @@ def _run(args, project, *, json_output=True):
         raise ClientError(f'{name} returned invalid JSON: {result.stdout[:300]}') from exc
 
 
-def _terminate_process_tree(process):
+def _terminate_process_tree(process, *, force=False):
     if os.name == 'nt':
         subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
                        capture_output=True, timeout=5, check=False)
-    elif process.poll() is None:
-        process.terminate()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
 
 
 def _rpc(method, params, project, *, home=None):
@@ -102,7 +107,8 @@ def _rpc(method, params, project, *, home=None):
     try:
         process = subprocess.Popen([_executable('codex'), 'app-server'], cwd=project, env=env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                   stderr=subprocess.DEVNULL, text=True, encoding='utf-8')
+                                   stderr=subprocess.DEVNULL, text=True, encoding='utf-8',
+                                   start_new_session=os.name != 'nt')
     except OSError as exc:
         raise ClientError(f'Cannot start Codex app-server: {exc}') from exc
     responses = queue.Queue()
@@ -122,8 +128,11 @@ def _rpc(method, params, project, *, home=None):
         process.stdin.flush()
         deadline = time.monotonic() + 30
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ClientError(f'Codex {name} timed out')
             try:
-                line = responses.get(timeout=max(0, deadline - time.monotonic()))
+                line = responses.get(timeout=remaining)
             except queue.Empty as exc:
                 raise ClientError(f'Codex {name} timed out') from exc
             if line is None:
@@ -147,14 +156,15 @@ def _rpc(method, params, project, *, home=None):
     except (BrokenPipeError, OSError) as exc:
         raise ClientError(f'Codex app-server communication failed: {exc}') from exc
     finally:
-        if os.name == 'nt' or process.poll() is None:
-            _terminate_process_tree(process)
+        _terminate_process_tree(process)
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            _terminate_process_tree(process)
+            _terminate_process_tree(process, force=True)
             process.wait(timeout=5)
         reader.join(timeout=1)
+        if reader.is_alive():
+            raise ClientError('Codex app-server output reader did not stop')
         process.stdin.close()
         process.stdout.close()
 
@@ -164,17 +174,23 @@ def _key(*parts):
 
 
 def _remove_temporary_directory(path):
-    """Remove a Codex scratch home after Windows descendants release handles."""
-    deadline = time.monotonic() + 5 if os.name == 'nt' else None
+    """Remove a Codex scratch home after transient descendant activity."""
+    deadline = time.monotonic() + 5
     while True:
         try:
             shutil.rmtree(path)
             return
-        except PermissionError as exc:
-            if (os.name != 'nt' or getattr(exc, 'winerror', None) not in (5, 32)
-                    or time.monotonic() >= deadline):
+        except FileNotFoundError:
+            if not Path(path).exists():
+                return
+            if time.monotonic() >= deadline:
                 raise
-            time.sleep(0.05)
+        except OSError as exc:
+            retryable = (exc.errno == errno.ENOTEMPTY or
+                         (os.name == 'nt' and getattr(exc, 'winerror', None) in (5, 32)))
+            if not retryable or time.monotonic() >= deadline:
+                raise
+        time.sleep(0.05)
 
 
 def _write_config(path, values):
