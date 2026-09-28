@@ -54,12 +54,12 @@ def run(workspace, *, codex_legacy=False):
     update_result = json.loads(updated.stdout)
     latest = isolated_codex.check_boundary(workspace, inside)
     found = latest[str(inside)][0]
-    if 'Acceptance update marker.' not in found['description'] or '/0.3.1/' not in found['path']:
+    if 'Acceptance update marker.' not in found['description'] or '0.3.1' not in Path(found['path']).parts:
         raise RuntimeError('Fresh native discovery still exposes the old plugin.')
     updated_hooks = isolated_codex.hook_inventory(workspace, inside) if codex_legacy else []
     if codex_legacy:
         hooks = [hook for row in updated_hooks for hook in row['hooks']]
-        if (len(hooks) != 1 or '/0.3.1/' not in hooks[0]['sourcePath'] or
+        if (len(hooks) != 1 or '0.3.1' not in Path(hooks[0]['sourcePath']).parts or
                 hooks[0]['currentHash'] == initial_hook['currentHash'] or hooks[0]['trustStatus'] == 'trusted'):
             raise RuntimeError('Updated hook must use the new cache and require fresh trust.')
     removed = subprocess.run([cli_executable('codex'), 'plugin', 'remove', isolated_codex.PLUGIN_ID, '--json'],
