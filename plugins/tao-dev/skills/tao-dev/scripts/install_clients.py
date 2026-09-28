@@ -99,7 +99,7 @@ def _terminate_process_tree(process, *, force=False):
             pass
 
 
-def _rpc(method, params, project, *, home=None):
+def _rpc(method, params, project, *, home=None, before_request=None):
     """Portable, bounded JSON-RPC exchange; stdout reader works on Windows too."""
     env = os.environ.copy()
     if home is not None:
@@ -152,6 +152,8 @@ def _rpc(method, params, project, *, home=None):
                                    'capabilities': {'experimentalApi': True}})
         process.stdin.write(json.dumps({'method': 'initialized'}) + '\n')
         process.stdin.flush()
+        if before_request is not None:
+            before_request()
         return exchange(2, method, params)
     except (BrokenPipeError, OSError) as exc:
         raise ClientError(f'Codex app-server communication failed: {exc}') from exc
@@ -202,12 +204,19 @@ def _write_config(path, values):
     temporary = tempfile.mkdtemp(prefix='tao-config-')
     try:
         scratch = Path(temporary).resolve()
-        target = scratch / 'config.toml'
-        if original is not None:
-            target.write_bytes(original)
+        home = scratch / 'home'
+        work = scratch / 'work'
+        target = home / 'config.toml'
+        home.mkdir()
+        work.mkdir()
+
+        def stage_input():
+            if original is not None:
+                target.write_bytes(original)
+
         _rpc('config/batchWrite', {'filePath': str(target), 'edits': [
             {'keyPath': key, 'value': value, 'mergeStrategy': 'replace'} for key, value in values
-        ]}, scratch, home=scratch)
+        ]}, work, home=home, before_request=stage_input)
         updated = target.read_bytes()
     finally:
         _remove_temporary_directory(temporary)

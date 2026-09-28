@@ -427,11 +427,14 @@ def test_config_editor_preserves_existing_config(state, monkeypatch):
     config = project / 'config.toml'
     config.write_text('# preserved\n', encoding='utf-8')
 
-    def edit(method, params, cwd, *, home):
+    def edit(method, params, cwd, *, home, before_request):
         target = Path(params['filePath'])
         assert method == 'config/batchWrite'
-        assert target == Path(cwd) / 'config.toml'
-        assert home == target.parent
+        assert target == home / 'config.toml'
+        assert Path(cwd) != home
+        assert home.is_dir() and Path(cwd).is_dir()
+        assert not target.exists()
+        before_request()
         assert target.read_text(encoding='utf-8') == '# preserved\n'
         target.write_text('# preserved\nenabled = true\n', encoding='utf-8')
 
