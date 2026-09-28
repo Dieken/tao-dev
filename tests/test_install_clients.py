@@ -980,7 +980,6 @@ def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch,
         return process
 
     moments = iter((0, 0, 0, 0, 30))
-    monkeypatch.setattr(clients.os, 'name', 'posix')
     monkeypatch.setattr(clients, '_executable', lambda name: name)
     monkeypatch.setattr(clients.subprocess, 'Popen', start)
     monkeypatch.setattr(clients, '_terminate_process_tree',
@@ -994,6 +993,7 @@ def test_codex_rpc_deadline_is_not_extended_by_queued_notifications(monkeypatch,
     assert process.terminated
 
 
+@pytest.mark.skipif(clients.os.name == 'nt', reason='POSIX-only process-group behavior')
 def test_posix_codex_app_server_cleanup_terminates_process_group(monkeypatch):
     calls = []
 
@@ -1003,20 +1003,19 @@ def test_posix_codex_app_server_cleanup_terminates_process_group(monkeypatch):
         def poll(self):
             return 0
 
-    monkeypatch.setattr(clients.os, 'name', 'posix')
     monkeypatch.setattr(clients.os, 'killpg', lambda pid, operation: calls.append((pid, operation)))
     clients._terminate_process_tree(Process())
     clients._terminate_process_tree(Process(), force=True)
     assert calls == [(123, clients.signal.SIGTERM), (123, clients.signal.SIGKILL)]
 
 
+@pytest.mark.skipif(clients.os.name != 'nt', reason='Windows-only process-tree behavior')
 def test_windows_codex_app_server_cleanup_terminates_process_tree(monkeypatch):
     calls = []
 
     class Process:
         pid = 123
 
-    monkeypatch.setattr(clients.os, 'name', 'nt')
     monkeypatch.setattr(
         clients.subprocess,
         'run',
@@ -1027,6 +1026,7 @@ def test_windows_codex_app_server_cleanup_terminates_process_tree(monkeypatch):
     assert calls[0][1]['check'] is False
 
 
+@pytest.mark.skipif(clients.os.name != 'nt', reason='Windows-only sharing-violation behavior')
 def test_windows_codex_scratch_cleanup_retries_sharing_violation(monkeypatch, tmp_path):
     attempts = []
 
@@ -1037,7 +1037,6 @@ def test_windows_codex_scratch_cleanup_retries_sharing_violation(monkeypatch, tm
             error.winerror = 32
             raise error
 
-    monkeypatch.setattr(clients.os, 'name', 'nt')
     monkeypatch.setattr(clients.shutil, 'rmtree', remove)
     clients._remove_temporary_directory(tmp_path / 'scratch')
     assert attempts == [tmp_path / 'scratch'] * 3

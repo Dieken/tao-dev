@@ -158,6 +158,18 @@ def hook_inventory(workspace, inside):
     return rows
 
 
+def _reviewed_hook_command(command, script):
+    expected = 'python3 -I -B "' + str(script) + '"'
+    if command == expected:
+        return True
+    if os.name != 'nt' or not command.startswith('python3 -I -B "') or not command.endswith('"'):
+        return False
+    try:
+        return Path(command[len('python3 -I -B "'):-1]).samefile(script)
+    except OSError:
+        return False
+
+
 def trust_test_hook(workspace, inside, plugin):
     rows = hook_inventory(workspace, inside)
     if any(row['errors'] or row['warnings'] for row in rows):
@@ -169,13 +181,31 @@ def trust_test_hook(workspace, inside, plugin):
     hook = hooks[0]
     source = Path(hook['sourcePath']).resolve()
     cache = source.parents[2]
-    expected = 'python3 -I -B "' + str(cache / 'skills/tao-dev/scripts/hook.py') + '"'
-    if (not cache.is_relative_to((workspace / 'client-state').resolve()) or
-            hook['pluginId'] != PLUGIN_ID or hook['eventName'] != 'postToolUse' or
-            hook['handlerType'] != 'command' or hook['command'] != expected or
-            hook['matcher'] != 'Write|Edit|apply_patch' or hook['timeoutSec'] != 35 or
-            not hook['enabled'] or hook['isManaged']):
-        raise RuntimeError('The discovered hook differs from the reviewed acceptance handler.')
+    script = cache / 'skills/tao-dev/scripts/hook.py'
+    expected_values = {
+        'cacheWithinIsolatedState': True,
+        'pluginId': PLUGIN_ID,
+        'eventName': 'postToolUse',
+        'handlerType': 'command',
+        'command': 'python3 -I -B "' + str(script) + '"',
+        'matcher': 'Write|Edit|apply_patch',
+        'timeoutSec': 35,
+        'enabled': True,
+        'isManaged': False,
+    }
+    actual_values = {
+        'cacheWithinIsolatedState': cache.is_relative_to((workspace / 'client-state').resolve()),
+        **{name: hook[name] for name in expected_values if name != 'cacheWithinIsolatedState'},
+    }
+    matches = {name: actual_values[name] == expected for name, expected in expected_values.items()}
+    matches['command'] = _reviewed_hook_command(hook['command'], script)
+    differences = {
+        name: {'actual': actual_values[name], 'expected': expected_values[name]}
+        for name, matches_expected in matches.items() if not matches_expected
+    }
+    if differences:
+        raise RuntimeError('The discovered hook differs from the reviewed acceptance handler: ' +
+                           json.dumps(differences, sort_keys=True))
     for folder in ('skills', 'com.openai'):
         for original in (ROOT / 'plugins/tao-dev' / folder).rglob('*'):
             if not original.is_file() or '__pycache__' in original.parts:
