@@ -30,7 +30,7 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 <!-- tao:section design -->
 ## 方案与取舍
 
-实现遵循已批准设计，不在任务内另定产品方案。两文件写入的幂等性是优先验证风险，先建立可执行状态转换和故障注入测试，后续写入实现依赖该任务；暂不引入额外形式化语言或服务，现有 Python 测试可穷举本次有限故障点与重试序列。若反例推翻批准方案，先回到设计修订，不以放宽测试消除反例。
+实现遵循对应设计；本次审查修订后须重新批准设计，不在任务内另定产品方案。两文件写入的幂等性是优先验证风险，先建立可执行状态转换和故障注入测试，后续写入实现依赖该任务；暂不引入额外形式化语言或服务，现有 Python 测试可穷举本次有限故障点与重试序列。若反例推翻批准方案，先回到设计修订，不以放宽测试消除反例。
 
 ### 需求覆盖
 
@@ -55,7 +55,7 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 | 数据归属、模块职责、profile 与 CHG 定义兼容 | {need}`TASK_20261105_A84TSV410Y934TBB`、{need}`TASK_20261105_3ETWP4BF6KC6XRRR`、{need}`TASK_20261105_YDCTK70MVYQGTGYJ` |
 | 批准摘要、审查输入归一与额度 | {need}`TASK_20261105_3ETWP4BF6KC6XRRR`、{need}`TASK_20261105_1DNQEGHVKFRXT8PJ` |
 | 命令职责、事项选择、切换及诊断 | {need}`TASK_20261105_5H468EW00RFPK2GH`、{need}`TASK_20261105_WMJ4JPXDPTWMDN6J`、{need}`TASK_20261105_418VEP86Q1JHHQ0E` |
-| 恢复过程与旧资料迁移 | {need}`TASK_20261105_A84TSV410Y934TBB`、{need}`TASK_20261105_WMJ4JPXDPTWMDN6J` |
+| 恢复过程、显式 migrate 与 legacy unknown 表示 | {need}`TASK_20261105_A84TSV410Y934TBB`、{need}`TASK_20261105_WMJ4JPXDPTWMDN6J` |
 | 两类写入、中断、并发及收尾 | {need}`TASK_20261105_VXBFM3S2RZ5VV5Q8`、{need}`TASK_20261105_3ETWP4BF6KC6XRRR`、{need}`TASK_20261105_1DNQEGHVKFRXT8PJ`、{need}`TASK_20261105_KYSYWBB6PZJ810YC` |
 | 分发资源的消费者与内部文档边界 | {need}`TASK_20261105_418VEP86Q1JHHQ0E`、{need}`TASK_20261105_YDCTK70MVYQGTGYJ` |
 | 不变量、失败处理和验证 | {need}`TASK_20261105_VXBFM3S2RZ5VV5Q8`、{need}`TASK_20261105_YDCTK70MVYQGTGYJ`、{need}`TASK_20261105_455AQNSXP6M85JY9` |
@@ -71,7 +71,7 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 - [ ] `TASK_20261105_A84TSV410Y934TBB` 新增 workflow profile、模板和 CHG 索引兼容规则
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_VXBFM3S2RZ5VV5Q8"]
-  - verify: 运行源校验与关系测试，覆盖嵌套字段、枚举、一个正式 CHG 关联一个旧 plan、重复定义、路径越界、计划前身份、旧 plan unknown，以及损坏 JSON 不阻断独立文档检查。
+  - verify: 运行源校验与关系测试，覆盖嵌套字段、枚举、一个正式 CHG 关联一个旧 plan、重复定义、路径越界、计划前身份、旧 plan 导入的新记录允许带 legacy 来源的 unknown、非 legacy unknown 被拒绝，以及损坏 JSON 不阻断独立文档检查。
 
 - [ ] `TASK_20261105_3ETWP4BF6KC6XRRR` 实现重要事件持久写入、start 与阶段决定同步
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_3C64CBKGB4T22MFR"]
@@ -88,10 +88,10 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
   - depends_on: ["TASK_20261105_A84TSV410Y934TBB"]
   - verify: CLI 集成测试覆盖显式 CHG、多个 worktree 同身份、空格路径、无状态旧计划、仅正文引用、共享文档及损坏状态；文本含真实路径和恢复命令，JSON 含稳定诊断与命令参数数组。
 
-- [ ] `TASK_20261105_WMJ4JPXDPTWMDN6J` 实现 recover 预览、应用、旧事项迁移和 resume 协调
+- [ ] `TASK_20261105_WMJ4JPXDPTWMDN6J` 实现 recover、显式 migrate 和 resume 协调
   - relates: ["REQ_20261105_GAXA5RZZ60Y774BM", "REQ_20261105_3C64CBKGB4T22MFR", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_3ETWP4BF6KC6XRRR", "TASK_20261105_1DNQEGHVKFRXT8PJ", "TASK_20261105_5H468EW00RFPK2GH"]
-  - verify: 以真实临时 Git 项目删除或移动本地状态，先预览确认无写入再应用；保持 CHG 和任务勾选，source digest 改变、并发创建、损坏或现存状态均不覆盖；旧事项仅迁移选定 CHG，缺批准保持阻断。
+  - verify: 以真实临时 Git 项目删除或移动本地状态，先预览确认无写入再应用；保持 CHG 和任务勾选，source digest 改变、并发创建、损坏或现存状态均不覆盖；旧事项仅迁移选定 CHG，缺批准保持阻断；JSON-only/JSON+plan 经 migrate 绑定 revision 和原字节摘要，保留未知字段、批准、轮次及基准，正式成功本地失败后 resume 不重复迁移；plan-only 经 recover 创建合法 unknown 记录并跨目录重读，不误判 active。
 
 - [ ] `TASK_20261105_KYSYWBB6PZJ810YC` 实现 finish 正式收尾和历史结果查询
   - relates: ["REQ_20261105_NFBV51FB4SS7W5QD"]
@@ -130,7 +130,7 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 | 多事项选择 | 两个事项、共享材料和历史事项的 CLI 发现，加会话选择行为检查 |
 | 切换不结束 | 会话行为验收观察目标变化，原事项生命周期与运行操作不变 |
 | 持久收尾 | CLI 完成与取消、写入中断重试、跨目录查询历史结果 |
-| 旧资料兼容 | 旧 plan、旧 JSON、只剩文档三组固定样例的源检查和 CLI 验收 |
+| 旧资料兼容 | JSON-only、JSON+plan 的 migrate 预览/应用/失败恢复，与 plan-only 的 recover 应用和新目录查询；校验 unknown 及未知字段保留 |
 
 客户端实测使用现有 CLI 与认证，仅在隔离实验项目加载，验证实验外未启用；不能通过重装或全局配置取得测试条件。缺少隔离能力或对应平台时记录 blocked/未覆盖。脚本化行为契约检查不能冒充真实客户端验收。项目既有 Windows 客户端与独立审查缺口不因本次文档检查而消失。
 
@@ -138,13 +138,13 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 
 ### 文档审查与实施入口
 
-覆盖自查：九项需求全部落到任务；设计各项决定已有实现和验证任务；持久写入的高风险假设先验证；无孤立任务、无分期遗漏。文档源校验只说明格式和引用满足契约，尚未执行独立语义审查。建议对恢复权限边界、CHG 兼容定义和中断协议开展正式文档审查；是否开展或跳过由用户决定，跳过应明确上述未独立复核范围，不能跳过项目必需的实现审查。
+覆盖自查：九项需求全部落到任务；设计各项决定已有实现和验证任务；持久写入的高风险假设先验证；无孤立任务、无分期遗漏。文档源校验只说明格式和引用满足契约，第一轮独立语义审查提出旧 JSON 迁移入口和未知生命周期两项缺口；已获准修订，本轮定向复核其闭合及影响，不重置审查轮次。项目必需的实现审查仍保留。
 
 <!-- tao:results -->
-当前仅完成 spec、design 和 plan 文档编写与检查；实现任务均未开始。规格和设计已通过源校验，无诊断。本计划及导航已执行 tao verify --only docs，受管理源的结构、ID、关系和导航检查通过，无诊断；未建立历史删除比较基线。尚无代码测试、HTML 出版或独立审查结果。
+当前仅完成 spec、design 和 plan 文档编写与检查；实现任务均未开始。规格和设计已通过源校验，无诊断。本计划及导航已执行 tao verify --only docs，受管理源的结构、ID、关系和导航检查通过，无诊断；未建立历史删除比较基线。第一轮独立文档审查为 changes-requested，A/B 均采用并据此修订设计和计划；报告见[初审裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/00-adjudication.md)。第二轮[定向复核及裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)已登记 passed，A/B 均闭合，输入为 current；设计、计划、报告和导航源校验通过，无诊断。两轮已用完，修订设计与计划仍待批准。尚无代码测试或 HTML 出版结果。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
 ## 待确认事项
 
-无需求或设计范围未决项。进入实施前需用户批准本计划并决定是否开展正式文档审查；该入口决定不是已执行的审查结果。
+无需求或设计范围未决项。正式文档审查已获授权并进行定向复核；进入实施前仍需批准修订设计与本计划，审查通过不自动授权实现。
