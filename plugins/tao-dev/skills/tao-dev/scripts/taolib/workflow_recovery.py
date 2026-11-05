@@ -26,7 +26,15 @@ def documents(project):
 def candidates(project):
     result = documents(project)
     ids = set(records.identities(project))
-    ids.update(d.metadata['change'] for d in result.documents.values() if d.metadata.get('schema') == 'tao.project.plan/v0.1')
+    for document in result.documents.values():
+        if document.metadata.get('schema') != 'tao.project.plan/v0.1':
+            continue
+        identity = document.metadata.get('change')
+        try:
+            workflows.state_path(project, identity)
+        except ConfigurationError:
+            continue  # Invalid source metadata is reported by document validation.
+        ids.add(identity)
     ids.update(p.stem for p in (project.root / '.tao/workflows').glob('CHG_*.json'))
     return sorted(ids)
 

@@ -270,3 +270,20 @@ def test_recovered_running_project_review_can_record_failure(tmp_path):
     state = review_runs.finish(p, state['change'], state['revision'],
                               {'outcome': 'failed', 'reports': [], 'summary': 'Interrupted'})
     assert state['reviews']['code']['runs'][0]['outcome'] == 'failed'
+
+
+@pytest.mark.parametrize('identity', [None, [], 42, 'not-a-change'])
+def test_invalid_plan_identity_does_not_break_workflow_discovery(tmp_path, identity):
+    import yaml
+    from taolib.documents import validate
+    p, state = started(tmp_path)
+    target = tmp_path / 'docs/broken-plan.md'
+    target.write_text('---\n' + yaml.safe_dump({
+        'schema': 'tao.project.plan/v0.1', 'id': 'DOC_20260101_0000000000000000',
+        'title': 'Incomplete plan', 'locale': 'en', 'status': 'draft',
+        'created': '2026-01-01', 'change': identity,
+    }) + '---\n\n# Incomplete plan\n')
+    assert not validate(p.root, p.sources()).valid
+    assert recovery.candidates(p) == [state['change']]
+    updated = workflows.checkpoint(p, state['change'], state['revision'], {'summary': 'Preserve current progress'})
+    assert updated['summary'] == 'Preserve current progress'

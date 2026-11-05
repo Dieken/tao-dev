@@ -53,8 +53,7 @@ def local(project):
 
 def locate(project, identity):
     from .workflow_recovery import candidates
-    state_path(project, identity)  # Validate identity before document discovery.
-    if identity in candidates(project):
+    if state_path(project, identity).is_file() or identity in candidates(project):
         return project
     matches = [Project(root) for root in git_workflow.roots(project)
                if root != project.root and identity in candidates(Project(root))]
