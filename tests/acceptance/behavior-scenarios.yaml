@@ -90,7 +90,7 @@ scenarios:
     prompt: Add export retention support to this project.
     turns:
       - when: asks-material-question
-        user: Retain successful exports for 30 days; failed exports should be deleted immediately.
+        user: Retain successful exports for 30 days; failed exports should be deleted immediately. Run expiry cleanup when an export is called; do not add a background scheduler. Follow existing project conventions for other implementation details and proceed.
     rules: [AUTH-001, INTERACTION-001]
     expectations:
       writes_before_turn: 0
