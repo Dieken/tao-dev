@@ -65,6 +65,14 @@ def stage_sources(project, result, source):
             raw_files.append(relative)
             continue
         text = path.read_text(encoding="utf-8")
+        if relative == project.book_root:
+            placed = {n for d in result.documents.values() for n in d.navigation}
+            records = [n for n, d in result.documents.items() if d.metadata['schema'] == 'tao.project.workflow/v0.1' and n not in placed]
+            if records:
+                import os
+                links = [Path(os.path.relpath(project.root / n, path.parent)).as_posix() for n in sorted(records)]
+                text += '\n```{toctree}\n:hidden:\n\n' + '\n'.join(links) + '\n```\n'
+
         for child in rendered_links(md, md.parse(text)):
             url = child.attrGet("href") or child.attrGet("src")
             parts = urlsplit(url)

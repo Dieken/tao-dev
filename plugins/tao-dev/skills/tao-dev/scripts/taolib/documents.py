@@ -98,6 +98,7 @@ class Validator:
         self.result = Result()
         self.md = parser()
         self.file_links = []
+        self.change_definitions = {}
         self.deleted_paths = set()
 
     def error(self, rule, path, line, message, **kwargs):
@@ -142,9 +143,10 @@ class Validator:
         if end is None:
             self.error("TAO-DOC-001", path, 1, "Unclosed YAML frontmatter.")
             return None
-        yaml_text = "".join(lines[1:end])
+        from .frontmatter import split_frontmatter
+        yaml_text, end = split_frontmatter(source)
         try:
-            tags = [t for t in yaml.scan(yaml_text) if isinstance(t, yaml.tokens.TagToken)]
+            tags = [t for t in yaml.scan(yaml_text) if isinstance(t, yaml.tokens.TagToken) or ("tao.project.workflow/v0.1" in yaml_text and isinstance(t, (yaml.tokens.AliasToken, yaml.tokens.AnchorToken)))]
             if tags:
                 self.error("TAO-DOC-001", path, tags[0].start_mark.line + 2, "Explicit YAML tags are not allowed.")
                 return None
@@ -164,7 +166,20 @@ class Validator:
                 continue
             if key.value in values:
                 self.error("TAO-DOC-001", path, line, Message('Duplicate metadata: {arg0}.', key.value))
-            if isinstance(value, yaml.SequenceNode) and all(isinstance(item, yaml.ScalarNode) and item.tag == "tag:yaml.org,2002:str" for item in value.value):
+            if key.value in {'record_revision', 'artifacts', 'approvals', 'baseline', 'review_batches', 'closure', 'provenance'} and 'tao.project.workflow/v0.1' in yaml_text:
+                def distinct(node):
+                    if isinstance(node, yaml.MappingNode):
+                        keys = [k.value for k, _ in node.value if isinstance(k, yaml.ScalarNode)]
+                        if len(keys) != len(node.value) or len(keys) != len(set(keys)):
+                            self.error('TAO-DOC-001', path, line, Message('Duplicate metadata: {arg0}.', key.value))
+                        for _, child in node.value:
+                            distinct(child)
+                    elif isinstance(node, yaml.SequenceNode):
+                        for child in node.value:
+                            distinct(child)
+                distinct(value)
+                values[key.value] = yaml.safe_load(yaml.serialize(value))
+            elif isinstance(value, yaml.SequenceNode) and all(isinstance(item, yaml.ScalarNode) and item.tag == "tag:yaml.org,2002:str" for item in value.value):
                 values[key.value] = [item.value for item in value.value]
             elif not isinstance(value, yaml.ScalarNode) or value.tag != "tag:yaml.org,2002:str":
                 self.error("TAO-DOC-001", path, line, Message('{arg0} must be a string; quote dates.', key.value))
@@ -182,6 +197,11 @@ class Validator:
         for key, rule in fields.items():
             value, line = values.get(key), locations.get(key, 2)
             if key not in values and not rule.get("required"):
+                continue
+            if rule["type"] in {'object', 'integer'}:
+                good = isinstance(value, dict) if rule['type'] == 'object' else type(value) is int and value > 0
+                if not good and not (rule.get('nullable') and value is None):
+                    self.error('TAO-DOC-001', path, line, Message('{arg0} requires a nonempty string.', key))
                 continue
             if rule["type"] == "array":
                 if not isinstance(value, list) or not value or any(not isinstance(item, str) for item in value) or len(value) != len(set(value)):
@@ -211,11 +231,23 @@ class Validator:
                     self.error("TAO-DOC-001", path, line, Message('Invalid RFC 3339 timestamp: {arg0}.', value))
             if rule["type"] == "id" and self.identifier(value, rule["prefix"], path, line):
                 if rule["role"] == "definition":
-                    self.define(value, path, line, values.get("status", "draft"), values.get("title", ""))
+                    if key == 'change':
+                        self.change_definitions.setdefault(value, []).append((values.get('schema'), path, line, values.get('status', 'draft'), values.get('title', '')))
+                    else:
+                        self.define(value, path, line, values.get("status", "draft"), values.get("title", ""))
                 else:
                     self.reference(value, [rule["prefix"]], path, line, key, values.get("id"))
         if valid_date(values.get("created")) and valid_date(values.get("updated")) and values["updated"] < values["created"]:
             self.error("TAO-DOC-001", path, locations["updated"], "updated precedes created.")
+        if values.get('schema') == 'tao.project.workflow/v0.1':
+            from .workflow_records import validate_record
+            try:
+                validate_record(values)
+                for names in values['artifacts'].values():
+                    for identity in names:
+                        self.reference(identity, ['DOC'], path, 2, 'artifacts', values.get('id'))
+            except (ValueError, TypeError, KeyError) as exc:
+                self.error('TAO-DOC-001', path, 2, str(exc))
         return values, profile, "".join(lines[end + 1:]), end + 1
 
     def paired_marker(self, value, opened, section, profile, path, line):
@@ -524,16 +556,27 @@ def validate(root, paths, *, baseline_ids=None, book_root=None, retirement_direc
         if source is None:
             continue
         validator.document(source, relative)
-    # Before a plan exists, the durable workflow owns the CHG identity. Once
-    # the plan is written its normal frontmatter remains the published target.
+    for identity, candidates in validator.change_definitions.items():
+        records = [c for c in candidates if c[0] == 'tao.project.workflow/v0.1']
+        plans = [c for c in candidates if c[0] == 'tao.project.plan/v0.1']
+        selected = records or plans
+        for _, path, line, status, title in selected:
+            validator.define(identity, path, line, status, title)
+        if records and len(plans) > 1:
+            for _, path, line, status, title in plans:
+                validator.define(identity, path, line, status, title)
+    # Legacy local state is an optional identity fallback, never an input
+    # requirement for independent source validation.
     from .project import Project
-    from .workflows import local
-    try:
-        for state in (local(Project(validator.root)) if (validator.root / ".tao/workflows").is_dir() else []):
+    from .workflows import read
+    owner = Project(validator.root) if (validator.root / ".tao/workflows").is_dir() else None
+    for target in (validator.root / '.tao/workflows').glob('CHG_*.json'):
+        try:
+            state = read(owner, target.stem)
             if state['change'] not in validator.result.definitions:
-                validator.define(state['change'], f".tao/workflows/{state['change']}.json", 1, 'draft', state['summary'])
-    except (OSError, ValueError) as exc:
-        validator.error('TAO-DOC-001', '.tao/workflows', 1, str(exc))
+                validator.define(state['change'], str(target.relative_to(validator.root)), 1, 'draft', state['summary'])
+        except (OSError, ValueError):
+            pass
     relationships.retirements(validator, retirement_directory, overrides)
     relationships.attachments(validator)
     relationships.book(validator, book_root)

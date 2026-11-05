@@ -87,7 +87,7 @@ def test_review_preview_covers_commits_dirty_and_untracked_without_writes(tmp_pa
     code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'], '--kind', 'code')
     assert code == 0, report
     preview = report['outputs']
-    assert set(preview['selected_files']) == {'code.py', 'feature1.py', 'feature2.py', 'new_test.py'}
+    assert set(preview['selected_files']) == {'code.py', 'feature1.py', 'feature2.py', 'new_test.py', f"docs/workflows/{state['change']}.md"}
     assert preview['base_commit'] == state['git']['base_commit']
     assert preview['target_commit'] == git(tmp_path, 'rev-parse', 'HEAD')
     assert before == {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file() and '.git' not in p.parts}
@@ -297,7 +297,7 @@ def test_reserved_formal_reports_validate_without_staling_inputs(tmp_path, capsy
     from test_relationships import navigation
     state = repository(tmp_path, capsys)
     project = Project(tmp_path)
-    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs').mkdir(exist_ok=True)
     (tmp_path / 'docs/spec.md').write_text(spec(), encoding='utf-8')
     directory = 'docs/engineering/reviews/20260918-contract'
     report = directory + '/01-contract-reviewer.md'
@@ -521,3 +521,22 @@ def test_a_report_outside_the_document_globs_is_still_validated(tmp_path, capsys
     state = finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': [report], 'summary': 'x'})
     entry = state['reviews']['code']['runs'][-1]['reports'][0]
     assert entry['validated'] is False, 'an unchecked report must not read as a checked one'
+
+
+def test_document_review_survives_commit_of_reviewed_working_bytes(tmp_path, capsys):
+    from taolib import review_runs
+    from taolib.project import Project
+    state = repository(tmp_path, capsys)
+    project = Project(tmp_path)
+    request = review_runs.preview(project, state, kind='docs')
+    state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review docs')
+    report = tmp_path / 'tmp/tao/report.md'
+    report.write_text('Independent review passed')
+    state = review_runs.finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Reviewed'})
+    assert review_runs.passed(project, state, 'docs')
+    git(tmp_path, 'add', 'docs')
+    git(tmp_path, 'commit', '-m', 'Save reviewed documents')
+    assert review_runs.passed(project, state, 'docs')
+    record = tmp_path / f"docs/workflows/{state['change']}.md"
+    record.write_text(record.read_text().replace('lifecycle: active', 'lifecycle: paused'))
+    assert not review_runs.passed(project, state, 'docs')

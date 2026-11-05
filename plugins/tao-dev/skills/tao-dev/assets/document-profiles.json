@@ -514,6 +514,96 @@
         "acyclic": true,
         "root_reachability": true
       }
+    },
+    "tao.project.workflow/v0.1": {
+      "template": "templates/workflow.md",
+      "sections": [
+        "overview",
+        "decisions",
+        "closure"
+      ],
+      "metadata": {
+        "change": {
+          "type": "id",
+          "prefix": "CHG",
+          "role": "definition",
+          "required": true
+        },
+        "slug": {
+          "type": "string",
+          "required": true
+        },
+        "summary": {
+          "type": "string",
+          "required": true
+        },
+        "plan_path": {
+          "type": "string",
+          "required": true
+        },
+        "last_operation_id": {
+          "type": "string",
+          "required": true
+        },
+        "record_revision": {
+          "type": "integer",
+          "required": true
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "active",
+            "paused",
+            "completed",
+            "cancelled",
+            "unknown"
+          ],
+          "required": true
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "spec",
+            "design",
+            "plan",
+            "implement",
+            "review",
+            "finish",
+            "complete"
+          ],
+          "required": true
+        },
+        "artifacts": {
+          "type": "object",
+          "required": true,
+          "nullable": false
+        },
+        "approvals": {
+          "type": "object",
+          "required": true,
+          "nullable": false
+        },
+        "baseline": {
+          "type": "object",
+          "required": true,
+          "nullable": true
+        },
+        "review_batches": {
+          "type": "object",
+          "required": true,
+          "nullable": false
+        },
+        "closure": {
+          "type": "object",
+          "required": true,
+          "nullable": true
+        },
+        "provenance": {
+          "type": "object",
+          "required": true,
+          "nullable": false
+        }
+      }
     }
   },
   "retirement_records": {

@@ -63,40 +63,47 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 <!-- tao:section tasks -->
 ## 任务
 
-- [ ] `TASK_20261105_VXBFM3S2RZ5VV5Q8` 验证两文件持久事件协议及故障点，固定可执行状态转换测试
+- [x] `TASK_20261105_VXBFM3S2RZ5VV5Q8` 验证两文件持久事件协议及故障点，固定可执行状态转换测试
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_3C64CBKGB4T22MFR", "REQ_20261105_NFBV51FB4SS7W5QD"]
   - depends_on: []
   - verify: 使用项目 Python 的确定性状态转换测试枚举正式写入前后、本地替换前后失败及重试；检查事件不重复、正式失败本地不前进、revision 相同内容不同可识别；测试先于依赖实现建立，保留代表性失败反例。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_A84TSV410Y934TBB` 新增 workflow profile、模板和 CHG 索引兼容规则
+- [x] `TASK_20261105_A84TSV410Y934TBB` 新增 workflow profile、模板和 CHG 索引兼容规则
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_VXBFM3S2RZ5VV5Q8"]
   - verify: 运行源校验与关系测试，覆盖嵌套字段、枚举、一个正式 CHG 关联一个旧 plan、重复定义、路径越界、计划前身份、旧 plan 导入的新记录允许带 legacy 来源的 unknown、非 legacy unknown 被拒绝，以及损坏 JSON 不阻断独立文档检查。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_3ETWP4BF6KC6XRRR` 实现重要事件持久写入、start 与阶段决定同步
+- [x] `TASK_20261105_3ETWP4BF6KC6XRRR` 实现重要事件持久写入、start 与阶段决定同步
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_3C64CBKGB4T22MFR"]
   - depends_on: ["TASK_20261105_VXBFM3S2RZ5VV5Q8", "TASK_20261105_A84TSV410Y934TBB"]
   - verify: 对 start、advance、revise 和生命周期转换注入文件写入失败；正式记录先保存，本地显式同步后只执行一次；checkpoint 不改正式记录，DOC 绑定随计划及 tasks 契约变化正确失效。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_1DNQEGHVKFRXT8PJ` 持久化审查批次、尝试与额度并验证输入绑定
+- [x] `TASK_20261105_1DNQEGHVKFRXT8PJ` 持久化审查批次、尝试与额度并验证输入绑定
   - relates: ["REQ_20261105_3C64CBKGB4T22MFR"]
   - depends_on: ["TASK_20261105_3ETWP4BF6KC6XRRR"]
   - verify: 审查开始派发前已保存尝试；失败尝试仍计数；自己的运行字段不使输入变化，批准和范围变化必须使绑定失效；未知轮次不取得新额度，缺快照只影响当前可重放性。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_5H468EW00RFPK2GH` 统一事项发现、目标定位和带路径的诊断
+- [x] `TASK_20261105_5H468EW00RFPK2GH` 统一事项发现、目标定位和带路径的诊断
   - relates: ["REQ_20261105_DQY5T199SD08CF93", "REQ_20261105_83CKHP6YN12QZQHX", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_A84TSV410Y934TBB"]
   - verify: CLI 集成测试覆盖显式 CHG、多个 worktree 同身份、空格路径、无状态旧计划、仅正文引用、共享文档及损坏状态；文本含真实路径和恢复命令，JSON 含稳定诊断与命令参数数组。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_WMJ4JPXDPTWMDN6J` 实现 recover、显式 migrate 和 resume 协调
+- [x] `TASK_20261105_WMJ4JPXDPTWMDN6J` 实现 recover、显式 migrate 和 resume 协调
   - relates: ["REQ_20261105_GAXA5RZZ60Y774BM", "REQ_20261105_3C64CBKGB4T22MFR", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_3ETWP4BF6KC6XRRR", "TASK_20261105_1DNQEGHVKFRXT8PJ", "TASK_20261105_5H468EW00RFPK2GH"]
   - verify: 以真实临时 Git 项目删除或移动本地状态，先预览确认无写入再应用；保持 CHG 和任务勾选，source digest 改变、并发创建、损坏或现存状态均不覆盖；旧事项仅迁移选定 CHG，缺批准保持阻断；JSON-only/JSON+plan 经 migrate 绑定 revision 和原字节摘要，保留未知字段、批准、轮次及基准，正式成功本地失败后 resume 不重复迁移；plan-only 经 recover 创建合法 unknown 记录并跨目录重读，不误判 active。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_KYSYWBB6PZJ810YC` 实现 finish 正式收尾和历史结果查询
+- [x] `TASK_20261105_KYSYWBB6PZJ810YC` 实现 finish 正式收尾和历史结果查询
   - relates: ["REQ_20261105_NFBV51FB4SS7W5QD"]
   - depends_on: ["TASK_20261105_3ETWP4BF6KC6XRRR", "TASK_20261105_1DNQEGHVKFRXT8PJ", "TASK_20261105_5H468EW00RFPK2GH", "TASK_20261105_WMJ4JPXDPTWMDN6J"]
   - verify: CLI 验收 completed 满足检查和审查策略、cancelled 有未完成项处置；正式收尾成功而本地失败后重试不重复；advance 共用入口；复制正式资料到新目录后可读历史结束，过期证据不抹去历史结果。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
 - [ ] `TASK_20261105_418VEP86Q1JHHQ0E` 同步 skill 与用户文档的恢复、选择、切换和结束规则
   - relates: ["REQ_20261105_DQY5T199SD08CF93", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_83CKHP6YN12QZQHX", "REQ_20261105_TE6PX7VZYYKSEQN6", "REQ_20261105_SPDKCTWSX7PVDNDK"]
@@ -141,10 +148,20 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 覆盖自查：九项需求全部落到任务；设计各项决定已有实现和验证任务；持久写入的高风险假设先验证；无孤立任务、无分期遗漏。文档源校验只说明格式和引用满足契约，第一轮独立语义审查提出旧 JSON 迁移入口和未知生命周期两项缺口；已获准修订，本轮定向复核其闭合及影响，不重置审查轮次。项目必需的实现审查仍保留。
 
 <!-- tao:results -->
-当前仅完成 spec、design 和 plan 文档编写与检查；实现任务均未开始。规格和设计已通过源校验，无诊断。本计划及导航已执行 tao verify --only docs，受管理源的结构、ID、关系和导航检查通过，无诊断；未建立历史删除比较基线。第一轮独立文档审查为 changes-requested，A/B 均采用并据此修订设计和计划；报告见[初审裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/00-adjudication.md)。第二轮[定向复核及裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)已登记 passed，A/B 均闭合，输入为 current；设计、计划、报告和导航源校验通过，无诊断。两轮已用完，修订设计与计划仍待批准。尚无代码测试或 HTML 出版结果。
+规格、修订设计与计划已获用户批准，实现已完成。新增 workflow profile 与正式记录、recover/migrate/resume/finish、路径诊断、多事项发现及对应 skill 指引；本地 JSON 继续忽略，不进入版本管理。
+
+文档审查两轮已完成，结论见[文档复核裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)。实现审查两轮已用完：[实现复核裁决](20261105-workflow-recovery/reviews/20261105-implementation/03-followup-adjudication.md)确认收尾审查时效、未知轮次和 frontmatter 分隔符三项修复；嵌套审查请求校验仍有缺口。随后已补齐提交号、CHG 身份及请求字段类型校验，加入错误输入源校验/恢复拒绝和合法空提交号恢复失败登记测试；此最终修复尚未经独立复核，不能标为审查通过。
+
+确定性维护回归命令为项目 Python 的 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：656 passed、2 skipped（Windows 条件）、2 warnings。最后校验修复的首轮定向测试为 67 passed；最终恢复与诊断目录测试 43 passed。受管理文档源校验和 HTML 构建通过，无诊断。Ruff 配置规则检查和依赖导出一致性检查通过。以上不是完整配置检查通过；完整维护运行曾出现客户端失败，未满足 required_reviews。
+
+真实 CLI 临时项目脚本运行 15 次命令，通过跨目录无 plan 恢复、status 缺失发现、预览无写入、应用及拒绝覆盖、多事项列表、旧 JSON 迁移保留扩展、resume 生命周期、取消及删除 JSON 后历史查询、源校验和含隐式 workflow 导航的 HTML 构建。状态中断、批准移动绑定、审查额度、收尾过期拒绝等由确定性测试覆盖；九组端到端验收仍未全部完成，特别是多会话选择、切换和 continue 自动恢复的真实客户端观察，不能用相关单元测试代替。
+
+原生客户端重跑期间，隔离检查报告 `.codex/config.toml` 字节变化，未识别到配置节差异，原因未确定。已停止实验且未回写全局配置；该轮验收未通过，不继续调用原生客户端。Windows 原生验收未覆盖。公开及 Codex 兼容包已重新生成并检查运行模块、profile、模板的分发边界；没有安装或注册测试包。
+
+原始日志、复现、CLI 输入输出和包保存在忽略的 tmp/tao 下。剩余任务保持未完成：客户端契约验收、九组端到端场景补齐、必需独立实现审查与完整交付检查。当前不得执行 completed 收尾。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
 ## 待确认事项
 
-无需求或设计范围未决项。正式文档审查已获授权并进行定向复核；进入实施前仍需批准修订设计与本计划，审查通过不自动授权实现。
+无需求或设计范围未决项。需要额外一轮独立复核最终校验修复；原生客户端隔离异常未解决前不重启实验，必需审查证据及端到端验收仍有缺口。

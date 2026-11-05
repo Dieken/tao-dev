@@ -126,6 +126,9 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         # The plan carries this run's own execution record; hash the contract
         # it declares, not the results written while completing the round.
         contract = contract_text(path) if exists and name == state.get('plan_path') else None
+        if contract is None and exists and name.endswith('.md'):
+            from .workflow_records import review_contract
+            contract = review_contract(path.read_text(encoding='utf-8'), kind)
         digest = contract_digest(contract) if contract is not None else (file_digest(path) if exists else None)
         rows.append([name, digest, mode, index.get(name)])
         if exists:
@@ -176,6 +179,10 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
         if not request['selected_files']:
             raise ConflictError('The selected review scope contains no files.')
         key = request['kind']
+        if key in state.get('review_budget_unknown', []):
+            if not new_batch or max_rounds is None:
+                raise ConflictError('Unknown review history requires an explicit new batch and round allowance.')
+            state['review_budget_unknown'] = [k for k in state['review_budget_unknown'] if k != key]
         now = datetime.now(timezone.utc)
         series = state['reviews'].get(key)
         if any(s['runs'] and s['runs'][-1]['outcome'] == 'running' for s in state['reviews'].values()):
@@ -279,5 +286,67 @@ def passed(project, state, kind):
         return False
     run = series['runs'][-1]
     # Older records carry freshness inside outcome; newer ones state it separately.
-    return (run['outcome'] == 'passed' and run.get('inputs', 'current') == 'current'
-            and repreview(project, state, run['request'], started=True) == run['request'])
+    if run.get('recovered_context'):
+        return False
+    if run['outcome'] != 'passed' or run.get('inputs', 'current') != 'current':
+        return False
+    current = repreview(project, state, run['request'], started=True)
+    return current == run['request'] or committed_review_matches(project, state, run, current)
+
+
+def committed_review_matches(project, state, run, current):
+    """A commit may move reviewed working bytes into the index, not change them.
+
+    Keep the immutable review request. Compare both actual snapshots; never
+    refresh a receipt merely because HEAD moved or the worktree is clean.
+    """
+    request = run['request']
+    if request.get('kind') != 'docs' or current.get('context_files') != request.get('context_files'):
+        return False
+    if any(current.get(k) != request.get(k) for k in ('base_commit', 'scope', 'kind', 'include', 'selected_files')):
+        return False
+    if not request.get('target_commit') or git_workflow.run(
+            project.root, 'merge-base', '--is-ancestor', request['target_commit'], current['target_commit'], required=False) is None:
+        return False
+    try:
+        snapshot = contained(project.root, run['snapshot'])
+        staged = contained(project.root, run['index_snapshot'])
+        if file_digest(snapshot) != run['snapshot_digest'] or file_digest(staged) != run['index_snapshot_digest']:
+            return False
+        with zipfile.ZipFile(snapshot) as work, zipfile.ZipFile(staged) as index:
+            for name in request['context_files']:
+                path = contained(project.root, name)
+                if name not in work.namelist():
+                    if path.exists():
+                        return False
+                    continue
+                old = work.read(name)
+                actual = path.read_bytes()
+                def normalize(content):
+                    if name == state.get('plan_path'):
+                        return workflows.plan_contract(content.decode('utf-8')).encode()
+                    if name.endswith('.md'):
+                        from .workflow_records import review_contract
+                        contract = review_contract(content.decode('utf-8'), request['kind'])
+                        if contract is not None:
+                            return contract.encode()
+                    return content
+                if normalize(old) != normalize(actual):
+                    return False
+                if os.name == 'posix' and path.stat().st_mode & 0o777 != (work.getinfo(name).external_attr >> 16) & 0o777:
+                    return False
+                entry = current.get('index_entries', {}).get(name)
+                original = request.get('index_entries', {}).get(name)
+                if entry == original:
+                    continue
+                if not entry:
+                    return False
+                blob = subprocess.run(['git', '-C', str(project.root), 'cat-file', 'blob', entry['blob']], capture_output=True, timeout=30)
+                if blob.returncode or normalize(blob.stdout) != normalize(old):
+                    return False
+                expected_mode = '100755' if work.getinfo(name).external_attr >> 16 & 0o111 else '100644'
+                if entry['mode'] != expected_mode:
+                    return False
+        return True
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile):
+        return False

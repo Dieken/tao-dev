@@ -32,6 +32,7 @@
 | 独立检查摘要 | [evidence](../assets/templates/evidence.md) |
 | 独立审查报告 | evidence schema 的 [review 写作模板](../assets/templates/review.md) |
 | 主审裁决 | evidence schema 的 [review-adjudication 写作模板](../assets/templates/review-adjudication.md) |
+| 生命周期与关键决定 | workflow profile，由 workflow start/migrate/recover 生成，模板 workflow.md |
 | 恢复摘要 | [handoff](../assets/templates/handoff.md) |
 
 审查特有字段、发现与处置组织见 [报告写法](review-reports.md)；evidence 的结果、时间与保存语义见 [证据保存](evidence-retention.md)。
@@ -55,7 +56,7 @@
 
 键不依赖标题翻译或序号。二级章节不能增删或改序，细节放在三级及以下且不跳级。必需章节确实不适用时写一句具体依据，不留空或复制模板提示；规格的术语章节优先链接项目术语表，不重复定义。
 
-plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
+有 workflow profile 时由其 `change` 定义 CHG，plan 的同一 `change` 关联该定义；没有正式 workflow 记录的旧 plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
 读取器从所选语言资源替换 heading.* 和 label.*；无需再读另一语言资源。其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写；生成后仍需检查是否是真实内容。
 

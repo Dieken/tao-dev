@@ -95,7 +95,7 @@ doctor 返回当前已实现能力。能力列表区分 `verify.docs`、`verify.
 
 接口精确定义集中在运行包的 [工作流状态](../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md)、[项目接入](../../plugins/tao-dev/skills/tao-dev/references/project-setup.md) 和 [审查调度](../../plugins/tao-dev/skills/tao-dev/references/review-runs.md)，这里说明实现边界：
 
-- `.tao/workflows/<CHG>.json` 保存阶段、批准、产物入口、工作分支和必要恢复记录；写入采用锁与版本条件，防止旧会话覆盖新进度。正式 TASK 仍在计划内，客户端 UI 状态由其重建。
+- `docs/workflows/<CHG>.md` 保存阶段、批准、产物身份及生命周期；`.tao/workflows/<CHG>.json` 保存本地执行协调，可通过 recover 重建；写入采用锁与版本条件，防止旧会话覆盖新进度。正式 TASK 仍在计划内，客户端 UI 状态由其重建。
 - 批准绑定文档契约；任务完成勾选、任务证据和明确的执行结果区域不改变原计划契约。契约变化使受影响的批准失效。状态记录决定，不提供身份认证或伪造用户批准。
 - status 只读；continue 先协调实际文件、任务、证据和进程，再登记恢复。handoff 是保留的正式文档，通过内容版本识别是否已协调，不自动删除或重放下一步。
 - review-preview 以固定分支起点计算累计修改，显式覆盖工作树与 index；review-begin 固定所选输入和上下文快照并登记轮次上限，review-end 记录实际报告。并行调度仍由 agent 执行，CLI 不调用模型；调度记录不代替来源校验的正式审查记录。

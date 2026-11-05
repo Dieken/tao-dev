@@ -105,5 +105,6 @@
   "label.disposition": "处置与范围",
   "label.reason": "依据与理由",
   "label.followup": "剩余工作或复查条件",
-  "label.severity": "严重性与阻断条件"
+  "label.severity": "严重性与阻断条件",
+  "heading.closure": "收尾"
 }

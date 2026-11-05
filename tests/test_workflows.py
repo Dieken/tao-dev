@@ -21,7 +21,8 @@ def start(root, capsys, *extra):
 def test_start_without_plan_then_read_only_status(tmp_path, capsys):
     state = start(tmp_path, capsys)
     assert state['phase'] == 'spec' and state['revision'] == 1
-    assert not list((tmp_path / 'docs').rglob('*.md'))
+    assert not list((tmp_path / 'docs/plans').rglob('*.md'))
+    assert len(list((tmp_path / 'docs/workflows').glob('*.md'))) == 1
     before = {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
     code, report = call(tmp_path, capsys, 'status', state['change'])
     assert code == 0, report
@@ -47,7 +48,7 @@ def test_approval_tracks_content_and_requires_new_decision_after_edits(tmp_path,
     from taolib.workflows import checkpoint, advance, observe
     from taolib.project import Project, ConflictError
     from test_documents import spec
-    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(); p.write_text(spec(), encoding='utf-8')
+    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(exist_ok=True); p.write_text(spec(), encoding='utf-8')
     project = Project(tmp_path)
     state = checkpoint(project, state['change'], 1, {'artifacts': {'spec': ['docs/spec.md']}})
     state = advance(project, state['change'], 2, 'Spec accepted; write design')
