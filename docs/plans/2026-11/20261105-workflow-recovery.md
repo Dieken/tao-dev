@@ -152,11 +152,11 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 <!-- tao:results -->
 规格、修订设计与计划已获用户批准，实现已完成。新增正式 workflow profile、recover/migrate/resume/finish、带路径的诊断和 skill 选择规则；本地 JSON 保持忽略。两文件故障、批准绑定、额度、收尾及跨目录恢复均有确定性回归。文档审查两轮通过；[第三轮实现定向复核](20261105-workflow-recovery/reviews/20261105-implementation/05-validation-adjudication.md)确认 I4 已闭合。后续验收发现并修复主目录无法定位缺失状态的子 worktree，统一查询及写命令路径；同时防止无效计划身份破坏发现和检查点。
 
-最新确定性回归使用项目 Python 执行 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：677 passed、2 Windows 条件 skipped、2 warnings。定位修复和相关文档、审查、诊断测试 93 passed。Ruff 配置规则、依赖一致性、两个包格式的当前运行模块、profile、模板及开发文档排除边界检查通过；测试包未在个人全局状态安装。当前文档检查和出版结果以提交前执行输出为准。
+最新确定性回归使用项目 Python 执行 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：687 passed、2 Windows 条件 skipped、2 warnings。来源、选择、迁移收尾和相关文档、审查、诊断测试 149 passed（原生会话模型项排除）；Kiro/ Cursor 原生会话及相关单元检查 7 passed。Ruff 配置规则、依赖一致性、两个包格式的当前运行模块、profile、模板及开发文档排除边界检查通过；测试包未在个人全局状态安装。当前文档检查和出版结果以提交前执行输出为准。
 
-配置的完整代码检查在 40a5dbc 输入上实际运行 1892 秒：681 passed、4 failed、2 skipped，覆盖率 78%，故整体未通过。Claude recover/plan 分别在 48/47 轮后耗尽各 2 美元调用预算；Codex 行为场景收到保留期限后询问尚未给定的清理触发方式；Kiro 原生写入/hook 会话在 45 秒内未取得证据。没有隐去失败或自动提高预算。已补齐行为场景用户回复中的清理触发及后台任务边界，保持不重复提问断言；实际 Codex 复验及相关测试 14 passed。两个 Claude 预算失败及 Kiro 超时仍未解除，不宣称完整检查通过；没有为这些剩余失败重复调用模型。
+配置的完整代码检查在 40a5dbc 输入上实际运行 1892 秒：681 passed、4 failed、2 skipped，覆盖率 78%，故整体未通过。Claude recover/plan 分别在 48/47 轮后耗尽各 2 美元调用预算；Codex 行为场景收到保留期限后询问尚未给定的清理触发方式；Kiro 原生写入/hook 会话在 45 秒内未取得证据。没有隐去失败或自动提高预算。已补齐行为场景用户回复中的清理触发及后台任务边界，保持不重复提问断言；实际 Codex 复验及相关测试 14 passed。两个 Claude 预算失败仍未解除，不宣称完整检查通过；没有为两项预算失败重复调用模型。Kiro 超时定位为新版 workspace 信任提示，见下文修复及原生结果。
 
-原生隔离范围：Claude 2.1.274 和 Codex 0.166.0 的安装、启停、更新、移除及实验外无启用检查通过。Codex 验收脚本曾将组合 hook 摘要直接写 TOML，已复用安装器原生编辑器，信任及生命周期回归 82 passed、2 Windows 条件 skipped。随后两项 Codex 写入/恢复真实验收通过，Claude 单独恢复验收通过。原先无法归因的全局配置字节变化不计通过；本轮全部已完成隔离实验全局摘要均不变，未回写全局配置。Windows 原生客户端未覆盖。
+原生隔离范围：Claude 2.1.274 和 Codex 0.166.0 的安装、启停、更新、移除及实验外无启用检查通过。Codex 验收脚本曾将组合 hook 摘要直接写 TOML，已复用安装器原生编辑器，信任及生命周期回归 82 passed、2 Windows 条件 skipped。随后两项 Codex 写入/恢复真实验收通过，Claude 单独恢复验收通过。原先无法归因的全局配置字节变化不计通过；本轮全部已完成隔离实验全局摘要均不变，未回写全局配置。Kiro 的 workspace 提示此前未被旧 PTY 适配器处理；改用 CLI 支持的 --trust-workspace 启动参数，仅在独立项目和隔离 KIRO_HOME 中启用且不保存决定，保留原 45 秒上限。实际原生写入及 hook 反馈通过，个人配置摘要不变；对不支持该参数的旧客户端不注入未知选项。Windows 原生客户端未覆盖。
 
 | 规格用例 | 实际执行与观察 |
 |---|---|
@@ -170,12 +170,12 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 | {need}`UC_20261105_PR634MNDDP1D86B8` | CLI cancelled 在正式记录成功/本地替换失败之间注入故障，原 JSON 保留；同命令重试不重复结束，新目录只读历史无需 JSON。completed 使用明确标注的合成审查阶段 fixture，通过实际配置检查和当前调度绑定；未模拟必需独立机器回执。 |
 | {need}`UC_20261105_SZBX3KSRH79BBFKS` | CLI migrate 预览/应用保留旧 JSON 扩展；plan-only 创建合法 unknown 记录，其他事项不变；格式/关系校验及包含隐式 workflow 导航的 HTML 构建通过。 |
 
-CLI 集成主脚本在最新源码上执行 15 次调用通过；补充 worktree、共享发现、旧批准边界、故障收尾和 completed fixture 的命令与结果分别保存在忽略的 tmp/tao 中。真实会话、输入和原始日志同样保存在忽略临时存储；不保留原始输出到版本管理。必需独立审查的原始机器回执按当前 `tao status` 的输入绑定结果核对，Markdown 报告存在不等于满足该条件。
+CLI 集成主脚本在最新源码上执行 15 次调用通过；补充 worktree、共享发现、旧批准边界、故障收尾和 completed fixture 的命令与结果分别保存在忽略的 tmp/tao 中。真实会话、输入和原始日志同样保存在忽略临时存储；不保留原始输出到版本管理。实际 Claude CLI 首轮机器审查原始回执已导入，受检版本 d7dc517，结论为 changes-requested：DIAG-01 正式来源损坏误报 JSON、SEL-01 worktree 文档遮蔽活跃状态、FIN-01 旧 JSON-only 收尾缺持久记录、FIN-02 生命周期未知标记未清除。均已采用并加入回归；旧原始报告与 open 处置保持不变，最终处置必须来自实际复核。必需独立审查的原始机器回执按当前 `tao status` 的输入绑定结果核对，Markdown 报告存在不等于满足该条件。
 
-任务 10 仍未完成：完整代码检查存在上述预算及原生超时失败，Windows 原生验收未覆盖；当前不得执行 completed 收尾。历史失败不由后来定向通过改写。
+任务 10 仍未完成：完整代码检查仍有两项 Claude 预算失败；Kiro 已经由定向原生检查解除，Windows 原生验收未覆盖；当前不得执行 completed 收尾。历史失败不由后来定向通过改写。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
 ## 待确认事项
 
-无需求或设计范围未决项。尚需解决完整维护检查中的 Claude 调用预算及 Kiro 超时；是否满足结束条件以当前完整 verify 和实际验收结果为准。
+无需求或设计范围未决项。尚需解决完整维护检查中的两项 Claude 调用预算失败；是否满足结束条件以当前完整 verify 和实际验收结果为准。
