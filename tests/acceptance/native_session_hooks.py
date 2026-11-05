@@ -81,6 +81,17 @@ def _command(client, prompt):
             '--output-format', 'stream-json', prompt]
 
 
+def _kiro_workspace_flags(project, env):
+    """Use launch-only workspace trust, only inside the verified experiment."""
+    project = Path(project).resolve()
+    home = Path(env.get('KIRO_HOME', '')).resolve()
+    if home != project.parent.parent / 'kiro-home' or project.is_relative_to(ROOT):
+        raise RuntimeError('Workspace trust requires isolated experiment state.')
+    help_result = subprocess.run([cli_executable('kiro'), 'chat', '--help'], cwd=project, env=env,
+                                 capture_output=True, text=True, timeout=15, check=False)
+    return ['--trust-workspace'] if help_result.returncode == 0 and '--trust-workspace' in help_result.stdout else []
+
+
 def _run_kiro_tui(prompt, project, env, stdout_path, timeout):
     if os.name != 'posix':
         raise RuntimeError('Kiro V3 TUI hook acceptance requires a supported PTY runner.')
@@ -88,12 +99,13 @@ def _run_kiro_tui(prompt, project, env, stdout_path, timeout):
     import select
 
     output = bytearray()
+    workspace_flags = _kiro_workspace_flags(project, env)
     pid, descriptor = pty.fork()
     if pid == 0:
         os.chdir(project)
         os.environ.clear()
         os.environ.update(env)
-        os.execvp(cli_executable('kiro'), [cli_executable('kiro'), 'chat', '--v3', '--trust-all-tools', prompt])
+        os.execvp(cli_executable('kiro'), [cli_executable('kiro'), 'chat', '--v3', '--trust-all-tools', *workspace_flags, prompt])
     accepted = False
     timed_out = False
     evidence = False
@@ -111,7 +123,7 @@ def _run_kiro_tui(prompt, project, env, stdout_path, timeout):
                 output.extend(chunk)
             plain = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output.decode('utf-8', 'replace'))
             if not accepted and 'Yes, I accept' in plain:
-                os.write(descriptor, b'\x1b[B\n')
+                os.write(descriptor, b'\x1b[B\r')
                 accepted = True
             if target.is_file() and cache.is_file():
                 evidence = True
