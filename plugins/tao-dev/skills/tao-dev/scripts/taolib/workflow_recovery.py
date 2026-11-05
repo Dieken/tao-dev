@@ -13,7 +13,7 @@ from .verification import file_digest
 def missing(project, identity, reason='missing'):
     path = workflows.state_path(project, identity)
     argv = ['tao', '--project', str(project.root), 'workflow', 'recover', identity]
-    return {'change': identity, 'state': reason, 'expected_path': str(path),
+    return {'change': identity, 'project': str(project.root), 'state': reason, 'expected_path': str(path),
             'recovery_commands': [argv, argv + ['--apply']],
             'message': str(path) + ': ' + reason + '. Preview recovery: ' + shlex.join(argv)}
 

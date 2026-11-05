@@ -52,10 +52,12 @@ def local(project):
 
 
 def locate(project, identity):
-    if state_path(project, identity).is_file():
+    from .workflow_recovery import candidates
+    state_path(project, identity)  # Validate identity before document discovery.
+    if identity in candidates(project):
         return project
     matches = [Project(root) for root in git_workflow.roots(project)
-               if root != project.root and state_path(Project(root), identity).is_file()]
+               if root != project.root and identity in candidates(Project(root))]
     if len(matches) != 1:
         from .workflow_recovery import missing, WorkflowStateError
         raise WorkflowStateError(missing(project, identity, 'missing' if not matches else 'ambiguous: ' + ', '.join(str(p.root) for p in matches)))
@@ -254,8 +256,8 @@ def mutate(project, identity, expected, edit, durable=True):
     project = locate(project, identity)
     with mutation_lock(project):
         path = state_path(project, identity)
-        before = path.read_bytes()
         state = read(project, identity)
+        before = path.read_bytes()
         if type(expected) is not int or state['revision'] != expected:
             raise ConflictError('Workflow checkpoint changed; run tao workflow status and reconcile before retrying.')
         from . import workflow_records

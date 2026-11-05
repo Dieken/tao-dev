@@ -145,3 +145,37 @@ def test_a_paired_results_block_is_accepted_and_excluded_from_the_contract(tmp_p
     assert 'TAO-DOC-003' not in {d.rule_id for d in result.diagnostics}, result.to_dict()
     assert '执行记录。' not in plan_contract(body)
     assert plan_contract(body) == plan_contract(body.replace('执行记录。', '改写后的执行记录。'))
+
+
+@pytest.mark.parametrize('corrupt', [False, True])
+def test_parent_locates_worktree_when_local_state_is_missing_or_corrupt(tmp_path, capsys, corrupt):
+    root = tmp_path / 'project with spaces'
+    root.mkdir()
+    git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.email', 'test@example.test')
+    git(root, 'config', 'user.name', 'Test')
+    (root / '.gitignore').write_text('/.worktrees/\n')
+    git(root, 'add', '.gitignore')
+    git(root, 'commit', '-m', 'Fixture')
+    state = start(root, capsys, '--worktree')
+    host = root / '.worktrees/filter'
+    path = host / '.tao/workflows' / (state['change'] + '.json')
+    if corrupt:
+        path.write_bytes(b'{invalid JSON')
+    else:
+        path.unlink()
+    for args in [('status', state['change']), ('workflow', 'status', state['change'])]:
+        code, report = call(root, capsys, *args)
+        assert code == 0, report
+        row = report['outputs']['workflows'][0]
+        assert row['project'] == str(host)
+        assert row['expected_path'] == str(path)
+    code, report = call(root, capsys, 'workflow', 'advance', state['change'],
+                        '--expect', '1', '--decision', 'Continue')
+    assert code == 1
+    assert str(path) in json.dumps(report)
+    assert 'recover' in json.dumps(report)
+    if corrupt:
+        assert path.read_bytes() == b'{invalid JSON'
+    else:
+        assert not path.exists()
