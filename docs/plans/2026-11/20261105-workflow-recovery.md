@@ -105,15 +105,17 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
   - verify: CLI 验收 completed 满足检查和审查策略、cancelled 有未完成项处置；正式收尾成功而本地失败后重试不重复；advance 共用入口；复制正式资料到新目录后可读历史结束，过期证据不抹去历史结果。
   - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_418VEP86Q1JHHQ0E` 同步 skill 与用户文档的恢复、选择、切换和结束规则
+- [x] `TASK_20261105_418VEP86Q1JHHQ0E` 同步 skill 与用户文档的恢复、选择、切换和结束规则
   - relates: ["REQ_20261105_DQY5T199SD08CF93", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_83CKHP6YN12QZQHX", "REQ_20261105_TE6PX7VZYYKSEQN6", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_5H468EW00RFPK2GH", "TASK_20261105_WMJ4JPXDPTWMDN6J", "TASK_20261105_KYSYWBB6PZJ810YC"]
   - verify: 检查所有维护入口并运行行为契约测试；覆盖两个会话分别选择、歧义时不写入、continue 条件恢复、切换不执行 git switch 或停止 A、收尾条件满足才建议 finish；真实客户端验证按既有隔离规则记录覆盖与缺口。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
-- [ ] `TASK_20261105_YDCTK70MVYQGTGYJ` 集成发布资源、文档导航并执行九组端到端验收
+- [x] `TASK_20261105_YDCTK70MVYQGTGYJ` 集成发布资源、文档导航并执行九组端到端验收
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_DQY5T199SD08CF93", "REQ_20261105_GAXA5RZZ60Y774BM", "REQ_20261105_3C64CBKGB4T22MFR", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_83CKHP6YN12QZQHX", "REQ_20261105_TE6PX7VZYYKSEQN6", "REQ_20261105_NFBV51FB4SS7W5QD", "REQ_20261105_SPDKCTWSX7PVDNDK"]
   - depends_on: ["TASK_20261105_A84TSV410Y934TBB", "TASK_20261105_3ETWP4BF6KC6XRRR", "TASK_20261105_1DNQEGHVKFRXT8PJ", "TASK_20261105_5H468EW00RFPK2GH", "TASK_20261105_WMJ4JPXDPTWMDN6J", "TASK_20261105_KYSYWBB6PZJ810YC", "TASK_20261105_418VEP86Q1JHHQ0E"]
   - verify: 本地打包并检查 profile、模板及运行模块包含而内部设计不包含；构建 HTML 检查新增导航和 CHG 锚点；通过 CLI 驱动复制受跟踪资料的跨目录恢复、多事项和故障场景，逐项记录九个 UC 的实际结果。
+  - evidence: [验证记录](#DOC_20261105_VN5X9G1X9DN0QJWR--verification)
 
 - [ ] `TASK_20261105_455AQNSXP6M85JY9` 运行维护回归、独立实现审查并核对交付缺口
   - relates: ["REQ_20261105_12M6WAZSDRR4857Y", "REQ_20261105_DQY5T199SD08CF93", "REQ_20261105_GAXA5RZZ60Y774BM", "REQ_20261105_3C64CBKGB4T22MFR", "REQ_20261105_AVBWR8XFXC786KXY", "REQ_20261105_83CKHP6YN12QZQHX", "REQ_20261105_TE6PX7VZYYKSEQN6", "REQ_20261105_NFBV51FB4SS7W5QD", "REQ_20261105_SPDKCTWSX7PVDNDK"]
@@ -148,20 +150,32 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 覆盖自查：九项需求全部落到任务；设计各项决定已有实现和验证任务；持久写入的高风险假设先验证；无孤立任务、无分期遗漏。文档源校验只说明格式和引用满足契约，第一轮独立语义审查提出旧 JSON 迁移入口和未知生命周期两项缺口；已获准修订，本轮定向复核其闭合及影响，不重置审查轮次。项目必需的实现审查仍保留。
 
 <!-- tao:results -->
-规格、修订设计与计划已获用户批准，实现已完成。新增 workflow profile 与正式记录、recover/migrate/resume/finish、路径诊断、多事项发现及对应 skill 指引；本地 JSON 继续忽略，不进入版本管理。
+规格、修订设计与计划已获用户批准，实现已完成。新增正式 workflow profile、recover/migrate/resume/finish、带路径的诊断和 skill 选择规则；本地 JSON 保持忽略。两文件故障、批准绑定、额度、收尾及跨目录恢复均有确定性回归。文档审查两轮通过；[第三轮实现定向复核](20261105-workflow-recovery/reviews/20261105-implementation/05-validation-adjudication.md)确认 I4 已闭合。后续验收发现并修复主目录无法定位缺失状态的子 worktree，统一查询及写命令路径；同时防止无效计划身份破坏发现和检查点。
 
-文档审查两轮已完成，结论见[文档复核裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)。实现审查两轮已用完：[实现复核裁决](20261105-workflow-recovery/reviews/20261105-implementation/03-followup-adjudication.md)确认收尾审查时效、未知轮次和 frontmatter 分隔符三项修复；嵌套审查请求校验仍有缺口。随后已补齐提交号、CHG 身份及请求字段类型校验，加入错误输入源校验/恢复拒绝和合法空提交号恢复失败登记测试；用户随后批准第三轮定向复核，[本轮裁决](20261105-workflow-recovery/reviews/20261105-implementation/05-validation-adjudication.md)确认 I4 已闭合，固定快照测试 59 passed；调度登记 passed/current。本轮仅覆盖最终校验修复，不替代整体交付检查。
+最新确定性回归使用项目 Python 执行 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：677 passed、2 Windows 条件 skipped、2 warnings。定位修复和相关文档、审查、诊断测试 93 passed。Ruff 配置规则、依赖一致性、两个包格式的当前运行模块、profile、模板及开发文档排除边界检查通过；测试包未在个人全局状态安装。当前文档检查和出版结果以提交前执行输出为准。
 
-确定性维护回归命令为项目 Python 的 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：656 passed、2 skipped（Windows 条件）、2 warnings。最后校验修复的首轮定向测试为 67 passed；最终恢复与诊断目录测试 43 passed。受管理文档源校验和 HTML 构建通过，无诊断。Ruff 配置规则检查和依赖导出一致性检查通过。以上不是完整配置检查通过；完整维护运行曾出现客户端失败，未满足 required_reviews。
+配置的完整代码检查在 40a5dbc 输入上实际运行 1892 秒：681 passed、4 failed、2 skipped，覆盖率 78%，故整体未通过。Claude recover/plan 分别在 48/47 轮后耗尽各 2 美元调用预算；Codex 行为场景收到保留期限后询问尚未给定的清理触发方式；Kiro 原生写入/hook 会话在 45 秒内未取得证据。没有隐去失败或自动提高预算。已补齐行为场景用户回复中的清理触发及后台任务边界，保持不重复提问断言；实际 Codex 复验及相关测试 14 passed。两个 Claude 预算失败及 Kiro 超时仍未解除，不宣称完整检查通过；没有为这些剩余失败重复调用模型。
 
-真实 CLI 临时项目脚本运行 15 次命令，通过跨目录无 plan 恢复、status 缺失发现、预览无写入、应用及拒绝覆盖、多事项列表、旧 JSON 迁移保留扩展、resume 生命周期、取消及删除 JSON 后历史查询、源校验和含隐式 workflow 导航的 HTML 构建。状态中断、批准移动绑定、审查额度、收尾过期拒绝等由确定性测试覆盖；九组端到端验收仍未全部完成，特别是多会话选择、切换和 continue 自动恢复的真实客户端观察，不能用相关单元测试代替。
+原生隔离范围：Claude 2.1.274 和 Codex 0.166.0 的安装、启停、更新、移除及实验外无启用检查通过。Codex 验收脚本曾将组合 hook 摘要直接写 TOML，已复用安装器原生编辑器，信任及生命周期回归 82 passed、2 Windows 条件 skipped。随后两项 Codex 写入/恢复真实验收通过，Claude 单独恢复验收通过。原先无法归因的全局配置字节变化不计通过；本轮全部已完成隔离实验全局摘要均不变，未回写全局配置。Windows 原生客户端未覆盖。
 
-原生客户端前轮隔离检查曾报告 `.codex/config.toml` 字节变化，未识别到配置节差异，原因未确定；该轮不计通过，未回写全局配置。用户要求继续解决后，重新验证 Claude 2.1.274 和 Codex 0.166.0 的隔离安装生命周期，两者均通过且全局摘要不变。定位 Codex hook 失败为验收脚本手写组合摘要，已改用安装器的原生配置编辑器；实际 hook 信任、禁用、更新和移除通过，相关回归 82 passed、2 Windows 条件跳过。恢复与多事项真实会话验收正在独立目录执行，后续以实际结果判定。Windows 原生验收未覆盖。公开及 Codex 兼容包已重新生成并检查运行模块、profile、模板的分发边界；没有安装或注册测试包。
+| 规格用例 | 实际执行与观察 |
+|---|---|
+| {need}`UC_20261105_MN5FGBTN6BXX1NER` | 真实 CLI 创建无 plan 事项，仅复制 docs 到另一目录，发现同一 CHG 和阶段，不复制 JSON。 |
+| {need}`UC_20261105_CMB2P2PF02KQWTMC` | 含空格的真实 Git worktree；从主目录查询丢失/损坏状态及尝试 advance，定位子目录绝对路径并提供 recover 命令，损坏字节保留。 |
+| {need}`UC_20261105_8Y3Y4XGFN7BAD7G1` | CLI 预览无写入、携摘要应用、拒绝重复覆盖；共享 spec/design 与持久审查事实可重新读取。 |
+| {need}`UC_20261105_XJ24SY45FGPD7QT5` | CLI 旧 plan 恢复保留已勾选任务；生命周期、批准、基准和额度仍未知或阻断，默认 review-begin 被拒绝。合成 completed 门禁 fixture 丢失 JSON 后保留历史审查并标识 recovered_context，不冒充本事项独立回执。 |
+| {need}`UC_20261105_HMF6V781VZFC5JBS` | 查询/源校验不恢复；真实 Claude 会话明确 Alpha 后恢复且不批准、不推进阶段；歧义首轮未写状态。 |
+| {need}`UC_20261105_A7F5PXHGNYY66GN0` | CLI 两个活跃事项、一个历史取消事项和共享 spec/design，仅列三个 CHG，不把正文引用注册为事项。真实两个会话分别选择 Alpha/Beta，原会话保留 Beta，未写状态或全局 active 指针。 |
+| {need}`UC_20261105_KPKK6DYRDK1JPEZ7` | 真实 Claude 切换后 Alpha 记录不变；额外真实进程 fixture 中提示待核对操作，不停止 Alpha 的进程、不结束或推进任一事项；测试调用方随后清理自己拥有的进程。 |
+| {need}`UC_20261105_PR634MNDDP1D86B8` | CLI cancelled 在正式记录成功/本地替换失败之间注入故障，原 JSON 保留；同命令重试不重复结束，新目录只读历史无需 JSON。completed 使用明确标注的合成审查阶段 fixture，通过实际配置检查和当前调度绑定；未模拟必需独立机器回执。 |
+| {need}`UC_20261105_SZBX3KSRH79BBFKS` | CLI migrate 预览/应用保留旧 JSON 扩展；plan-only 创建合法 unknown 记录，其他事项不变；格式/关系校验及包含隐式 workflow 导航的 HTML 构建通过。 |
 
-原始日志、复现、CLI 输入输出和包保存在忽略的 tmp/tao 下。剩余任务保持未完成：客户端契约验收、九组端到端场景补齐、必需独立实现审查与完整交付检查。当前不得执行 completed 收尾。
+CLI 集成主脚本在最新源码上执行 15 次调用通过；补充 worktree、共享发现、旧批准边界、故障收尾和 completed fixture 的命令与结果分别保存在忽略的 tmp/tao 中。真实会话、输入和原始日志同样保存在忽略临时存储；不保留原始输出到版本管理。必需独立审查的原始机器回执按当前 `tao status` 的输入绑定结果核对，Markdown 报告存在不等于满足该条件。
+
+任务 10 仍未完成：完整代码检查存在上述预算及原生超时失败，Windows 原生验收未覆盖；当前不得执行 completed 收尾。历史失败不由后来定向通过改写。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
 ## 待确认事项
 
-无需求或设计范围未决项。最终校验修复已通过用户批准的第三轮独立定向复核。原生客户端隔离异常未解决前不重启实验；必需机器审查证据及端到端验收仍有缺口。
+无需求或设计范围未决项。尚需解决完整维护检查中的 Claude 调用预算及 Kiro 超时；是否满足结束条件以当前完整 verify 和实际验收结果为准。
