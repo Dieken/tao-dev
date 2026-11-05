@@ -22,4 +22,5 @@ created: "2026-09-14"
 :titlesonly:
 
 2026-09/index.md
+2026-11/index.md
 ```
