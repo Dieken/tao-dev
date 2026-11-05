@@ -22,5 +22,6 @@ created: "2026-09-14"
 :titlesonly:
 
 protocol.md
+workflow-recovery.md
 runtime.md
 ```
