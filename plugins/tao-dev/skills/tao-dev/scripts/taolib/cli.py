@@ -342,7 +342,9 @@ def dispatch(args):
         try:
             project = workflows.locate(project, args.change)
         except ConflictError:
-            pass  # An indexed legacy plan need not have a workflow checkpoint.
+            if args.command == 'status':
+                raise
+            pass  # New/handoff may operate on a plan without local state.
     result = index(project)
     if args.command == "review":
         config = policy(project)
@@ -369,8 +371,6 @@ def dispatch(args):
     elif args.command == "handoff":
         report["outputs"] = save_handoff(project, args.source, args.change, result)
     elif args.command == "status":
-        if args.change and (args.change not in result.definitions or not args.change.startswith("CHG_")):
-            raise ConflictError("Change not found.")
         documents = list(result.documents.values())
         if args.change:
             documents = [d for d in documents if d.metadata.get("change") == args.change]
@@ -378,9 +378,11 @@ def dispatch(args):
         current = evidence(project, policy(project)) if policy(project) else {"state": "not-evaluated"}
         report["outputs"] = {"workflows": workflows.status(project, args.change), "tasks": tasks, "evidence_reusability": current["state"], "evidence": current,
                              "validation": "source diagnostics and receipt freshness only; no checks rerun"}
-        target = args.change or (documents[0].metadata.get('change') if len(documents) == 1 else None)
-        if target and (target not in result.definitions or not target.startswith('CHG_')):
-            raise ConfigurationError('Requested change is not in the managed index.')
+        target = args.change
+        if target is None and len(documents) == 1:
+            candidate = documents[0].metadata.get('change')
+            if isinstance(candidate, str) and candidate in result.definitions and candidate.startswith('CHG_'):
+                target = candidate
         report['outputs']['reviews'] = reviews.status(project, policy(project), target)
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     if args.command in ("show", "status") and not result.valid:

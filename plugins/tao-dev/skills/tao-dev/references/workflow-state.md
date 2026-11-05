@@ -69,11 +69,15 @@ status 只读发现并列出事项，不自动恢复。continue 已明确 CHG、
 
 依次采用显式 CHG、当前会话选择、当前 worktree 唯一可信归属、当前范围唯一未结束候选。unknown 不当作已结束排除，定位不构成继续授权。仍有歧义时列出标题、CHG、生命周期、阶段与目录，请用户选择；不使用最近修改时间或项目全局 active 指针。写命令传明确 CHG，跨目录传 --project。
 
+同一 CHG 出现在多个 worktree 时，查询列出来源及冲突，显式 --project 选择现存状态副本；当前目录仅有文档时先定位唯一持有本地状态的 worktree，recover 不会在另一 worktree 已有 JSON 时静默创建第二份。
+
 切换只改变会话目标，不自动 git switch、结束原事项或停止其进程；必要时保存检查点并提示待核对操作。unknown 转 active/paused 需明确决定，用 `workflow resume <CHG-ID> --expect <revision> --decision <决定> --lifecycle active|paused`。已结束事项不能借 resume 重新打开。
 
 ### 结束与保留
 
 交付检查和审查条件满足时建议 finish，不因为切换、时间经过或勾选全部任务就自动结束。调用 `workflow finish <CHG-ID> --expect <revision> --decision <决定> --outcome completed|cancelled --from <项目相对 JSON>`；JSON 仅含 evidence 和 unfinished 两个非空字符串数组（数组本身可空），cancelled 必须填写 unfinished 的处置。completed 运行完整交付门禁。
+
+只有旧 JSON、尚无正式记录时，finish 会拒绝并提供 migrate 预览命令；显式迁移后再按新 revision 收尾。正式记录损坏时诊断指向该 Markdown，不会误称本地 JSON 损坏或建议覆盖恢复。
 
 正式 closure 保存时间、结果、依据及未完成事项处置，先落盘再同步本地；同一收尾重试不产生第二次结束。已结束事项可直接从 docs 查询，历史结束不因证据过期消失。合入、推送和清理仍分别需要授权。
 

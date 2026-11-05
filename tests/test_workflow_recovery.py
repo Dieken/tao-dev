@@ -287,3 +287,78 @@ def test_invalid_plan_identity_does_not_break_workflow_discovery(tmp_path, ident
     assert recovery.candidates(p) == [state['change']]
     updated = workflows.checkpoint(p, state['change'], state['revision'], {'summary': 'Preserve current progress'})
     assert updated['summary'] == 'Preserve current progress'
+
+
+@pytest.mark.parametrize('local_present', [False, True])
+@pytest.mark.parametrize('corruption', ['yaml', 'fields'])
+def test_corrupt_formal_record_names_source_not_local_json(tmp_path, local_present, corruption):
+    p, state = started(tmp_path)
+    local = workflows.state_path(p, state['change'])
+    before = local.read_bytes()
+    if not local_present:
+        local.unlink()
+    target = records.path(p, state['change'])
+    if corruption == 'yaml':
+        target.write_text('---\n<<<<<<< merge conflict\n---\n')
+    else:
+        data = records.read(p, state['change'])
+        data['lifecycle'] = []
+        target.write_text(records.render(data))
+    row = recovery.observation(p, state['change'])
+    assert row['state'] == 'formal-record-invalid'
+    assert row['expected_path'] == str(target)
+    assert str(target) in row['message']
+    assert not row['recovery_commands']
+    assert any(source['path'] == str(target) for source in row['candidate_sources'])
+    assert local.read_bytes() == before if local_present else not local.exists()
+
+
+def test_finish_legacy_state_requires_explicit_migration(tmp_path):
+    p, state = started(tmp_path)
+    records.path(p, state['change']).unlink()
+    local = workflows.state_path(p, state['change'])
+    before = local.read_bytes()
+    with pytest.raises(recovery.WorkflowStateError) as error:
+        workflows.finish(p, state['change'], state['revision'], 'Cancel', 'cancelled', {'evidence': [], 'unfinished': ['Cancelled']})
+    assert error.value.details['state'] == 'migration-required'
+    assert error.value.details['recovery_commands'][0][-2:] == ['migrate', state['change']]
+    assert local.read_bytes() == before
+    preview = recovery.migrate(p, state['change'])
+    recovery.migrate(p, state['change'], True, preview['revision'], preview['source_digest'])
+    current = workflows.read(p, state['change'])
+    workflows.finish(p, state['change'], current['revision'], 'Cancel', 'cancelled', {'evidence': [], 'unfinished': ['Cancelled']})
+    local.unlink()
+    assert recovery.observation(p, state['change'])['lifecycle'] == 'cancelled'
+
+
+def test_finish_records_explicit_resolution_of_unknown_lifecycle(tmp_path):
+    from test_relationships import change
+    from test_documents import spec
+    target = tmp_path / 'docs/plans/2026-09/20260914-export.md'
+    target.parent.mkdir(parents=True)
+    target.write_text(change())
+    (tmp_path / 'docs/spec.md').write_text(spec())
+    p = Project(tmp_path)
+    identity = recovery.candidates(p)[0]
+    state = recovery.recover(p, identity, True)['candidate']
+    assert 'lifecycle' in records.read(p, identity)['provenance']['unknown_fields']
+    workflows.finish(p, identity, state['revision'], 'Explicit cancellation', 'cancelled', {'evidence': [], 'unfinished': ['No further work']})
+    record = records.read(p, identity)
+    assert 'lifecycle' not in record['provenance']['unknown_fields']
+    assert record['provenance']['lifecycle_decision'] == 'Explicit cancellation'
+
+
+
+def test_legacy_complete_phase_does_not_imply_closed_lifecycle(tmp_path):
+    p, state = started(tmp_path)
+    records.path(p, state['change']).unlink()
+    target = workflows.state_path(p, state['change'])
+    legacy = json.loads(target.read_text())
+    legacy.pop('lifecycle')
+    legacy['phase'] = 'complete'
+    target.write_text(json.dumps(legacy))
+    row = workflows.status(p, state['change'])[0]
+    assert row['lifecycle'] == 'unknown'
+    assert row['recovery_commands'][0][-2:] == ['migrate', state['change']]
+    with pytest.raises(ConflictError, match='slug'):
+        workflows.start(p, 'example', 'Do not implicitly close legacy work', 'en', 'Start')

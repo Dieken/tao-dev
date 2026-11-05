@@ -47,6 +47,7 @@ def contained(root, relative):
 
 class Project:
     def __init__(self, explicit=None, *, config=None):
+        self.workflow_scope_explicit = explicit is not None
         if explicit is None:
             cwd = Path.cwd()
             explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file() or (p / ".tao/workflows").is_dir()), None)

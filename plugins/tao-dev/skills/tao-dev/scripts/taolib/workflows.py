@@ -52,15 +52,25 @@ def local(project):
 
 
 def locate(project, identity):
-    from .workflow_recovery import candidates
-    if state_path(project, identity).is_file() or identity in candidates(project):
+    from .workflow_recovery import candidates, missing, ambiguity, WorkflowStateError
+    if state_path(project, identity).is_file() and project.workflow_scope_explicit:
         return project
-    matches = [Project(root) for root in git_workflow.roots(project)
-               if root != project.root and identity in candidates(Project(root))]
-    if len(matches) != 1:
-        from .workflow_recovery import missing, WorkflowStateError
-        raise WorkflowStateError(missing(project, identity, 'missing' if not matches else 'ambiguous: ' + ', '.join(str(p.root) for p in matches)))
-    return matches[0]
+    owners = [project] + [Project(root) for root in git_workflow.roots(project) if root != project.root]
+    states = [owner for owner in owners if state_path(owner, identity).is_file()]
+    if len(states) == 1:
+        return states[0]
+    if len(states) > 1:
+        if project.workflow_scope_explicit and state_path(project, identity).is_file():
+            return project
+        raise WorkflowStateError(ambiguity(project, identity, states))
+    matches = [owner for owner in owners if identity in candidates(owner)]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        if project.workflow_scope_explicit and project in matches:
+            return project
+        raise WorkflowStateError(ambiguity(project, identity, matches))
+    raise WorkflowStateError(missing(project, identity))
 
 
 def plan_contract(content):
@@ -201,21 +211,23 @@ def observe(project, state):
 
 
 def status(project, identity=None):
-    from .workflow_recovery import candidates, observation
+    from .workflow_recovery import candidates, observation, ambiguity
     if identity:
-        if identity in candidates(project):
-            return [observation(project, identity)]
-        matches = [Project(root) for root in git_workflow.roots(project) if root != project.root and identity in candidates(Project(root))]
-        if len(matches) == 1:
-            return [observation(matches[0], identity)]
-        if len(matches) > 1:
-            from .workflow_recovery import missing, WorkflowStateError
-            raise WorkflowStateError(missing(project, identity, 'ambiguous: ' + ', '.join(str(p.root) for p in matches)))
-        return [observation(project, identity)]
+        return [observation(locate(project, identity), identity)]
     values = []
+    owners = {}
     for root in git_workflow.roots(project):
-        owner = Project(root)
-        values.extend(observation(owner, i) for i in candidates(owner))
+        owner = project if root == project.root else Project(root)
+        for change in candidates(owner):
+            owners.setdefault(change, []).append(owner)
+            values.append(observation(owner, change))
+    for value in values:
+        matches = owners[value['change']]
+        if len(matches) > 1:
+            conflict = ambiguity(project, value['change'], matches)
+            value.update(selection_required=True, conflict=conflict['message'], message=conflict['message'],
+                         candidate_sources=conflict['candidate_sources'], recovery_commands=[],
+                         next_action='select-project', available_actions=['select-project'])
     return values
 
 
@@ -227,7 +239,7 @@ def start(project, slug, summary, locale, decision, worktree=False):
     if locale not in ('en', 'zh-Hans'):
         raise ConfigurationError('Resolve the project document language first: en or zh-Hans.')
     from .workflow_recovery import candidates, observation
-    if any(s.get('slug') == slug and s.get('lifecycle') not in {'completed', 'cancelled'} and s.get('phase') != 'complete' for s in (observation(project, i) for i in candidates(project))):
+    if any(s.get('slug') == slug and s.get('lifecycle') not in {'completed', 'cancelled'} for s in (observation(project, i) for i in candidates(project))):
         raise ConflictError('An active workflow already uses this slug; continue it.')
     owner, info = git_workflow.prepare(project, slug) if worktree else (project, git_workflow.context(project.root))
     from .documents import ASSETS, validate
@@ -418,6 +430,7 @@ def dispatch(project, args):
     if args.operation == 'checkpoint':
         return checkpoint(project, args.change, args.expect, load(contained(project.root, args.source)))
     if args.operation == 'resume':
+        project = locate(project, args.change)
         from . import workflow_records, workflow_recovery
         state = read(project, args.change)
         record = workflow_records.read(project, args.change)
@@ -430,6 +443,7 @@ def dispatch(project, args):
 
 
 def finish(project, identity, expected, decision, outcome, closure):
+    project = locate(project, identity)
     text(decision)
     if outcome not in {'completed', 'cancelled'} or not isinstance(closure, dict) or set(closure) != {'evidence', 'unfinished'}:
         raise ConfigurationError('Closure requires evidence and unfinished arrays.')
@@ -438,6 +452,13 @@ def finish(project, identity, expected, decision, outcome, closure):
     state = read(project, identity)
     from . import workflow_records, workflow_recovery
     record = workflow_records.read(project, identity)
+    if record is None:
+        import shlex
+        argv = ['tao', '--project', str(project.root), 'workflow', 'migrate', identity]
+        details = workflow_recovery.missing(project, identity, 'migration-required')
+        details.update(expected_path=str(workflow_records.path(project, identity)), recovery_commands=[argv])
+        details['message'] = details['expected_path'] + ': missing durable record; preview migration before finish: ' + shlex.join(argv)
+        raise workflow_recovery.WorkflowStateError(details)
     if record and record.get('closure') and not workflow_records.synchronized(project, state, record):
         state = workflow_recovery.reconcile(project, identity, expected, decision)
     if state.get('closure'):

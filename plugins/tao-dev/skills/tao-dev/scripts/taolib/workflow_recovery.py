@@ -4,18 +4,56 @@ from datetime import datetime
 import json
 from pathlib import Path
 import shlex
+import yaml
+
+from .frontmatter import load_frontmatter
 
 from . import workflow_records as records, workflows
 from .project import Project, ConfigurationError, ConflictError, mutation_lock, create_file, replace_file
 from .verification import file_digest
 
 
+def candidate_sources(project, identity):
+    """Discover physical sources without recursively validating local state."""
+    from . import git_workflow
+    rows = []
+    for root in git_workflow.roots(project):
+        owner = project if root == project.root else Project(root)
+        for kind, target in (('local-state', workflows.state_path(owner, identity)),
+                             ('workflow-record', records.path(owner, identity))):
+            if target.is_file():
+                rows.append({'kind': kind, 'project': str(root), 'path': str(target)})
+        for target in owner.sources():
+            try:
+                data = load_frontmatter(target.read_text(encoding='utf-8'))
+                if isinstance(data, dict) and data.get('schema') == 'tao.project.plan/v0.1' and data.get('change') == identity:
+                    rows.append({'kind': 'plan', 'project': str(root), 'path': str(target)})
+            except (OSError, ValueError, yaml.YAMLError):
+                continue
+    return rows
+
+
 def missing(project, identity, reason='missing'):
     path = workflows.state_path(project, identity)
     argv = ['tao', '--project', str(project.root), 'workflow', 'recover', identity]
-    return {'change': identity, 'project': str(project.root), 'state': reason, 'expected_path': str(path),
+    return {'rule_id': 'TAO-CLI-001', 'change': identity, 'project': str(project.root),
+            'state': reason, 'expected_path': str(path),
+            'candidate_sources': candidate_sources(project, identity),
             'recovery_commands': [argv, argv + ['--apply']],
             'message': str(path) + ': ' + reason + '. Preview recovery: ' + shlex.join(argv)}
+
+
+def ambiguity(project, identity, owners):
+    details = missing(project, identity, 'ambiguous: ' + ', '.join(str(p.root) for p in owners))
+    details.update(selection_required=True, recovery_commands=[])
+    details['message'] = details['state'] + '; select the workflow project explicitly with --project.'
+    return details
+
+
+def source_problem(project, identity, target, error):
+    details = missing(project, identity, 'formal-record-invalid')
+    details.update(expected_path=str(target), recovery_commands=[], message=str(error))
+    return details
 
 
 def documents(project):
@@ -77,6 +115,12 @@ def reconstruct(project, identity):
 
 
 def recover(project, identity, apply=False, expected_source=None):
+    from . import git_workflow
+    owners = [Project(root) for root in git_workflow.roots(project)
+              if root != project.root and workflows.state_path(Project(root), identity).is_file()]
+    if owners and not workflows.state_path(project, identity).exists():
+        raise WorkflowStateError(ambiguity(project, identity, owners))
+
     target = workflows.state_path(project, identity)
     if target.exists():
         raise ConflictError(missing(project, identity, 'already exists; inspect or migrate without overwriting')['message'])
@@ -180,14 +224,25 @@ def reconcile(project, identity, expected, decision, lifecycle=None):
 
 def observation(project, identity):
     target = workflows.state_path(project, identity)
+    try:
+        record = records.read(project, identity)
+    except (ValueError, OSError) as exc:
+        return source_problem(project, identity, records.path(project, identity), exc)
     if target.exists():
         try:
-            return workflows.observe(project, workflows.read(project, identity))
-        except (ValueError, OSError):
-            return missing(project, identity, 'corrupt; preserve the file before recovery')
+            state = workflows.read(project, identity)
+        except WorkflowStateError as exc:
+            return exc.details
+        # Other source/handoff errors must not masquerade as corrupt local JSON.
+        value = workflows.observe(project, state)
+        value['candidate_sources'] = candidate_sources(project, identity)
+        if record is None:
+            value.setdefault('lifecycle', 'unknown')
+            value['recovery_commands'] = [['tao', '--project', str(project.root), 'workflow', 'migrate', identity]]
+        return value
     try:
         state, record = reconstruct(project, identity)
-        return state | missing(project, identity) | {'project': str(project.root), 'record_path': str(records.path(project, identity)) if record else None}
+        return state | missing(project, identity) | {'record_path': str(records.path(project, identity)) if record else None}
     except (ValueError, OSError) as exc:
         return missing(project, identity, str(exc))
 

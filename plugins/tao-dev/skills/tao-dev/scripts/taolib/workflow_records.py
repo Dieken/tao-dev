@@ -197,13 +197,16 @@ def build(project, state, old=None, provenance=None):
             'plan_path': state['plan_path'], 'artifacts': artifact_ids(project, state),
             'approvals': deepcopy(state['approvals']), 'baseline': state.get('git'),
             'review_batches': compact_reviews(state.get('reviews', {})), 'closure': state.get('closure'),
-            'provenance': provenance if provenance is not None else (old or {}).get('provenance', {}),
+            'provenance': deepcopy(provenance if provenance is not None else (old or {}).get('provenance', {})),
             'last_operation_id': uuid.uuid4().hex}
     if 'review_budget_unknown' in state:
         data['provenance']['review_budget_unknown'] = state['review_budget_unknown']
     for kind, history in state.get('review_history', {}).items():
         if kind in data['review_batches']:
             data['review_batches'][kind]['history'] = [compact_reviews({kind: b})[kind] for b in history]
+    if data['closure'] and data['lifecycle'] in ('completed', 'cancelled'):
+        data['provenance']['unknown_fields'] = [k for k in data['provenance'].get('unknown_fields', []) if k != 'lifecycle']
+        data['provenance']['lifecycle_decision'] = data['closure']['decision']
     return validate_record(data)
 
 
