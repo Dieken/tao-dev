@@ -150,7 +150,7 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 <!-- tao:results -->
 规格、修订设计与计划已获用户批准，实现已完成。新增 workflow profile 与正式记录、recover/migrate/resume/finish、路径诊断、多事项发现及对应 skill 指引；本地 JSON 继续忽略，不进入版本管理。
 
-文档审查两轮已完成，结论见[文档复核裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)。实现审查两轮已用完：[实现复核裁决](20261105-workflow-recovery/reviews/20261105-implementation/03-followup-adjudication.md)确认收尾审查时效、未知轮次和 frontmatter 分隔符三项修复；嵌套审查请求校验仍有缺口。随后已补齐提交号、CHG 身份及请求字段类型校验，加入错误输入源校验/恢复拒绝和合法空提交号恢复失败登记测试；此最终修复尚未经独立复核，不能标为审查通过。
+文档审查两轮已完成，结论见[文档复核裁决](20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md)。实现审查两轮已用完：[实现复核裁决](20261105-workflow-recovery/reviews/20261105-implementation/03-followup-adjudication.md)确认收尾审查时效、未知轮次和 frontmatter 分隔符三项修复；嵌套审查请求校验仍有缺口。随后已补齐提交号、CHG 身份及请求字段类型校验，加入错误输入源校验/恢复拒绝和合法空提交号恢复失败登记测试；用户随后批准第三轮定向复核，[本轮裁决](20261105-workflow-recovery/reviews/20261105-implementation/05-validation-adjudication.md)确认 I4 已闭合，固定快照测试 59 passed；调度登记 passed/current。本轮仅覆盖最终校验修复，不替代整体交付检查。
 
 确定性维护回归命令为项目 Python 的 `-m pytest -q --ignore tests/test_live_acceptance.py --ignore tests/test_native_sessions.py`：656 passed、2 skipped（Windows 条件）、2 warnings。最后校验修复的首轮定向测试为 67 passed；最终恢复与诊断目录测试 43 passed。受管理文档源校验和 HTML 构建通过，无诊断。Ruff 配置规则检查和依赖导出一致性检查通过。以上不是完整配置检查通过；完整维护运行曾出现客户端失败，未满足 required_reviews。
 
@@ -164,4 +164,4 @@ design_docs: [DOC_20261105_0H6V7T4BYCRJW79H]
 <!-- tao:section questions -->
 ## 待确认事项
 
-无需求或设计范围未决项。需要额外一轮独立复核最终校验修复；原生客户端隔离异常未解决前不重启实验，必需审查证据及端到端验收仍有缺口。
+无需求或设计范围未决项。最终校验修复已通过用户批准的第三轮独立定向复核。原生客户端隔离异常未解决前不重启实验；必需机器审查证据及端到端验收仍有缺口。

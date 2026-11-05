@@ -25,4 +25,6 @@ created: "2026-11-05"
 00-adjudication.md
 02-followup-reviewer.md
 03-followup-adjudication.md
+04-validation-reviewer.md
+05-validation-adjudication.md
 ```
