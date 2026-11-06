@@ -4,3 +4,9 @@ __pycache__/
 .pytest_cache/
 /.worktrees/
 /.tao/workflows/
+
+.claude/
+.codex/
+.cursor/
+.kiro/
+.qoder/

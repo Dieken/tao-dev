@@ -1,3 +1,4 @@
+import json
 import os
 import signal
 import subprocess
@@ -71,6 +72,17 @@ def _run(arguments, *, timeout, environment=None):
             f"Acceptance process timed out after {timeout}s.\n"
             f"stdout:\n{stdout}\nstderr:\n{stderr}"
         )
+    try:
+        report = json.loads(stdout)
+    except (TypeError, json.JSONDecodeError):
+        report = None
+    if (process.returncode == 2 and isinstance(report, dict)
+            and report.get('status') == 'blocked'
+            and report.get('reason') in {
+                'Existing access token cannot cover this probe; no refresh or login attempted.',
+                'Existing Codex access token cannot cover this probe; no refresh or login attempted.',
+            }):
+        pytest.skip(report['reason'])
     assert process.returncode == 0, (
         f"Acceptance process failed with exit code {process.returncode}.\n"
         f"stdout:\n{stdout}\nstderr:\n{stderr}"
