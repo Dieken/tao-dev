@@ -1,6 +1,8 @@
 """Project-scoped configuration and filesystem operations."""
 
 import os
+import sys
+from functools import lru_cache
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
 import time
@@ -112,6 +114,37 @@ class Project:
                 if path.is_file() and path not in excluded:
                     selected.add(path)
         return sorted(selected)
+
+    def matches_file(self, relative, pattern):
+        """Match a prospective file with this interpreter's Path.glob rules.
+
+        PurePath.match is right-anchored and treats ** as one component.
+        Match components from the root instead, including zero-depth ** and
+        the default prohibition on traversing directory symlinks via **.
+        """
+        parts, patterns = Path(relative).parts, Path(pattern).parts
+        if not patterns or pattern.endswith(('/', os.sep)):
+            return False
+        if sys.version_info < (3, 13) and (patterns[-1] == '**' or
+                any('**' in part and part != '**' for part in patterns)):
+            return False  # Older Path.glob only yields directories for a final **.
+
+        @lru_cache(maxsize=None)
+        def match(index, position):
+            if position == len(patterns):
+                return index == len(parts)
+            if patterns[position] == '**':
+                if match(index, position + 1):
+                    return True
+                if index == len(parts):
+                    return False
+                if index < len(parts) - 1 and (self.root / Path(*parts[:index + 1])).is_symlink():
+                    return False
+                return match(index + 1, position)
+            return (index < len(parts) and Path(parts[index]).match(patterns[position])
+                    and match(index + 1, position + 1))
+
+        return match(0, 0)
 
     def output(self, key, suffix=""):
         return contained(self.root, Path(self.paths[key]) / suffix)

@@ -223,7 +223,8 @@ def write(project, data, before=None):
     target = path(project, data['change'])
     relative = target.relative_to(project.root)
     # Match configured globs even before the file exists.
-    if not any(relative.match(p) for p in project.includes) or any(relative.match(p) for p in project.excludes):
+    if (not any(project.matches_file(relative, p) for p in project.includes)
+            or any(project.matches_file(relative, p) for p in project.excludes)):
         raise ConfigurationError('Workflow record directory is outside managed documents: ' + str(target))
     from .git_workflow import run, context
     if context(project.root) and run(project.root, 'check-ignore', str(relative), required=False):
