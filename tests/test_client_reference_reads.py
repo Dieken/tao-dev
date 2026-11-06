@@ -130,3 +130,34 @@ def test_routing_assessment_requires_core_refs_and_no_document_branch():
     assert unexpected['unexpected_document_reads'] == ['references/documents.md']
     assert unnecessary['status'] == 'failed'
     assert unnecessary['unexpected_resource_reads'] == ['references/runtime.md']
+
+
+def test_routing_allows_the_selected_implement_action_reference():
+    result = clients.assess_routing({
+        'skill_invoked': True,
+        'resources': [
+            'references/engineering.md',
+            'references/workflow-actions.md',
+            'references/workflow.md',
+        ],
+        'broad_scans': [],
+    }, allowed_resources={'references/workflow-actions.md'})
+
+    assert result['status'] == 'passed'
+    assert result['unexpected_resource_reads'] == []
+
+
+def test_routing_still_rejects_unrelated_reference_with_action_reference():
+    result = clients.assess_routing({
+        'skill_invoked': True,
+        'resources': [
+            'references/engineering.md',
+            'references/workflow-actions.md',
+            'references/runtime.md',
+            'references/workflow.md',
+        ],
+        'broad_scans': [],
+    }, allowed_resources={'references/workflow-actions.md'})
+
+    assert result['status'] == 'failed'
+    assert result['unexpected_resource_reads'] == ['references/runtime.md']

@@ -104,12 +104,13 @@ def reference_reads(path, client):
     }
 
 
-def assess_routing(reads):
+def assess_routing(reads, *, allowed_resources=()):
     required = {'references/engineering.md', 'references/workflow.md'}
+    allowed = required | set(allowed_resources)
     resources = set(reads['resources'])
     unexpected = sorted(resource for resource in resources
                         if resource in DOCUMENT_RESOURCES or resource.startswith('assets/'))
-    unnecessary = sorted(resources - required)
+    unnecessary = sorted(resources - allowed)
     missing = sorted(required - resources)
     passed = (reads['skill_invoked'] and not missing and not unnecessary
               and not reads['broad_scans'])
@@ -359,7 +360,8 @@ def main():
               'codex_model_configuration': {'model': codex_before.get('model'), 'provider': codex_before.get('model_provider', 'openai')} if args.client == 'codex' else None}
     if args.case == 'routing':
         reads = reference_reads(logs[0], args.client)
-        routing = assess_routing(reads)
+        routing = assess_routing(
+            reads, allowed_resources={'references/workflow-actions.md'})
         try:
             compile((directory / 'example.py').read_text(encoding='utf-8'), 'example.py', 'exec')
             syntax_valid = True
