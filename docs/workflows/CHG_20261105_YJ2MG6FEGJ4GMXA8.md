@@ -8,7 +8,7 @@ created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
 summary: 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
-record_revision: 2
+record_revision: 3
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -110,7 +110,7 @@ review_batches:
     phase: implement
     decision: 用户批准recover/plan预算2至4美元的小范围变更；按默认两轮保存本次定向复核，第一轮追记登记失败后误启动并中止的调用，不作为有效审查；第二轮只审本次差异，实际调用上限1美元300秒。
     started_at: '2026-11-06T03:01:42.403373+00:00'
-    max_rounds: 3
+    max_rounds: 4
     runs:
     - id: 4d684f2299294b688c39afb4ee0c1500
       round: 1
@@ -219,10 +219,70 @@ review_batches:
       evidence_boundary: Scheduling record only. Required independent attestations
         use tao review imports; report existence does not prove correctness or identity.
       recovered_context: true
+    - id: 7046c8c8091e47748cfcfa4c270de59a
+      round: 4
+      started_at: '2026-11-06T09:08:07.721764+00:00'
+      outcome: running
+      mode: serial
+      reviewers: 1
+      decision: 用户要求继续完成任务，后明确先完成本机可做部分，恢复先前保留的额外独立复核：不设CLI费用阈值，超时20分钟。保留前三次失败，原批次上限显式增至4，不重置历史；范围含当前预算入口、取消清理、必需绑定与正式记录修复及其调用方。只读、禁用工具与委派；Windows保持未覆盖。
+      request:
+        schema: tao.review-scope/v0.1
+        change: CHG_20261105_YJ2MG6FEGJ4GMXA8
+        scope: feature
+        kind: code
+        base_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
+        target_commit: 4b87c3005641951ab96124ea962bf21dc8bdfa1a
+        include:
+        - .tao/config.toml
+        - AGENTS.md
+        - docs/engineering/workflow-recovery.md
+        - docs/plans/2026-11/20261105-workflow-recovery.md
+        - docs/product/workflow-recovery.md
+        - docs/workflows/CHG_20261105_YJ2MG6FEGJ4GMXA8.md
+        - plugins/tao-dev/skills/tao-dev/references/review-receipts.md
+        - plugins/tao-dev/skills/tao-dev/references/workflow-state.md
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/cli.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/frontmatter.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/project.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/review_runs.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/reviews.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/verification.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_records.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_recovery.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflows.py
+        - scripts/review_claude.py
+        - tests/acceptance/README.md
+        - tests/acceptance/behavior_clients.py
+        - tests/acceptance/behavior_live.py
+        - tests/acceptance/behavior_runner.py
+        - tests/acceptance/cancellation.py
+        - tests/acceptance/clients.py
+        - tests/acceptance/commands.py
+        - tests/acceptance/limits.py
+        - tests/acceptance/native_session_hooks.py
+        - tests/test_acceptance_cancellation.py
+        - tests/test_acceptance_commands.py
+        - tests/test_acceptance_limits.py
+        - tests/test_behavior_runner.py
+        - tests/test_live_acceptance.py
+        - tests/test_review_binding_contract.py
+        - tests/test_review_runner.py
+        - tests/test_review_runs.py
+        - tests/test_workflow_recovery.py
+        excluded_record_directories:
+        - tmp/tao/
+        input_digest: a7bdb83aa8038d982a7e23bd39cc89323bf9d6ec95d71e0b591bf61717198e23
+        output_files:
+        - tmp/tao/finish-local-review-report.md
+      recovered_context: true
     round_decisions:
     - before: 2
       after: 3
       decision: 用户继续解决授权内发现了新的取消缺陷及其回归：外层终止后模型组继续运行、双轮重复计时。当前范围扩至这些修复、低强度小型探针和预算差异；按新证据显式增加一轮至3，不重置前两次失败，不自动新建批次。只一次工具禁用的独立CLI审查，预算阈值仍1美元、超时仍300秒。
+    - before: 3
+      after: 4
+      decision: 用户要求继续完成任务，后明确先完成本机可做部分，恢复先前保留的额外独立复核：不设CLI费用阈值，超时20分钟。保留前三次失败，原批次上限显式增至4，不重置历史；范围含当前预算入口、取消清理、必需绑定与正式记录修复及其调用方。只读、禁用工具与委派；Windows保持未覆盖。
     history:
     - id: 43c92391fdf44cfd9459f66c3da87b7a
       phase: implement
@@ -476,7 +536,7 @@ provenance:
   unknown_fields: []
   review_budget_unknown: []
   lifecycle_decision: 用户明确要求继续完成全部任务并收尾；已核对迁移前后批准、审查历史、基准和产物未改变，保留原JSON，确认本事项仍在进行。
-last_operation_id: a3795b6a3eb245fda7f34e73c5194a85
+last_operation_id: 53c2bf60a49442d4a5c21b47428e74c4
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
