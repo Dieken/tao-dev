@@ -7,7 +7,7 @@ status: draft
 created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
-record_revision: 8
+record_revision: 9
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -44,17 +44,19 @@ review_control:
   code:
     batch: 95e30131f4c74e048d31b2900dd1f5e6
     phase: implement
-    used: 5
-    limit: 5
-    decision: 已批准上限5轮，每次20分钟，无CLI费用阈值；扩大范围或追加轮次需另行授权。
+    used: 6
+    limit: 6
+    decision: 用户要求继续补齐本机验收并忽略Windows；在既有5轮基础上追加1轮独立实现审查，覆盖当前累计改动及调用方，单次20分钟，无CLI费用阈值，保留历史尝试。
     limits:
       timeout_seconds: 1200
       cost_limit_usd: null
-    in_flight: null
-    local_digest: cf92765ade042af9a66fd99bf25f1d9d19fd1fdd0b33723e8a8c8629946f44e1
+    in_flight:
+      id: 697a05bc48f1448caa7b2397c70a70fd
+      round: 6
+    local_digest: 6d146efc94fc7768d78daaeb811101182258ced15b9be8f60c1575a658e6bf75
 closure: null
 provenance: {}
-last_operation_id: bf1ee088a5504913b7b59c7f2e2babb0
+last_operation_id: 35f74e8d24f44351876f16c0e8340454
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
