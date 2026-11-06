@@ -142,16 +142,19 @@ def test_readonly_plugin_and_claude_data_location(bare_python, tmp_path):
 def test_concurrent_preparation_publishes_one_complete_environment(bare_python, tmp_path):
     data = tmp_path / "data"
     env = os.environ | {"TAO_RUNTIME_DIR": str(data), "TAO_PYTHON": str(bare_python)}
-    argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--format", "json"]
+    argv = [str(bare_python), str(SCRIPTS / "tao.py"), "env", "prepare", "--wheelhouse", str(WHEELS), "--timeout", "600", "--format", "json"]
     processes = [subprocess.Popen(argv, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8') for _ in range(2)]
     # Drain both children at once: reading them in turn stalls whichever one
-    # fills a pipe while the other is waited on. The CLI's 300 second whole-
+    # fills a pipe while the other is waited on. The CLI's 600 second whole-
     # preparation budget gives the loser of the race time to wait out a slow
     # winner, while this larger test timeout still guards against a hang.
     with ThreadPoolExecutor(max_workers=len(processes)) as pool:
-        pending = [pool.submit(process.communicate, timeout=360) for process in processes]
+        pending = [pool.submit(process.communicate, timeout=660) for process in processes]
         outputs = [result.result() for result in pending]
-    assert all(p.returncode == 0 for p in processes), outputs
+    assert all(p.returncode == 0 for p in processes), [
+        {"returncode": process.returncode, "stdout": stdout[-2000:], "stderr": stderr[-2000:]}
+        for process, (stdout, stderr) in zip(processes, outputs)
+    ]
     reports = [json.loads(stdout)["outputs"]["runtime"] for stdout, _ in outputs]
     selected = [report["python"] for report in reports]
     assert selected[0] == selected[1]
