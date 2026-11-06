@@ -523,20 +523,29 @@ def test_a_report_outside_the_document_globs_is_still_validated(tmp_path, capsys
     assert entry['validated'] is False, 'an unchecked report must not read as a checked one'
 
 
-def test_document_review_survives_commit_of_reviewed_working_bytes(tmp_path, capsys):
+@pytest.mark.parametrize('kind', ['docs', 'code'])
+def test_review_survives_commit_of_reviewed_working_bytes(tmp_path, capsys, kind):
     from taolib import review_runs
     from taolib.project import Project
     state = repository(tmp_path, capsys)
     project = Project(tmp_path)
-    request = review_runs.preview(project, state, kind='docs')
+    request = review_runs.preview(project, state, kind=kind)
     state = review_runs.begin(project, state['change'], state['revision'], request, 'serial', 1, 'Review docs')
     report = tmp_path / 'tmp/tao/report.md'
     report.write_text('Independent review passed')
     state = review_runs.finish(project, state['change'], state['revision'], {'outcome': 'passed', 'reports': ['tmp/tao/report.md'], 'summary': 'Reviewed'})
-    assert review_runs.passed(project, state, 'docs')
+    assert review_runs.passed(project, state, kind)
     git(tmp_path, 'add', 'docs')
     git(tmp_path, 'commit', '-m', 'Save reviewed documents')
-    assert review_runs.passed(project, state, 'docs')
+    assert review_runs.passed(project, state, kind)
+    source = tmp_path / 'code.py'
+    original = source.read_bytes()
+    source.write_text('unreviewed = True\n')
+    git(tmp_path, 'add', 'code.py')
+    source.write_bytes(original)
+    assert not review_runs.passed(project, state, kind), 'Unreviewed staged bytes must expire the result'
+    git(tmp_path, 'reset', '--', 'code.py')
+    assert review_runs.passed(project, state, kind)
     record = tmp_path / f"docs/workflows/{state['change']}.md"
     record.write_text(record.read_text().replace('lifecycle: active', 'lifecycle: paused'))
-    assert not review_runs.passed(project, state, 'docs')
+    assert not review_runs.passed(project, state, kind)

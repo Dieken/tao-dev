@@ -128,7 +128,7 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         contract = contract_text(path) if exists and name == state.get('plan_path') else None
         if contract is None and exists and name.endswith('.md'):
             from .workflow_records import review_contract
-            contract = review_contract(path.read_text(encoding='utf-8'), kind)
+            contract = review_contract(path.read_text(encoding='utf-8'), kind, state['change'])
         digest = contract_digest(contract) if contract is not None else (file_digest(path) if exists else None)
         rows.append([name, digest, mode, index.get(name)])
         if exists:
@@ -301,7 +301,7 @@ def committed_review_matches(project, state, run, current):
     refresh a receipt merely because HEAD moved or the worktree is clean.
     """
     request = run['request']
-    if request.get('kind') != 'docs' or current.get('context_files') != request.get('context_files'):
+    if request.get('kind') not in ('docs', 'code') or current.get('context_files') != request.get('context_files'):
         return False
     if any(current.get(k) != request.get(k) for k in ('base_commit', 'scope', 'kind', 'include', 'selected_files')):
         return False
@@ -327,7 +327,7 @@ def committed_review_matches(project, state, run, current):
                         return workflows.plan_contract(content.decode('utf-8')).encode()
                     if name.endswith('.md'):
                         from .workflow_records import review_contract
-                        contract = review_contract(content.decode('utf-8'), request['kind'])
+                        contract = review_contract(content.decode('utf-8'), request['kind'], state['change'])
                         if contract is not None:
                             return contract.encode()
                     return content

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
+import yaml
 
 from .project import ConfigurationError, ConflictError, contained, mutation_lock, create_file, replace_file
 from .verification import snapshot, file_digest
@@ -60,7 +61,26 @@ def declared_outputs(project, change):
 
 
 def binding(project, config, change):
-    current = snapshot(project, config, exclude=declared_outputs(project, change))
+    from .frontmatter import load_frontmatter
+    from .workflow_records import SCHEMA, review_contract
+    from .workflows import DOC_PHASES, plan_contract
+    contracts = {}
+    for path in project.sources():
+        try:
+            content = path.read_text(encoding='utf-8')
+            data = load_frontmatter(content)
+        except (ValueError, UnicodeError, yaml.YAMLError):
+            continue  # Invalid documents remain raw inputs; validation rejects them.
+        if not isinstance(data, dict) or data.get('change') != change:
+            continue
+        if data.get('schema') in {'tao.project.plan/v0.1', 'tao.project.tasks/v0.1'}:
+            contracts[path] = plan_contract(content)
+        elif data.get('schema') == SCHEMA:
+            kind = 'docs' if data.get('phase') in DOC_PHASES else 'code'
+            contract = review_contract(content, kind, change)
+            if contract is not None:
+                contracts[path] = contract
+    current = snapshot(project, config, exclude=declared_outputs(project, change), contracts=contracts)
     return {key: current[key] for key in ('source_digest', 'policy_digest')} | {'change': change}
 
 

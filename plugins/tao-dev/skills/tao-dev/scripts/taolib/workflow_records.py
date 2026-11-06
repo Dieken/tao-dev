@@ -248,13 +248,15 @@ def source_digest(project, state=None):
     return digest_json(rows)
 
 
-def review_contract(content, kind):
+def review_contract(content, kind, change=None):
     """Exclude this review's bookkeeping, retaining all domain decisions."""
     if not content.startswith('---\n'):
         return None
     try:
         data = load_frontmatter(content)
         if not isinstance(data, dict) or data.get('schema') != SCHEMA:
+            return None
+        if change is not None and data.get('change') != change:
             return None
         # The request itself binds the current batch scope. Other batches and
         # approval/lifecycle/domain fields remain part of the reviewed input.
@@ -267,5 +269,5 @@ def review_contract(content, kind):
         if 'review_budget_unknown' in data.get('provenance', {}):
             data['provenance']['review_budget_unknown'] = [k for k in data['provenance']['review_budget_unknown'] if k != kind]
         return json.dumps(data, ensure_ascii=False, sort_keys=True)
-    except (ValueError, IndexError, yaml.YAMLError):
+    except (ValueError, IndexError, TypeError, yaml.YAMLError):
         return None
