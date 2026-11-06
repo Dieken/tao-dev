@@ -79,7 +79,7 @@ verification 说明检查什么、输入与环境、比较基线、执行办法�
 
 evidence 在勾选完成时必需，通常指向计划 verification 的稳定章节锚点。依赖图、执行批次和反向引用由字段生成，不另维护父任务状态或 JSON waves。
 
-plan 的 VERIFICATION 先写检查办法，执行后在 `<!-- tao:results -->` 与 `<!-- /tao:results -->` 之间补结果，避免执行记录改变计划批准。记录内容、输入引用和独立摘要的使用条件统一见 [证据保存](evidence-retention.md)。
+plan 的 VERIFICATION 先写检查办法，执行后在 `<!-- tao:results -->` 与 `<!-- /tao:results -->` 之间更新结果摘要，避免执行记录改变计划批准。同一验证范围的进度合并、替换，不按任务或重试逐次追加；独立范围的历史结果注明版本与限制。按 [文档规程](documents.md) 核对长期保留价值，输入引用和独立摘要的使用条件见 [证据保存](evidence-retention.md)。
 
 独立 evidence 的字段、结果与时间语义见 [证据保存](evidence-retention.md)。
 
