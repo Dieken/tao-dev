@@ -11,7 +11,11 @@ from dataclasses import replace
 from pathlib import Path
 
 from acceptance.behavior_contract import load_catalog
-from acceptance.behavior_runner import SubprocessExecutor, run_scenario
+from acceptance.behavior_runner import (
+    MATERIAL_QUESTION_MARKER,
+    SubprocessExecutor,
+    run_scenario,
+)
 from acceptance.behavior_trace import FILE_EVENTS
 from acceptance.clients import global_configuration, prepare
 from acceptance.commands import cli_executable
@@ -134,10 +138,21 @@ def _boundary(workspace):
         "The client may load the advertised tao-dev skill resources; for project files, "
         "inspect only example.py and requirements.txt. Do not run find, rg, ls, pwd, "
         "directory scans, or inspect unrelated plugin/runtime files. "
-        "On the first turn, ask the single material question before writing anything, "
-        "and wait for the user's reply before editing. If a product decision is "
-        "needed, put the exact standalone line [TAO_MATERIAL_QUESTION] in the "
-        "response; do not emit that marker for any other reason. "
+    )
+
+
+def material_prompt(workspace, prompt):
+    """Keep the driver handshake explicit and adjacent to the actual task."""
+    return (
+        _boundary(workspace) + "\n\nTask:\n" + prompt
+        + "\n\nFirst-turn response protocol for the test driver:\n"
+        "Ask the single material product question before writing anything, then "
+        "wait for the user's reply before editing. End your question response "
+        "with this exact literal line, without quotes or a code fence:\n"
+        + MATERIAL_QUESTION_MARKER
+        + "\nThe marker must be alone on its own line. The driver sends the "
+        "user's reply only after observing that line. Do not emit the marker "
+        "for any other reason or repeat it after the user has answered.\n"
     )
 
 
@@ -191,7 +206,7 @@ def execute(client, workspace, timeout):
     scenario = next(
         item for item in catalog.scenarios
         if item.id == "material-unknown-is-asked-once")
-    scenario = replace(scenario, prompt=_boundary(workspace) + scenario.prompt)
+    scenario = replace(scenario, prompt=material_prompt(workspace, scenario.prompt))
     name = f"{client}-material-interaction-{time.time_ns()}"
     artifacts = ROOT / "tmp/tao/client-acceptance" / name
     before = global_configuration()

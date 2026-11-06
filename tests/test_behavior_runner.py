@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from acceptance.behavior_clients import adapter_for
 from acceptance.behavior_contract import Scenario
 from acceptance.behavior_runner import InvocationResult, run_scenario
@@ -128,6 +130,30 @@ def test_scripted_reply_is_not_sent_when_condition_does_not_match(tmp_path):
     assert result.status == "blocked"
     assert len(executor.requests) == 1
     assert "condition" in result.reason.lower()
+
+
+@pytest.mark.parametrize('text', [
+    'How many days?',
+    'How many days? [TAO_MATERIAL_QUESTION]',
+    '"[TAO_MATERIAL_QUESTION]"',
+    'I will emit [TAO_MATERIAL_QUESTION] later.',
+])
+@pytest.mark.parametrize('client', ['claude', 'codex'])
+def test_question_without_standalone_handshake_does_not_trigger_reply(
+        tmp_path, text, client):
+    executor = FakeExecutor(client, [{
+        'session_id': '$requested' if client == 'claude' else 'codex-session',
+        'text': text,
+    }])
+
+    result = run_scenario(
+        scenario(turns=({'when': 'asks-material-question', 'user': 'Thirty days.'},)),
+        client, tmp_path, executor)
+
+    assert result.status == 'blocked'
+    assert result.trace.complete is False
+    assert len(executor.requests) == 1
+    assert len(result.log_paths) == 1
 
 
 def test_workspace_changes_are_captured_for_each_turn(tmp_path):
