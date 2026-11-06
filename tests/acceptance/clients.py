@@ -124,14 +124,41 @@ def assess_routing(reads, *, allowed_resources=()):
 
 
 def global_configuration():
+    """Fingerprint global configuration while tolerating Codex token rotation.
+
+    Codex refreshes auth.json asynchronously in the background. Compare its
+    auth mode and account identity, not rotating access/refresh credentials or
+    last_refresh. All other guarded client files remain byte-for-byte checks.
+    """
     home = Path.home()
     paths = [home / '.codex/config.toml', home / '.codex/hooks.json', home / '.codex/auth.json',
              home / '.claude.json', home / '.gitconfig', home / '.gitignore',
              home / '.agents/plugins/marketplace.json', home / '.claude/settings.json',
              home / '.claude/plugins/installed_plugins.json',
              home / '.claude/plugins/known_marketplaces.json']
-    return {str(p.relative_to(home)): hashlib.sha256(p.read_bytes()).hexdigest()
+    return {str(p.relative_to(home)): (_codex_auth_fingerprint(p) if p.name == 'auth.json' and p.parent.name == '.codex'
+                                      else hashlib.sha256(p.read_bytes()).hexdigest())
             if p.is_file() else None for p in paths}
+
+
+def _codex_auth_fingerprint(path):
+    """Return a non-secret digest of Codex auth mode and account identity."""
+    raw = path.read_bytes()
+    try:
+        data = json.loads(raw.decode('utf-8'))
+        if not isinstance(data, dict):
+            raise ValueError('Codex auth root must be an object')
+        tokens = data.get('tokens', {})
+        if not isinstance(tokens, dict):
+            raise ValueError('Codex auth tokens must be an object')
+        stable = {key: value for key, value in data.items()
+                  if key not in {'tokens', 'last_refresh'}}
+        stable['account_id'] = tokens.get('account_id')
+        encoded = json.dumps(stable, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+    except (UnicodeDecodeError, ValueError, TypeError):
+        # Malformed auth remains detectable without exposing its contents.
+        encoded = b'invalid-codex-auth\0' + raw
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def prepare(directory, client, *, native_plugin=False, codex_legacy=False):
