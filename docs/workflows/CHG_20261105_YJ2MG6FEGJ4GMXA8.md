@@ -8,7 +8,7 @@ created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
 summary: 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
-record_revision: 5
+record_revision: 6
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -296,7 +296,7 @@ review_batches:
     - id: 73ae52a9b84746f9a00683206fe8411b
       round: 5
       started_at: '2026-11-06T09:26:01.186291+00:00'
-      outcome: running
+      outcome: passed
       mode: serial
       reviewers: 1
       decision: 按用户完成本机范围的授权，对第4次实际独立报告的REC-01修复做一次定向复核。真实新发现及已执行修复构成新增证据，原批次上限显式从4增至5，仅追加这次跟进，不重置任何失败或通过。继续使用已批准的无CLI费用阈值、1200秒超时，禁用工具与委派；Windows保持未覆盖。
@@ -321,6 +321,33 @@ review_batches:
         input_digest: 35943e54cd204d2f47dd8b79027019a96f27e6a45dd668873bb540fd5b56876f
         output_files:
         - tmp/tao/finish-followup-review-report.md
+      inputs: current
+      reports:
+      - path: tmp/tao/finish-followup-review-report.md
+        digest: 7fbbd94df8c05f9a352bb4bc6df01f6635ca61e9d34ff6ec4445f54fd09e35d3
+        validated: false
+      summary: 'REC-01 is fixed. matches_file now performs component-indexed recursive
+        matching with an lru_cache DP: a whole-component ''**'' either matches zero
+        components or consumes one and stays in place, so multi-level nested layouts
+        such as paths.workflows = "docs/eng/workflows" are admitted by includes like
+        docs/**/*.md and correctly rejected by recursive excludes (matching the assertions
+        in test_nested_workflow_directory_is_discovered_after_start and test_recursive_exclusion_rejects_record_before_publication,
+        which I verified by hand against pathlib semantics but did not execute). Zero-depth
+        ''**'', full-length equality, directory-symlink non-traversal by ''**'' (with
+        literal components still traversing, per test_recursive_pattern_does_not_follow_a_directory_symlink),
+        trailing-''**''-matches-directories-only on Python < 3.13 vs files on 3.13,
+        and platform component matching via Path.match are all handled consistently
+        with the interpreter''s Path.glob. workflow_records.write uses the fixed matcher
+        for both the include and the exclude decision before publication. One residual,
+        narrow divergence remains: on Python < 3.13 the guard also rejects patterns
+        with ''**'' embedded inside a component (e.g. ''docs/**.md''), where old Path.glob
+        treats such a component as a plain name wildcard and would select files —
+        a conservative false rejection with the same ''outside managed documents''
+        error, reported as a suggestion. No new blockers were found in the supplied
+        code. Unmanaged actual report; not document-schema validated.'
+      ended_at: '2026-11-06T09:26:56.039859+00:00'
+      evidence_boundary: Scheduling record only. Required independent attestations
+        use tao review imports; report existence does not prove correctness or identity.
       recovered_context: true
     round_decisions:
     - before: 2
@@ -585,7 +612,7 @@ provenance:
   unknown_fields: []
   review_budget_unknown: []
   lifecycle_decision: 用户明确要求继续完成全部任务并收尾；已核对迁移前后批准、审查历史、基准和产物未改变，保留原JSON，确认本事项仍在进行。
-last_operation_id: f11c4a763c564871898f4bdfa7e8dbf7
+last_operation_id: 6780966fe88d4d15883cd5f6431c3f1e
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
