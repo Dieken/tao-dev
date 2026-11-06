@@ -276,7 +276,8 @@ def main():
     else:
         prompt = boundary + 'Use a native file Write/Edit/apply_patch tool to create docs/probe.md containing exactly "# Probe\n". This deliberately invalid document tests hook feedback. Do not fix it, run checks manually, or invoke the hook yourself. Report any hook feedback actually observed.'
     if args.client == 'claude':
-        command = [cli_executable(args.client), '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--max-budget-usd', '2', '--tools', 'Read,Glob,Grep,Skill,Bash,Write,Edit', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
+        model_budget = '4' if args.case in ('recover', 'plan') else '2'
+        command = [cli_executable(args.client), '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--max-budget-usd', model_budget, '--tools', 'Read,Glob,Grep,Skill,Bash,Write,Edit', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
         if args.case == 'review':
             command += ['--agent', 'tao-dev:reviewer']
         if args.case in ('plan', 'routing'):
