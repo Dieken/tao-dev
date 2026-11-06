@@ -17,7 +17,7 @@ from . import reviews, workflows
 from .documents import ASSETS, validate
 from .identifiers import new_id
 from .handoff import save as save_handoff
-from .project import ConfigurationError, ConflictError, Project, create_file
+from .project import ConfigurationError, ConflictError, Project, create_file, mutation_lock
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
@@ -360,6 +360,16 @@ def dispatch(args):
             if args.command == 'status':
                 raise
             pass  # New/handoff may operate on a plan without local state.
+    if args.command == "new":
+        with mutation_lock(project):
+            result = index(project)
+            if any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004")
+                   for d in result.diagnostics):
+                raise ConfigurationError(
+                    "Cannot allocate IDs while the managed index has unreadable metadata, duplicate definitions or escaping paths.")
+            report["outputs"] = skeleton(project, args, registry, result)
+            report["diagnostics"] = [asdict(d) for d in result.diagnostics]
+        return report, 0
     result = index(project)
     if args.command == "review":
         config = policy(project)
@@ -372,7 +382,7 @@ def dispatch(args):
                                            'required_reviews': config.get('required_reviews', []),
                                            'instruction': 'Review fixed inputs independently; import the actual conclusion with its source. This request is not a review result.'}
         return report, 0
-    if args.command in ("id", "new") and any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004") for d in result.diagnostics):
+    if args.command == "id" and any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004") for d in result.diagnostics):
         raise ConfigurationError("Cannot allocate IDs while the managed index has unreadable metadata, duplicate definitions or escaping paths.")
     if args.command == "show":
         target = result.definitions.get(args.id)
@@ -381,8 +391,6 @@ def dispatch(args):
         report["outputs"] = {"definition": asdict(target), "references": [asdict(r) for r in result.references if r.target == args.id], "url": None}
     elif args.command == "id":
         report["outputs"]["id"] = new_id(args.type, registry, result.definitions)
-    elif args.command == "new":
-        report["outputs"] = skeleton(project, args, registry, result)
     elif args.command == "handoff":
         report["outputs"] = save_handoff(project, args.source, args.change, result)
     elif args.command == "status":

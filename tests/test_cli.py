@@ -176,9 +176,19 @@ def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
         for process in processes:
             if process.poll() is None:
                 process.communicate(timeout=5)
-    # The reports travel with the assertion: a platform that answers a taken
-    # destination with an unexpected code is otherwise only a bare exit code.
-    assert sorted(code for _, code in results) == [0, 1], results
+    # Keep only concise report fields so a platform-specific race failure
+    # includes its diagnostic without truncating a complete JSON string.
+    details = []
+    for (stdout, stderr), code in results:
+        report = json.loads(stdout)
+        details.append({
+            "returncode": code,
+            "status": report.get("status"),
+            "diagnostics": report.get("diagnostics"),
+            "outputs": report.get("outputs"),
+            "stderr": stderr,
+        })
+    assert sorted(code for _, code in results) == [0, 1], details
     assert len(list((tmp_path / "docs").rglob("*.md"))) == 1
 
 
