@@ -42,7 +42,7 @@ def test_invalid_timeout_is_rejected(monkeypatch, value):
 def test_pytest_runner_and_inner_session_share_operator_timeout(tmp_path, monkeypatch):
     import test_live_acceptance as live
     monkeypatch.setenv('TAO_ACCEPTANCE_MODEL_TIMEOUT', '1200')
-    monkeypatch.setattr(live, '_require_model_session', lambda client: None)
+    monkeypatch.setattr(live, '_require_model_session', lambda client, **kwargs: None)
     calls=[]
     monkeypatch.setattr(live, '_run', lambda args, **kw: calls.append((args, kw)))
     live.test_documented_claude_acceptance('plan', 'local', (), tmp_path)

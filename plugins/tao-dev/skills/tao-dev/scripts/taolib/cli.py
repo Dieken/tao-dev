@@ -361,6 +361,22 @@ def dispatch(args):
                 raise
             pass  # New/handoff may operate on a plan without local state.
     if args.command == "new":
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.slug):
+            raise ConfigurationError("--slug must contain lowercase ASCII words separated by hyphens.")
+        if args.locale and args.locale not in ("en", "zh-Hans"):
+            raise ConfigurationError("Choose an available document language once: en or zh-Hans.")
+        if not args.locale:
+            locale = project.locale
+            if not locale:
+                input_index = index(project)
+                if any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004")
+                       for d in input_index.diagnostics):
+                    raise ConfigurationError(
+                        "Cannot allocate IDs while the managed index has unreadable metadata, duplicate definitions or escaping paths.")
+                locales = {doc.metadata["locale"] for doc in input_index.documents.values()}
+                locale = next(iter(locales)) if len(locales) == 1 else None
+            if locale not in ("en", "zh-Hans"):
+                raise ConfigurationError("Choose an available document language once: en or zh-Hans.")
         with mutation_lock(project):
             result = index(project)
             if any(d.rule_id in ("TAO-DOC-001", "TAO-ID-002", "TAO-REF-004")
