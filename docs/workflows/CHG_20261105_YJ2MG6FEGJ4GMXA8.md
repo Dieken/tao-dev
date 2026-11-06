@@ -8,7 +8,7 @@ created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
 summary: 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
-record_revision: 4
+record_revision: 5
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -110,7 +110,7 @@ review_batches:
     phase: implement
     decision: 用户批准recover/plan预算2至4美元的小范围变更；按默认两轮保存本次定向复核，第一轮追记登记失败后误启动并中止的调用，不作为有效审查；第二轮只审本次差异，实际调用上限1美元300秒。
     started_at: '2026-11-06T03:01:42.403373+00:00'
-    max_rounds: 4
+    max_rounds: 5
     runs:
     - id: 4d684f2299294b688c39afb4ee0c1500
       round: 1
@@ -293,6 +293,35 @@ review_batches:
       evidence_boundary: Scheduling record only. Required independent attestations
         use tao review imports; report existence does not prove correctness or identity.
       recovered_context: true
+    - id: 73ae52a9b84746f9a00683206fe8411b
+      round: 5
+      started_at: '2026-11-06T09:26:01.186291+00:00'
+      outcome: running
+      mode: serial
+      reviewers: 1
+      decision: 按用户完成本机范围的授权，对第4次实际独立报告的REC-01修复做一次定向复核。真实新发现及已执行修复构成新增证据，原批次上限显式从4增至5，仅追加这次跟进，不重置任何失败或通过。继续使用已批准的无CLI费用阈值、1200秒超时，禁用工具与委派；Windows保持未覆盖。
+      request:
+        schema: tao.review-scope/v0.1
+        change: CHG_20261105_YJ2MG6FEGJ4GMXA8
+        scope: feature
+        kind: code
+        base_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
+        target_commit: fc5f4287eba12c09ecbb50d0e4c7b5cf70f2111b
+        include:
+        - AGENTS.md
+        - docs/product/workflow-recovery.md
+        - docs/engineering/workflow-recovery.md
+        - docs/plans/2026-11/20261105-workflow-recovery.md
+        - docs/workflows/CHG_20261105_YJ2MG6FEGJ4GMXA8.md
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/project.py
+        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_records.py
+        - tests/test_workflow_record_paths.py
+        excluded_record_directories:
+        - tmp/tao/
+        input_digest: 35943e54cd204d2f47dd8b79027019a96f27e6a45dd668873bb540fd5b56876f
+        output_files:
+        - tmp/tao/finish-followup-review-report.md
+      recovered_context: true
     round_decisions:
     - before: 2
       after: 3
@@ -300,6 +329,9 @@ review_batches:
     - before: 3
       after: 4
       decision: 用户要求继续完成任务，后明确先完成本机可做部分，恢复先前保留的额外独立复核：不设CLI费用阈值，超时20分钟。保留前三次失败，原批次上限显式增至4，不重置历史；范围含当前预算入口、取消清理、必需绑定与正式记录修复及其调用方。只读、禁用工具与委派；Windows保持未覆盖。
+    - before: 4
+      after: 5
+      decision: 按用户完成本机范围的授权，对第4次实际独立报告的REC-01修复做一次定向复核。真实新发现及已执行修复构成新增证据，原批次上限显式从4增至5，仅追加这次跟进，不重置任何失败或通过。继续使用已批准的无CLI费用阈值、1200秒超时，禁用工具与委派；Windows保持未覆盖。
     history:
     - id: 43c92391fdf44cfd9459f66c3da87b7a
       phase: implement
@@ -553,7 +585,7 @@ provenance:
   unknown_fields: []
   review_budget_unknown: []
   lifecycle_decision: 用户明确要求继续完成全部任务并收尾；已核对迁移前后批准、审查历史、基准和产物未改变，保留原JSON，确认本事项仍在进行。
-last_operation_id: 6883e064074f49a29eeaded9bb1b7a8b
+last_operation_id: f11c4a763c564871898f4bdfa7e8dbf7
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
