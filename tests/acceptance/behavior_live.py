@@ -15,6 +15,7 @@ from acceptance.behavior_runner import SubprocessExecutor, run_scenario
 from acceptance.behavior_trace import FILE_EVENTS
 from acceptance.clients import global_configuration, prepare
 from acceptance.commands import cli_executable
+from acceptance.limits import claude_budget, model_timeout
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -231,6 +232,7 @@ def execute(client, workspace, timeout):
         "elapsed_seconds": round(time.monotonic() - started, 3),
         "timeout_seconds": timeout,
         "timeout_scope": "all scenario turns",
+        "claude_budget_usd": claude_budget(2) if client == 'claude' else None,
         "session_id": run.session_id,
         "runner_status": run.status,
         "trace_complete": run.trace.complete,
@@ -249,8 +251,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client", choices=("claude", "codex"), required=True)
     parser.add_argument("--workspace", type=Path, required=True)
-    parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--timeout", type=int, default=None)
     args = parser.parse_args()
+    try:
+        if args.timeout is None:
+            args.timeout = model_timeout()
+        if args.client == 'claude':
+            claude_budget(2)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.timeout < 1:
         parser.error("timeout must be at least 1 second")
     try:

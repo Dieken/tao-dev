@@ -4,6 +4,9 @@
 
 无认证时，真实模型测试由统一 readiness 在启动 acceptance 脚本前跳过；认证存在但过期、路由不受支持或模型服务拒绝调用时，测试会报告失败或 blocked，而不是把已启动的验收伪装成 skip。所有模型子进程都有按场景设置的硬超时；Cursor/Kiro hook 探针为 45 秒，Claude/Codex 长流程默认为 600 秒，超时后终止进程组并保存摘要。CI 可以安装 CLI 但不配置凭据，因此只运行无模型的原生探针并跳过真实会话。
 
+
+维护者可在单次检查中显式设置 `TAO_ACCEPTANCE_MODEL_TIMEOUT=1200` 和 `TAO_CLAUDE_MAX_BUDGET_USD=none`，分别将 Claude/Codex 会话时限设为 20 分钟、移除 Claude CLI 费用阈值。未设置时仍为 600 秒，以及 recover/plan 每次 4 美元、其余 Claude 每次 2 美元；费用变量也接受有限正数。pytest 外层等待同步为模型时限加 120 秒，双轮仍共享一次总时限。Cursor/Kiro 的 45 秒硬上限不变。这两个变量纳入本项目验证环境指纹，参数变更不能复用旧回执；它们不会解除服务端额度限制，实际账单仍未知。维护审查入口可显式使用 `--budget-usd none --timeout 1200`，默认仍为 2 美元、240 秒；无费用阈值须有相应授权。
+
 先按 [开发指南](../../docs/engineering/development.md) 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
 ```sh

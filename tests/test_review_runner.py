@@ -106,9 +106,10 @@ def test_invalid_review_invocation_stops_before_reading_inputs(monkeypatch, opti
     assert result.value.code == 2
 
 
+@pytest.mark.parametrize('budget', ['2', 'none'])
 @pytest.mark.parametrize('invalid', [False, 'severity', 'empty-summary', 'extra-field', 'duplicate-id',
                                      'provider-conflict'])
-def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch, invalid):
+def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch, invalid, budget):
     import json
     from types import SimpleNamespace
     bound = {'source_digest': 'a' * 64, 'policy_digest': 'b' * 64, 'change': 'CHG_fixture'}
@@ -123,9 +124,10 @@ def test_runner_validates_the_record_before_advertising_it(tmp_path, monkeypatch
     monkeypatch.setattr(runner.subprocess, 'check_output', lambda args, **kwargs:
                         'c' * 40 if 'rev-parse' in args else b'' if 'ls-files' in args else 'synthetic source')
     monkeypatch.setattr(runner.sys, 'argv', ['review_claude.py', '--request', str(request), '--tree', 'HEAD',
-                                          '--reuse-claude-auth', '--files', 'example.py'])
+                                          '--reuse-claude-auth', '--budget-usd', budget, '--files', 'example.py'])
 
     def fake_review(command, prompt, output, timeout):
+        assert ('--max-budget-usd' in command) is (budget != 'none')
         finding = dict(id='F1', severity='suggestion', location='example.py:1', problem='Example issue.',
                        disposition='open', rationale='Example evidence.')
         conclusion = dict(binding=bound, summary='Synthetic review.', findings=[finding], limitations=[])

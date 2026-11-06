@@ -8,7 +8,6 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 import signal
@@ -21,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests/acceptance'))
 from clients import global_configuration  # noqa: E402
 from cancellation import termination_guard  # noqa: E402
+from limits import budget_limit  # noqa: E402
 from isolated_claude import access_environment  # noqa: E402
 from isolated_codex import private_log, redact  # noqa: E402
 sys.path.insert(0, str(ROOT / 'plugins/tao-dev/skills/tao-dev/scripts'))
@@ -97,14 +97,15 @@ def main():
     parser.add_argument('--files', nargs='+', required=True)
     parser.add_argument('--requirement', default='independent-implementation-review')
     parser.add_argument('--timeout', type=int, default=240)
-    parser.add_argument('--budget-usd', type=float, default=2)
+    parser.add_argument('--budget-usd', type=budget_limit, default=2,
+                        help='Positive CLI fee threshold, or none for an explicitly unlimited invocation.')
     parser.add_argument('--reuse-claude-auth', action='store_true',
                         help='Explicitly reuse existing access in isolated child state; never refresh.')
     args = parser.parse_args()
     if not args.reuse_claude_auth:
         parser.error('Review execution requires explicit isolated access reuse; personal-state mode is disabled.')
-    if args.timeout <= 0 or not math.isfinite(args.budget_usd) or args.budget_usd <= 0:
-        parser.error('timeout and budget-usd must be positive, finite bounds.')
+    if args.timeout <= 0:
+        parser.error('timeout must be positive.')
     request = json.loads(args.request.read_text(encoding='utf-8'))['outputs']['request']
     if args.requirement not in request['required_reviews']:
         parser.error('The requirement must be present in the input request.')
@@ -154,9 +155,12 @@ def main():
     (output / 'input.json').write_text(json.dumps({'tree': tree, 'binding': request['binding'], 'files': args.files}, indent=2) + '\n', encoding='utf-8', newline='\n')
     command = ['claude', '-p', '--safe-mode', '--effort', 'low', '--no-session-persistence',
                '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--tools', '',
-               '--max-turns', '3', '--max-budget-usd', str(args.budget_usd), '--json-schema', json.dumps(conclusion_schema)]
+               '--max-turns', '3', '--json-schema', json.dumps(conclusion_schema)]
+    if args.budget_usd is not None:
+        command += ['--max-budget-usd', str(args.budget_usd)]
     result = run_review(command, prompt, output, args.timeout)
-    result.update(tree=tree, output=output.relative_to(ROOT).as_posix(), billed_usd=None)
+    result.update(tree=tree, output=output.relative_to(ROOT).as_posix(), billed_usd=None,
+                  timeout_seconds=args.timeout, cli_budget_usd=args.budget_usd)
     if review_succeeded(result):
         events = [json.loads(line) for line in events_path.read_text(encoding='utf-8').splitlines() if line.strip()]
         initial = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']

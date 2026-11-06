@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import native_clients
+from acceptance.limits import model_timeout
 
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT_ACCEPTANCE = ROOT / "tests/acceptance/clients.py"
@@ -91,6 +92,7 @@ def _require_cli(client):
 )
 def test_documented_claude_acceptance(case, scope, extra, tmp_path):
     _require_model_session("claude")
+    timeout = model_timeout()
     workspace = tmp_path / f"claude-{case}"
     arguments = [
         str(CLIENT_ACCEPTANCE),
@@ -105,9 +107,9 @@ def test_documented_claude_acceptance(case, scope, extra, tmp_path):
         "--workspace",
         str(workspace),
         "--timeout",
-        "600",
+        str(timeout),
     ]
-    _run(arguments, timeout=720, environment=os.environ.copy())
+    _run(arguments, timeout=timeout + 120, environment=os.environ.copy())
 
 
 def test_documented_claude_lifecycle_acceptance(tmp_path):
@@ -133,6 +135,7 @@ def test_documented_claude_lifecycle_acceptance(tmp_path):
 )
 def test_documented_codex_acceptance(case, extra, tmp_path):
     _require_model_session("codex")
+    timeout = model_timeout()
     workspace = tmp_path / f"codex-{case}"
     arguments = [
         str(CLIENT_ACCEPTANCE),
@@ -147,9 +150,9 @@ def test_documented_codex_acceptance(case, extra, tmp_path):
         "--workspace",
         str(workspace),
         "--timeout",
-        "600",
+        str(timeout),
     ]
-    _run(arguments, timeout=720, environment=os.environ.copy())
+    _run(arguments, timeout=timeout + 120, environment=os.environ.copy())
 
 
 def test_documented_codex_lifecycle_acceptance(tmp_path):
@@ -170,6 +173,7 @@ def test_documented_codex_lifecycle_acceptance(tmp_path):
 @pytest.mark.parametrize("client", ("claude", "codex"))
 def test_documented_behavior_acceptance(client, tmp_path):
     _require_model_session(client)
+    timeout = model_timeout()
     workspace = tmp_path / f"{client}-behavior"
     environment = os.environ.copy()
     existing = environment.get("PYTHONPATH")
@@ -185,8 +189,8 @@ def test_documented_behavior_acceptance(client, tmp_path):
             "--workspace",
             str(workspace),
             "--timeout",
-            "600",
+            str(timeout),
         ],
-        timeout=720,
+        timeout=timeout + 120,
         environment=environment,
     )

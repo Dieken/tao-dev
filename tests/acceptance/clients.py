@@ -17,9 +17,11 @@ from pathlib import Path
 try:
     from acceptance.commands import cli_executable
     from acceptance.cancellation import termination_guard
+    from acceptance.limits import claude_budget, model_timeout
 except ModuleNotFoundError:
     from commands import cli_executable
     from cancellation import termination_guard
+    from limits import claude_budget, model_timeout
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / 'plugins/tao-dev'
@@ -156,7 +158,7 @@ def main():
     parser.add_argument('--client', choices=['claude', 'codex'], required=True)
     parser.add_argument('--case', choices=['inside', 'outside', 'review', 'write', 'recover', 'plan', 'verify', 'routing'], required=True)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--timeout', type=int, default=600)
+    parser.add_argument('--timeout', type=int, default=None)
     parser.add_argument('--isolated-codex', action='store_true', help='Use fresh experiment-only native plugin state.')
     parser.add_argument('--reuse-codex-auth', action='store_true', help='Temporarily reuse existing unexpired access credentials without a refresh token.')
     parser.add_argument('--codex-legacy', action='store_true', help='Test the generated compatibility package required for 0.154.0 native hooks.')
@@ -165,6 +167,15 @@ def main():
     parser.add_argument('--claude-scope', choices=['user', 'project', 'local'], help='Use a native installation in fresh experiment-only Claude state.')
     parser.add_argument('--reuse-claude-auth', action='store_true', help='Reuse the existing Claude access token in the child environment only.')
     args = parser.parse_args()
+    if args.timeout is None:
+        try:
+            args.timeout = model_timeout()
+        except ValueError as exc:
+            parser.error(str(exc))
+    try:
+        model_budget = claude_budget(4 if args.case in ('recover', 'plan') else 2) if args.client == 'claude' else None
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.isolated_codex != args.reuse_codex_auth or args.isolated_codex and args.client != 'codex':
         parser.error('Native Codex probes require both isolation and explicit access reuse.')
     if bool(args.claude_scope) != args.reuse_claude_auth or args.claude_scope and args.client != 'claude':
@@ -278,8 +289,9 @@ def main():
     else:
         prompt = boundary + 'Use a native file Write/Edit/apply_patch tool to create docs/probe.md containing exactly "# Probe\n". This deliberately invalid document tests hook feedback. Do not fix it, run checks manually, or invoke the hook yourself. Report any hook feedback actually observed.'
     if args.client == 'claude':
-        model_budget = '4' if args.case in ('recover', 'plan') else '2'
-        command = [cli_executable(args.client), '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--max-budget-usd', model_budget, '--tools', 'Read,Glob,Grep,Skill,Bash,Write,Edit', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
+        command = [cli_executable(args.client), '-p', '--no-session-persistence', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--permission-prompts', 'none', '--tools', 'Read,Glob,Grep,Skill,Bash,Write,Edit', '--allowedTools', 'Read,Glob,Grep,Skill,Bash,Write,Edit']
+        if model_budget is not None:
+            command += ['--max-budget-usd', format(model_budget, 'g')]
         if args.case == 'review':
             command += ['--agent', 'tao-dev:reviewer']
         if args.case in ('plan', 'routing'):
@@ -332,6 +344,7 @@ def main():
     after = global_configuration()
     codex_after = tomllib.loads(config_file.read_text(encoding='utf-8')) if config_file.exists() else {}
     report = {'log_prefix': name, 'client': args.client, 'case': args.case, 'exit_code': process.returncode if process else None,
+              'timeout_seconds': args.timeout, 'claude_budget_usd': model_budget,
               'timed_out': timed_out, 'elapsed_seconds': round(time.monotonic() - start, 3),
               'global_configuration_unchanged': before == after,
               'changed_global_files': [p for p in before if before[p] != after[p]],

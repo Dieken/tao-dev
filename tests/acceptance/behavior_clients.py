@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from acceptance.commands import cli_executable
+from acceptance.limits import claude_budget
 
 
 @dataclass(frozen=True)
@@ -32,10 +33,13 @@ class ClientAdapter:
                 cli_executable("claude"), "-p", "--output-format", "stream-json", "--verbose",
                 "--effort", "low",
                 "--strict-mcp-config", "--permission-mode", "acceptEdits",
-                "--permission-prompts", "none", "--max-budget-usd", "2",
+                "--permission-prompts", "none",
                 "--tools", "Read,Glob,Grep,Skill,Bash,Write,Edit",
                 "--allowedTools", "Read,Glob,Grep,Skill,Bash,Write,Edit",
             ]
+            budget = claude_budget(2)
+            if budget is not None:
+                command.extend(('--max-budget-usd', format(budget, 'g')))
             if resume:
                 command.extend(("--resume", session_id))
             else:
