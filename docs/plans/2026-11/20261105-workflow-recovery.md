@@ -200,7 +200,11 @@ CLI 集成主脚本在最新源码上执行 15 次调用通过；补充 worktree
 | REC-01 | suggestion | 采用并修复，实际定向复核确认 | 候选匹配与文件系统 glob 对照测试、嵌套目录及排除测试通过；原报告处置不改写 |
 | REC-01-FU-01 | suggestion | 不采纳 | 官方 [CPython 3.11.14](https://raw.githubusercontent.com/python/cpython/v3.11.14/Lib/pathlib.py) 和 [3.12.12](https://raw.githubusercontent.com/python/cpython/v3.12.12/Lib/pathlib.py) 的 _make_selector 均明确拒绝非整段 **；已提取并执行这两个官方选择器分支，均抛 ValueError，反驳“旧版会按普通通配符选择”的前提。未声称实际运行完整旧版解释器或 Windows；保留模型原建议及其静态推测限制 |
 
-用户已将当前收尾范围限定为本机可做部分；Windows 原生验收仍为任务 10 的明确缺口。本次将对冻结输入运行完整本机代码检查，实际结果以当前配置回执为准，不据部分检查宣称全部交付。
+用户已将当前收尾范围限定为本机可做部分；Windows 原生验收仍为任务 10 的明确缺口。冻结提交 27d26f8 的完整本机配置检查已实际结束：754 passed、1 failed、3 skipped，覆盖率约 79%；诊断语言及 Ruff 检查通过。两项 Windows 条件检查及当前未登录的 Kiro 原生会话跳过；此前 Kiro 通过记录不代替本次覆盖。Claude recover/plan/routing、Codex 写入/恢复/路由及双轮行为、Cursor 原生会话通过。
+
+唯一失败为 Claude 双轮行为的试验协议：第一轮提出了保留策略问题且未写文件，但将 [TAO_MATERIAL_QUESTION] 和问题放在同一行，未满足脚本的独占行条件，因此未发送第二轮。相同冻结源码、无 CLI 费用阈值及 1200 秒设置下定向复验再次得到同类结果（pytest 1 failed，约 20 秒），两次个人配置摘要均保持不变；不是费用或超时失败。保留原始失败，不降低断言、不把首轮正确提问当作双轮通过，也不继续重复调用模型。完整代码检查仍为 failed；本次未重新执行完整 verify，避免再触发同一整套模型检查，最终以只读 status 和 docs/evidence 检查报告实际门禁。
+
+当前源的依赖导出一致性、两种本地发布包的运行模块/profile/模板及开发文档排除边界检查通过，未全局安装。最终 HTML 构建通过并检查 322 个定义的稳定入口；与代码检查并发的一次构建因写锁拒绝而未执行，待锁释放后已成功重跑。本机可用环境内的执行及独立复核已完成；任务 10 仍因上述完整检查失败、Kiro 当前认证不可用及 Windows 原生验收未覆盖而未完成，不执行 finish/completed。原始输出和回执保存在忽略临时目录，日志过期不改写历史结论。
 
 <!-- /tao:results -->
 
