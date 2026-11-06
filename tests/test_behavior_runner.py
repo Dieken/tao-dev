@@ -163,6 +163,29 @@ def test_timeout_and_malformed_telemetry_are_blocked(tmp_path):
     assert failed.trace.complete is False
 
 
+def test_budget_exhausted_between_turns_preserves_a_blocked_summary(tmp_path):
+    from acceptance.behavior_live import summarize_usage
+    from acceptance.behavior_runner import SubprocessExecutor
+
+    first = FakeExecutor('claude', [{
+        'session_id': '$requested',
+        'text': 'How many days?\n[TAO_MATERIAL_QUESTION]',
+    }])
+    expired = SubprocessExecutor(timeout=10, deadline=0)
+
+    def execute(request):
+        return first(request) if request.turn == 1 else expired(request)
+
+    result = run_scenario(
+        scenario(turns=({'when': 'asks-material-question', 'user': 'Thirty days.'},)),
+        'claude', tmp_path, execute)
+
+    assert result.status == 'blocked'
+    assert result.reason == 'client invocation timed out'
+    assert len(result.log_paths) == 1
+    assert summarize_usage(result.log_paths, 'claude')['estimated_usd'] == 0
+
+
 def test_adapters_build_real_cli_commands_without_other_agents(tmp_path):
     claude = adapter_for("claude").request(
         "Prompt", tmp_path, tmp_path / "claude.jsonl", 1, None)
@@ -171,6 +194,7 @@ def test_adapters_build_real_cli_commands_without_other_agents(tmp_path):
 
     assert claude.command[0] == cli_executable("claude")
     assert "--session-id" in claude.command
+    assert claude.command[claude.command.index("--effort") + 1] == "low"
     assert codex.command[0] == cli_executable("codex")
     assert "exec" in codex.command
     assert {claude.client, codex.client} == {"claude", "codex"}

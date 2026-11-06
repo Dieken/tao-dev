@@ -208,7 +208,7 @@ def execute(client, workspace, timeout):
                 secrets = values
             run = run_scenario(
                 scenario, client, directory,
-                SubprocessExecutor(env=env, timeout=timeout),
+                SubprocessExecutor(env=env, timeout=timeout, deadline=started + timeout),
                 artifact_dir=artifacts)
     finally:
         from acceptance.isolated_codex import redact
@@ -229,6 +229,8 @@ def execute(client, workspace, timeout):
         "client_version": _version(client),
         "scenario": scenario.id,
         "elapsed_seconds": round(time.monotonic() - started, 3),
+        "timeout_seconds": timeout,
+        "timeout_scope": "all scenario turns",
         "session_id": run.session_id,
         "runner_status": run.status,
         "trace_complete": run.trace.complete,

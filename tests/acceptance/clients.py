@@ -16,8 +16,10 @@ from pathlib import Path
 
 try:
     from acceptance.commands import cli_executable
+    from acceptance.cancellation import termination_guard
 except ModuleNotFoundError:
     from commands import cli_executable
+    from cancellation import termination_guard
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / 'plugins/tao-dev'
@@ -300,19 +302,19 @@ def main():
     execution_error = None
     try:
         from isolated_codex import private_log
-        with credentials as values, private_log(logs[0]) as stdout, private_log(logs[1]) as stderr:
+        with termination_guard(), credentials as values, private_log(logs[0]) as stdout, private_log(logs[1]) as stderr:
             if args.claude_scope:
                 scoped, secrets = values
                 env = scoped | {key: env[key] for key in ('TAO_RUNTIME_DIR', 'TAO_PYTHON')}
             else:
                 secrets = values
-            process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, text=True, start_new_session=True, encoding='utf-8')
             try:
+                process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, text=True, start_new_session=True, encoding='utf-8')
                 process.communicate(prompt, timeout=args.timeout)
             except subprocess.TimeoutExpired:
                 timed_out = True
             finally:
-                if process.poll() is None:
+                if process is not None and process.poll() is None:
                     terminate(process, signal.SIGTERM)
                     try:
                         process.wait(timeout=10)

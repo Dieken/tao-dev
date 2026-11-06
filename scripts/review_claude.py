@@ -20,6 +20,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests/acceptance'))
 from clients import global_configuration  # noqa: E402
+from cancellation import termination_guard  # noqa: E402
 from isolated_claude import access_environment  # noqa: E402
 from isolated_codex import private_log, redact  # noqa: E402
 sys.path.insert(0, str(ROOT / 'plugins/tao-dev/skills/tao-dev/scripts'))
@@ -54,16 +55,16 @@ def run_review(command, prompt, output, timeout):
     timed_out = credentials_unchanged = False
     error = None
     try:
-        with access_environment(output, timeout) as (env, secrets):
+        with termination_guard(), access_environment(output, timeout) as (env, secrets):
             with private_log(logs[0]) as stdout, private_log(logs[1]) as stderr:
-                process = subprocess.Popen(command, cwd=output, env=env, stdin=subprocess.PIPE,
-                                           stdout=stdout, stderr=stderr, text=True, encoding='utf-8', errors='replace', start_new_session=True)
                 try:
+                    process = subprocess.Popen(command, cwd=output, env=env, stdin=subprocess.PIPE,
+                                               stdout=stdout, stderr=stderr, text=True, encoding='utf-8', errors='replace', start_new_session=True)
                     process.communicate(prompt, timeout=timeout)
                 except subprocess.TimeoutExpired:
                     timed_out = True
                 finally:
-                    if process.poll() is None:
+                    if process is not None and process.poll() is None:
                         terminate(process, signal.SIGTERM)
                         try:
                             process.wait(timeout=5)

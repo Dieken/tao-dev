@@ -30,6 +30,7 @@ class ClientAdapter:
         if self.client == "claude":
             command = [
                 cli_executable("claude"), "-p", "--output-format", "stream-json", "--verbose",
+                "--effort", "low",
                 "--strict-mcp-config", "--permission-mode", "acceptEdits",
                 "--permission-prompts", "none", "--max-budget-usd", "2",
                 "--tools", "Read,Glob,Grep,Skill,Bash,Write,Edit",

@@ -28,9 +28,12 @@ CODEX_CASES = (
 )
 
 
-def _terminate(process):
+def _terminate(process, *, force=False):
     if os.name == "posix":
-        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
     else:
         subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
@@ -57,9 +60,11 @@ def _run(arguments, *, timeout, environment=None):
     except subprocess.TimeoutExpired:
         _terminate(process)
         try:
-            stdout, stderr = process.communicate(timeout=10)
+            # Leave time for the adapter's ten-second model-group cleanup and
+            # credential/log finalizers before escalating against the adapter.
+            stdout, stderr = process.communicate(timeout=15)
         except subprocess.TimeoutExpired:
-            _terminate(process)
+            _terminate(process, force=True)
             stdout, stderr = process.communicate(timeout=10)
         pytest.fail(
             f"Acceptance process timed out after {timeout}s.\n"
