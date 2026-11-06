@@ -270,7 +270,8 @@ def finish(project, identity, expected, result):
                                             faults[0].path, faults[0].line, faults[0].rule_id))
         # A verdict remains separate from the freshness of its reviewed inputs.
         try:
-            fresh = repreview(owner, state, run['request'], started=True) == run['request']
+            current = repreview(owner, state, run['request'], started=True)
+            fresh = current == run['request'] or committed_review_matches(owner, state, run, current)
         except (OSError, ValueError) as exc:
             run['input_error'] = str(exc)
             fresh = False

@@ -549,3 +549,18 @@ def test_review_survives_commit_of_reviewed_working_bytes(tmp_path, capsys, kind
     record = tmp_path / f"docs/workflows/{state['change']}.md"
     record.write_text(record.read_text().replace('lifecycle: active', 'lifecycle: paused'))
     assert not review_runs.passed(project, state, kind)
+
+
+@pytest.mark.parametrize('kind', ['docs', 'code'])
+def test_committing_own_bookkeeping_before_review_end_keeps_fixed_inputs(tmp_path, capsys, kind):
+    from taolib import review_runs
+    from taolib.project import Project
+    state=repository(tmp_path,capsys);project=Project(tmp_path)
+    request=review_runs.preview(project,state,kind=kind)
+    state=review_runs.begin(project,state['change'],state['revision'],request,'serial',1,'Review fixed input')
+    git(tmp_path,'add','docs');git(tmp_path,'commit','-m','Persist registered review attempt')
+    (tmp_path/'tmp/tao/report.md').write_text('Synthetic test report')
+    state=review_runs.finish(project,state['change'],state['revision'],
+                             {'outcome':'passed','reports':['tmp/tao/report.md'],'summary':'Synthetic fixed-input result'})
+    assert state['reviews'][kind]['runs'][-1]['inputs']=='current'
+    assert review_runs.passed(project,state,kind)
