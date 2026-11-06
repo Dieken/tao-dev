@@ -17,6 +17,8 @@
 | `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的、change 元数据与目标 CHG 一致的 handoff 文档，保存到计划附件或计划前的预留位置；更新保留 DOC ID，附只读状态观察；接续方式见 [工作流状态](workflow-state.md) |
 | `tao review <CHG-ID> [--from <文件>]` | 无 --from 时只读返回审查输入绑定；有 --from 时校验并导入实际审查记录，不启动模型；格式及信任边界见 [审查记录](review-receipts.md) |
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
+| `tao workflow recover/migrate <CHG-ID>` | 只读预览缺失状态恢复或旧 JSON 迁移；显式 --apply 才写入，详见工作流状态接口 |
+| `tao workflow finish <CHG-ID>` | 保存正式结束结果，完成须满足完整交付门禁，取消记录未完成处置 |
 | `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，有项目检查策略时比较证据是否可复用；没有策略时为未评估 |
 
 项目探测与配置见 [项目接入](project-setup.md)，阶段与检查点命令见 [工作流状态](workflow-state.md)，检查策略与结果见 [验证规程](verification.md)。

@@ -4,6 +4,9 @@
 
 无认证时，真实模型测试由统一 readiness 在启动 acceptance 脚本前跳过；认证存在但过期、路由不受支持或模型服务拒绝调用时，测试会报告失败或 blocked，而不是把已启动的验收伪装成 skip。所有模型子进程都有按场景设置的硬超时；Cursor/Kiro hook 探针为 45 秒，Claude/Codex 长流程默认为 600 秒，超时后终止进程组并保存摘要。CI 可以安装 CLI 但不配置凭据，因此只运行无模型的原生探针并跳过真实会话。
 
+
+维护者可在单次检查中显式设置 `TAO_ACCEPTANCE_MODEL_TIMEOUT=1200` 和 `TAO_CLAUDE_MAX_BUDGET_USD=none`，分别将 Claude/Codex 会话时限设为 20 分钟、移除 Claude CLI 费用阈值。未设置时仍为 600 秒，以及 recover/plan 每次 4 美元、其余 Claude 每次 2 美元；费用变量也接受有限正数。pytest 外层等待同步为模型时限加 120 秒，双轮仍共享一次总时限。Cursor/Kiro 的 45 秒硬上限不变。这两个变量纳入本项目验证环境指纹，参数变更不能复用旧回执；它们不会解除服务端额度限制，实际账单仍未知。维护审查入口可显式使用 `--budget-usd none --timeout 1200`，默认仍为 2 美元、240 秒；无费用阈值须有相应授权。
+
 先按 [开发指南](../../docs/engineering/development.md) 准备开发环境并显式运行 runtime.py --download，取得与发布清单匹配的 wheel。clients.py 在试验 workspace 内显式准备独立核心环境；所有后续命令和 hook 共用这个 TAO_RUNTIME_DIR，既不要求客户端安装 uv，也不向用户数据目录准备环境。
 
 ```sh
@@ -27,7 +30,7 @@ PYTHONPATH=tests .venv/bin/python -m acceptance.behavior_live --client codex --w
 
 lifecycle.py 不调用模型，实际安装、禁用、重新启用、更新试验副本的版本及描述、卸载，再以新的原生查询验证变化。兼容包同时验证 hook 禁用／移除和定义变更后的信任失效；只改变包版本不会使相同定义的信任失效，信任哈希不是包代码的完整性证明。它不修改源版本或个人安装；更新重新产生默认启用项时必须恢复临时客户端的默认禁用，避免项目外可见。该检查证明加载生命周期，不能替代模型任务和原生 hook 行为。
 
-Claude 选择 --claude-scope user|project|local 和 --reuse-claude-auth，在全新的 CLAUDE_CONFIG_DIR 中通过原生市场与安装命令配置该范围。既有 macOS Keychain 或文件认证中的访问令牌只进入子进程环境；不携带刷新令牌，不重新登录，过期及自定义供应商路由明确拒绝。模型沿用已选模型，允许工具限制在 Read、Glob、Grep、Skill、Bash、Write、Edit，每例 CLI 预算上限 2 美元。前后比较既有凭据与监测文件，不自动回滚变化。这里的 user 作用于试验配置的所有目录，project／local 只作用于安装项目；不改变个人日常安装。[认证管理](https://code.claude.com/docs/en/authentication)、[环境变量](https://code.claude.com/docs/en/env-vars)
+Claude 选择 --claude-scope user|project|local 和 --reuse-claude-auth，在全新的 CLAUDE_CONFIG_DIR 中通过原生市场与安装命令配置该范围。既有 macOS Keychain 或文件认证中的访问令牌只进入子进程环境；不携带刷新令牌，不重新登录，过期及自定义供应商路由明确拒绝。模型沿用已选模型，允许工具限制在 Read、Glob、Grep、Skill、Bash、Write、Edit，recover/plan 的每次 CLI 调用预算阈值为 4 美元，其余案例为 2 美元。前后比较既有凭据与监测文件，不自动回滚变化。这里的 user 作用于试验配置的所有目录，project／local 只作用于安装项目；不改变个人日常安装。[认证管理](https://code.claude.com/docs/en/authentication)、[环境变量](https://code.claude.com/docs/en/env-vars)
 
 inside 核对实际发现、引用定位、doctor/status；outside 不使用工具，只查询初始可用能力，同时核对初始化清单。Claude user 范围在同一试验配置的项目外也应可见，project／local 则不可见。write 故意创建无效文档，禁止模型手工运行 hook，以便检查原生 PostToolUse 反馈。review 在相同小型导出样例上独立寻找违反“不得覆盖”的行为；Claude 用具名 reviewer 作为当前会话角色，不冒充子代理调度。两份初审输入互不包含对方结论。
 
@@ -35,13 +38,13 @@ plan 在明确授权的非 Git 微型维护样例中通过主 skill 创建计划
 
 routing 用一个不改变需求、设计或文档的 Python 语法修正检查渐进读取。agent 必须启用 tao-dev，并且只读取 [`references/engineering.md`](../../plugins/tao-dev/skills/tao-dev/references/engineering.md) 与 [`references/workflow.md`](../../plugins/tao-dev/skills/tao-dev/references/workflow.md)，不应进入工具、运行环境、配置化验证、文档格式、出版、本地化、术语、证据保存或模板分支。报告只从实际 Read、Bash 或 Codex command 工具输入提取路径，不采信模型自己的说明；目录级资源扫描单独标为失败，因为这种日志不能准确证明读入边界。探针还独立编译结果，检查未创建 docs 文件且 requirements.txt 与 .tao/config.toml 未变。它验证当前客户端的一次可观察行为，不证明所有任务指令都会采用相同读取路径，也不能充当修改前后的因果基线。
 
-behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用测试项目只说明导出保留策略尚未决定，不在任务指令或文件中泄漏 30 天及失败处理答案。首轮必须提出会影响产品行为的关键问题，且不得写入文件；脚本要求 agent 在需要产品决策时输出独立的 `[TAO_MATERIAL_QUESTION]` 标记，避免依赖不同语言的问号标点；仅在该标记实际出现时发送固定用户回复。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。普通 pytest 只用伪执行器验证执行流程，不启动模型。
+behavior_live.py 执行契约中的真实双轮交互场景，不接受其他 coding agent。专用测试项目只说明导出保留策略尚未决定，不在任务指令或文件中泄漏 30 天及失败处理答案。首轮必须提出会影响产品行为的关键问题，且不得写入文件；任务之后单独列出测试驱动协议，要求 agent 在问题回复末尾输出独立的 `[TAO_MATERIAL_QUESTION]` 标记，避免协议淹没在隔离约束中，也避免依赖不同语言的问号标点；仅在该标记实际出现时发送固定用户回复。漏标、同行或引用式提及不能触发下一轮，不由脚本补写标记。第二轮必须以客户端报告的同一 session ID 接续，回答后不得重复提问。Claude 对此小型探针显式使用低推理强度，不代表默认推理强度的耗时保证。`--timeout` 是两轮共享的总执行时限（默认 600 秒），不是每轮重新计时；剩余时间耗尽后不再启动下一轮。两轮事件、逐轮文件哈希差异、客户端版本、可观察模型、token 用量、CLI 估算费用及未知真实账单分别保存；任何缺失 session、换 session、超时、条件不匹配或遥测缺失均为 blocked。执行流程的单元测试使用伪执行器；`test_live_acceptance.py` 则按前述认证前置条件启动真实模型。
 
 原始事件、错误流、运行时间及个人配置文件散列比较存于本仓库 tmp/tao/client-acceptance/，不纳入 VCS。监测涵盖 Codex 配置、认证及 hook，Claude 设置与市场元数据，以及个人 Git 配置；报告只给出变化文件名，不输出秘密。退出 0 只表示进程正常且监测文件未变；验收结论还必须检查初始化组件清单、实际工具调用、输出、模型标识和供应商依据。文件变化可能来自客户端自动维护或并行操作，必须调查，不能自动恢复。监测清单不构成对全部用户目录的完整审计。
 
-模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留 unknown；不要以两个 CLI 的名称断言两个供应商。Cursor/Kiro 自动 hook 会话硬上限 45 秒；`clients.py` 与 `behavior_live.py` 的真实会话默认 600 秒，命令行可指定任意不少于 1 秒的值。到期终止完整进程树并调查原因。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
+模型返回的 token 使用量、CLI 按标价报告的费用和真实账单费用分别记录。未知项保留 unknown；不要以两个 CLI 的名称断言两个供应商。Cursor/Kiro 自动 hook 会话硬上限 45 秒；`clients.py` 与 `behavior_live.py` 的真实会话默认 600 秒，命令行可指定任意不少于 1 秒的值。到期终止客户端进程组并调查原因。单轮、多轮、维护审查及原生 hook 适配器收到外层 SIGTERM 时先执行子进程清理和已有终结操作；pytest 包装器留出清理时间后才用 SIGKILL 升级终止。强制 SIGKILL 无法执行 Python 清理，仍须检查实验残留；这不构成对自行脱离进程组的任意进程的终止保证。试验材料仅包含自带合成样例和本插件运行资源，不传入维护仓库或其他项目资料。
 
-recover 创建新的隔离项目，用实际 CLI 生成计划、执行失败基线并保存 handoff，然后启动没有旧会话历史的客户端。模型只能修改导出实现及已有计划；验收者另行检查 ID 保持、回归通过和修改范围。quality.py 用 Coverage.py 的 subprocess 支持执行维护测试并汇总报告，不调用模型；所有覆盖率数据位于 tmp/tao/coverage/。
+recover 创建新的隔离项目，用实际 CLI 生成计划、执行失败基线并保存 handoff，然后启动没有旧会话历史的客户端。模型只能修改导出实现及已有计划；验收者另行检查 ID 保持、回归通过和修改范围。quality.py 用 Coverage.py 的 subprocess 支持执行维护测试并汇总报告；它通过 pytest 纳入上述真实会话，认证可用时可能产生模型调用费用；所有覆盖率数据位于 tmp/tao/coverage/。
 
 scopes.py 专门验证 Claude 的 user、project、local 安装范围。每次传入新的 --workspace 和 --scope；脚本将 CLAUDE_CONFIG_DIR、XDG_CONFIG_HOME、GIT_CONFIG_GLOBAL 与运行目录限定在 workspace，再调用真实市场和插件安装命令。这里的 user 仅属于隔离客户端配置，不修改个人安装。加 --probe 读取项目内外初始化事件；scope_loading_verified 表示加载边界正确，model_execution_verified 单独表示模型执行成功。隔离配置没有认证时，加载成功不能代替命令或 hook 的模型行为验收。项目外应无项目级插件；user 范围则在隔离配置的两个目录中都可见。
 

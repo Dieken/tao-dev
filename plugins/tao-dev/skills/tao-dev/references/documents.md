@@ -10,7 +10,9 @@
 
 接入时明确管理范围：纳入范围的文档必须有受支持的 schema，缺少或未知 schema 报错；未接入的历史文档列为范围外，不悄悄计入覆盖率。按本次修改需要逐步接入，普通 README、外部资料与客户端 manifest 不因使用 Markdown 就自动纳入。配置和适配由 agent 复用已有约定，确有冲突才交由用户决定。
 
-受管理文档记结论与判断依据，不记执行者的操作经过。判据是未来读者判断产品或某个决定时是否需要该内容：支撑阈值、验收或取舍的测量值与事实属依据，须保留；尝试次数、返工顺序与已修复且不改变产物的失误属过程，归提交消息或检查点。执行记录只写受检对象、观察办法与实际结果。
+受管理文档保留结论与长期判断依据，不记录操作流水账。更新前先核对已有内容，按对象和验证范围合并、替换过时进度；不为每次重试、局部检查、提交、额度错误或修复顺序追加一段，也不把“最新”“最终”“仍待处理”等不同时间的状态并列为当前结论。执行经过归提交消息或忽略的本地记录。
+
+判据是删除后是否会影响理解当前行为、重要取舍、验收依据或未完成限制。支撑阈值的测量、关键反例、适用版本及独立范围的历史判定须保留并明确范围；历史失败不得合并成通过，原始审查结论不得为精简而改写。普通验证摘要只写受检输入、必要环境、观察办法、结果与未覆盖项，详细输出按 [证据保存](evidence-retention.md) 处理。schema 要求的状态、额度计数和收尾字段照契约保存，不因它们记录过程事实而删除。
 
 格式注册表权威定义结构；本文解释写作与完成语义。需要精确字段时，用受支持的 Python 调用本 skill 的 [单 profile 读取器](../scripts/read_profile.py)，例如 `python <skill>/scripts/read_profile.py evidence --locale zh-Hans --template review`。它只返回当前契约和已替换显示标签的模板，不写文件、不分配 ID；普通类型省略 --template。使用已确定的文档语言，只读当前 profile，不整份加载注册表与所有语言资源。无法执行本地脚本时，选择注册表中当前 profile、通用元数据与关联条目约束，配合所选模板及对应的 [中文](../assets/locales/zh-Hans.json) 或 [英文](../assets/locales/en.json) 标签完成填写。
 
@@ -32,6 +34,7 @@
 | 独立检查摘要 | [evidence](../assets/templates/evidence.md) |
 | 独立审查报告 | evidence schema 的 [review 写作模板](../assets/templates/review.md) |
 | 主审裁决 | evidence schema 的 [review-adjudication 写作模板](../assets/templates/review-adjudication.md) |
+| 生命周期与关键决定 | workflow profile，由 workflow start/migrate/recover 生成，模板 workflow.md |
 | 恢复摘要 | [handoff](../assets/templates/handoff.md) |
 
 审查特有字段、发现与处置组织见 [报告写法](review-reports.md)；evidence 的结果、时间与保存语义见 [证据保存](evidence-retention.md)。
@@ -55,7 +58,7 @@
 
 键不依赖标题翻译或序号。二级章节不能增删或改序，细节放在三级及以下且不跳级。必需章节确实不适用时写一句具体依据，不留空或复制模板提示；规格的术语章节优先链接项目术语表，不重复定义。
 
-plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
+有 workflow profile 时由其 `change` 定义 CHG，plan 的同一 `change` 关联该定义；没有正式 workflow 记录的旧 plan profile 的 `change` 定义一个 CHG ID，生成计划前由 [工作流状态](workflow-state.md) 提供该标识；evidence profile 的 `evidence` 定义一个 EVD ID。其他 profile 的 `change` 仅引用 CHG；附件引用字段只引用 DOC，不创建新对象。不提供 `{chg}`、`{evd}` 条目块，也不从正文里出现 ID 推断定义。
 
 读取器从所选语言资源替换 heading.* 和 label.*；无需再读另一语言资源。其余变量填实际内容、已有引用或工具生成的 ID；元数据按合法 YAML 转义。扩展为多项时每个新对象独立分配 ID，不复制示例值；翻译既有对象则保留 ID。计划骨架可由 new 生成，其余由 agent 或人工填写；生成后仍需检查是否是真实内容。
 

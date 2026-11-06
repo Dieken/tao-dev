@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import native_clients
+from acceptance.limits import model_timeout
 
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT_ACCEPTANCE = ROOT / "tests/acceptance/clients.py"
@@ -28,9 +29,12 @@ CODEX_CASES = (
 )
 
 
-def _terminate(process):
+def _terminate(process, *, force=False):
     if os.name == "posix":
-        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
     else:
         subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
@@ -57,9 +61,11 @@ def _run(arguments, *, timeout, environment=None):
     except subprocess.TimeoutExpired:
         _terminate(process)
         try:
-            stdout, stderr = process.communicate(timeout=10)
+            # Leave time for the adapter's ten-second model-group cleanup and
+            # credential/log finalizers before escalating against the adapter.
+            stdout, stderr = process.communicate(timeout=15)
         except subprocess.TimeoutExpired:
-            _terminate(process)
+            _terminate(process, force=True)
             stdout, stderr = process.communicate(timeout=10)
         pytest.fail(
             f"Acceptance process timed out after {timeout}s.\n"
@@ -86,6 +92,7 @@ def _require_cli(client):
 )
 def test_documented_claude_acceptance(case, scope, extra, tmp_path):
     _require_model_session("claude")
+    timeout = model_timeout()
     workspace = tmp_path / f"claude-{case}"
     arguments = [
         str(CLIENT_ACCEPTANCE),
@@ -100,9 +107,9 @@ def test_documented_claude_acceptance(case, scope, extra, tmp_path):
         "--workspace",
         str(workspace),
         "--timeout",
-        "600",
+        str(timeout),
     ]
-    _run(arguments, timeout=720, environment=os.environ.copy())
+    _run(arguments, timeout=timeout + 120, environment=os.environ.copy())
 
 
 def test_documented_claude_lifecycle_acceptance(tmp_path):
@@ -128,6 +135,7 @@ def test_documented_claude_lifecycle_acceptance(tmp_path):
 )
 def test_documented_codex_acceptance(case, extra, tmp_path):
     _require_model_session("codex")
+    timeout = model_timeout()
     workspace = tmp_path / f"codex-{case}"
     arguments = [
         str(CLIENT_ACCEPTANCE),
@@ -142,9 +150,9 @@ def test_documented_codex_acceptance(case, extra, tmp_path):
         "--workspace",
         str(workspace),
         "--timeout",
-        "600",
+        str(timeout),
     ]
-    _run(arguments, timeout=720, environment=os.environ.copy())
+    _run(arguments, timeout=timeout + 120, environment=os.environ.copy())
 
 
 def test_documented_codex_lifecycle_acceptance(tmp_path):
@@ -165,6 +173,7 @@ def test_documented_codex_lifecycle_acceptance(tmp_path):
 @pytest.mark.parametrize("client", ("claude", "codex"))
 def test_documented_behavior_acceptance(client, tmp_path):
     _require_model_session(client)
+    timeout = model_timeout()
     workspace = tmp_path / f"{client}-behavior"
     environment = os.environ.copy()
     existing = environment.get("PYTHONPATH")
@@ -180,8 +189,8 @@ def test_documented_behavior_acceptance(client, tmp_path):
             "--workspace",
             str(workspace),
             "--timeout",
-            "600",
+            str(timeout),
         ],
-        timeout=720,
+        timeout=timeout + 120,
         environment=environment,
     )

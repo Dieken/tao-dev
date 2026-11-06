@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from acceptance import clients
 
 
@@ -9,13 +11,14 @@ def write_events(path, *events):
     path.write_text('\n'.join(json.dumps(event) for event in events) + '\n', encoding='utf-8')
 
 
-def test_claude_reads_come_only_from_executed_tool_inputs(tmp_path):
+@pytest.mark.parametrize('skill_name', ['tao-dev', 'tao-dev:tao-dev'])
+def test_claude_reads_come_only_from_executed_tool_inputs(tmp_path, skill_name):
     log = tmp_path / 'claude.jsonl'
     write_events(
         log,
         {'type': 'assistant', 'message': {'content': [
             {'type': 'tool_use', 'name': 'Skill',
-             'input': {'skill': 'tao-dev:tao-dev'}},
+             'input': {'skill': skill_name}},
             {'type': 'tool_use', 'name': 'Read',
              'input': {'file_path': '/cache/skills/tao-dev/references/engineering.md'}},
             {'type': 'tool_use', 'name': 'Bash', 'input': {
@@ -35,6 +38,18 @@ def test_claude_reads_come_only_from_executed_tool_inputs(tmp_path):
         'resources': ['references/engineering.md', 'references/workflow.md'],
         'broad_scans': [],
     }
+
+
+@pytest.mark.parametrize('skill_name', [
+    'tao-dev-other', 'other:tao-dev', '', None, 42,
+])
+def test_claude_skill_alias_does_not_accept_other_names(tmp_path, skill_name):
+    log = tmp_path / 'claude.jsonl'
+    write_events(log, {'type': 'assistant', 'message': {'content': [{
+        'type': 'tool_use', 'name': 'Skill', 'input': {'skill': skill_name},
+    }]}})
+
+    assert clients.reference_reads(log, 'claude')['skill_invoked'] is False
 
 
 def test_codex_deduplicates_started_and_completed_commands(tmp_path):

@@ -5,6 +5,7 @@ Authentication snapshots carry no refresh token and are removed after use.
 """
 
 import base64
+import importlib.util
 import json
 import os
 import queue
@@ -271,8 +272,15 @@ def trust_test_hook(workspace, inside, plugin):
                 if target.is_symlink() or not target.is_file() or target.read_bytes() != original.read_bytes():
                     raise RuntimeError('Installed hook resources differ from the reviewed source.')
     config = workspace / 'client-state/config.toml'
-    config.write_text(config.read_text(encoding='utf-8') + '\n[hooks.state.' + json.dumps(hook['key']) +
-                      ']\ntrusted_hash = ' + json.dumps(hook['currentHash']) + '\n', encoding='utf-8')
+    # Native config editing separates declaration and plugin-content approval
+    # hashes on newer clients; writing the composite list value as TOML does
+    # not establish trust. Reuse the installer's isolated native editor.
+    spec = importlib.util.spec_from_file_location(
+        'tao_acceptance_installer', ROOT / 'plugins/tao-dev/skills/tao-dev/scripts/install_clients.py')
+    installer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(installer)
+    installer._write_config(config, [
+        (installer._key('hooks', 'state', hook['key'], 'trusted_hash'), hook['currentHash'])])
     after = hook_inventory(workspace, inside)
     trusted = [item for row in after for item in row['hooks']]
     if len(trusted) != 1 or trusted[0]['trustStatus'] != 'trusted':

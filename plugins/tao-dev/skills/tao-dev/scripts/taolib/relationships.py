@@ -158,6 +158,11 @@ def book(validator, book_root):
             return
         if root not in documents or documents[root].metadata["schema"] != "tao.project.navigation/v0.1":
             validator.error("TAO-DOC-002", root, 1, "Book root must be a managed navigation document.")
+        # Lifecycle records are generated project assets and have an implicit
+        # book-root entry unless the project explicitly places them elsewhere.
+        for name, document in documents.items():
+            if document.metadata['schema'] == 'tao.project.workflow/v0.1' and name not in parents:
+                graph.setdefault(root, []).append(name)
         seen, pending = set(), [root]
         while pending:
             item = pending.pop()

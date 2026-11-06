@@ -21,7 +21,8 @@ def start(root, capsys, *extra):
 def test_start_without_plan_then_read_only_status(tmp_path, capsys):
     state = start(tmp_path, capsys)
     assert state['phase'] == 'spec' and state['revision'] == 1
-    assert not list((tmp_path / 'docs').rglob('*.md'))
+    assert not list((tmp_path / 'docs/plans').rglob('*.md'))
+    assert len(list((tmp_path / 'docs/workflows').glob('*.md'))) == 1
     before = {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
     code, report = call(tmp_path, capsys, 'status', state['change'])
     assert code == 0, report
@@ -47,7 +48,7 @@ def test_approval_tracks_content_and_requires_new_decision_after_edits(tmp_path,
     from taolib.workflows import checkpoint, advance, observe
     from taolib.project import Project, ConflictError
     from test_documents import spec
-    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(); p.write_text(spec(), encoding='utf-8')
+    p = tmp_path / 'docs/spec.md'; p.parent.mkdir(exist_ok=True); p.write_text(spec(), encoding='utf-8')
     project = Project(tmp_path)
     state = checkpoint(project, state['change'], 1, {'artifacts': {'spec': ['docs/spec.md']}})
     state = advance(project, state['change'], 2, 'Spec accepted; write design')
@@ -144,3 +145,105 @@ def test_a_paired_results_block_is_accepted_and_excluded_from_the_contract(tmp_p
     assert 'TAO-DOC-003' not in {d.rule_id for d in result.diagnostics}, result.to_dict()
     assert '执行记录。' not in plan_contract(body)
     assert plan_contract(body) == plan_contract(body.replace('执行记录。', '改写后的执行记录。'))
+
+
+@pytest.mark.parametrize('corrupt', [False, True])
+def test_parent_locates_worktree_when_local_state_is_missing_or_corrupt(tmp_path, capsys, corrupt):
+    root = tmp_path / 'project with spaces'
+    root.mkdir()
+    git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.email', 'test@example.test')
+    git(root, 'config', 'user.name', 'Test')
+    (root / '.gitignore').write_text('/.worktrees/\n')
+    git(root, 'add', '.gitignore')
+    git(root, 'commit', '-m', 'Fixture')
+    state = start(root, capsys, '--worktree')
+    host = root / '.worktrees/filter'
+    path = host / '.tao/workflows' / (state['change'] + '.json')
+    if corrupt:
+        path.write_bytes(b'{invalid JSON')
+    else:
+        path.unlink()
+    for args in [('status', state['change']), ('workflow', 'status', state['change'])]:
+        code, report = call(root, capsys, *args)
+        assert code == 0, report
+        row = report['outputs']['workflows'][0]
+        assert row['project'] == str(host)
+        assert row['expected_path'] == str(path)
+    code, report = call(root, capsys, 'workflow', 'advance', state['change'],
+                        '--expect', '1', '--decision', 'Continue')
+    assert code == 1
+    assert str(path) in json.dumps(report)
+    assert 'recover' in json.dumps(report)
+    if corrupt:
+        assert path.read_bytes() == b'{invalid JSON'
+    else:
+        assert not path.exists()
+
+
+
+def test_live_worktree_wins_over_merged_document_copy_and_duplicates_need_selection(tmp_path, capsys, monkeypatch):
+    import shutil
+    root = tmp_path / 'repository'
+    root.mkdir()
+    git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.email', 'test@example.test')
+    git(root, 'config', 'user.name', 'Test')
+    (root / '.gitignore').write_text('/.worktrees/\n')
+    git(root, 'add', '.gitignore')
+    git(root, 'commit', '-m', 'Fixture')
+    state = start(root, capsys, '--worktree')
+    host = root / '.worktrees/filter'
+    shutil.copytree(host / 'docs', root / 'docs')
+    code, report = call(root, capsys, 'status', state['change'])
+    assert code == 0, report
+    assert report['outputs']['workflows'][0]['project'] == str(host)
+    code, report = call(root, capsys, 'workflow', 'recover', state['change'], '--apply')
+    assert code == 1 and report['outputs']['workflow_state']['selection_required']
+    assert not (root / '.tao/workflows').exists()
+    local = root / '.tao/workflows' / (state['change'] + '.json')
+    local.parent.mkdir(parents=True)
+    local.write_bytes((host / '.tao/workflows' / local.name).read_bytes())
+    code, report = call(root, capsys, 'workflow', 'status')
+    assert code == 0
+    rows = report['outputs']['workflows']
+    assert len(rows) == 2 and all(row['selection_required'] for row in rows)
+    assert all(not row['recovery_commands'] for row in rows)
+    monkeypatch.chdir(root)
+    code = main(['--format', 'json', 'workflow', 'status', state['change']])
+    report = json.loads(capsys.readouterr().out)
+    assert code == 1 and report['outputs']['workflow_state']['selection_required']
+    code, report = call(host, capsys, 'workflow', 'status', state['change'])
+    assert code == 0 and report['outputs']['workflows'][0]['project'] == str(host)
+
+
+
+def test_status_missing_unknown_change_keeps_structured_recovery_guidance(tmp_path, capsys):
+    identity = 'CHG_20260101_0000000000000000'
+    code, report = call(tmp_path, capsys, 'status', identity)
+    assert code == 1
+    details = report['outputs']['workflow_state']
+    assert details['expected_path'] == str(tmp_path / '.tao/workflows' / (identity + '.json'))
+    assert details['recovery_commands'][0][-2:] == ['recover', identity]
+    assert details['candidate_sources'] == []
+
+
+
+def test_primary_status_reports_broken_formal_record_and_legacy_json_only(tmp_path, capsys):
+    state = start(tmp_path, capsys)
+    record = tmp_path / 'docs/workflows' / (state['change'] + '.md')
+    local = tmp_path / '.tao/workflows' / (state['change'] + '.json')
+    before = local.read_bytes()
+    record.write_text('---\n<<<<<<< conflict\n---\n')
+    code, report = call(tmp_path, capsys, 'status', state['change'])
+    assert code == 1, report
+    row = report['outputs']['workflows'][0]
+    assert row['state'] == 'formal-record-invalid'
+    assert row['expected_path'] == str(record)
+    assert not row['recovery_commands']
+    assert local.read_bytes() == before
+    record.unlink()
+    code, report = call(tmp_path, capsys, 'status', state['change'])
+    assert code == 0, report
+    assert report['outputs']['workflows'][0]['record_sync'] == 'legacy'
+    assert report['outputs']['workflows'][0]['recovery_commands'][0][-2:] == ['migrate', state['change']]

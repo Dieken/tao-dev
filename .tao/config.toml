@@ -10,6 +10,7 @@ inputs = ["plugins/**/*", "tests/**/*", "docs/**/*.md", "pyproject.toml", "uv.lo
 budget_seconds = 7200
 reuse_seconds = 3600
 required_reviews = ["independent-implementation-review"]
+environment = ["TAO_ACCEPTANCE_MODEL_TIMEOUT", "TAO_CLAUDE_MAX_BUDGET_USD"]
 
 # Ordered first and scoped narrowly: a missing diagnostics catalogue entry is
 # a common slip, and learning about it here costs seconds rather than the

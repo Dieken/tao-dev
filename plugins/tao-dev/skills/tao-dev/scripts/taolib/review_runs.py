@@ -1,5 +1,6 @@
 """Review scope snapshots and persistent round limits; agents conduct reviews."""
 from datetime import datetime, timezone
+from copy import deepcopy
 import os
 import subprocess
 from pathlib import Path
@@ -8,7 +9,7 @@ import zipfile
 
 from tao_messages import Message
 
-from . import git_workflow, workflows
+from . import git_workflow, workflows, review_control
 
 
 def contract_text(path):
@@ -126,6 +127,9 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
         # The plan carries this run's own execution record; hash the contract
         # it declares, not the results written while completing the round.
         contract = contract_text(path) if exists and name == state.get('plan_path') else None
+        if contract is None and exists and name.endswith('.md'):
+            from .workflow_records import review_contract
+            contract = review_contract(path.read_text(encoding='utf-8'), kind, state['change'])
         digest = contract_digest(contract) if contract is not None else (file_digest(path) if exists else None)
         rows.append([name, digest, mode, index.get(name)])
         if exists:
@@ -154,8 +158,9 @@ def repreview(project, state, request, *, started=False):
                    request.get('include'), request.get('output_files'), started=started)
 
 
-def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, new_batch=False):
+def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, new_batch=False, limits=None):
     workflows.text(decision)
+    review_control.validate_limits(limits)
     if mode not in ('serial', 'parallel') or type(reviewers) is not int or not 1 <= reviewers <= 3 or (mode == 'serial' and reviewers != 1):
         raise ConfigurationError('Use one serial reviewer or up to three parallel reviewers.')
     if max_rounds is not None and (type(max_rounds) is not int or max_rounds <= 0):
@@ -176,21 +181,29 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
         if not request['selected_files']:
             raise ConflictError('The selected review scope contains no files.')
         key = request['kind']
+        if key in state.get('review_budget_unknown', []):
+            if not new_batch or max_rounds is None:
+                raise ConflictError('Unknown review history requires an explicit new batch and round allowance.')
+            state['review_budget_unknown'] = [k for k in state['review_budget_unknown'] if k != key]
         now = datetime.now(timezone.utc)
         series = state['reviews'].get(key)
-        if any(s['runs'] and s['runs'][-1]['outcome'] == 'running' for s in state['reviews'].values()):
+        if any(review_control.running(s) for s in state['reviews'].values()):
             raise ConflictError('A review is still recorded as running; reconcile its result or failure first.')
         if series is not None and new_batch:
             state.setdefault('review_history', {}).setdefault(key, []).append(series)
         if series is None or new_batch:
             series = {'id': uuid.uuid4().hex, 'phase': state['phase'], 'decision': decision,
                       'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
-                      'runs': [], 'round_decisions': []}
+                      'runs': [], 'round_decisions': [], 'limits': deepcopy(limits), 'control_decision': decision}
         elif max_rounds is not None and max_rounds != series['max_rounds']:
             series.setdefault('round_decisions', []).append({'before': series['max_rounds'],
                                                               'after': max_rounds, 'decision': decision})
             series['max_rounds'] = max_rounds
-        if len(series['runs']) >= series['max_rounds']:
+            series['control_decision'] = decision
+        if limits is not None:
+            series.update(limits=deepcopy(limits), control_decision=decision)
+        consumed = review_control.used(series)
+        if consumed >= series['max_rounds']:
             raise ConflictError('Review round limit reached; present unresolved issues and obtain an explicit new round decision.')
         if series['runs'] and series['runs'][-1]['outcome'] == 'passed' and series['runs'][-1]['request'] == request:
             raise ConflictError('These inputs already passed; no additional round is needed.')
@@ -213,11 +226,12 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
                 archive.writestr(member, blob.stdout)
         if repreview(owner, state, request) != request:
             raise ConflictError('Inputs changed while snapshotting; no review was started.')
-        series['runs'].append({'id': run_id, 'round': len(series['runs'])+1, 'started_at': now.isoformat(),
+        series['runs'].append({'id': run_id, 'round': consumed+1, 'started_at': now.isoformat(),
                                'outcome': 'running', 'mode': mode, 'reviewers': reviewers, 'decision': decision,
                                'request': request, 'snapshot': snapshot.relative_to(owner.root).as_posix(),
                                'snapshot_digest': file_digest(snapshot), 'index_snapshot': index_snapshot.relative_to(owner.root).as_posix(),
                                'index_snapshot_digest': file_digest(index_snapshot)})
+        series['used_rounds'] = consumed + 1
         state['reviews'][key] = series
     return workflows.mutate(project, identity, expected, edit)
 
@@ -230,10 +244,17 @@ def finish(project, identity, expected, result):
     if not isinstance(reports, list) or any(not isinstance(p, str) for p in reports) or len(reports) != len(set(reports)):
         raise ConfigurationError('Review reports must be distinct project-relative files.')
     def edit(owner, state):
-        active = [(key, series) for key, series in state['reviews'].items() if series['runs'] and series['runs'][-1]['outcome'] == 'running']
+        active = [(key, series) for key, series in state['reviews'].items() if review_control.running(series)]
         if len(active) != 1:
             raise ConflictError('Select one active review round before recording its result.')
         kind, series = active[0]
+        if series.get('pending'):
+            if result['outcome'] != 'failed' or reports:
+                raise ConflictError('Reconcile a recovered review attempt as failed before starting another review.')
+            pending = series.pop('pending')
+            series['runs'].append(pending | {'outcome': 'failed', 'summary': result['summary'],
+                'reports': [], 'ended_at': datetime.now(timezone.utc).isoformat(), 'recovered_context': True})
+            return
         run = series['runs'][-1]
         if result['outcome'] != 'failed' and len(reports) != run['reviewers']:
             raise ConflictError('Each assigned reviewer must produce an actual report before completion.')
@@ -263,7 +284,8 @@ def finish(project, identity, expected, result):
                                             faults[0].path, faults[0].line, faults[0].rule_id))
         # A verdict remains separate from the freshness of its reviewed inputs.
         try:
-            fresh = repreview(owner, state, run['request'], started=True) == run['request']
+            current = repreview(owner, state, run['request'], started=True)
+            fresh = current == run['request'] or committed_review_matches(owner, state, run, current)
         except (OSError, ValueError) as exc:
             run['input_error'] = str(exc)
             fresh = False
@@ -279,5 +301,67 @@ def passed(project, state, kind):
         return False
     run = series['runs'][-1]
     # Older records carry freshness inside outcome; newer ones state it separately.
-    return (run['outcome'] == 'passed' and run.get('inputs', 'current') == 'current'
-            and repreview(project, state, run['request'], started=True) == run['request'])
+    if run.get('recovered_context'):
+        return False
+    if run['outcome'] != 'passed' or run.get('inputs', 'current') != 'current':
+        return False
+    current = repreview(project, state, run['request'], started=True)
+    return current == run['request'] or committed_review_matches(project, state, run, current)
+
+
+def committed_review_matches(project, state, run, current):
+    """A commit may move reviewed working bytes into the index, not change them.
+
+    Keep the immutable review request. Compare both actual snapshots; never
+    refresh a receipt merely because HEAD moved or the worktree is clean.
+    """
+    request = run['request']
+    if request.get('kind') not in ('docs', 'code') or current.get('context_files') != request.get('context_files'):
+        return False
+    if any(current.get(k) != request.get(k) for k in ('base_commit', 'scope', 'kind', 'include', 'selected_files')):
+        return False
+    if not request.get('target_commit') or git_workflow.run(
+            project.root, 'merge-base', '--is-ancestor', request['target_commit'], current['target_commit'], required=False) is None:
+        return False
+    try:
+        snapshot = contained(project.root, run['snapshot'])
+        staged = contained(project.root, run['index_snapshot'])
+        if file_digest(snapshot) != run['snapshot_digest'] or file_digest(staged) != run['index_snapshot_digest']:
+            return False
+        with zipfile.ZipFile(snapshot) as work, zipfile.ZipFile(staged) as index:
+            for name in request['context_files']:
+                path = contained(project.root, name)
+                if name not in work.namelist():
+                    if path.exists():
+                        return False
+                    continue
+                old = work.read(name)
+                actual = path.read_bytes()
+                def normalize(content):
+                    if name == state.get('plan_path'):
+                        return workflows.plan_contract(content.decode('utf-8')).encode()
+                    if name.endswith('.md'):
+                        from .workflow_records import review_contract
+                        contract = review_contract(content.decode('utf-8'), request['kind'], state['change'])
+                        if contract is not None:
+                            return contract.encode()
+                    return content
+                if normalize(old) != normalize(actual):
+                    return False
+                if os.name == 'posix' and path.stat().st_mode & 0o777 != (work.getinfo(name).external_attr >> 16) & 0o777:
+                    return False
+                entry = current.get('index_entries', {}).get(name)
+                original = request.get('index_entries', {}).get(name)
+                if entry == original:
+                    continue
+                if not entry:
+                    return False
+                blob = subprocess.run(['git', '-C', str(project.root), 'cat-file', 'blob', entry['blob']], capture_output=True, timeout=30)
+                if blob.returncode or normalize(blob.stdout) != normalize(old):
+                    return False
+                expected_mode = '100755' if work.getinfo(name).external_attr >> 16 & 0o111 else '100644'
+                if entry['mode'] != expected_mode:
+                    return False
+        return True
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile):
+        return False

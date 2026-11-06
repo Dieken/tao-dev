@@ -45,9 +45,10 @@ formats. CI runs the maintained regression on Linux, macOS and Windows
 across Python 3.11 to 3.14, and the native install probes with all
 supported agent CLIs on the same three platforms. Those probes drive
 installation, scope and removal only: no model call, no client credential
-and no PowerShell launcher. Native Windows client behavior acceptance and
-the current independent review therefore remain incomplete; partial
-checks do not establish delivery readiness.
+and no PowerShell launcher. Native Windows client behavior acceptance remains incomplete. Required
+independent review must have a valid attestation bound to the current
+inputs before delivery; partial checks do not establish delivery
+readiness.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`
 declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
 rewrites every registry and wheel URL in `uv.lock`, producing a large

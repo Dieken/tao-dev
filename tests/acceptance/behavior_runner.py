@@ -3,11 +3,13 @@
 import os
 import signal
 import subprocess
+import time
 from contextlib import ExitStack
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 from acceptance.behavior_clients import adapter_for
+from acceptance.cancellation import termination_guard
 from acceptance.behavior_trace import (
     Trace,
     normalize_client_log,
@@ -38,41 +40,47 @@ class ScenarioRun:
 class SubprocessExecutor:
     """Run a prepared client request with bounded process-group cleanup."""
 
-    def __init__(self, *, env=None, timeout=180):
+    def __init__(self, *, env=None, timeout=180, deadline=None):
         self.env = env
         self.timeout = timeout
+        self.deadline = deadline
 
     def __call__(self, request):
+        timeout = self.timeout
+        if self.deadline is not None:
+            timeout = min(timeout, self.deadline - time.monotonic())
+            if timeout <= 0:
+                return InvocationResult(None, timed_out=True)
         request.log_path.parent.mkdir(parents=True, exist_ok=True)
         error_path = request.log_path.with_suffix(".stderr")
         process = None
         timed_out = False
         error = None
         try:
-            with ExitStack() as stack:
+            with termination_guard(), ExitStack() as stack:
                 stdout = stack.enter_context(os.fdopen(os.open(
                     request.log_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY,
                     0o600), "w"))
                 stderr = stack.enter_context(os.fdopen(os.open(
                     error_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY,
                     0o600), "w"))
-                process = subprocess.Popen(
-                    request.command,
-                    cwd=request.workspace,
-                    env=self.env,
-                    stdin=subprocess.PIPE,
-                    stdout=stdout,
-                    stderr=stderr,
-                    text=True,
-                    start_new_session=True,
-                    encoding='utf-8',
-                )
                 try:
-                    process.communicate(request.prompt, timeout=self.timeout)
+                    process = subprocess.Popen(
+                        request.command,
+                        cwd=request.workspace,
+                        env=self.env,
+                        stdin=subprocess.PIPE,
+                        stdout=stdout,
+                        stderr=stderr,
+                        text=True,
+                        start_new_session=True,
+                        encoding='utf-8',
+                    )
+                    process.communicate(request.prompt, timeout=timeout)
                 except subprocess.TimeoutExpired:
                     timed_out = True
                 finally:
-                    if process.poll() is None:
+                    if process is not None and process.poll() is None:
                         terminate(process, signal.SIGTERM)
                         try:
                             process.wait(timeout=10)
@@ -144,7 +152,8 @@ def run_scenario(scenario, client, workspace, executor, *, artifact_dir=None):
         before = snapshot_workspace(workspace)
         outcome = executor(request)
         after = snapshot_workspace(workspace)
-        logs.append(log_path)
+        if log_path.is_file():
+            logs.append(log_path)
 
         trace = normalize_client_log(log_path, client)
         normalized = _renumber(trace.events, turn, client, len(events) + 1)

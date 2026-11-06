@@ -47,7 +47,7 @@ def test_draft_can_be_incomplete_but_design_approval_cannot(tmp_path,capsys):
     from taolib.project import Project, ConflictError
     from taolib.workflows import checkpoint, advance
     state=start(tmp_path,capsys); project=Project(tmp_path)
-    (tmp_path/'docs').mkdir();(tmp_path/'docs/spec.md').write_text(spec(), encoding='utf-8')
+    (tmp_path/'docs').mkdir(exist_ok=True);(tmp_path/'docs/spec.md').write_text(spec(), encoding='utf-8')
     state=checkpoint(project,state['change'],state['revision'],{'artifacts':{'spec':['docs/spec.md']}})
     state=advance(project,state['change'],state['revision'],'Approve spec and write design')
     (tmp_path/'docs/design.md').write_text(design(), encoding='utf-8')

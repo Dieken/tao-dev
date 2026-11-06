@@ -72,3 +72,28 @@ def test_native_session_termination_stops_process_group(tmp_path):
 def test_native_hook_timeout_cannot_exceed_45_seconds(tmp_path):
     with pytest.raises(ValueError, match='between 1 and 45'):
         run('cursor', tmp_path / 'unused', timeout=46)
+
+
+@pytest.mark.parametrize('supported', [False, True])
+def test_kiro_workspace_trust_uses_only_supported_launch_flag(tmp_path, monkeypatch, supported):
+    from types import SimpleNamespace
+    from acceptance import native_session_hooks as adapter
+    project = tmp_path / 'kiro/inside'
+    env = {'KIRO_HOME': str(tmp_path / 'kiro-home')}
+    calls = []
+    monkeypatch.setattr(adapter, 'cli_executable', lambda client: 'kiro-test')
+    def help_command(command, **options):
+        calls.append((command, options))
+        return SimpleNamespace(returncode=0, stdout='--trust-workspace' if supported else '--trust-all-tools')
+    monkeypatch.setattr(adapter.subprocess, 'run', help_command)
+    assert adapter._kiro_workspace_flags(project, env) == (['--trust-workspace'] if supported else [])
+    assert calls[0][0] == ['kiro-test', 'chat', '--help']
+    assert calls[0][1]['env'] == env
+    assert calls[0][1]['cwd'] == project.resolve()
+
+
+def test_kiro_workspace_trust_rejects_nonexperiment_state(tmp_path, monkeypatch):
+    from acceptance import native_session_hooks as adapter
+    monkeypatch.setattr(adapter.subprocess, 'run', lambda *a, **kw: pytest.fail('No client call outside isolated state'))
+    with pytest.raises(RuntimeError, match='isolated experiment'):
+        adapter._kiro_workspace_flags(tmp_path / 'kiro/inside', {'KIRO_HOME': str(tmp_path / 'personal/.kiro')})

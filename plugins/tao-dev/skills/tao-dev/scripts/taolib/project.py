@@ -1,6 +1,8 @@
 """Project-scoped configuration and filesystem operations."""
 
 import os
+import sys
+from functools import lru_cache
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
 import time
@@ -47,6 +49,7 @@ def contained(root, relative):
 
 class Project:
     def __init__(self, explicit=None, *, config=None):
+        self.workflow_scope_explicit = explicit is not None
         if explicit is None:
             cwd = Path.cwd()
             explicit = next((p for p in [cwd, *cwd.parents] if (p / ".tao/config.toml").is_file() or (p / ".tao/workflows").is_dir()), None)
@@ -69,7 +72,7 @@ class Project:
         paths = self.config.get("paths", {})
         if not isinstance(documents, dict) or documents.keys() - {"include", "exclude", "book_root", "section_redirects"}:
             raise ConfigurationError("Invalid documents configuration.")
-        if not isinstance(paths, dict) or paths.keys() - {"plans", "retired", "temporary"}:
+        if not isinstance(paths, dict) or paths.keys() - {"plans", "retired", "temporary", "workflows"}:
             raise ConfigurationError("Invalid paths configuration.")
         self.includes = documents.get("include", ["docs/**/*.md"])
         self.excludes = documents.get("exclude", [])
@@ -80,7 +83,7 @@ class Project:
         for patterns in (self.includes, self.excludes):
             if not isinstance(patterns, list) or any(not relative_pattern(p) for p in patterns):
                 raise ConfigurationError("Document patterns must be project-relative string arrays.")
-        self.paths = {"plans": "docs/plans", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
+        self.paths = {"workflows": "docs/workflows", "plans": "docs/plans", "retired": "docs/retired", "temporary": "tmp/tao"} | paths
         for value in self.paths.values():
             if not isinstance(value, str) or not value or Path(value).is_absolute():
                 raise ConfigurationError("Configured paths must be nonempty project-relative strings.")
@@ -111,6 +114,37 @@ class Project:
                 if path.is_file() and path not in excluded:
                     selected.add(path)
         return sorted(selected)
+
+    def matches_file(self, relative, pattern):
+        """Match a prospective file with this interpreter's Path.glob rules.
+
+        PurePath.match is right-anchored and treats ** as one component.
+        Match components from the root instead, including zero-depth ** and
+        the default prohibition on traversing directory symlinks via **.
+        """
+        parts, patterns = Path(relative).parts, Path(pattern).parts
+        if not patterns or pattern.endswith(('/', os.sep)):
+            return False
+        if sys.version_info < (3, 13) and (patterns[-1] == '**' or
+                any('**' in part and part != '**' for part in patterns)):
+            return False  # Older Path.glob only yields directories for a final **.
+
+        @lru_cache(maxsize=None)
+        def match(index, position):
+            if position == len(patterns):
+                return index == len(parts)
+            if patterns[position] == '**':
+                if match(index, position + 1):
+                    return True
+                if index == len(parts):
+                    return False
+                if index < len(parts) - 1 and (self.root / Path(*parts[:index + 1])).is_symlink():
+                    return False
+                return match(index + 1, position)
+            return (index < len(parts) and Path(parts[index]).match(patterns[position])
+                    and match(index + 1, position + 1))
+
+        return match(0, 0)
 
     def output(self, key, suffix=""):
         return contained(self.root, Path(self.paths[key]) / suffix)

@@ -144,10 +144,12 @@ def scopes(project, config, paths, allowed, digests):
     return whole, result
 
 
-def snapshot(project, config, exclude=()):
+def snapshot(project, config, exclude=(), *, contracts=None):
     """`exclude` drops project-relative paths a caller declared in advance as
     its own new outputs, so writing them cannot change what was examined. Only
-    review binding passes it; a check receipt binds the whole input scope."""
+    review binding passes it; a check receipt binds the whole input scope.
+    Review callers may supply normalized document contracts; normal checks
+    always hash the actual files, including execution records."""
     allowed = matched(project, config['inputs'])
     config_path = contained(project.root, ".tao/config.toml")
     if config_path.is_file():
@@ -156,7 +158,8 @@ def snapshot(project, config, exclude=()):
     paths = {path for path in allowed if path.resolve() not in excluded}
     if not paths:
         raise ConfigurationError('No verification inputs matched; an empty scope cannot pass.')
-    digests = {}
+    digests = {path: hashlib.sha256(content.encode('utf-8')).hexdigest()
+               for path, content in (contracts or {}).items() if path in paths}
     source_digest, check_digests = scopes(project, config, paths, allowed, digests)
     runtime = {p.name: file_digest(p) for p in Path(__file__).parent.glob('*.py')}
     executables = {}

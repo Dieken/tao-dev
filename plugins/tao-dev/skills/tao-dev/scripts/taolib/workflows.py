@@ -29,12 +29,20 @@ def state_path(project, identity):
 
 def read(project, identity):
     path = state_path(project, identity)
-    data = load(path)
+    if not path.exists():
+        from .workflow_recovery import missing, WorkflowStateError
+        raise WorkflowStateError(missing(project, identity))
+    try:
+        data = load(path)
+    except (ValueError, OSError) as exc:
+        from .workflow_recovery import missing, WorkflowStateError
+        raise WorkflowStateError(missing(project, identity, 'corrupt; preserve the file before recovery')) from exc
     if (not isinstance(data, dict) or data.get('schema') != SCHEMA or data.get('change') != identity
             or data.get('phase') not in PHASES or type(data.get('revision')) is not int
             or data['revision'] < 1 or not isinstance(data.get('artifacts'), dict)
             or not isinstance(data.get('approvals'), dict)):
-        raise ConfigurationError('Invalid workflow state; recover the file before continuing.')
+        from .workflow_recovery import missing, WorkflowStateError
+        raise WorkflowStateError(missing(project, identity, 'corrupt; preserve the file before recovery'))
     return data
 
 
@@ -44,13 +52,25 @@ def local(project):
 
 
 def locate(project, identity):
-    if state_path(project, identity).is_file():
+    from .workflow_recovery import candidates, missing, ambiguity, WorkflowStateError
+    if state_path(project, identity).is_file() and project.workflow_scope_explicit:
         return project
-    matches = [Project(root) for root in git_workflow.roots(project)
-               if root != project.root and state_path(Project(root), identity).is_file()]
-    if len(matches) != 1:
-        raise ConflictError('Select one existing workflow in its workspace.')
-    return matches[0]
+    owners = [project] + [Project(root) for root in git_workflow.roots(project) if root != project.root]
+    states = [owner for owner in owners if state_path(owner, identity).is_file()]
+    if len(states) == 1:
+        return states[0]
+    if len(states) > 1:
+        if project.workflow_scope_explicit and state_path(project, identity).is_file():
+            return project
+        raise WorkflowStateError(ambiguity(project, identity, states))
+    matches = [owner for owner in owners if identity in candidates(owner)]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        if project.workflow_scope_explicit and project in matches:
+            return project
+        raise WorkflowStateError(ambiguity(project, identity, matches))
+    raise WorkflowStateError(missing(project, identity))
 
 
 def plan_contract(content):
@@ -103,7 +123,9 @@ def plan_contract(content):
     return ''.join(result)
 
 
-def artifact_digest(project, state, phase):
+def artifact_digest(project, state, phase, algorithm="path-v0"):
+    if algorithm not in {"path-v0", "doc-v1"}:
+        return None
     names = list(state['artifacts'].get(phase, []))
     if phase == 'plan' and names:
         from .documents import validate
@@ -119,11 +141,19 @@ def artifact_digest(project, state, phase):
         if not path.is_file():
             rows.append((name, None))
             continue
+        binding_name = name
+        if algorithm == 'doc-v1':
+            import yaml
+            try:
+                from .frontmatter import load_frontmatter
+                binding_name = load_frontmatter(path.read_text(encoding='utf-8'))['id']
+            except (ValueError, KeyError, TypeError, IndexError, yaml.YAMLError):
+                return None
         if phase == 'plan':
             content = plan_contract(path.read_text(encoding='utf-8'))
-            rows.append((name, digest_json(content)))
+            rows.append((binding_name, digest_json(content)))
         else:
-            rows.append((name, file_digest(path)))
+            rows.append((binding_name, file_digest(path)))
     return digest_json(rows) if names else None
 
 
@@ -170,7 +200,10 @@ def available_actions(project, state, stale):
 
 def observe(project, state):
     stale = [phase for phase, approval in state['approvals'].items()
-             if phase in DOC_PHASES and artifact_digest(project, state, phase) != approval['digest']]
+             if phase in DOC_PHASES and artifact_digest(project, state, phase, approval.get('algorithm', 'path-v0')) != approval['digest']]
+    from . import workflow_records
+    record = workflow_records.read(project, state['change'])
+    state = state | {'record_sync': 'current' if workflow_records.synchronized(project, state, record) else 'pending' if record else 'legacy'}
     return state | handoff_observation(project, state) | {'project': str(project.root), 'stale_approvals': stale,
                     'next_action': 'refine' if stale else 'continue',
                     'available_actions': available_actions(project, state, stale),
@@ -178,18 +211,23 @@ def observe(project, state):
 
 
 def status(project, identity=None):
+    from .workflow_recovery import candidates, observation, ambiguity
     if identity:
-        owner = locate(project, identity)
-        return [observe(owner, read(owner, identity))]
+        return [observation(locate(project, identity), identity)]
     values = []
-    seen = set()
+    owners = {}
     for root in git_workflow.roots(project):
-        owner = Project(root)
-        for state in local(owner):
-            if state['change'] in seen:
-                raise ConflictError('Workflow identity occurs in several workspaces; select its owner explicitly.')
-            seen.add(state['change'])
-            values.append(observe(owner, state))
+        owner = project if root == project.root else Project(root)
+        for change in candidates(owner):
+            owners.setdefault(change, []).append(owner)
+            values.append(observation(owner, change))
+    for value in values:
+        matches = owners[value['change']]
+        if len(matches) > 1:
+            conflict = ambiguity(project, value['change'], matches)
+            value.update(selection_required=True, conflict=conflict['message'], message=conflict['message'],
+                         candidate_sources=conflict['candidate_sources'], recovery_commands=[],
+                         next_action='select-project', available_actions=['select-project'])
     return values
 
 
@@ -200,7 +238,8 @@ def start(project, slug, summary, locale, decision, worktree=False):
     locale = locale or project.locale
     if locale not in ('en', 'zh-Hans'):
         raise ConfigurationError('Resolve the project document language first: en or zh-Hans.')
-    if any(s['slug'] == slug and s['phase'] != 'complete' for s in local(project)):
+    from .workflow_recovery import candidates, observation
+    if any(s.get('slug') == slug and s.get('lifecycle') not in {'completed', 'cancelled'} for s in (observation(project, i) for i in candidates(project))):
         raise ConflictError('An active workflow already uses this slug; continue it.')
     owner, info = git_workflow.prepare(project, slug) if worktree else (project, git_workflow.context(project.root))
     from .documents import ASSETS, validate
@@ -217,19 +256,31 @@ def start(project, slug, summary, locale, decision, worktree=False):
              'blockers': [], 'operations': [], 'git': info, 'handoff': None, 'resumed_handoff': None,
              'reviews': {}}
     with mutation_lock(owner):
+        from . import workflow_records
+        state['lifecycle'] = 'active'
+        state.update(workflow_records.write(owner, workflow_records.build(owner, state)))
         create_file(owner.root, state_path(owner, identity), json.dumps(state, ensure_ascii=False, indent=2)+'\n')
     return state
 
 
-def mutate(project, identity, expected, edit):
+def mutate(project, identity, expected, edit, durable=True):
     project = locate(project, identity)
     with mutation_lock(project):
         path = state_path(project, identity)
-        before = path.read_bytes()
         state = read(project, identity)
+        before = path.read_bytes()
         if type(expected) is not int or state['revision'] != expected:
             raise ConflictError('Workflow checkpoint changed; run tao workflow status and reconcile before retrying.')
+        from . import workflow_records
+        record = workflow_records.read(project, identity)
+        if record and not workflow_records.synchronized(project, state, record):
+            raise ConflictError('Formal workflow record differs from local state; use workflow resume.')
+        if state.get('lifecycle') in {'completed', 'cancelled'}:
+            raise ConflictError('Workflow is closed; create a new change for follow-up work.')
         edit(project, state)
+        if durable and record:
+            record_path = workflow_records.path(project, identity)
+            state.update(workflow_records.write(project, workflow_records.build(project, state, record), record_path.read_bytes()))
         state['revision'] += 1
         state['updated_at'] = datetime.now().astimezone().isoformat()
         replace_file(project.root, path, json.dumps(state, ensure_ascii=False, indent=2)+'\n', before)
@@ -260,7 +311,7 @@ def checkpoint(project, identity, expected, patch):
         else:
             patch_copy = patch
         state.update(patch_copy)
-    return mutate(project, identity, expected, edit)
+    return mutate(project, identity, expected, edit, durable=False)
 
 
 def advance(project, identity, expected, decision, doc_review=None):
@@ -274,6 +325,10 @@ def advance(project, identity, expected, decision, doc_review=None):
             raise ConflictError(Message('Approved documents changed in {arg0}; refine and obtain a new decision first.',
                                         ', '.join(stale)))
         phase = state['phase']
+        if phase == 'finish':
+            raise ConflictError('Use workflow finish with closure evidence before completing the workflow.')
+        if state.get('lifecycle') == 'unknown':
+            raise ConflictError('Confirm the legacy lifecycle explicitly with workflow resume first.')
         if phase == 'complete' or state['blockers'] or state['operations']:
             raise ConflictError('Resolve blockers and reconcile active operations before advancing.')
         if phase in DOC_PHASES:
@@ -309,7 +364,7 @@ def advance(project, identity, expected, decision, doc_review=None):
                 from .review_runs import passed
                 if not passed(owner, state, 'docs'):
                     raise ConflictError('A current completed document review is required for this choice.')
-            state['approvals'][phase] = {'digest': artifact_digest(owner, state, phase), 'decision': decision}
+            state['approvals'][phase] = {'digest': artifact_digest(owner, state, phase, 'doc-v1'), 'algorithm': 'doc-v1', 'decision': decision}
             if phase == 'plan':
                 state['doc_review'] = doc_review
         if phase == 'review':
@@ -351,6 +406,13 @@ def resume(project, identity, expected, decision, handoff_digest=None):
 
 
 def dispatch(project, args):
+    if args.operation in ('recover', 'migrate'):
+        from . import workflow_recovery
+        if args.operation == 'recover':
+            return workflow_recovery.recover(project, args.change, args.apply, args.expect_source)
+        return workflow_recovery.migrate(project, args.change, args.apply, args.expect, args.expect_source)
+    if args.operation == 'finish':
+        return finish(project, args.change, args.expect, args.decision, args.outcome, load(contained(project.root, args.source)))
     if args.operation.startswith('review-'):
         from . import review_runs
         owner = locate(project, args.change)
@@ -359,7 +421,8 @@ def dispatch(project, args):
         source = load(contained(owner.root, args.source))
         if args.operation == 'review-begin':
             return review_runs.begin(owner, args.change, args.expect, source, args.mode, args.reviewers,
-                                     args.decision, args.max_rounds, args.new_batch)
+                                     args.decision, args.max_rounds, args.new_batch,
+                                     load(contained(owner.root, args.limits_from)) if args.limits_from else None)
         return review_runs.finish(owner, args.change, args.expect, source)
     if args.operation == 'start':
         return start(project, args.slug, args.summary, args.locale, args.decision, args.worktree)
@@ -368,7 +431,61 @@ def dispatch(project, args):
     if args.operation == 'checkpoint':
         return checkpoint(project, args.change, args.expect, load(contained(project.root, args.source)))
     if args.operation == 'resume':
+        project = locate(project, args.change)
+        from . import workflow_records, workflow_recovery
+        state = read(project, args.change)
+        record = workflow_records.read(project, args.change)
+        if record and (args.lifecycle or not workflow_records.synchronized(project, state, record)):
+            return workflow_recovery.reconcile(project, args.change, args.expect, args.decision, args.lifecycle)
         return resume(project, args.change, args.expect, args.decision, args.handoff_digest)
     if args.operation == 'advance':
         return advance(project, args.change, args.expect, args.decision, args.doc_review)
     return revise(project, args.change, args.expect, args.phase, args.decision)
+
+
+def finish(project, identity, expected, decision, outcome, closure):
+    project = locate(project, identity)
+    text(decision)
+    if outcome not in {'completed', 'cancelled'} or not isinstance(closure, dict) or set(closure) != {'evidence', 'unfinished'}:
+        raise ConfigurationError('Closure requires evidence and unfinished arrays.')
+    if any(not isinstance(closure[k], list) or any(not isinstance(v, str) or not v.strip() for v in closure[k]) for k in closure):
+        raise ConfigurationError('Closure requires evidence and unfinished arrays.')
+    state = read(project, identity)
+    from . import workflow_records, workflow_recovery
+    record = workflow_records.read(project, identity)
+    if record is None:
+        import shlex
+        argv = ['tao', '--project', str(project.root), 'workflow', 'migrate', identity]
+        details = workflow_recovery.missing(project, identity, 'migration-required')
+        details.update(expected_path=str(workflow_records.path(project, identity)), recovery_commands=[argv])
+        details['message'] = details['expected_path'] + ': missing durable record; preview migration before finish: ' + shlex.join(argv)
+        raise workflow_recovery.WorkflowStateError(details)
+    if record and record.get('closure') and not workflow_records.synchronized(project, state, record):
+        state = workflow_recovery.reconcile(project, identity, expected, decision)
+    if state.get('closure'):
+        if state['closure'].get('decision') == decision and state['closure'].get('result') == outcome and all(state['closure'].get(k) == v for k, v in closure.items()):
+            return state
+        raise ConflictError('Workflow already has a different closure.')
+    verified = None
+    if outcome == 'completed':
+        from .cli import arguments, verify, document_snapshot
+        args = arguments(['--project', str(project.root), 'verify', identity])
+        report, code = verify(project, args, {'outputs': {}, 'diagnostics': []})
+        if code:
+            raise ConflictError('Delivery verification must pass before completion.')
+        verified = document_snapshot(project)
+    def edit(owner, current):
+        if outcome == 'completed':
+            from .cli import document_snapshot
+            from .review_runs import passed
+            if not passed(owner, current, 'code'):
+                raise ConflictError('Complete a current code review before entering finish.')
+            if verified != document_snapshot(owner) or current['phase'] != 'finish' or current['blockers'] or current['operations'] or observe(owner, current)['stale_approvals']:
+                raise ConflictError('Workflow is not ready to finish.')
+            current['phase'] = 'complete'
+        elif not closure['unfinished']:
+            raise ConflictError('Cancellation requires disposition of unfinished work.')
+        current['lifecycle'] = outcome
+        current['closure'] = closure | {'result': outcome, 'decision': decision,
+                                      'recorded_at': datetime.now().astimezone().isoformat()}
+    return mutate(project, identity, expected, edit)

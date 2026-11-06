@@ -41,13 +41,12 @@ change: "CHG_20260918_HHSEC6GB903A90EV"
 ## 验证
 
 <!-- tao:results -->
-使用项目本地 Python 执行：专项回归 24 项通过，覆盖两种中英文模板、全部旧结果值及 unknown、非法结果拒绝、Markdown 报告不能替代必需审查回执，以及计划附件和工程目录两种批次位置。合成报告验证五个主题分组、八张表、段落、有序与无序列表、强调、代码、分隔线及 need／文件／跨报告章节链接的实际 HTML 输出。测试验证生成能力，不实现或宣称外部文档迁移无损。
+专项回归24项通过，覆盖两种双语模板、旧结果与unknown、非法枚举拒绝、Markdown不能代替必需机器回执，以及报告在计划附件和工程目录的布局。合成报告实测MyST/HTML可表达发现分组、表格、段落、列表、强调、代码及跨报告章节链接；不表示外部报告迁移无损。
 
-完整维护回归 474 passed、5 skipped（670.58 秒）；5 项均为未启用的隔离原生客户端探针。Ruff 的配置致命规则无诊断，skill-creator 格式检查通过。日志在忽略的 tmp/tao/review-report-contract/，覆盖率产物在 tmp/tao/coverage/。
+完整维护回归474 passed、5原生安装探针 skipped（670.58秒）；Ruff及skill元数据检查通过。45份显式受管理文档无error，当时保留[命令设计](../../engineering/cli-design.md)的一条命名示例warning，deletion_checked=false；HTML及稳定入口检查通过，原DOC/EVD和引用保持。
 
-本次模板修改后的 45 份显式受管文档校验无 error，仅保留 [命令设计](../../engineering/cli-design.md) 中 handoff 命名示例的既有 TAO-LINK-002 warning；未提供历史删除基线，deletion_checked=false。HTML 构建完成，检查新计划到设计的 need 链接、模板及规程页面的实际目标。未部署，未进行原生客户端行为验收或独立模型审查，不声称满足完整独立审查门槛。
+既有[共享规则与自举检查](20260914-shared-rules/evidence/shared-rules.md)已与Git字节核对：原passed仅表示其partial静态检查范围，仍符合扩充后的schema，无须改成unknown，也不作为当前版本通过依据。未执行本次原生客户端或独立语义审查；原始输出和覆盖率仅在忽略临时存储。
 
-当前唯一既有 evidence 是 [共享规则与自举文档检查](20260914-shared-rules/evidence/shared-rules.md)。已检查元数据、五个固定章节、必需字段及引用，并与 Git 版本逐字节比较，内容、DOC／EVD 和记录时刻均未改变。其 passed 表示声明范围内的历史静态检查，partial 及正文明确排除了 AST、真实 CLI 和 HTML 验证；正文保留了 ID、模板、错误夹具及引用检查的具体观察，不只有退出码。仍符合扩充后的 schema，无须改成 unknown，也不作为当前版本通过证据。发布页中的 DOC／EVD 及五个章节锚点已核对。
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
