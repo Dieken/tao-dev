@@ -193,6 +193,15 @@ CLI 集成主脚本在最新源码上执行 15 次调用通过；补充 worktree
 
 恢复后的第 4 次真实独立实现复核已完成并导入，未发现 blocker，回执在正式结果记录提交后仍为 satisfied，前三次失败保留。模型报告的非阻断建议 REC-01 已核实为真实缺陷：Path.match 不能按递归 glob 判断多层 workflow 目录。已实际复现嵌套目录失败，并改为与当前解释器 Path.glob 一致的候选文件匹配，包含零层及多层 **、排除、目录专用模式和递归符号链接边界；保留 Python 3.11/3.12 尾部 ** 只选目录的行为。相关检查 66 passed，最终独立路径边界 10 passed；将对 REC-01 执行一次实际定向复核，当前源码变化不会冒用第 4 次回执。用户确认的 Windows 缺口继续保留。
 
+第 5 次真实定向复核明确确认 REC-01 已修复，无新 blocker；新回执及原始事件已导入，正式结果提交后仍为 satisfied。原第 4 次报告及前三次失败均保留。复核建议的处置如下：
+
+| 编号 | 级别 | 处置 | 依据 |
+|---|---|---|---|
+| REC-01 | suggestion | 采用并修复，实际定向复核确认 | 候选匹配与文件系统 glob 对照测试、嵌套目录及排除测试通过；原报告处置不改写 |
+| REC-01-FU-01 | suggestion | 不采纳 | 官方 [CPython 3.11.14](https://raw.githubusercontent.com/python/cpython/v3.11.14/Lib/pathlib.py) 和 [3.12.12](https://raw.githubusercontent.com/python/cpython/v3.12.12/Lib/pathlib.py) 的 _make_selector 均明确拒绝非整段 **；已提取并执行这两个官方选择器分支，均抛 ValueError，反驳“旧版会按普通通配符选择”的前提。未声称实际运行完整旧版解释器或 Windows；保留模型原建议及其静态推测限制 |
+
+用户已将当前收尾范围限定为本机可做部分；Windows 原生验收仍为任务 10 的明确缺口。本次将对冻结输入运行完整本机代码检查，实际结果以当前配置回执为准，不据部分检查宣称全部交付。
+
 <!-- /tao:results -->
 
 <!-- tao:section questions -->
