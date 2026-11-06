@@ -84,6 +84,25 @@ def test_real_checks_are_partial_and_reused_without_reexecution(tmp_path):
     assert not list(tmp_path.rglob('inputs.sha256'))
 
 
+def test_simplified_verification_keeps_check_results_without_input_snapshots(tmp_path):
+    configured(tmp_path)
+    code, result = report(tmp_path, 'verify', '--only', 'code', '--simplified')
+    assert code == 0, result
+    assert result['output_mode'] == 'simplified'
+    execution = result['outputs']['execution']
+    assert execution['status'] == 'passed'
+    assert execution['checks'][0]['status'] == 'passed'
+    assert execution['checks'][0]['argv']
+    assert 'inputs' not in execution
+
+    code, evidence = report(tmp_path, 'verify', '--only', 'evidence', '--simplified')
+    assert code == 0, evidence
+    current = evidence['outputs']['evidence']
+    assert current['state'] == 'reusable'
+    assert current['checks'][0]['status'] == 'passed'
+    assert 'saved' not in current
+
+
 def test_status_detects_changed_and_new_inputs_without_running_checks(tmp_path):
     configured(tmp_path)
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0

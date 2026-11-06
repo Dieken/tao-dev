@@ -93,6 +93,27 @@ def test_review_preview_covers_commits_dirty_and_untracked_without_writes(tmp_pa
     assert before == {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file() and '.git' not in p.parts}
 
 
+def test_review_preview_summary_saves_complete_scope_to_temporary_file(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'],
+                        '--kind', 'code', '--summary', '--save-preview', 'tmp/tao/preview.json')
+    assert code == 0, report
+    summary = report['outputs']['preview']
+    assert summary['path'] == 'tmp/tao/preview.json'
+    assert summary['context_file_count'] >= summary['selected_file_count']
+    saved = json.loads((tmp_path / summary['path']).read_text(encoding='utf-8'))
+    assert saved['input_digest'] == summary['input_digest']
+    assert saved['context_files']
+    assert 'context_files' not in summary
+
+
+def test_review_preview_summary_requires_saved_full_scope(tmp_path, capsys):
+    state = repository(tmp_path, capsys)
+    code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'], '--summary')
+    assert code == 2
+    assert 'requires --save-preview' in report['diagnostics'][0]['message']
+
+
 def test_rounds_require_fixed_inputs_and_do_not_reset_on_reload(tmp_path, capsys):
     state = repository(tmp_path, capsys)
     from taolib.review_runs import preview, begin, finish

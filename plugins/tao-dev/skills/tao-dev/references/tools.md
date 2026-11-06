@@ -6,8 +6,8 @@
 
 | 操作 | 已实现行为 |
 |---|---|
-| `tao verify --only docs` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；结果为 partial／not-evaluated |
-| `tao verify` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／有效审查记录时返回 2 与 blocked |
+| `tao verify --only docs [--simplified]` | 检查纳入范围的共享格式、ID、关系、任务、退役索引及导航；结果为 partial／not-evaluated；简化输出以计数代替完整索引，保留诊断 |
+| `tao verify [--simplified]` | 汇总文档、已配置项目检查、当前证据、目标任务及必需审查；缺策略／工具／有效审查记录时返回 2 与 blocked；简化输出保留检查结果和诊断，省略完整输入指纹与原始文档索引 |
 | `tao verify --only code` | 按项目既有检查策略实际运行或复用有效结果，返回 partial；声明了自身输入范围且该范围未变的检查沿用上次结果并在结果中标出，其余重新执行；`--only evidence` 只检查当前证据，逐项时效不足时报 expired 并列出超时的检查 |
 | `tao verify --only docs --dry-run` | 只显示选择方案，不执行检查，不生成通过证据 |
 | `tao id new REQ` | 用本地日期及安全随机源生成 ID；读取现有定义和退役记录查重，不写编号台账 |
@@ -16,7 +16,9 @@
 | `tao new --slug <slug> --locale en` | 排他创建本地日期的计划骨架；同名计划或附件存在时报错，不覆盖。后续由 agent 按流程规程填写草稿 |
 | `tao handoff [CHG-ID] --from <文件>` | 校验 agent 写好的、change 元数据与目标 CHG 一致的 handoff 文档，保存到计划附件或计划前的预留位置；更新保留 DOC ID，附只读状态观察；接续方式见 [工作流状态](workflow-state.md) |
 | `tao review <CHG-ID> [--from <文件>]` | 无 --from 时只读返回审查输入绑定；有 --from 时校验并导入实际审查记录，不启动模型；格式及信任边界见 [审查记录](review-receipts.md) |
+| `tao workflow review-preview <CHG-ID> [--summary --save-preview <临时 JSON>]` | 固定审查输入范围；摘要模式将完整预览保存到 temporary 并只返回范围计数与摘要 |
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
+| `tao workflow status [CHG-ID] [--simplified]` | 只读查询工作流；简化模式汇总审查历史并保留恢复所需状态 |
 | `tao workflow recover/migrate <CHG-ID>` | 只读预览缺失状态恢复或旧 JSON 迁移；显式 --apply 才写入，详见工作流状态接口 |
 | `tao workflow finish <CHG-ID>` | 保存正式结束结果，完成须满足完整交付门禁，取消记录未完成处置 |
 | `tao status [CHG-ID] [--simplified]` | 只读读取任务、生命周期、阻断和证据时效；`--simplified` 汇总审查控制与历史，保留路径、恢复命令和下一步；不运行行为检查或修改任务；没有检查策略时为未评估 |

@@ -70,6 +70,10 @@ def arguments(argv):
     preview.add_argument("--base")
     preview.add_argument("--include", action="append", default=[])
     preview.add_argument("--output", action="append", default=[], help="Reserve an exact new Markdown output path outside review inputs; repeat for each report or new navigation page.")
+    preview.add_argument("--summary", action="store_true",
+                         help="Print counts and digest instead of the complete file lists.")
+    preview.add_argument("--save-preview",
+                         help="Save the complete preview JSON under the project's temporary directory.")
     for operation in ("review-begin", "review-end"):
         command = operations.add_parser(operation, parents=[common])
         command.add_argument("change")
@@ -96,6 +100,8 @@ def arguments(argv):
     finish.add_argument('--from', dest='source', required=True)
     state = operations.add_parser("status", parents=[common])
     state.add_argument("change", nargs="?")
+    state.add_argument("--simplified", action="store_true",
+                       help="Summarize workflow review history.")
     for operation in ("checkpoint", "advance", "revise", "resume"):
         command = operations.add_parser(operation, parents=[common])
         command.add_argument("change")
@@ -131,6 +137,8 @@ def arguments(argv):
     verify.add_argument("--only")
     verify.add_argument("--scope", choices=("changed", "all"), default="changed")
     verify.add_argument("--dry-run", action="store_true")
+    verify.add_argument("--simplified", action="store_true",
+                        help="Summarize document indexes and saved evidence.")
     verify.add_argument(
         "--no-reuse",
         action="store_true",
@@ -327,6 +335,9 @@ def dispatch(args):
         return report, 0
     if args.command == "workflow":
         report["outputs"] = workflows.dispatch(project, args)
+        if args.operation == 'status' and args.simplified:
+            report['outputs'] = {'workflows': simplified_workflows(report['outputs'].get('workflows', [])),
+                                 'output_mode': 'simplified'}
         return report, 0
     if args.command == "docs":
         if "docs.build" not in CAPABILITIES:
@@ -335,7 +346,8 @@ def dispatch(args):
         report["outputs"] = build(project)
         return report, 0
     if args.command == "verify":
-        return verify(project, args, report)
+        report, code = verify(project, args, report)
+        return (simplified_verification(report), code) if args.simplified else (report, code)
     if args.command == "retire":
         from .retirement import retire
         outcome, code = retire(project, args.id, args.reason, args.replaced_by, apply=args.apply)
@@ -398,6 +410,24 @@ def dispatch(args):
 
 def simplified_status(outputs):
     """Bound status output while retaining actionable workflow diagnostics."""
+    evidence = outputs.get('evidence', {})
+    evidence_summary = ({key: evidence[key] for key in
+                         ('state', 'logs_available', 'expired_checks', 'receipt')
+                         if key in evidence}
+                        if isinstance(evidence, dict) else evidence)
+    return {
+        'workflows': simplified_workflows(outputs.get('workflows', [])),
+        'tasks': outputs.get('tasks', []),
+        'evidence_reusability': outputs.get('evidence_reusability', 'not-evaluated'),
+        'evidence': evidence_summary,
+        'reviews': outputs.get('reviews', []),
+        'validation': outputs.get('validation'),
+        'output_mode': 'simplified',
+    }
+
+
+def simplified_workflows(values):
+    """Summarize local workflow records without dropping recovery controls."""
     workflow_fields = (
         'schema', 'change', 'slug', 'summary', 'locale', 'created', 'updated_at',
         'revision', 'lifecycle', 'phase', 'plan_path', 'artifacts', 'approvals',
@@ -408,7 +438,7 @@ def simplified_status(outputs):
         'message', 'recovery', 'resumed_handoff',
     )
     workflows = []
-    for value in outputs.get('workflows', []):
+    for value in values:
         row = {key: value[key] for key in workflow_fields if key in value}
         controls = value.get('reviews')
         if isinstance(controls, dict):
@@ -428,20 +458,47 @@ def simplified_status(outputs):
         elif isinstance(history, list):
             row['review_history_count'] = len(history)
         workflows.append(row)
-    evidence = outputs.get('evidence', {})
-    evidence_summary = ({key: evidence[key] for key in
-                         ('state', 'logs_available', 'expired_checks', 'receipt')
-                         if key in evidence}
-                        if isinstance(evidence, dict) else evidence)
-    return {
-        'workflows': workflows,
-        'tasks': outputs.get('tasks', []),
-        'evidence_reusability': outputs.get('evidence_reusability', 'not-evaluated'),
-        'evidence': evidence_summary,
-        'reviews': outputs.get('reviews', []),
-        'validation': outputs.get('validation'),
-        'output_mode': 'simplified',
-    }
+    return workflows
+
+
+def simplified_verification(report):
+    """Keep verification decisions and actionable details, omit raw snapshots."""
+    outputs = report.get('outputs', {})
+    docs = outputs.get('documents')
+    if isinstance(docs, dict):
+        outputs['documents'] = {
+            'valid': docs.get('valid'),
+            'counts': {
+                'definitions': len(docs.get('definitions', {})),
+                'references': len(docs.get('references', [])),
+                'documents': len(docs.get('documents', {})),
+                'section_redirects': len(docs.get('section_redirects', {})),
+            },
+            'deletion_checked': docs.get('deletion_checked'),
+        }
+    for field in ('execution', 'evidence'):
+        value = outputs.get(field)
+        if not isinstance(value, dict):
+            continue
+        summary = {key: value[key] for key in (
+            'state', 'status', 'logs_available', 'expired_checks', 'receipt',
+            'elapsed_seconds', 'budget_seconds', 'reused', 'cost'
+        ) if key in value}
+        saved = value.get('saved')
+        if isinstance(saved, dict):
+            value = saved
+        checks = value.get('checks')
+        if isinstance(checks, list):
+            summary['checks'] = [
+                {key: row[key] for key in (
+                    'id', 'argv', 'status', 'exit_code', 'elapsed_seconds',
+                    'log', 'reason', 'reused', 'metrics'
+                ) if key in row}
+                for row in checks if isinstance(row, dict)
+            ]
+        outputs[field] = summary
+    report['output_mode'] = 'simplified'
+    return report
 
 
 def main(argv=None, runtime_context=None):

@@ -417,7 +417,42 @@ def dispatch(project, args):
         from . import review_runs
         owner = locate(project, args.change)
         if args.operation == 'review-preview':
-            return review_runs.preview(owner, read(owner, args.change), args.scope, args.kind, args.base, args.include, args.output)
+            request = review_runs.preview(owner, read(owner, args.change), args.scope, args.kind, args.base, args.include, args.output)
+            if args.summary and not args.save_preview:
+                raise ConfigurationError('--summary requires --save-preview so review-begin can use the complete scope.')
+            saved_path = None
+            if args.save_preview:
+                path = Path(args.save_preview)
+                if (path.is_absolute() or path.as_posix() != args.save_preview or '..' in path.parts
+                        or path.suffix != '.json'):
+                    raise ConfigurationError('--save-preview requires an exact project-relative JSON path.')
+                target = contained(owner.root, args.save_preview)
+                try:
+                    target.resolve().relative_to(owner.output('temporary').resolve())
+                except ValueError as exc:
+                    raise ConfigurationError('--save-preview must be under the configured temporary directory.') from exc
+                create_file(owner.root, target, json.dumps(request, ensure_ascii=False, indent=2) + '\n')
+                saved_path = target.relative_to(owner.root).as_posix()
+            if args.summary:
+                return {'preview': {
+                    'path': saved_path,
+                    'schema': request['schema'],
+                    'change': request['change'],
+                    'scope': request['scope'],
+                    'kind': request['kind'],
+                    'base_commit': request['base_commit'],
+                    'target_commit': request['target_commit'],
+                    'selected_file_count': len(request['selected_files']),
+                    'context_file_count': len(request['context_files']),
+                    'excluded_file_count': len(request['excluded_files']),
+                    'input_bytes': request['input_bytes'],
+                    'input_digest': request['input_digest'],
+                    'output_files': request.get('output_files', []),
+                    'instruction': request['instruction'],
+                }, 'output_mode': 'summary'}
+            if saved_path:
+                request['saved_preview'] = saved_path
+            return request
         source = load(contained(owner.root, args.source))
         if args.operation == 'review-begin':
             return review_runs.begin(owner, args.change, args.expect, source, args.mode, args.reviewers,

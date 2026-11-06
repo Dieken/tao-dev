@@ -51,6 +51,27 @@ def test_docs_verify_pass_is_explicitly_partial_without_vcs(tmp_path):
     assert report["outputs"]["documents"]["valid"]
 
 
+def test_docs_verify_simplified_reports_counts_without_full_index(tmp_path):
+    project(tmp_path)
+    completed = run(tmp_path, "verify", "--only", "docs", "--simplified")
+    assert completed.returncode == 0, completed.stderr
+    report = json.loads(completed.stdout)
+    assert report["output_mode"] == "simplified"
+    documents = report["outputs"]["documents"]
+    assert documents["valid"]
+    assert documents["counts"]["definitions"] > 0
+    assert "definitions" not in documents
+
+
+def test_verify_rejects_simplified_flag_without_changing_coverage(tmp_path):
+    project(tmp_path)
+    completed = run(tmp_path, "verify", "--only", "docs", "--dry-run", "--simplified")
+    assert completed.returncode == 0, completed.stderr
+    report = json.loads(completed.stdout)
+    assert report["output_mode"] == "simplified"
+    assert report["coverage"] == "unknown"
+
+
 def test_full_verify_does_not_pass_when_only_docs_are_available(tmp_path):
     project(tmp_path)
     completed = run(tmp_path, "verify")

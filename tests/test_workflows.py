@@ -36,6 +36,22 @@ def test_start_without_plan_then_read_only_status(tmp_path, capsys):
     assert before == {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
 
 
+def test_workflow_status_simplified_bounds_local_history(tmp_path, capsys):
+    state = start(tmp_path, capsys)
+    path = tmp_path / '.tao/workflows' / f"{state['change']}.json"
+    stored = json.loads(path.read_text(encoding='utf-8'))
+    stored['review_history'] = {'code': [{'round': 1, 'report': 'verbose history'}]}
+    path.write_text(json.dumps(stored), encoding='utf-8')
+    code, report = call(tmp_path, capsys, 'workflow', 'status', state['change'], '--simplified')
+    assert code == 0, report
+    assert report['outputs']['output_mode'] == 'simplified'
+    row = report['outputs']['workflows'][0]
+    assert row['phase'] == 'spec'
+    assert 'review_history' not in row
+    assert row['review_history_count'] == 1
+    assert row['review_history_counts'] == {'code': 1}
+
+
 def test_checkpoint_rejects_stale_revision_and_escaping_artifact(tmp_path, capsys):
     state = start(tmp_path, capsys)
     from taolib.workflows import checkpoint
