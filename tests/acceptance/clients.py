@@ -15,11 +15,11 @@ from contextlib import nullcontext
 from pathlib import Path
 
 try:
-    from acceptance.commands import cli_executable
+    from acceptance.commands import cli_executable, tao_invocation
     from acceptance.cancellation import termination_guard
     from acceptance.limits import claude_budget, model_timeout
 except ModuleNotFoundError:
-    from commands import cli_executable
+    from commands import cli_executable, tao_invocation
     from cancellation import termination_guard
     from limits import claude_budget, model_timeout
 
@@ -253,7 +253,7 @@ def main():
         prompt = boundary + ('Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not search the filesystem. If available, invoke its status operation, follow its required starting references and run its doctor/status with the configured Python interpreter. Report limitations accurately. Interpreter: ' + sys.executable if args.case == 'inside' else 'Using only your already advertised skills and commands, report whether tao-dev is available and its exact invocation name. Do not use any tools or search the filesystem. Reply with a short JSON object.')
     elif args.case == 'recover':
         tao_entry = plugin / 'skills/tao-dev/scripts/tao.py'
-        tao_command = (f'{sys.executable} {tao_entry} --project {directory} --format json')
+        tao_command = tao_invocation(sys.executable, tao_entry, directory)
         prompt = boundary + ('Use the tao-dev skill to continue the current change from the persisted handoff at ' + str(directory / recovery['handoff']) + '. '
                              'Do not invoke a command named tao-dev and do not search PATH. When a tao CLI operation is needed, run exactly: ' + tao_command + '. '
                              'Repair example.py with the smallest change. Do not modify check.py, requirements.txt, .tao or plugin resources. Preserve the existing plan and IDs. '

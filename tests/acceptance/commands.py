@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import shlex
 
 
 _NAMES = {'claude': 'claude', 'codex': 'codex', 'cursor': 'agent', 'kiro': 'kiro-cli'}
@@ -18,3 +19,8 @@ def cli_executable(client):
     if path is None:
         raise RuntimeError(f'{name} CLI is not installed or is not on PATH.')
     return path
+
+
+def tao_invocation(python, entry, project):
+    """Quote the exact command in POSIX authenticated acceptance prompts."""
+    return shlex.join([str(python), str(entry), '--project', str(project), '--format', 'json'])
