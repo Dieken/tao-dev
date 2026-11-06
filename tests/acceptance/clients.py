@@ -67,7 +67,9 @@ def reference_reads(path, client):
                 if block.get('type') != 'tool_use':
                     continue
                 inputs = block.get('input', {})
-                if block.get('name') == 'Skill' and inputs.get('skill', '').startswith('tao-dev:'):
+                skill = inputs.get('skill')
+                if (block.get('name') == 'Skill' and isinstance(skill, str)
+                        and (skill == 'tao-dev' or skill.startswith('tao-dev:'))):
                     skill_invoked = True
                 if block.get('name') == 'Read' and isinstance(inputs.get('file_path'), str):
                     invocations.append(inputs['file_path'])
