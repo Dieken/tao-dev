@@ -96,7 +96,7 @@ def validate_batch(batch, kind, change=None):
     seen = set()
     for run in batch['runs']:
         required_run = {'id', 'round', 'started_at', 'outcome', 'mode', 'reviewers', 'decision', 'request', 'recovered_context'}
-        optional_run = {'inputs', 'reports', 'summary', 'ended_at', 'evidence_boundary', 'input_error', 'budget'}
+        optional_run = {'inputs', 'reports', 'summary', 'ended_at', 'evidence_boundary', 'input_error', 'budget', 'compacted', 'summary_digest'}
         if (not isinstance(run, dict) or required_run - run.keys() or run.keys() - required_run - optional_run
                 or any(not isinstance(run[k], str) or not run[k] for k in ('id', 'started_at', 'outcome', 'mode', 'decision'))
                 or type(run['round']) is not int or run['round'] < 1 or run['round'] in seen
@@ -105,9 +105,20 @@ def validate_batch(batch, kind, change=None):
                 or run['recovered_context'] is not True):
             raise ConfigurationError('Invalid workflow review attempt.')
         seen.add(run['round'])
+        compacted = run.get('compacted', False)
+        if 'compacted' in run and compacted is not True:
+            raise ConfigurationError('Invalid workflow review attempt.')
+        if compacted and set(run) & {'summary', 'evidence_boundary', 'input_error', 'budget'}:
+            raise ConfigurationError('Invalid workflow review attempt.')
+        if 'summary_digest' in run and (not isinstance(run['summary_digest'], str) or not re.fullmatch('[0-9a-f]{64}', run['summary_digest'])):
+            raise ConfigurationError('Invalid workflow review attempt.')
         request = run['request']
         required_request = {'schema', 'change', 'scope', 'kind', 'base_commit', 'target_commit', 'include', 'input_digest', 'excluded_record_directories'}
-        if (not isinstance(request, dict) or required_request - request.keys() or request.keys() - required_request - {'output_files'}
+        optional_request = {'output_files'}
+        if compacted:
+            required_request = required_request - {'include', 'excluded_record_directories'} | {'selection_digest'}
+            optional_request = set()
+        if (not isinstance(request, dict) or required_request - request.keys() or request.keys() - required_request - optional_request
                 or request.get('schema') != 'tao.review-scope/v0.1' or request.get('kind') != kind
                 or not isinstance(request.get('scope'), str) or request['scope'] not in {'feature', 'project'}
                 or (change is not None and request.get('change') != change)
@@ -115,11 +126,14 @@ def validate_batch(batch, kind, change=None):
                 or any(request[k] is not None and (not isinstance(request[k], str) or not re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', request[k])) for k in ('base_commit', 'target_commit'))
                 or not isinstance(request.get('input_digest'), str) or not re.fullmatch('[0-9a-f]{64}', request['input_digest'])):
             raise ConfigurationError('Invalid workflow review attempt.')
+        if compacted and (not isinstance(request['selection_digest'], str) or not re.fullmatch('[0-9a-f]{64}', request['selection_digest'])):
+            raise ConfigurationError('Invalid workflow review attempt.')
         for key in ('include', 'excluded_record_directories', 'output_files'):
             if key in request and (not isinstance(request[key], list) or any(not isinstance(v, str) or not v for v in request[key])):
                 raise ConfigurationError('Invalid workflow review attempt.')
         if run['outcome'] not in {'running'}:
-            if not isinstance(run.get('reports'), list) or not isinstance(run.get('summary'), str) or not isinstance(run.get('ended_at'), str):
+            if (not isinstance(run.get('reports'), list) or not isinstance(run.get('ended_at'), str)
+                    or (not compacted and not isinstance(run.get('summary'), str))):
                 raise ConfigurationError('Invalid workflow review attempt.')
             for report in run['reports']:
                 if not isinstance(report, dict) or report.keys() - {'path', 'digest', 'validated'} or not isinstance(report.get('path'), str) or not isinstance(report.get('digest'), str):
@@ -173,15 +187,31 @@ def artifact_ids(project, state):
     return result
 
 
+def compact_request(request):
+    """Keep input identity and a binding to the local selection rules."""
+    keys = ('schema', 'change', 'scope', 'kind', 'base_commit', 'target_commit', 'input_digest')
+    if not isinstance(request, dict) or set(keys) - request.keys():
+        raise ConfigurationError('Invalid workflow review attempt.')
+    if 'selection_digest' in request:
+        return deepcopy(request)
+    return {k: request[k] for k in keys} | {'selection_digest': digest_json({
+        k: request[k] for k in ('include', 'excluded_record_directories', 'output_files') if k in request})}
+
+
 def compact_reviews(reviews):
     result = deepcopy(reviews)
     for batch in result.values():
         for run in batch.get('runs', []):
-            request = run.get('request', {})
-            run['request'] = {k: v for k, v in request.items() if k not in {'context_files', 'index_entries', 'selected_files', 'excluded_files', 'instruction', 'input_bytes'}}
-            for key in ('snapshot', 'snapshot_digest', 'index_snapshot', 'index_snapshot_digest'):
+            run['request'] = compact_request(run.get('request'))
+            if 'summary' in run:
+                run['summary_digest'] = digest_json(run['summary'])
+            for key in ('snapshot', 'snapshot_digest', 'index_snapshot', 'index_snapshot_digest',
+                        'summary', 'evidence_boundary', 'input_error', 'budget'):
                 run.pop(key, None)
             run['recovered_context'] = True
+            run['compacted'] = True
+        if 'history' in batch:
+            batch['history'] = [compact_reviews({'history': previous})['history'] for previous in batch['history']]
     return result
 
 

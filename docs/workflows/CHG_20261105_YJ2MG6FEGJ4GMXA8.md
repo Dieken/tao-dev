@@ -8,7 +8,7 @@ created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
 summary: 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
-record_revision: 6
+record_revision: 7
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -56,23 +56,17 @@ review_batches:
         kind: docs
         base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
         target_commit: 2cd1cdeb2e31723d7e3d16a29c6bd79437c38a5a
-        include: []
-        excluded_record_directories:
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/
         input_digest: 092f34ee82bf1e3e069fe150bc348e715585acbd5d4bd0a9254456834304cbff
-        output_files:
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/00-adjudication.md
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/01-contract-reviewer.md
+        selection_digest: 3f7f8289cbfece13c995f4cca10a106c39f1be7f9a2747e06764f2274fa717bf
       inputs: current
       reports:
       - path: docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/01-contract-reviewer.md
         digest: 7ccc4089c463255c8b2e0ae6f8cec22e0cc85aa983dc545788701459cdfed6e7
         validated: true
-      summary: 独立文档初审确认两项 P2 阻断：旧 JSON 缺明确迁移应用入口；新记录无法保存旧计划未知生命周期。两项均采用待修订，源文档未改。报告及导航源校验通过，无诊断。
       ended_at: '2026-11-05T15:15:54.049688+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: 482130c42faea02142ceb44eb44dc47c005dded381d39fe269c803e8eac43067
       recovered_context: true
+      compacted: true
     - id: 64241fcf4d1c4419b651acefd63e6686
       round: 2
       started_at: '2026-11-05T15:26:36.272729+00:00'
@@ -87,23 +81,17 @@ review_batches:
         kind: docs
         base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
         target_commit: 79a249381f0c1b0da9b0319099bd8dd769c5b6c8
-        include: []
-        excluded_record_directories:
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/
         input_digest: bd22cc05a386af5ae2ba15cc8d6b46891eb539069d2d1b835677a60d0fae73aa
-        output_files:
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/02-followup-reviewer.md
-        - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/03-followup-adjudication.md
+        selection_digest: f36f9c9b961a12085ac477ce9936887a89ff13ba4f492a0d9b4d794dec5a70d2
       inputs: current
       reports:
       - path: docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-recovery-contract/02-followup-reviewer.md
         digest: eec109c4d2144edf74c07b0c68ad9b135f23b81cffb18b2700242a318a0088eb
         validated: true
-      summary: 第二轮定向复核确认 A/B 已闭合，无残余阻断或已证实回归；适用于修订工作区快照。文档源校验通过，不代表实现验收或阶段批准。
       ended_at: '2026-11-05T15:28:39.374972+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: b6cdc8e4b91e3f01aab613a0ce35889b58e4aa48387135e265bd4c6b621455fa
       recovered_context: true
+      compacted: true
     round_decisions: []
   code:
     id: 95e30131f4c74e048d31b2900dd1f5e6
@@ -126,24 +114,14 @@ review_batches:
         kind: code
         base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
         target_commit: 42e94faf61eed082975a3f8a6090cb739161f84a
-        include:
-        - tests/acceptance/clients.py
-        excluded_record_directories: []
         input_digest: cec3db56023fa375f5e5671b5293750ed116c299d84180bb443fb4835dd72c96
+        selection_digest: 5ab034089afeae461ad7bd8cb72c19a057200a43f016a7aa6ef2a7b71aeae1f8
       inputs: current
       reports: []
-      summary: 'Retrospective failure audit only: dispatch ran after review-begin
-        was rejected by the verification mutation lock. It read prior revision 25
-        metadata instead of current revision 30 inputs and was interrupted. No valid
-        conclusion or receipt. Raw interrupted stream tmp/tao/budget-review-source.jsonl;
-        isolation record tmp/tao/budget-review-isolation.json says global_unchanged=true.
-        This newly registered snapshot is an audit scheduling reference, not evidence
-        that the aborted call reviewed it. Unmanaged raw logs were not document-schema
-        validated.'
       ended_at: '2026-11-06T03:01:47.919496+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: ac3dc30b88ca8f92e01edcde4b6c1c8abe5a9b49ebd14cbf4aba1bad0f847848
       recovered_context: true
+      compacted: true
     - id: 3970eb30b62547c38633e2fe21411737
       round: 2
       started_at: '2026-11-06T03:01:49.345351+00:00'
@@ -158,26 +136,14 @@ review_batches:
         kind: code
         base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
         target_commit: 42e94faf61eed082975a3f8a6090cb739161f84a
-        include:
-        - tests/acceptance/clients.py
-        excluded_record_directories:
-        - tmp/tao/
         input_digest: cec3db56023fa375f5e5671b5293750ed116c299d84180bb443fb4835dd72c96
-        output_files:
-        - tmp/tao/budget-final-review-report.md
+        selection_digest: 0d36f7e2eaef79d0c2e5545c62ad94ee40c2c6fa80d8fb8879efe17004140f16
       inputs: current
       reports: []
-      summary: 'Actual registered delta review failed: Claude CLI exit 1, subtype
-        error_max_budget_usd, 294258ms, 15 turns, estimated total_cost_usd 1.14164
-        against requested max-budget-usd 1. No structured conclusion or valid importable
-        receipt. Source tmp/tao/budget-final-review-source.jsonl retained; global
-        configuration unchanged per tmp/tao/budget-final-review-isolation.json. Batch
-        two attempts exhausted; no automatic retry. Unmanaged raw logs were not document-schema
-        validated.'
       ended_at: '2026-11-06T03:07:33.391798+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: 4d87ad6e02973dfca775c4364df8c46d2b73d47700d1556c46a3b563982d5dc4
       recovered_context: true
+      compacted: true
     - id: b01d88858ad144aa98808fcc6dc82a5f
       round: 3
       started_at: '2026-11-06T03:53:34.706261+00:00'
@@ -192,33 +158,14 @@ review_batches:
         kind: code
         base_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
         target_commit: d8ec53f0e38e689f0e900ddecb9fec29bde83a2d
-        include:
-        - tests/acceptance/cancellation.py
-        - tests/acceptance/behavior_clients.py
-        - tests/acceptance/behavior_runner.py
-        - tests/acceptance/behavior_live.py
-        - tests/acceptance/clients.py
-        - tests/acceptance/native_session_hooks.py
-        - tests/test_live_acceptance.py
-        - tests/test_acceptance_cancellation.py
-        - tests/test_behavior_runner.py
-        - scripts/review_claude.py
-        - tests/acceptance/README.md
-        - docs/plans/2026-11/20261105-workflow-recovery.md
-        excluded_record_directories:
-        - tmp/tao/
         input_digest: e0990b046cf260339cecb34888af0a0821c33e79c16c3549bbb01ba26f02e883
-        output_files:
-        - tmp/tao/cancellation-review-report.md
+        selection_digest: 510740550fd4a4c7db93945f7af9cee05424c77247158d2f6b19fd7fd7f89630
       inputs: current
       reports: []
-      summary: 'Actual tool-free cancellation/budget delta review did not yield an
-        importable receipt. Preserved execution summary: tmp/tao/cancellation-review-execution.json.
-        No retry. Raw logs unmanaged and not document-schema validated.'
       ended_at: '2026-11-06T03:58:38.634611+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: c9ff4ad28a175706fb8674eca711182bcfd64b9c06ef029f3fb825da67186448
       recovered_context: true
+      compacted: true
     - id: 7046c8c8091e47748cfcfa4c270de59a
       round: 4
       started_at: '2026-11-06T09:08:07.721764+00:00'
@@ -233,66 +180,17 @@ review_batches:
         kind: code
         base_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
         target_commit: 4b87c3005641951ab96124ea962bf21dc8bdfa1a
-        include:
-        - .tao/config.toml
-        - AGENTS.md
-        - docs/engineering/workflow-recovery.md
-        - docs/plans/2026-11/20261105-workflow-recovery.md
-        - docs/product/workflow-recovery.md
-        - docs/workflows/CHG_20261105_YJ2MG6FEGJ4GMXA8.md
-        - plugins/tao-dev/skills/tao-dev/references/review-receipts.md
-        - plugins/tao-dev/skills/tao-dev/references/workflow-state.md
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/cli.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/frontmatter.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/project.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/review_runs.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/reviews.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/verification.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_records.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_recovery.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflows.py
-        - scripts/review_claude.py
-        - tests/acceptance/README.md
-        - tests/acceptance/behavior_clients.py
-        - tests/acceptance/behavior_live.py
-        - tests/acceptance/behavior_runner.py
-        - tests/acceptance/cancellation.py
-        - tests/acceptance/clients.py
-        - tests/acceptance/commands.py
-        - tests/acceptance/limits.py
-        - tests/acceptance/native_session_hooks.py
-        - tests/test_acceptance_cancellation.py
-        - tests/test_acceptance_commands.py
-        - tests/test_acceptance_limits.py
-        - tests/test_behavior_runner.py
-        - tests/test_live_acceptance.py
-        - tests/test_review_binding_contract.py
-        - tests/test_review_runner.py
-        - tests/test_review_runs.py
-        - tests/test_workflow_recovery.py
-        excluded_record_directories:
-        - tmp/tao/
         input_digest: a7bdb83aa8038d982a7e23bd39cc89323bf9d6ec95d71e0b591bf61717198e23
-        output_files:
-        - tmp/tao/finish-local-review-report.md
+        selection_digest: b047efb169b392db9933299570ae82c59ddf3502396235edc6f27f80b28d8e89
       inputs: current
       reports:
       - path: tmp/tao/finish-local-review-report.md
         digest: ff996e1e796f6d224fd5fb0c918c358623eb0d6968ff51300be7a7db7ae8eda9
         validated: false
-      summary: 'Reviewed the supplied immutable tree for the workflow-recovery change:
-        design/spec/plan documents, the workflow record/recovery/review/verification
-        modules, the CLI dispatch layer, and the acceptance harness. The two-file
-        durable-event protocol (record first, local projection second), preview/apply
-        digest binding, legacy unknown-lifecycle handling, finish idempotency, review
-        round accounting, and the required-attestation binding exclusion of each batch''s
-        own outputs are consistently implemented and match the stated invariants.
-        One non-blocking defect was found in workflow record path-glob matching. Unmanaged
-        actual report; not document-schema validated.'
       ended_at: '2026-11-06T09:11:11.282864+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: 63e2a87a1add89dcb66d0cdb5f5dd75666a69c47c47e777f24d7a27dc77a7499
       recovered_context: true
+      compacted: true
     - id: 73ae52a9b84746f9a00683206fe8411b
       round: 5
       started_at: '2026-11-06T09:26:01.186291+00:00'
@@ -307,48 +205,17 @@ review_batches:
         kind: code
         base_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
         target_commit: fc5f4287eba12c09ecbb50d0e4c7b5cf70f2111b
-        include:
-        - AGENTS.md
-        - docs/product/workflow-recovery.md
-        - docs/engineering/workflow-recovery.md
-        - docs/plans/2026-11/20261105-workflow-recovery.md
-        - docs/workflows/CHG_20261105_YJ2MG6FEGJ4GMXA8.md
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/project.py
-        - plugins/tao-dev/skills/tao-dev/scripts/taolib/workflow_records.py
-        - tests/test_workflow_record_paths.py
-        excluded_record_directories:
-        - tmp/tao/
         input_digest: 35943e54cd204d2f47dd8b79027019a96f27e6a45dd668873bb540fd5b56876f
-        output_files:
-        - tmp/tao/finish-followup-review-report.md
+        selection_digest: 7f097edc54115f41151e8ed4cc09713b868aab12950e92387d08d8c00088ec39
       inputs: current
       reports:
       - path: tmp/tao/finish-followup-review-report.md
         digest: 7fbbd94df8c05f9a352bb4bc6df01f6635ca61e9d34ff6ec4445f54fd09e35d3
         validated: false
-      summary: 'REC-01 is fixed. matches_file now performs component-indexed recursive
-        matching with an lru_cache DP: a whole-component ''**'' either matches zero
-        components or consumes one and stays in place, so multi-level nested layouts
-        such as paths.workflows = "docs/eng/workflows" are admitted by includes like
-        docs/**/*.md and correctly rejected by recursive excludes (matching the assertions
-        in test_nested_workflow_directory_is_discovered_after_start and test_recursive_exclusion_rejects_record_before_publication,
-        which I verified by hand against pathlib semantics but did not execute). Zero-depth
-        ''**'', full-length equality, directory-symlink non-traversal by ''**'' (with
-        literal components still traversing, per test_recursive_pattern_does_not_follow_a_directory_symlink),
-        trailing-''**''-matches-directories-only on Python < 3.13 vs files on 3.13,
-        and platform component matching via Path.match are all handled consistently
-        with the interpreter''s Path.glob. workflow_records.write uses the fixed matcher
-        for both the include and the exclude decision before publication. One residual,
-        narrow divergence remains: on Python < 3.13 the guard also rejects patterns
-        with ''**'' embedded inside a component (e.g. ''docs/**.md''), where old Path.glob
-        treats such a component as a plain name wildcard and would select files —
-        a conservative false rejection with the same ''outside managed documents''
-        error, reported as a suggestion. No new blockers were found in the supplied
-        code. Unmanaged actual report; not document-schema validated.'
       ended_at: '2026-11-06T09:26:56.039859+00:00'
-      evidence_boundary: Scheduling record only. Required independent attestations
-        use tao review imports; report existence does not prove correctness or identity.
+      summary_digest: 58cf0b06258df245b9f5fae96af5b009c400c9b702bac0f82ec8fbe579fdc046
       recovered_context: true
+      compacted: true
     round_decisions:
     - before: 2
       after: 3
@@ -380,23 +247,17 @@ review_batches:
           kind: code
           base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
           target_commit: 381130f1447c0b66d8d2f4046ab84ef015139ca3
-          include: []
-          excluded_record_directories:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/
           input_digest: 7efd25ccfa38c223591ed3839cff4ed92c9a4590cd45bee942211927c7553183
-          output_files:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/00-adjudication.md
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/01-implementation-reviewer.md
+          selection_digest: 37d92b434c9e0b827a483fba007029f41394abc0234848ee534f62a47ca7419b
         inputs: current
         reports:
         - path: docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/01-implementation-reviewer.md
           digest: a389b402a0e2f8d7a118c1b52cff05aebde143d4dcbe4d14800fb93db3f530b1
           validated: true
-        summary: 独立实现初审确认四项阻断 I1-I4：finish 缺当前调度审查核对、未知轮次自动重置、frontmatter 子串分隔、嵌套审查元数据校验不足。全部采用，按已有实现授权修复。
         ended_at: '2026-11-05T16:04:59.961028+00:00'
-        evidence_boundary: Scheduling record only. Required independent attestations
-          use tao review imports; report existence does not prove correctness or identity.
+        summary_digest: c45e71b5655785c2059734c8f494431614a4119ddd649790dd9c5fe7c3255dce
         recovered_context: true
+        compacted: true
       - id: c4c3fd1e2ae4495bb6dbd7bc4ebc3fad
         round: 2
         started_at: '2026-11-05T16:13:15.468533+00:00'
@@ -411,23 +272,17 @@ review_batches:
           kind: code
           base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
           target_commit: 381130f1447c0b66d8d2f4046ab84ef015139ca3
-          include: []
-          excluded_record_directories:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/
           input_digest: 1ae14a8f7e36b942469bf349e52a657e2aa5a15e124f9e7d49c9ea79cf546120
-          output_files:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/02-followup-reviewer.md
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/03-followup-adjudication.md
+          selection_digest: aa46e1eab12bf10c085438c3e05e0955dfa383f86bd1f8cf886929292acb9236
         inputs: current
         reports:
         - path: docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/02-followup-reviewer.md
           digest: 8661533950e4fe2a8cada00a08b89054a9db4da95e52dbe86f1ceb79d83f9379
           validated: true
-        summary: 代码第二轮复核 I1-I3 闭合，I4 部分闭合：request.base_commit 等必需值缺少类型验证。独立 53 项测试通过，但额外反例仍崩溃。两轮用尽，先保留本轮结论，再补齐校验和回归。
         ended_at: '2026-11-05T16:19:02.137127+00:00'
-        evidence_boundary: Scheduling record only. Required independent attestations
-          use tao review imports; report existence does not prove correctness or identity.
+        summary_digest: bbca4efc0d16993753c3a772bca6be3b6c38d6c3bf4148570c0230f5174ea26e
         recovered_context: true
+        compacted: true
       - id: 55e433f56e284bbb91bcc8f1b5734bb7
         round: 3
         started_at: '2026-11-05T17:20:04.261467+00:00'
@@ -442,23 +297,17 @@ review_batches:
           kind: code
           base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
           target_commit: cdcabdcc6747929c626d8b820b6504611ad6f3f7
-          include: []
-          excluded_record_directories:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/
           input_digest: 7d0ed12a63cb45fb1b72b2eab618a5a0539e42dda0ec460f1b40681b7b16d3da
-          output_files:
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/04-validation-reviewer.md
-          - docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/05-validation-adjudication.md
+          selection_digest: 8b8521e04b579b116a6997e20d7d6b85c88e39691d70a449a29b5c0e1b5b62af
         inputs: current
         reports:
         - path: docs/plans/2026-11/20261105-workflow-recovery/reviews/20261105-implementation/04-validation-reviewer.md
           digest: 829ba547373e3688358f29c518a1da5f6ed9c45251a7be7d8b5f5e8782154b6c
           validated: true
-        summary: 用户批准的第三轮定向复核；passed，范围仅 I4 最终修复，完整交付及机器证据仍未完成
         ended_at: '2026-11-05T17:23:43.785846+00:00'
-        evidence_boundary: Scheduling record only. Required independent attestations
-          use tao review imports; report existence does not prove correctness or identity.
+        summary_digest: d41541e276936d34798b283bc59be4ceaeb1e09b99a8b244657b76640f07c106
         recovered_context: true
+        compacted: true
       round_decisions:
       - before: 2
         after: 3
@@ -483,56 +332,17 @@ review_batches:
           kind: code
           base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
           target_commit: d7dc517d3ff03ea4e0946bd01a542ea5a372e58f
-          include: []
-          excluded_record_directories:
-          - tmp/tao/
           input_digest: a9b076740dcc0dfe66e1fbec87d645e1c5bd2760ad28b4f7ea37624aaf815983
-          output_files:
-          - tmp/tao/required-review-report.md
+          selection_digest: f6180dfbe19e7dd4c2088ed182295c6bb9c43d4a6e20d15f21bfb0338822dcd2
         inputs: current
         reports:
         - path: tmp/tao/required-review-report.md
           digest: 74e670e5141f057cb5add65ec431ec6d782e7dca6bc2ac2ebf572b37404b665a
           validated: false
-        summary: 'Reviewed the cumulative base→fixed diff for the workflow-recovery
-          change against docs/product/workflow-recovery.md (DOC_20261105_27RJ5NTQG9BNBJHX)
-          and docs/engineering/workflow-recovery.md (DOC_20261105_0H6V7T4BYCRJW79H),
-          inspecting workflow_records.py, workflow_recovery.py, workflows.py, review_runs.py,
-          project.py, cli.py, frontmatter.py, the new profile/template/locales, the
-          new and changed tests, and the acceptance-harness changes. Much of the specification
-          is implemented faithfully: .tao/workflows JSON stays ignored (.gitignore;
-          workflow_records.write refuses out-of-scope and git-ignored targets) while
-          start creates a docs/workflows/<CHG>.md formal record before the JSON; recover
-          is preview-only without --apply, refuses to overwrite existing or corrupt
-          state, re-checks inside the lock, and binds a source digest; recovery reconstructs
-          only recorded facts — plan-only recovery yields lifecycle=unknown, empty
-          approvals, explicit blockers, unknown review budget requiring an explicit
-          new batch, and recovered review runs are never treated as passed; finish
-          saves a structured closure (evidence/unfinished/result/decision/recorded_at),
-          gates completed on verify plus a current code review plus phase=finish with
-          no blockers/operations/stale approvals, requires unfinished disposition
-          for cancelled, and is idempotent on retry; the two-file durable-event ordering
-          (record first, local projection second) and its failure-injection tests
-          match the design; advance at finish now refuses and points to finish. The
-          acceptance fix is sound: isolated_codex.py now reuses the installer''s own
-          _write_config/_key path (verified present and used by the installer itself
-          for trust hashes), and the behavior-scenarios.yaml prompt change pins the
-          scheduler decision and grants proceeding, consistent with its AUTH-001/INTERACTION-001
-          expectations. Four defects remain: corrupt formal records are misdiagnosed
-          as corrupt local state with the wrong path and an inapplicable recovery
-          command; cross-worktree selection short-circuits on local candidates, hides
-          a live worktree''s state, and its diagnostic can guide the user into creating
-          a duplicate parallel state that is then never flagged (the missing() diagnostic
-          also omits the design-required candidate_sources); finish on a legacy record-less
-          workflow silently writes the closure only to the transient local JSON; and
-          finish does not clear lifecycle from provenance.unknown_fields. These findings
-          are from static analysis; the test suite and the concurrency, real-worktree,
-          and acceptance-client behaviors were not executed in this review, so this
-          is not a delivery-readiness claim.'
         ended_at: '2026-11-05T18:47:18.727732+00:00'
-        evidence_boundary: Scheduling record only. Required independent attestations
-          use tao review imports; report existence does not prove correctness or identity.
+        summary_digest: 1ab1e600a90ef6cd5305e69d892dc3b5a9dd89327ad09a4bab474d7d3fefb3d0
         recovered_context: true
+        compacted: true
       - id: 3292367f7c0142b1b2380b1f9137243d
         round: 2
         started_at: '2026-11-05T19:34:30.604114+00:00'
@@ -548,57 +358,17 @@ review_batches:
           kind: code
           base_commit: 186ae92c674ef4e4c604556c01682f2dac51f2d8
           target_commit: 6348e1b75ead1139df51638a2b5eb695d376bf4d
-          include: []
-          excluded_record_directories:
-          - tmp/tao/
           input_digest: ae45d38924b5e851413adc9844e81b090fe1965904f88bf2a2fd9876e6831a5d
-          output_files:
-          - tmp/tao/required-review-followup.md
+          selection_digest: 0b4f0a544b03be1c6ff1a43a49c60dcd2de8a8d6b5ecb717dadaba15177b556e
         inputs: current
         reports:
         - path: tmp/tao/required-review-followup.md
           digest: 9a87570976dea5e038e093620eddde7a42cae5b4d9fdb7437a264338987082d5
           validated: false
-        summary: 'Follow-up review of the fixes for DIAG-01, SEL-01, FIN-01 and FIN-02
-          plus the directly affected behavior, against docs/engineering/workflow-recovery.md
-          (DOC_20261105_0H6V7T4BYCRJW79H) and the workflow-recovery product requirements,
-          and of the new launch-only Kiro workspace-trust scope in tests/acceptance/native_session_hooks.py.
-          All four prior findings are fixed with real evidence: observation now reads
-          the formal record first and returns a formal-record-invalid diagnostic that
-          names the record file, drops the inapplicable recover command and blocks
-          writes/recovery while leaving the local JSON untouched (DIAG-01); locate
-          now resolves the single worktree owning the live state across all registered
-          worktree roots, recover refuses to create a duplicate state copy, the status
-          listing marks duplicates as selection-required, and the shared missing/ambiguity
-          diagnostics provide rule_id, candidate_sources across discovered worktrees,
-          recovery commands and the conflict reason (SEL-01); finish on a record-less
-          workflow now refuses with a migration-required diagnostic pointing at the
-          record path and a migrate preview command, and after migrate plus finish
-          the closure remains recognizable from the record after the local JSON is
-          deleted (FIN-01); workflow_records.build now clears ''lifecycle'' from provenance.unknown_fields
-          and records the lifecycle decision whenever a closure is written, matching
-          reconcile''s resume behavior (FIN-02). The start slug check no longer treats
-          a legacy phase=complete JSON as closed, which is the design''s "unknown
-          lifecycle is not finished" rule, covered by a new test rather than a regression.
-          The Kiro change adds a launch-only --trust-workspace flag, feature-detected
-          via an isolated ''kiro chat --help'' probe and gated by a guard that accepts
-          only the isolated acceptance layout (KIRO_HOME under the fresh workspace,
-          project outside the repository) and raises otherwise; nothing is persisted
-          outside the isolated experiment, the PTY confirmation key was corrected
-          to carriage return, and provided offline evidence (native-launch-trust-tests.log:
-          7 passed in 64.92 s covering both real native sessions; launch-trust-unit-final.log:
-          5 passed, 2 deselected) is consistent with the plan record that the native
-          write and hook feedback passed with personal state summaries unchanged.
-          I executed the three permitted targeted test files (64 passed, 2 deselected,
-          including all 13 new fix-specific tests) with the project Python; I found
-          no new blockers or suggestions introduced by these fixes. This is not a
-          delivery-readiness claim: the configured full code check still carries two
-          Claude budget failures per the change plan, Windows native acceptance remains
-          uncovered, and native/model acceptance was not rerun here.'
         ended_at: '2026-11-05T19:50:03.959335+00:00'
-        evidence_boundary: Scheduling record only. Required independent attestations
-          use tao review imports; report existence does not prove correctness or identity.
+        summary_digest: 31c416e16a0aa1a56bb2a37cc643a09f640442c7e0e3b39a2794bc9533ff4a06
         recovered_context: true
+        compacted: true
       round_decisions:
       - before: 1
         after: 2
@@ -612,7 +382,7 @@ provenance:
   unknown_fields: []
   review_budget_unknown: []
   lifecycle_decision: 用户明确要求继续完成全部任务并收尾；已核对迁移前后批准、审查历史、基准和产物未改变，保留原JSON，确认本事项仍在进行。
-last_operation_id: 6780966fe88d4d15883cd5f6431c3f1e
+last_operation_id: a2c2d4ffcc154d9da448267a05cbbe59
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾

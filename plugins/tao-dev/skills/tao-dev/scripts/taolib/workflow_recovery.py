@@ -10,7 +10,7 @@ from .frontmatter import load_frontmatter
 
 from . import workflow_records as records, workflows
 from .project import Project, ConfigurationError, ConflictError, mutation_lock, create_file, replace_file
-from .verification import file_digest
+from .verification import file_digest, digest_json
 
 
 def candidate_sources(project, identity):
@@ -203,8 +203,16 @@ def reconcile(project, identity, expected, decision, lifecycle=None):
                 for run in batch['runs']:
                     if run['id'] in originals:
                         original = originals[run['id']]
-                        run.update({k: original[k] for k in ('request', 'snapshot', 'snapshot_digest', 'index_snapshot', 'index_snapshot_digest') if k in original})
-                        run.pop('recovered_context', None)
+                        if (not original.get('recovered_context') and not original.get('compacted')
+                                and records.compact_request(original['request']) == records.compact_request(run['request'])):
+                            # Matching IDs alone cannot restore current-review proof.
+                            # Keep local payloads only when their selection/input binding agrees.
+                            restored = deepcopy(original)
+                            restored.update({k: v for k, v in run.items() if k not in {'request', 'compacted', 'recovered_context'}})
+                            if 'summary_digest' in run and digest_json(original.get('summary')) != run['summary_digest']:
+                                restored.pop('summary', None)
+                            run.clear()
+                            run.update(restored)
                 state.setdefault('reviews', {})[kind] = batch
             state['review_history'] = candidate.get('review_history', {})
             state.update(record_revision=record['record_revision'], record_digest=file_digest(records.path(project, identity)), record_operation=record['last_operation_id'])
