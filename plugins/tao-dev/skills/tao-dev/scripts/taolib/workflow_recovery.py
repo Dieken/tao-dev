@@ -8,7 +8,7 @@ import yaml
 
 from .frontmatter import load_frontmatter
 
-from . import workflow_records as records, workflows
+from . import workflow_records as records, workflows, review_control
 from .project import Project, ConfigurationError, ConflictError, mutation_lock, create_file, replace_file
 from .verification import file_digest, digest_json
 
@@ -107,7 +107,8 @@ def reconstruct(project, identity):
              'next': 'Inspect actual operations, approvals and current inputs.',
              'blockers': ['Reconcile actual running operations and missing decisions.'], 'operations': [],
              'git': record['baseline'] if record else None, 'handoff': None, 'resumed_handoff': None,
-             'reviews': deepcopy(record['review_batches']) if record else {}, 'closure': record['closure'] if record else None}
+             'reviews': (review_control.restore(record['review_control']) if 'review_control' in record
+                         else deepcopy(record['review_batches'])) if record else {}, 'closure': record['closure'] if record else None}
     unknown = record['provenance'].get('unknown_fields', []) if record else ['review_batches']
     state['review_budget_unknown'] = record['provenance'].get('review_budget_unknown', ['docs', 'code'] if 'review_batches' in unknown else []) if record else ['docs', 'code']
     state['review_history'] = {k: b.pop('history') for k, b in state['reviews'].items() if 'history' in b}
@@ -197,8 +198,27 @@ def reconcile(project, identity, expected, decision, lifecycle=None):
             candidate, _ = reconstruct(project, identity)
             # Local operations and extension fields remain intact.
             for key in ('phase', 'lifecycle', 'approvals', 'git', 'closure', 'artifacts', 'review_budget_unknown'):
+                if key == 'approvals':
+                    candidate[key] = {phase: (state[key].get(phase, {}) | approval
+                        if state[key].get(phase, {}).get('digest') == approval['digest']
+                        and state[key].get(phase, {}).get('algorithm', 'path-v0') == approval.get('algorithm', 'path-v0')
+                        else approval) for phase, approval in candidate[key].items()}
                 state[key] = candidate[key]
+            if 'review_control' in record:
+                for kind in set(state.get('reviews', {})) - set(candidate['reviews']):
+                    original = state['reviews'].pop(kind)
+                    state.setdefault('recovery_local_reviews', {})[digest_json(original)] = original
+                    if state['lifecycle'] not in {'completed', 'cancelled'} and kind not in state['review_budget_unknown']:
+                        state['review_budget_unknown'].append(kind)
             for kind, batch in candidate['reviews'].items():
+                if 'review_control' in record:
+                    original = state.get('reviews', {}).get(kind)
+                    if original is not None and digest_json(original) == record['review_control'][kind]['local_digest']:
+                        continue
+                    if original is not None:
+                        state.setdefault('recovery_local_reviews', {})[digest_json(original)] = original
+                    state.setdefault('reviews', {})[kind] = batch
+                    continue
                 originals = {r['id']: r for r in state.get('reviews', {}).get(kind, {}).get('runs', [])}
                 for run in batch['runs']:
                     if run['id'] in originals:
@@ -214,7 +234,8 @@ def reconcile(project, identity, expected, decision, lifecycle=None):
                             run.clear()
                             run.update(restored)
                 state.setdefault('reviews', {})[kind] = batch
-            state['review_history'] = candidate.get('review_history', {})
+            if 'review_control' not in record:
+                state['review_history'] = candidate.get('review_history', {})
             state.update(record_revision=record['record_revision'], record_digest=file_digest(records.path(project, identity)), record_operation=record['last_operation_id'])
         if lifecycle:
             if lifecycle not in {'active', 'paused'} or state.get('lifecycle') in {'completed', 'cancelled'}:

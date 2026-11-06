@@ -518,9 +518,7 @@
     "tao.project.workflow/v0.1": {
       "template": "templates/workflow.md",
       "sections": [
-        "overview",
-        "decisions",
-        "closure"
+        "overview"
       ],
       "metadata": {
         "change": {
@@ -535,7 +533,7 @@
         },
         "summary": {
           "type": "string",
-          "required": true
+          "required": false
         },
         "plan_path": {
           "type": "string",
@@ -590,7 +588,7 @@
         },
         "review_batches": {
           "type": "object",
-          "required": true,
+          "required": false,
           "nullable": false
         },
         "closure": {
@@ -602,8 +600,18 @@
           "type": "object",
           "required": true,
           "nullable": false
+        },
+        "review_control": {
+          "type": "object",
+          "required": false,
+          "nullable": false
         }
-      }
+      },
+      "legacy_sections": [
+        "overview",
+        "decisions",
+        "closure"
+      ]
     }
   },
   "retirement_records": {

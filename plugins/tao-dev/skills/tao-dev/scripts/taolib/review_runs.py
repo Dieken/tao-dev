@@ -1,5 +1,6 @@
 """Review scope snapshots and persistent round limits; agents conduct reviews."""
 from datetime import datetime, timezone
+from copy import deepcopy
 import os
 import subprocess
 from pathlib import Path
@@ -8,7 +9,7 @@ import zipfile
 
 from tao_messages import Message
 
-from . import git_workflow, workflows
+from . import git_workflow, workflows, review_control
 
 
 def contract_text(path):
@@ -157,8 +158,9 @@ def repreview(project, state, request, *, started=False):
                    request.get('include'), request.get('output_files'), started=started)
 
 
-def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, new_batch=False):
+def begin(project, identity, expected, request, mode, reviewers, decision, max_rounds=None, new_batch=False, limits=None):
     workflows.text(decision)
+    review_control.validate_limits(limits)
     if mode not in ('serial', 'parallel') or type(reviewers) is not int or not 1 <= reviewers <= 3 or (mode == 'serial' and reviewers != 1):
         raise ConfigurationError('Use one serial reviewer or up to three parallel reviewers.')
     if max_rounds is not None and (type(max_rounds) is not int or max_rounds <= 0):
@@ -185,19 +187,23 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
             state['review_budget_unknown'] = [k for k in state['review_budget_unknown'] if k != key]
         now = datetime.now(timezone.utc)
         series = state['reviews'].get(key)
-        if any(s['runs'] and s['runs'][-1]['outcome'] == 'running' for s in state['reviews'].values()):
+        if any(review_control.running(s) for s in state['reviews'].values()):
             raise ConflictError('A review is still recorded as running; reconcile its result or failure first.')
         if series is not None and new_batch:
             state.setdefault('review_history', {}).setdefault(key, []).append(series)
         if series is None or new_batch:
             series = {'id': uuid.uuid4().hex, 'phase': state['phase'], 'decision': decision,
                       'started_at': now.isoformat(), 'max_rounds': max_rounds or 2,
-                      'runs': [], 'round_decisions': []}
+                      'runs': [], 'round_decisions': [], 'limits': deepcopy(limits), 'control_decision': decision}
         elif max_rounds is not None and max_rounds != series['max_rounds']:
             series.setdefault('round_decisions', []).append({'before': series['max_rounds'],
                                                               'after': max_rounds, 'decision': decision})
             series['max_rounds'] = max_rounds
-        if len(series['runs']) >= series['max_rounds']:
+            series['control_decision'] = decision
+        if limits is not None:
+            series.update(limits=deepcopy(limits), control_decision=decision)
+        consumed = review_control.used(series)
+        if consumed >= series['max_rounds']:
             raise ConflictError('Review round limit reached; present unresolved issues and obtain an explicit new round decision.')
         if series['runs'] and series['runs'][-1]['outcome'] == 'passed' and series['runs'][-1]['request'] == request:
             raise ConflictError('These inputs already passed; no additional round is needed.')
@@ -220,11 +226,12 @@ def begin(project, identity, expected, request, mode, reviewers, decision, max_r
                 archive.writestr(member, blob.stdout)
         if repreview(owner, state, request) != request:
             raise ConflictError('Inputs changed while snapshotting; no review was started.')
-        series['runs'].append({'id': run_id, 'round': len(series['runs'])+1, 'started_at': now.isoformat(),
+        series['runs'].append({'id': run_id, 'round': consumed+1, 'started_at': now.isoformat(),
                                'outcome': 'running', 'mode': mode, 'reviewers': reviewers, 'decision': decision,
                                'request': request, 'snapshot': snapshot.relative_to(owner.root).as_posix(),
                                'snapshot_digest': file_digest(snapshot), 'index_snapshot': index_snapshot.relative_to(owner.root).as_posix(),
                                'index_snapshot_digest': file_digest(index_snapshot)})
+        series['used_rounds'] = consumed + 1
         state['reviews'][key] = series
     return workflows.mutate(project, identity, expected, edit)
 
@@ -237,10 +244,17 @@ def finish(project, identity, expected, result):
     if not isinstance(reports, list) or any(not isinstance(p, str) for p in reports) or len(reports) != len(set(reports)):
         raise ConfigurationError('Review reports must be distinct project-relative files.')
     def edit(owner, state):
-        active = [(key, series) for key, series in state['reviews'].items() if series['runs'] and series['runs'][-1]['outcome'] == 'running']
+        active = [(key, series) for key, series in state['reviews'].items() if review_control.running(series)]
         if len(active) != 1:
             raise ConflictError('Select one active review round before recording its result.')
         kind, series = active[0]
+        if series.get('pending'):
+            if result['outcome'] != 'failed' or reports:
+                raise ConflictError('Reconcile a recovered review attempt as failed before starting another review.')
+            pending = series.pop('pending')
+            series['runs'].append(pending | {'outcome': 'failed', 'summary': result['summary'],
+                'reports': [], 'ended_at': datetime.now(timezone.utc).isoformat(), 'recovered_context': True})
+            return
         run = series['runs'][-1]
         if result['outcome'] != 'failed' and len(reports) != run['reviewers']:
             raise ConflictError('Each assigned reviewer must produce an actual report before completion.')

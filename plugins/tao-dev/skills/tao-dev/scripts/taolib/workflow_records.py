@@ -11,13 +11,14 @@ import yaml
 from .project import ConfigurationError, ConflictError, contained, create_file, replace_file
 from .verification import digest_json, file_digest
 from .frontmatter import load_frontmatter
+from . import review_control
 
 SCHEMA = 'tao.project.workflow/v0.1'
 LIFECYCLES = {'active', 'paused', 'completed', 'cancelled', 'unknown'}
 PHASES = {'spec', 'design', 'plan', 'implement', 'review', 'finish', 'complete'}
 FIELDS = {'schema', 'id', 'title', 'locale', 'status', 'created', 'updated', 'change',
           'slug', 'summary', 'record_revision', 'lifecycle', 'phase', 'plan_path',
-          'artifacts', 'approvals', 'baseline', 'review_batches', 'closure', 'provenance', 'last_operation_id'}
+          'artifacts', 'approvals', 'baseline', 'review_batches', 'review_control', 'closure', 'provenance', 'last_operation_id'}
 
 
 def path(project, identity):
@@ -27,9 +28,14 @@ def path(project, identity):
 
 
 def validate_record(data):
-    if not isinstance(data, dict) or data.keys() - FIELDS or FIELDS - {'updated'} - data.keys():
+    optional = {'updated', 'summary', 'review_batches', 'review_control'}
+    if not isinstance(data, dict) or data.keys() - FIELDS or FIELDS - optional - data.keys():
         raise ConfigurationError('Invalid workflow record fields.')
-    for key in ('id', 'title', 'locale', 'status', 'created', 'change', 'slug', 'summary', 'plan_path', 'last_operation_id'):
+    if ('review_batches' in data) == ('review_control' in data):
+        raise ConfigurationError('Invalid workflow record fields.')
+    if ('review_batches' in data and 'summary' not in data) or ('summary' in data and (not isinstance(data['summary'], str) or not data['summary'].strip())):
+        raise ConfigurationError('Invalid workflow record fields.')
+    for key in ('id', 'title', 'locale', 'status', 'created', 'change', 'slug', 'plan_path', 'last_operation_id'):
         if not isinstance(data[key], str) or not data[key].strip():
             raise ConfigurationError('Invalid workflow record fields.')
     for key, prefix in (('id', 'DOC'), ('change', 'CHG')):
@@ -39,7 +45,7 @@ def validate_record(data):
         raise ConfigurationError('Invalid workflow record lifecycle or phase.')
     if type(data['record_revision']) is not int or data['record_revision'] < 1:
         raise ConfigurationError('Invalid workflow record revision.')
-    for key in ('artifacts', 'approvals', 'review_batches', 'provenance'):
+    for key in ('artifacts', 'approvals', 'provenance'):
         if not isinstance(data[key], dict):
             raise ConfigurationError('Invalid workflow record mapping: ' + key)
     if data['baseline'] is not None and not isinstance(data['baseline'], dict):
@@ -73,9 +79,14 @@ def validate_record(data):
         if role not in {'spec', 'design', 'plan'} or not isinstance(names, list) or any(not isinstance(n, str) or not n.startswith('DOC_') for n in names) or len(names) != len(set(names)):
             raise ConfigurationError('Invalid workflow artifact identities.')
     for phase, approval in data['approvals'].items():
-        if phase not in {'spec', 'design', 'plan'} or not isinstance(approval, dict) or not isinstance(approval.get('digest'), str) or not isinstance(approval.get('decision'), str) or set(approval) - {'digest', 'decision', 'algorithm'} or not re.fullmatch('[0-9a-f]{64}', approval['digest']) or approval.get('algorithm', 'path-v0') not in ('path-v0', 'doc-v1'):
+        if phase not in {'spec', 'design', 'plan'} or not isinstance(approval, dict) or not isinstance(approval.get('digest'), str) or ('decision' in approval and not isinstance(approval['decision'], str)) or set(approval) - {'digest', 'decision', 'algorithm'} or not re.fullmatch('[0-9a-f]{64}', approval['digest']) or approval.get('algorithm', 'path-v0') not in ('path-v0', 'doc-v1'):
             raise ConfigurationError('Invalid workflow approval.')
-    for kind, batch in data['review_batches'].items():
+    if 'review_control' in data:
+        from .review_control import validate
+        validate(data['review_control'])
+    elif not isinstance(data['review_batches'], dict):
+        raise ConfigurationError('Invalid workflow review batch.')
+    for kind, batch in data.get('review_batches', {}).items():
         if kind not in {'docs', 'code'}:
             raise ConfigurationError('Invalid workflow review batch.')
         validate_batch(batch, kind, data['change'])
@@ -84,12 +95,13 @@ def validate_record(data):
 
 def validate_batch(batch, kind, change=None):
     required = {'id', 'phase', 'decision', 'started_at', 'max_rounds', 'runs', 'round_decisions'}
-    optional = {'budget_seconds', 'history'}
+    optional = {'budget_seconds', 'history', 'limits'}
     if (not isinstance(batch, dict) or required - batch.keys() or batch.keys() - required - optional
             or any(not isinstance(batch[k], str) or not batch[k] for k in ('id', 'phase', 'decision', 'started_at'))
             or type(batch['max_rounds']) is not int or batch['max_rounds'] < 1
             or not isinstance(batch['runs'], list) or not isinstance(batch['round_decisions'], list)):
         raise ConfigurationError('Invalid workflow review batch.')
+    review_control.validate_limits(batch.get('limits'))
     for decision in batch['round_decisions']:
         if not isinstance(decision, dict) or set(decision) != {'before', 'after', 'decision'} or any(type(decision[k]) is not int or decision[k] < 1 for k in ('before', 'after')) or not isinstance(decision['decision'], str):
             raise ConfigurationError('Invalid workflow review batch.')
@@ -198,23 +210,6 @@ def compact_request(request):
         k: request[k] for k in ('include', 'excluded_record_directories', 'output_files') if k in request})}
 
 
-def compact_reviews(reviews):
-    result = deepcopy(reviews)
-    for batch in result.values():
-        for run in batch.get('runs', []):
-            run['request'] = compact_request(run.get('request'))
-            if 'summary' in run:
-                run['summary_digest'] = digest_json(run['summary'])
-            for key in ('snapshot', 'snapshot_digest', 'index_snapshot', 'index_snapshot_digest',
-                        'summary', 'evidence_boundary', 'input_error', 'budget'):
-                run.pop(key, None)
-            run['recovered_context'] = True
-            run['compacted'] = True
-        if 'history' in batch:
-            batch['history'] = [compact_reviews({'history': previous})['history'] for previous in batch['history']]
-    return result
-
-
 def build(project, state, old=None, provenance=None):
     from .documents import ASSETS
     from .identifiers import new_id
@@ -223,26 +218,41 @@ def build(project, state, old=None, provenance=None):
     # Later durable events preserve the authoritative record's title/summary.
     data = {'schema': SCHEMA, 'id': old['id'] if old else new_id('DOC', registry, set()),
             'title': old['title'] if old else state['summary'], 'locale': state['locale'], 'status': 'draft', 'created': state['created'],
-            'change': state['change'], 'slug': state['slug'], 'summary': old['summary'] if old else state['summary'],
+            'change': state['change'], 'slug': state['slug'],
             'record_revision': old['record_revision'] + 1 if old else 1,
             'lifecycle': state.get('lifecycle', 'active'), 'phase': state['phase'],
             'plan_path': state['plan_path'], 'artifacts': artifact_ids(project, state),
-            'approvals': deepcopy(state['approvals']), 'baseline': state.get('git'),
-            'review_batches': compact_reviews(state.get('reviews', {})), 'closure': state.get('closure'),
+            'approvals': {phase: {k: v for k, v in approval.items() if k != 'decision'} for phase, approval in state['approvals'].items()},
+            'baseline': state.get('git'),
+            'review_control': review_control.project(state.get('reviews', {})), 'closure': state.get('closure'),
             'provenance': deepcopy(provenance if provenance is not None else (old or {}).get('provenance', {})),
             'last_operation_id': uuid.uuid4().hex}
-    if 'review_budget_unknown' in state:
+    if state.get('review_budget_unknown'):
         data['provenance']['review_budget_unknown'] = state['review_budget_unknown']
-    for kind, history in state.get('review_history', {}).items():
-        if kind in data['review_batches']:
-            data['review_batches'][kind]['history'] = [compact_reviews({kind: b})[kind] for b in history]
+    else:
+        data['provenance'].pop('review_budget_unknown', None)
     if data['closure'] and data['lifecycle'] in ('completed', 'cancelled'):
+        if not any(c['in_flight'] for c in data['review_control'].values()):
+            data['review_control'] = {}
         data['provenance']['unknown_fields'] = [k for k in data['provenance'].get('unknown_fields', []) if k != 'lifecycle']
         data['provenance']['lifecycle_decision'] = data['closure']['decision']
+    if old and synchronized(project, state, old):
+        for key in ('source_digest', 'source_revision'):
+            data['provenance'].pop(key, None)
+        if data['lifecycle'] != 'unknown':
+            data['provenance'].pop('lifecycle_decision', None)
+        if not data['provenance'].get('unknown_fields'):
+            data['provenance'].pop('unknown_fields', None)
+            if data['lifecycle'] != 'unknown':
+                data['provenance'].pop('kind', None)
     return validate_record(data)
 
 
 def render(data):
+    if 'review_control' in data:
+        return ('---\n' + yaml.safe_dump(data, allow_unicode=True, sort_keys=False) + '---\n\n# ' + data['title'] +
+                '\n\n<!-- tao:section overview -->\n## ' + ('概述' if data['locale'] == 'zh-Hans' else 'Overview') +
+                '\n\n' + str(data['lifecycle']) + ' · ' + str(data['phase']) + '\n')
     return ('---\n' + yaml.safe_dump(data, allow_unicode=True, sort_keys=False) + '---\n\n# ' + data['title'] +
             '\n\n<!-- tao:section overview -->\n## Overview\n\n' + data['summary'] +
             '\n\n<!-- tao:section decisions -->\n## Decisions\n\nStructured metadata records decisions and their bindings.\n'
@@ -299,6 +309,7 @@ def review_contract(content, kind, change=None):
         if kind == 'code' and data.get('phase') in {'implement', 'review', 'finish'}:
             data['phase'] = 'delivery'
         data.get('review_batches', {}).pop(kind, None)
+        data.get('review_control', {}).pop(kind, None)
         if 'review_budget_unknown' in data.get('provenance', {}):
             data['provenance']['review_budget_unknown'] = [k for k in data['provenance']['review_budget_unknown'] if k != kind]
         return json.dumps(data, ensure_ascii=False, sort_keys=True)

@@ -166,7 +166,7 @@ class Validator:
                 continue
             if key.value in values:
                 self.error("TAO-DOC-001", path, line, Message('Duplicate metadata: {arg0}.', key.value))
-            if key.value in {'record_revision', 'artifacts', 'approvals', 'baseline', 'review_batches', 'closure', 'provenance'} and 'tao.project.workflow/v0.1' in yaml_text:
+            if key.value in {'record_revision', 'artifacts', 'approvals', 'baseline', 'review_batches', 'review_control', 'closure', 'provenance'} and 'tao.project.workflow/v0.1' in yaml_text:
                 def distinct(node):
                     if isinstance(node, yaml.MappingNode):
                         keys = [k.value for k, _ in node.value if isinstance(k, yaml.ScalarNode)]
@@ -441,8 +441,11 @@ class Validator:
             self.error("TAO-DOC-002", path, offset + 1, "Navigation requires exactly one toctree.")
         if h1 != [metadata.get("title")]:
             self.error("TAO-DOC-002", path, offset + 1, "Exactly one H1 matching metadata.title is required.")
-        if sections != profile["sections"]:
-            self.error("TAO-DOC-002", path, offset + 1, Message('Expected sections {arg0}; found {arg1}.', profile['sections'], sections))
+        expected_sections = (profile.get('legacy_sections', profile['sections'])
+                             if metadata.get('schema') == 'tao.project.workflow/v0.1' and 'review_batches' in metadata
+                             else profile['sections'])
+        if sections != expected_sections:
+            self.error("TAO-DOC-002", path, offset + 1, Message('Expected sections {arg0}; found {arg1}.', expected_sections, sections))
         for section_key in doc.sections:
             content_tokens = self.section_tokens(tokens, doc, section_key, offset)
             if not any(t.type in ("inline", "fence", "code_block") for t in content_tokens):

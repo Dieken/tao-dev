@@ -12,6 +12,34 @@ def started(tmp_path):
     return project, state
 
 
+def legacy_record(project, state, compact=False):
+    """Construct the two previously distributed workflow encodings."""
+    from copy import deepcopy
+    data = records.read(project, state['change'])
+    data.pop('review_control', None)
+    data['summary'] = state['summary']
+    data['review_batches'] = deepcopy(state.get('reviews', {}))
+    for approval in data['approvals'].values():
+        approval.setdefault('decision', 'Synthetic historical approval')
+    for batch in data['review_batches'].values():
+        for key in ('used_rounds', 'control_decision', 'pending'):
+            batch.pop(key, None)
+        for run in batch['runs']:
+            run['request'] = {k: v for k, v in run['request'].items() if k not in {
+                'context_files', 'index_entries', 'selected_files', 'excluded_files', 'instruction', 'input_bytes'}}
+            for key in ('snapshot', 'snapshot_digest', 'index_snapshot', 'index_snapshot_digest'):
+                run.pop(key, None)
+            run['recovered_context'] = True
+            if compact:
+                run['request'] = records.compact_request(run['request'])
+                if 'summary' in run:
+                    from taolib.verification import digest_json
+                    run['summary_digest'] = digest_json(run.pop('summary'))
+                run.pop('evidence_boundary', None)
+                run['compacted'] = True
+    return data
+
+
 def test_cross_directory_recovery_before_plan(tmp_path):
     a = tmp_path / 'a'; a.mkdir()
     p, state = started(a)
@@ -164,7 +192,7 @@ def test_embedded_delimiters_round_trip_and_bind(tmp_path):
     from test_documents import spec
     p = Project(tmp_path)
     state = workflows.start(p, 'delimiters', 'Support --- separators', 'en', 'Start')
-    assert records.read(p, state['change'])['summary'] == 'Support --- separators'
+    assert records.read(p, state['change'])['title'] == 'Support --- separators'
     source = tmp_path / 'docs/spec.md'; source.write_text(spec().replace('文件导出', '文件---导出'))
     state = workflows.checkpoint(p, state['change'], 1, {'artifacts': {'spec': ['docs/spec.md']}})
     state = workflows.advance(p, state['change'], 2, 'Accept --- unchanged meaning')
@@ -194,7 +222,7 @@ def test_unknown_review_budget_requires_new_explicit_allowance(tmp_path):
 def test_incomplete_nested_review_rejected_before_recovery(tmp_path):
     from taolib.documents import validate
     p, state = started(tmp_path)
-    data = records.read(p, state['change'])
+    data = legacy_record(p, state)
     data['review_batches'] = {'code': {'max_rounds': 2, 'runs': [{'id': 'arbitrary', 'outcome': 'passed'}]}}
     records.path(p, state['change']).write_text(records.render(data))
     assert not validate(p.root, p.sources()).valid
@@ -249,7 +277,7 @@ def test_invalid_review_request_rejected_at_source(tmp_path, field, value):
     p, state = started(tmp_path)
     request = review_runs.preview(p, state, scope='project', kind='code')
     state = review_runs.begin(p, state['change'], state['revision'], request, 'serial', 1, 'Review')
-    data = records.read(p, state['change'])
+    data = legacy_record(p, state)
     data['review_batches']['code']['runs'][0]['request'][field] = value
     records.path(p, state['change']).write_text(records.render(data))
     assert not validate(p.root, p.sources()).valid
@@ -345,7 +373,7 @@ def test_finish_records_explicit_resolution_of_unknown_lifecycle(tmp_path):
     workflows.finish(p, identity, state['revision'], 'Explicit cancellation', 'cancelled', {'evidence': [], 'unfinished': ['No further work']})
     record = records.read(p, identity)
     assert 'lifecycle' not in record['provenance']['unknown_fields']
-    assert record['provenance']['lifecycle_decision'] == 'Explicit cancellation'
+    assert record['closure']['decision'] == 'Explicit cancellation'
 
 
 
@@ -372,6 +400,6 @@ def test_later_durable_event_does_not_promote_checkpoint_progress_into_goal(tmp_
     state=workflows.mutate(project,state['change'],state['revision'],
                            lambda _, s:s.update(phase='design'))
     current=records.read(project,state['change'])
-    assert current['summary']==original['summary']
+    assert current['title']==original['title']
     assert current['title']==original['title']
     assert state['summary']=='Temporary execution progress, not the workflow goal'

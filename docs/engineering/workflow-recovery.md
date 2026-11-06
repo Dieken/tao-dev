@@ -38,7 +38,7 @@ spec_docs: [DOC_20261105_27RJ5NTQG9BNBJHX]
 - 新增持久记录模块负责 profile 数据归一、事件转换、摘要、校验和原子写入；复用现有项目路径约束、锁及比较后替换，不新增数据库或服务。
 - workflows 负责本地执行状态、恢复和跨 worktree 定位。所有依赖状态的入口统一使用定位结果和诊断，禁止各命令吞掉定位歧义后自行猜测。
 - documents/relationships 的正式索引先解析 docs，不依赖本地 JSON 可读；只读旧状态是兼容补充，其错误不能阻止独立文档检查。
-- review_runs 负责将开始尝试、结束结果及额度决定写入持久记录；输入归一规则继续由现有审查实现维护。
+- review_runs 负责将尝试占用、结束标记及当前额度决定写入持久记录；输入归一规则继续由现有审查实现维护。
 - skill 负责会话中选择事项、在已有授权内调用 recover，以及展示缺口和 finish 建议；CLI 不保存全局会话指针。
 
 分发的 workflow profile、模板和写法由消费项目的 LLM 与源校验器读取，恢复模块在运行时读取正式记录，因此随 skill 打包。本设计与本项目的规格、计划留在顶层 docs/，不随包分发。
@@ -48,25 +48,27 @@ spec_docs: [DOC_20261105_27RJ5NTQG9BNBJHX]
 
 ### 正式记录
 
-新 profile 使用现有 DOC 元数据与固定正文节 `overview`、`decisions`、`closure`。文档 status 仍为 draft/accepted/retired，与事项生命周期分开。新增结构化字段如下；未知字段、类型错误、重复身份和无效关系均报错。
+新记录使用现有 DOC 元数据与固定正文节 `overview`，只展示当前生命周期及阶段；兼容读取带 `review_batches` 和三节正文的旧记录。文档 status 仍为 draft/accepted/retired，与事项生命周期分开。新增结构化字段如下；未知字段、类型错误、重复身份和无效关系均报错。
 
 | 字段 | 契约 |
 |---|---|
-| change、slug、summary、locale、created | 原事项身份和基本信息；CHG 与 DOC 独立 |
+| change、slug、title、locale、created | 原事项身份和基本信息；CHG 与 DOC 独立 |
 | record_revision | 从 1 递增，只在持久事件变化时更新 |
 | lifecycle | active、paused、completed、cancelled、unknown；新建事项 start 为 active，legacy 导入无法证实时必须显式保存 unknown，并附 provenance.unknown_fields 包含 lifecycle；非 legacy 记录不允许 unknown |
 | phase | 已记录的 spec/design/plan/implement/review/finish/complete；不能表示推测的批准 |
 | artifacts | 各角色的 DOC ID 数组，按正式索引解析路径；任务通过 tasks_doc 关系解析 |
 | plan_path | 尚无计划时预留的项目相对路径；已有计划时核对同一 CHG |
-| approvals | 每阶段的决定文字、时间、绑定版本、产物 DOC ID 与摘要；缺失表示未证实 |
+| approvals | 阶段键表示批准事实，值保存绑定摘要及算法；完整决定文字留本地或已有正式决定，缺失表示未证实 |
 | baseline | 经确认的原始 commit、分支说明与决定依据；不可用时为未知，不能用 HEAD 填充 |
-| review_batches | 批次 ID、种类、范围摘要、上限及额度决定；每次尝试仅保留 ID、序号、开始时间、结果、输入摘要和报告 DOC ID/摘要 |
+| review_control | 每类仅保留当前批次 ID、阶段、已用次数、上限、当前授权、调用限制、未结束尝试及完整本地批次摘要；不保存逐轮列表或历史批次 |
 | closure | 结束操作 ID、时间、结果、决定、验证/审查引用和未完成事项处置；未结束时为空 |
-| provenance | legacy 导入来源摘要及无法确认的字段；不保存机器绝对路径 |
+| provenance | 保留无法确认的字段；迁移未协调时保留来源摘要，协调后的后续持久事件去除该临时来源信息；不保存机器绝对路径 |
 
 批准摘要引入有版本的规范化算法，按 DOC 身份绑定内容。spec/design 对内容做摘要；plan 继续排除任务勾选、evidence 行和合法结果块，并纳入独立 tasks 契约。记录原算法版本，不能将旧路径摘要悄悄改写为新算法。文件迁移后可按 DOC 找到产物；不能确认旧绑定时报告待核对。
 
 审查摘要必须绑定受检输入、范围、模式及必要的 Git index 信息；输出排除规则复用已有批次自身输出规则。正式 workflow 记录中本批次运行元数据也必须按字段归一排除，不能排除整个文件而放过生命周期、批准或范围的变化。缺少摘要重算所需上下文时，只恢复历史结果，不认定当前 passed。快照过期不撤销历史结束，但重放旧现场可能不可用。
+
+当前审查控制不表示历史结论或当前通过。恢复的本地批次保存 used_rounds，轮次分配及额度门禁按已用次数计算；不为满足旧列表长度而补造历史尝试。未结束尝试先占用次数，恢复后缺少现场时只能核对并登记失败，不允许直接派发或补登记通过。调用限制为结构化 timeout_seconds 与 cost_limit_usd；limits 整体为空表示未知，cost_limit_usd 单项为空才表示无 CLI 费用阈值，不从自然语言推断数值。完整本地批次摘要只用于在恢复写入中断时核对已有现场；不相符的本地资料保存在忽略状态的 recovery_local_reviews，不充当当前通过。已结束且无未结束尝试时不再保存审查控制；历史结果由正式报告及 Git 历史维护。
 
 ### CHG 定义与兼容
 
@@ -115,7 +117,7 @@ finish 的结构化依据通过 `--from` 项目相对 JSON 输入，内容含验
 
 checkpoint 等高频操作只更新本地 JSON。阶段批准、revise、审查尝试与额度决定、生命周期转换是持久事件，必须同时更新正式记录和本地投影。
 
-每次持久事件在现有项目 mutation_lock 内读取两个版本，验证前置条件，生成 operation_id，先原子保存正式记录，再原子替换本地状态；本地保存最后同步的 record_revision 和 operation_id。正式记录保存最后事件 ID 及其决定，审查尝试和 closure 也各有稳定 ID。第二次写入失败时返回明确的“正式记录已保存，本地待同步”，不撤销已持久结果。
+每次持久事件在现有项目 mutation_lock 内读取两个版本，验证前置条件，生成 operation_id，先原子保存正式记录，再原子替换本地状态；本地保存最后同步的 record_revision 和 operation_id。正式记录保存最后事件 ID 和当前恢复依据，未结束审查尝试及 closure 保留稳定身份。第二次写入失败时返回明确的“正式记录已保存，本地待同步”，不撤销已持久结果。
 
 后续写命令发现 revision 不一致时停止原动作；resume 在核对后仅同步持久字段，保留本地未冲突的检查点和操作信息。若本地文件缺失则 recover 重建。重复 finish 发现相同 closure 返回已结束结果，不增加第二次结束事件；不同结束决定必须报告冲突，不能覆盖。
 

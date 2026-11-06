@@ -393,5 +393,6 @@
   "Workflow state was created concurrently.": "另一个写入者已经创建工作流状态。",
   "frontmatter": "文档元数据",
   "identity": "身份",
-  "Unknown review history requires an explicit new batch and round allowance.": "审查历史未知，必须明确新批次及允许轮次。"
+  "Unknown review history requires an explicit new batch and round allowance.": "审查历史未知，必须明确新批次及允许轮次。",
+  "Reconcile a recovered review attempt as failed before starting another review.": "恢复的审查尝试缺少完整现场；核对实际操作并登记失败后，才能开始下一次审查。"
 }

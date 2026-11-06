@@ -81,6 +81,7 @@ def arguments(argv):
             command.add_argument("--decision", required=True)
             command.add_argument("--new-batch", action="store_true")
             command.add_argument("--max-rounds", type=int)
+            command.add_argument("--limits-from", help="Project-relative JSON recording authorized timeout_seconds and cost_limit_usd; null cost means no CLI fee limit.")
     for operation in ('recover', 'migrate'):
         recovery = operations.add_parser(operation, parents=[common])
         recovery.add_argument('change')

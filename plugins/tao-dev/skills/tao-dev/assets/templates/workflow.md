@@ -7,7 +7,6 @@ status: draft
 created: "{{CREATED}}"
 change: "{{CHG_ID}}"
 slug: "{{SLUG}}"
-summary: "{{SUMMARY}}"
 record_revision: 1
 lifecycle: active
 phase: spec
@@ -15,7 +14,7 @@ plan_path: "{{PLAN_PATH}}"
 artifacts: {}
 approvals: {}
 baseline: null
-review_batches: {}
+review_control: {}
 closure: null
 provenance: {}
 last_operation_id: "{{OPERATION_ID}}"
@@ -26,14 +25,4 @@ last_operation_id: "{{OPERATION_ID}}"
 <!-- tao:section overview -->
 ## {{heading.overview}}
 
-{{SUMMARY}}
-
-<!-- tao:section decisions -->
-## {{heading.decisions}}
-
-{{DECISIONS}}
-
-<!-- tao:section closure -->
-## {{heading.closure}}
-
-{{CLOSURE}}
+{{LIFECYCLE}} · {{PHASE}}
