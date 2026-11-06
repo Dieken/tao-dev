@@ -152,7 +152,11 @@ def material_prompt(workspace, prompt):
         + MATERIAL_QUESTION_MARKER
         + "\nThe marker must be alone on its own line. The driver sends the "
         "user's reply only after observing that line. Do not emit the marker "
-        "for any other reason or repeat it after the user has answered.\n"
+        "for any other reason or repeat it after the user has answered. "
+        "After the answer, update requirements.txt with the confirmed policy, "
+        "finish the requested implementation and verification, and report "
+        "completion. Do not ask whether to make this in-scope update or offer "
+        "optional follow-up work.\n"
     )
 
 

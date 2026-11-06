@@ -4,6 +4,7 @@ import json
 
 from acceptance.behavior_live import (
     assess_material_interaction,
+    material_prompt,
     prepare_material_fixture,
     summarize_usage,
 )
@@ -62,6 +63,13 @@ def test_material_fixture_removes_unrelated_overwrite_requirement(tmp_path):
     assert "retention policy has not been decided" in requirement
     assert "overwrite" not in requirement
     assert "30 days" not in requirement
+
+
+def test_material_prompt_closes_confirmed_scope_without_optional_follow_up(tmp_path):
+    prompt = material_prompt(tmp_path, "Add export retention support.")
+
+    assert "update requirements.txt with the confirmed policy" in prompt
+    assert "Do not ask whether to make this in-scope update" in prompt
 
 
 def test_usage_summary_uses_observed_client_events(tmp_path):

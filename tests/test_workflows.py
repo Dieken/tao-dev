@@ -195,7 +195,7 @@ def test_parent_locates_worktree_when_local_state_is_missing_or_corrupt(tmp_path
     code, report = call(root, capsys, 'workflow', 'advance', state['change'],
                         '--expect', '1', '--decision', 'Continue')
     assert code == 1
-    assert str(path) in json.dumps(report)
+    assert str(path).replace('\\', '\\\\') in json.dumps(report)
     assert 'recover' in json.dumps(report)
     if corrupt:
         assert path.read_bytes() == b'{invalid JSON'
