@@ -27,6 +27,12 @@ def test_start_without_plan_then_read_only_status(tmp_path, capsys):
     code, report = call(tmp_path, capsys, 'status', state['change'])
     assert code == 0, report
     assert report['outputs']['workflows'][0]['phase'] == 'spec'
+    full_size = len(json.dumps(report))
+    code, concise = call(tmp_path, capsys, 'status', state['change'], '--simplified')
+    assert code == 0, concise
+    assert concise['outputs']['output_mode'] == 'simplified'
+    assert concise['outputs']['workflows'][0]['phase'] == 'spec'
+    assert len(json.dumps(concise)) < full_size
     assert before == {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
 
 

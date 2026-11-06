@@ -19,7 +19,7 @@
 | `tao docs build` | 按 book_root 构建本地 HTML，检查固定入口；依赖、输出及边界见 [出版规程](publication.md) |
 | `tao workflow recover/migrate <CHG-ID>` | 只读预览缺失状态恢复或旧 JSON 迁移；显式 --apply 才写入，详见工作流状态接口 |
 | `tao workflow finish <CHG-ID>` | 保存正式结束结果，完成须满足完整交付门禁，取消记录未完成处置 |
-| `tao status [CHG-ID]` | 读取任务与文档诊断；不运行行为检查，不改任务勾选，有项目检查策略时比较证据是否可复用；没有策略时为未评估 |
+| `tao status [CHG-ID] [--simplified]` | 只读读取任务、生命周期、阻断和证据时效；`--simplified` 汇总审查控制与历史，保留路径、恢复命令和下一步；不运行行为检查或修改任务；没有检查策略时为未评估 |
 
 项目探测与配置见 [项目接入](project-setup.md)，阶段与检查点命令见 [工作流状态](workflow-state.md)，检查策略与结果见 [验证规程](verification.md)。
 

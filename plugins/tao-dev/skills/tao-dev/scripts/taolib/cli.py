@@ -113,6 +113,8 @@ def arguments(argv):
                 command.add_argument("--phase", choices=workflows.DOC_PHASES, required=True)
     status = commands.add_parser("status", parents=[common])
     status.add_argument("change", nargs="?")
+    status.add_argument("--simplified", action="store_true",
+                        help="Summarize workflow review history and verification evidence.")
     review = commands.add_parser("review", parents=[common])
     review.add_argument("change")
     review.add_argument("--from", dest="source")
@@ -385,11 +387,61 @@ def dispatch(args):
             if isinstance(candidate, str) and candidate in result.definitions and candidate.startswith('CHG_'):
                 target = candidate
         report['outputs']['reviews'] = reviews.status(project, policy(project), target)
+        if args.simplified:
+            report['outputs'] = simplified_status(report['outputs'])
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     if args.command in ("show", "status") and not result.valid:
         report["status"] = "failed"
         return report, 1
     return report, 0
+
+
+def simplified_status(outputs):
+    """Bound status output while retaining actionable workflow diagnostics."""
+    workflow_fields = (
+        'schema', 'change', 'slug', 'summary', 'locale', 'created', 'updated_at',
+        'revision', 'lifecycle', 'phase', 'plan_path', 'artifacts', 'approvals',
+        'decision', 'next', 'blockers', 'operations', 'doc_review', 'record_sync',
+        'handoff_state', 'handoff_path', 'handoff_digest', 'project',
+        'stale_approvals', 'next_action', 'available_actions', 'observation',
+        'candidate_sources', 'recovery_commands', 'selection_required', 'conflict',
+        'message', 'recovery', 'resumed_handoff',
+    )
+    workflows = []
+    for value in outputs.get('workflows', []):
+        row = {key: value[key] for key in workflow_fields if key in value}
+        controls = value.get('reviews')
+        if isinstance(controls, dict):
+            row['review_controls'] = {
+                kind: {key: control.get(key) for key in (
+                    'batch', 'phase', 'used', 'limit', 'decision', 'limits', 'pending'
+                ) if key in control}
+                for kind, control in controls.items() if isinstance(control, dict)
+            }
+        history = value.get('review_history')
+        if isinstance(history, dict):
+            row['review_history_counts'] = {
+                kind: len(runs) for kind, runs in history.items()
+                if isinstance(runs, list)
+            }
+            row['review_history_count'] = sum(row['review_history_counts'].values())
+        elif isinstance(history, list):
+            row['review_history_count'] = len(history)
+        workflows.append(row)
+    evidence = outputs.get('evidence', {})
+    evidence_summary = ({key: evidence[key] for key in
+                         ('state', 'logs_available', 'expired_checks', 'receipt')
+                         if key in evidence}
+                        if isinstance(evidence, dict) else evidence)
+    return {
+        'workflows': workflows,
+        'tasks': outputs.get('tasks', []),
+        'evidence_reusability': outputs.get('evidence_reusability', 'not-evaluated'),
+        'evidence': evidence_summary,
+        'reviews': outputs.get('reviews', []),
+        'validation': outputs.get('validation'),
+        'output_mode': 'simplified',
+    }
 
 
 def main(argv=None, runtime_context=None):
