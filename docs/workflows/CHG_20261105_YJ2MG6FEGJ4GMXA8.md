@@ -8,7 +8,7 @@ created: '2026-11-05'
 change: CHG_20261105_YJ2MG6FEGJ4GMXA8
 slug: workflow-recovery
 summary: 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
-record_revision: 3
+record_revision: 4
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261105-workflow-recovery.md
@@ -222,7 +222,7 @@ review_batches:
     - id: 7046c8c8091e47748cfcfa4c270de59a
       round: 4
       started_at: '2026-11-06T09:08:07.721764+00:00'
-      outcome: running
+      outcome: passed
       mode: serial
       reviewers: 1
       decision: 用户要求继续完成任务，后明确先完成本机可做部分，恢复先前保留的额外独立复核：不设CLI费用阈值，超时20分钟。保留前三次失败，原批次上限显式增至4，不重置历史；范围含当前预算入口、取消清理、必需绑定与正式记录修复及其调用方。只读、禁用工具与委派；Windows保持未覆盖。
@@ -275,6 +275,23 @@ review_batches:
         input_digest: a7bdb83aa8038d982a7e23bd39cc89323bf9d6ec95d71e0b591bf61717198e23
         output_files:
         - tmp/tao/finish-local-review-report.md
+      inputs: current
+      reports:
+      - path: tmp/tao/finish-local-review-report.md
+        digest: ff996e1e796f6d224fd5fb0c918c358623eb0d6968ff51300be7a7db7ae8eda9
+        validated: false
+      summary: 'Reviewed the supplied immutable tree for the workflow-recovery change:
+        design/spec/plan documents, the workflow record/recovery/review/verification
+        modules, the CLI dispatch layer, and the acceptance harness. The two-file
+        durable-event protocol (record first, local projection second), preview/apply
+        digest binding, legacy unknown-lifecycle handling, finish idempotency, review
+        round accounting, and the required-attestation binding exclusion of each batch''s
+        own outputs are consistently implemented and match the stated invariants.
+        One non-blocking defect was found in workflow record path-glob matching. Unmanaged
+        actual report; not document-schema validated.'
+      ended_at: '2026-11-06T09:11:11.282864+00:00'
+      evidence_boundary: Scheduling record only. Required independent attestations
+        use tao review imports; report existence does not prove correctness or identity.
       recovered_context: true
     round_decisions:
     - before: 2
@@ -536,7 +553,7 @@ provenance:
   unknown_fields: []
   review_budget_unknown: []
   lifecycle_decision: 用户明确要求继续完成全部任务并收尾；已核对迁移前后批准、审查历史、基准和产物未改变，保留原JSON，确认本事项仍在进行。
-last_operation_id: 53c2bf60a49442d4a5c21b47428e74c4
+last_operation_id: 6883e064074f49a29eeaded9bb1b7a8b
 ---
 
 # 改进 workflow 状态的持久依据、跨目录恢复、多事项切换及正式收尾
