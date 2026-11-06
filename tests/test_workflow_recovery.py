@@ -362,3 +362,16 @@ def test_legacy_complete_phase_does_not_imply_closed_lifecycle(tmp_path):
     assert row['recovery_commands'][0][-2:] == ['migrate', state['change']]
     with pytest.raises(ConflictError, match='slug'):
         workflows.start(p, 'example', 'Do not implicitly close legacy work', 'en', 'Start')
+
+
+def test_later_durable_event_does_not_promote_checkpoint_progress_into_goal(tmp_path):
+    project,state=started(tmp_path)
+    original=records.read(project,state['change'])
+    state=workflows.checkpoint(project,state['change'],state['revision'],
+                               {'summary':'Temporary execution progress, not the workflow goal'})
+    state=workflows.mutate(project,state['change'],state['revision'],
+                           lambda _, s:s.update(phase='design'))
+    current=records.read(project,state['change'])
+    assert current['summary']==original['summary']
+    assert current['title']==original['title']
+    assert state['summary']=='Temporary execution progress, not the workflow goal'

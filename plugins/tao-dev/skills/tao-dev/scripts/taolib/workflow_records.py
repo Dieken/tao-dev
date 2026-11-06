@@ -189,9 +189,11 @@ def build(project, state, old=None, provenance=None):
     from .documents import ASSETS
     from .identifiers import new_id
     registry = json.loads((ASSETS / 'document-profiles.json').read_text(encoding='utf-8'))
+    # A checkpoint's summary is local execution progress, not a new goal.
+    # Later durable events preserve the authoritative record's title/summary.
     data = {'schema': SCHEMA, 'id': old['id'] if old else new_id('DOC', registry, set()),
-            'title': state['summary'], 'locale': state['locale'], 'status': 'draft', 'created': state['created'],
-            'change': state['change'], 'slug': state['slug'], 'summary': state['summary'],
+            'title': old['title'] if old else state['summary'], 'locale': state['locale'], 'status': 'draft', 'created': state['created'],
+            'change': state['change'], 'slug': state['slug'], 'summary': old['summary'] if old else state['summary'],
             'record_revision': old['record_revision'] + 1 if old else 1,
             'lifecycle': state.get('lifecycle', 'active'), 'phase': state['phase'],
             'plan_path': state['plan_path'], 'artifacts': artifact_ids(project, state),
