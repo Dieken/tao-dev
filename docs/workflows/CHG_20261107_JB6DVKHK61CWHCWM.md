@@ -7,7 +7,7 @@ status: draft
 created: '2026-11-07'
 change: CHG_20261107_JB6DVKHK61CWHCWM
 slug: native-version-and-batch-upgrade
-record_revision: 8
+record_revision: 10
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261107-native-version-and-batch-upgrade.md
@@ -36,7 +36,7 @@ review_control:
   code:
     batch: 402b8ee2fdb94186989266b743011923
     phase: implement
-    used: 1
+    used: 2
     limit: 2
     decision: 用户通过 /tao-dev review 发起实现审查；审查当前累计代码、测试和调用方，重点检查 SemVer discovery、recorded/native
       输出和 --all 批量回滚。
@@ -44,10 +44,10 @@ review_control:
       timeout_seconds: 1200
       cost_limit_usd: null
     in_flight: null
-    local_digest: 4e9aa851dada1db6d1e4393a2b9329c271ecfbd92a0bbdae4e5fc6e921f05e34
+    local_digest: f3521b4cdbaa597ffb621bb037e566090f3387564cd66f4c4ce5babebb1c8f2e
 closure: null
 provenance: {}
-last_operation_id: 6b4bfef5ccb74fe79a1a7156a3f9e38f
+last_operation_id: 96c88bba50e44053bd26f7e54ef40dc0
 ---
 
 # 修正 native 版本发现并支持批量升级

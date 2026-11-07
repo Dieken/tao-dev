@@ -756,7 +756,7 @@ def discover(client, project):
                             and candidate.resolve().is_relative_to(base.absolute())):
                         metadata = _read_json(manifest)
                         if metadata.get('name') == 'tao-dev':
-                            candidates.append((candidate, metadata.get('version', candidate.name)))
+                            candidates.append((candidate, metadata.get('version')))
             if not candidates:
                 continue
             plugin, version = _select_latest_version(candidates)
@@ -896,9 +896,9 @@ def _discover_cursor(home, project):
         if ownership.get('id') == 'tao-dev':
             plugin_id = ownership.get('plugin_id') or 'tao-dev@tao-dev'
             try:
-                version = _cursor_manifest(local).get('version', local.name)
+                version = _cursor_manifest(local).get('version')
             except ClientError:
-                version = local.name
+                version = None
             result.append(_native_row(plugin_id, 'user', None, local, version,
                                       [str(local), str(marker)]))
     settings = project / '.cursor/settings.json'
@@ -918,7 +918,7 @@ def _discover_cursor(home, project):
                 candidates = []
                 for path in base.iterdir():
                     if path.is_dir() and not path.is_symlink() and (path / '.cursor-plugin/plugin.json').is_file():
-                        candidates.append((path, _cursor_manifest(path).get('version', path.name)))
+                        candidates.append((path, _cursor_manifest(path).get('version')))
                 if candidates:
                     plugin, version = _select_latest_version(candidates)
             if plugin is None:

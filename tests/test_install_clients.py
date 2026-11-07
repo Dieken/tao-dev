@@ -1143,3 +1143,40 @@ def test_cursor_discovery_uses_semver_not_mtime(state):
     rows = clients.discover('cursor', project)
     assert rows[0]['version'] == '1.10.0'
     assert rows[0]['plugin_path'].endswith('/1.10.0')
+
+
+def test_discovery_reports_missing_manifest_version_as_unknown(state):
+    root, project = state
+    codex_plugin = root / 'codex/plugins/cache/custom/tao-dev/1.0.0/.codex-plugin'
+    codex_plugin.mkdir(parents=True)
+    (codex_plugin / 'plugin.json').write_text(json.dumps({'name': 'tao-dev'}), encoding='utf-8')
+    (project / '.codex').mkdir()
+    (project / '.codex/config.toml').write_text('[plugins."tao-dev@custom"]\nenabled=true\n', encoding='utf-8')
+    codex_rows = clients.discover('codex', project)
+    assert codex_rows[0]['version'] is None
+
+    cursor_plugin = root / 'cursor/plugins/cache/custom/tao-dev/1.0.0/.cursor-plugin'
+    cursor_plugin.mkdir(parents=True)
+    (cursor_plugin / 'plugin.json').write_text(json.dumps({'name': 'tao-dev'}), encoding='utf-8')
+    (project / '.cursor').mkdir()
+    (project / '.cursor/settings.json').write_text(
+        json.dumps({'plugins': {'custom/tao-dev': {'enabled': True}}}), encoding='utf-8')
+    cursor_rows = clients.discover('cursor', project)
+    assert cursor_rows[0]['version'] is None
+
+
+def test_semver_helper_handles_prerelease_build_and_invalid_values(tmp_path):
+    candidates = [
+        (tmp_path / 'release', '1.0.0'),
+        (tmp_path / 'rc-10', '1.0.0-rc.10'),
+        (tmp_path / 'rc-2', '1.0.0-rc.2'),
+        (tmp_path / 'invalid-prerelease', '1.0.0-01'),
+    ]
+    assert clients._select_latest_version(candidates)[1] == '1.0.0'
+    same_precedence = [
+        (tmp_path / 'z-build', '1.0.0+build.a'),
+        (tmp_path / 'a-build', '1.0.0+build.b'),
+    ]
+    assert clients._select_latest_version(same_precedence)[0] == tmp_path / 'z-build'
+    invalid = [(tmp_path / 'z', 'invalid'), (tmp_path / 'a', None)]
+    assert clients._select_latest_version(invalid)[0] == tmp_path / 'z'

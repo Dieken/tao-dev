@@ -499,3 +499,47 @@ def test_list_json_uses_separate_version_fields(tmp_path, monkeypatch, capsys):
     assert item['recorded_version'] == '1.0.0'
     assert item['native_version'] == '1.1.0'
     assert 'version' not in item
+
+
+@pytest.mark.parametrize('output_format', ['text', 'json'])
+def test_list_reports_missing_native_version_as_unknown(tmp_path, monkeypatch, capsys, output_format):
+    rows = [{
+        'id': 'native-codex', 'client': 'codex', 'native': True, 'scope': 'project',
+        'project': str(tmp_path), 'recorded_version': None, 'native_version': None,
+        'plugin_id': 'tao-dev@test', 'plugin_path': str(tmp_path / 'cache/unknown'),
+        'plugin_base': str(tmp_path / 'cache'), 'files': [], 'file_actions': {},
+    }]
+    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
+    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path),
+                         '--format', output_format]) == 0
+    printed = capsys.readouterr().out
+    if output_format == 'text':
+        assert 'recorded=unknown | native=unknown' in printed
+    else:
+        item = json.loads(printed)['outputs']['installations'][0]
+        assert item['recorded_version'] is None and item['native_version'] is None
+        assert 'version' not in item
+
+
+def test_upgrade_all_main_reports_partial_text_and_json(tmp_path, monkeypatch, capsys):
+    rows = [
+        {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')},
+        {'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None},
+    ]
+    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
+
+    def upgrade_one(args):
+        if args.project.name == 'a':
+            raise install.InstallError('injected failure')
+        return {'installation': {'project': None}, 'files': [], 'warnings': []}
+
+    monkeypatch.setattr(install, 'install', upgrade_one)
+    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]) == 2
+    text = capsys.readouterr().out
+    assert 'partial' in text and '1 succeeded, 1 failed, 2 total' in text
+
+    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path),
+                         '--format', 'json']) == 2
+    report = json.loads(capsys.readouterr().out)
+    assert report['status'] == 'partial'
+    assert report['outputs']['succeeded'] == 1 and report['outputs']['failed'] == 1

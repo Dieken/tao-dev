@@ -64,9 +64,9 @@ change: "CHG_20261107_JB6DVKHK61CWHCWM"
 先运行 `tests/test_install_clients.py` 和 `tests/test_installation.py` 的受影响测试，再运行完整项目测试和配置的 lint。使用 `.venv/bin/python`，不调用裸 `uv`。执行 `tao verify --only docs --project <worktree>` 检查受管理文档。必要时运行隔离 native discovery fixture，不访问个人客户端配置。最终按 REQ/UC 核对 list text/JSON、默认单项 upgrade、`--all` 批量成功/失败和语义版本选择。
 
 <!-- tao:results -->
-- 受影响测试：`TAO_TEST_WHEELHOUSE=.../tmp/tao/wheels .venv/bin/python -m pytest -q tests/test_install_clients.py tests/test_installation.py`，108 passed、2 skipped；跳过项为 Windows-only process-tree tests。
-- 完整回归：`.venv/bin/python -m pytest -q`，820 passed、6 skipped、2 warnings；4 个模型路线在 preflight 阶段跳过，2 个 Windows-only 测试跳过。
-- 配置代码检查：`tao verify --only code --simplified --format json`，diagnostics-locale、python-tests、python-lint 全部 passed；python-tests 覆盖率 78.4006%。
+- 受影响测试：`TAO_TEST_WHEELHOUSE=.../tmp/tao/wheels .venv/bin/python -m pytest -q tests/test_install_clients.py tests/test_installation.py`，114 passed、2 skipped；跳过项为 Windows-only process-tree tests。覆盖缺失 manifest 版本、SemVer 边界、list 双版本 text/JSON 和批量 partial 退出码。
+- 审查修复：Codex/Cursor 缺失 manifest `version` 不再回退到 cache 目录名，包括 Cursor user local activation；补充正式版、预发布版、build metadata、非法版本、缺失版本和批量 CLI 结果回归，build metadata 与路径顺序已反向验证。
+- 配置代码检查：`tao verify --only code --simplified --format json`，diagnostics-locale、python-tests、python-lint 全部 passed；python-tests 覆盖率 78.6039%。
 - 文档检查：`tao verify --only docs --simplified --format json`，文档结构、关系和导航 valid，无 diagnostics。
 <!-- /tao:results -->
 <!-- tao:section questions -->
