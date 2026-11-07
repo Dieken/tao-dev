@@ -192,10 +192,19 @@ def test_invalid_retirement_is_rejected(tmp_path, updates, rule):
     assert rule in codes(retired_check(tmp_path))
 
 
-def test_duplicate_json_keys_and_blank_retirement_lines_are_errors(tmp_path):
-    value = json.dumps(record()).replace('"reason":', '"reason": "one", "reason":')
-    retirement(tmp_path, value + "\n\n")
-    assert "TAO-DOC-001" in codes(retired_check(tmp_path))
+@pytest.mark.parametrize("problem,line", [("duplicate-key", 1), ("blank-line", 2)])
+def test_invalid_retirement_record_reports_its_line(tmp_path, problem, line):
+    value = json.dumps(record())
+    if problem == "duplicate-key":
+        value = value.replace('"reason":', '"reason": "one", "reason":') + "\n"
+    else:
+        value += "\n\n"
+    retirement(tmp_path, value)
+    result = retired_check(tmp_path)
+    assert not result.valid
+    assert [(d.path, d.line) for d in result.diagnostics if d.rule_id == "TAO-DOC-001"] == [
+        ("docs/retired/20260914.jsonl", line),
+    ]
 
 
 def test_navigation_requires_a_connected_tree(tmp_path):

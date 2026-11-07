@@ -38,20 +38,17 @@ def resolve(page, fragment):
         return json.loads(engine.eval(code, timeout_sec=5))
 
 
-def test_resolver_executes_without_external_node(monkeypatch):
-    monkeypatch.setenv('PATH', '')
-    assert resolve('<script>location.replace("../docs/current.html#target");</script>', '#old') == ['../docs/current.html#target']
-
-
-def test_old_retired_section_redirects_and_has_a_readable_fallback(tmp_path):
+def test_old_retired_section_redirects_and_has_a_readable_fallback(tmp_path, monkeypatch):
     config = configured(tmp_path)
     output = build(config)
     root = tmp_path / output['directory']
     page = (root / f'refs/{OLD_DOC}.html').read_text(encoding='utf-8')
     target = '../docs/spec.html#' + NEW_SECTION
-    assert resolve(page, '#' + OLD_SECTION) == [target]
-    assert resolve(page, '#' + OLD_SECTION.replace('_', '%5F')) == [target]
-    assert resolve(page, '#' + OLD_DOC) == []
+    with monkeypatch.context() as isolated:
+        isolated.setenv('PATH', '')
+        assert resolve(page, '#' + OLD_SECTION) == [target]
+        assert resolve(page, '#' + OLD_SECTION.replace('_', '%5F')) == [target]
+        assert resolve(page, '#' + OLD_DOC) == []
     link = next(a for a in Page(page).links if a['href'] == target)
     assert '需求' in link['text']
     (tmp_path / 'docs/spec.md').rename(tmp_path / 'docs/current.md')

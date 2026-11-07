@@ -102,7 +102,7 @@ def test_base_dates_are_unknown_metadata(tmp_path, field):
     assert set(result.definitions) == {DOC, REQ, UC}
 
 
-@pytest.mark.parametrize("profile", ["evidence", "review"])
+@pytest.mark.parametrize("profile", ["evidence", "review", "workflow"])
 def test_unsupported_document_profiles_are_rejected(tmp_path, profile):
     content = spec().replace("tao.project.spec/v0.1", f"tao.project.{profile}/v0.1")
     result = check(tmp_path, content)
@@ -239,11 +239,6 @@ def test_entity_fields_allow_reordering_but_not_duplicates(tmp_path):
 def test_optional_section_cannot_borrow_content_from_next_unmarked_heading(tmp_path):
     text = spec().replace("文件指输出目标。", "## Local notes\n\nUnrelated prose.")
     assert "TAO-DOC-002" in codes(check(tmp_path, text))
-
-
-def test_workflow_profile_is_not_a_managed_document(tmp_path):
-    result = check(tmp_path, spec().replace("tao.project.spec/v0.1", "tao.project.workflow/v0.1"))
-    assert "TAO-DOC-001" in codes(result)
 
 
 def test_malformed_optional_section_key_is_not_ordinary_prose(tmp_path):

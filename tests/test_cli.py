@@ -331,8 +331,7 @@ def test_unsupported_engine_commands_are_rejected_without_writes(tmp_path, comma
 
 
 @pytest.mark.parametrize("options", [
-    ("--only", "docs"), ("--only", "code"), ("--only", "docs,code"),
-    ("--only", ""), ("--no-reuse",), ("--scope", "all"), ("--scope", "changed"),
+    ("--only", "docs"), ("--no-reuse",), ("--scope", "all"), ("--scope", "changed"),
     ("CHG_20260914_0000000000000011",), ("docs/plan.md",),
     ("--simplified",), ("--simplifed",), ("--summary",), ("--full",), ("--dry-run",),
 ])

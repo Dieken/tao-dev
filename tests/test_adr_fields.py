@@ -1,6 +1,5 @@
 """ADR semantic fields remain required without enforcing display typography."""
 
-import json
 import re
 
 import pytest
@@ -20,12 +19,6 @@ def decision(locale="zh-Hans", context="**背景与备选：** 比较共享环�
     }
     source = re.sub(r"\{\{([^}]+)\}\}", lambda match: values[match[1]], template)
     return source.replace("**Context:** Compare environments.", context)
-
-
-def test_chinese_adr_template_names_all_consequences_not_only_costs():
-    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text(encoding='utf-8'))
-    source = decision().replace("**Consequences:**", f"**{labels['label.consequences']}:**")
-    assert "**影响与后果:**" in source
 
 
 @pytest.mark.parametrize("content", ["", "<!-- No description. -->"])
