@@ -12,7 +12,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 <!-- tao:section overview -->
 ## 目标
 
-长期知识各有唯一位置，目录按阅读主题组织，不按执行阶段复制正文。落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。运行写法见 [文档组织](../../../skills/tao-dev/references/document-layout.md)。
+长期知识各有唯一位置，目录按阅读主题组织，不按执行阶段复制正文。落实 {need}`REQ_20260914_NN0AEQ2E1GTVSMTV`、{need}`REQ_20260914_3JQXRKWXKAZSNJ5R` 和 {need}`REQ_20260914_0J68SDKV86ENKER2`。运行写法见 [文档归属](../../../skills/tao-dev/references/documents.md#文档归属)。
 
 <!-- tao:section architecture -->
 ## 归属与导航

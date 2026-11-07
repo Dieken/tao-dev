@@ -25,7 +25,7 @@ status: draft
 
 当前产品是项目级纯 skill，资源、模板和确定性工具见 [Skill 打包与运行依赖](../engineering/skill-design.md)。文档语义工作由 agent 完成，工具能力见 [工具规程](../../skills/tao-dev/references/tools.md)，项目边界见 [项目级文档驱动 skill](project-skill.md)。
 
-出版适配采用 [现有 Sphinx 方案](../engineering/decisions/sphinx-publication.md)。客户端版本和加载方式按 [接入指南](../user/clients.md) 选择；测试、lint、构建及缓存由项目的 justfile、Makefile、manifest 或 CI 管理，不纳入 .tao/config.toml。tao 只校验文档并管理结果知识，文档配置见 [项目接入](../../skills/tao-dev/references/project-setup.md)。
+出版适配采用 [现有 Sphinx 方案](../engineering/decisions/sphinx-publication.md)。客户端版本和加载方式按 [接入指南](../user/clients.md) 选择；测试、lint、构建及缓存由项目的 justfile、Makefile、manifest 或 CI 管理，不纳入 .tao/config.toml。tao 只校验文档并管理结果知识，文档配置见 [可选项目配置](../../skills/tao-dev/references/tools.md#可选项目配置)。
 
 <!-- tao:section terms -->
 ## 术语与来源
