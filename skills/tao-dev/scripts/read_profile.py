@@ -42,7 +42,7 @@ def main():
     if reconfigure is not None:
         reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('profile', help='Profile name, e.g. evidence, or its full schema')
+    parser.add_argument('profile', help='Profile name, e.g. plan, or its full schema')
     parser.add_argument('--locale', required=True, choices=('en', 'zh-Hans'))
     args = parser.parse_args()
     try:
