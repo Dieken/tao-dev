@@ -6,10 +6,6 @@
 
 tao-dev 负责文档的创建、修订、语义审查、关联、查询、退役与出版，不编排通用开发流程。智能体（agent）自行管理执行，并把实际成果、验证结果和阻碍写回项目文档。
 
-在目标项目加载 tao-dev 后，可以直接说：
-
-> 使用 tao-dev，更新导出功能的取消行为约定；复用现有规格与设计，为需要跨会话跟踪的工作维护一份计划，记录可验证的结果。
-
 不要求每次改动都新建规格、设计和计划。小改动复用适用文档；跨会话、多人协作或需要持续跟踪的工作使用持久计划。
 
 - **文档职责**：规格定义行为与验收，设计说明方案与边界，架构决策记录（ADR）保存长期取舍；格式校验不代替内容审查。
@@ -43,6 +39,64 @@ cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 也可自行使用 [通用 skills 命令行工具](https://github.com/vercel-labs/skills)，在目标项目内显式选择技能、客户端与项目作用域；它不是 tao 的依赖。具体用法、副本更新与移除及验证边界见 [客户端接入](docs/user/clients.md)。
 
 只有运行辅助命令才需要 Python 3.11–3.14。显式创建项目 `.venv` 并安装该技能的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用技能所在目录的 `scripts/tao.py`，不依赖全局启动程序，也不因读取或复制技能而自动准备依赖。
+
+## 常用用法
+
+### 在智能体中使用
+
+技能被客户端发现后，可以直接用自然语言说明目标、文档范围和操作限制：
+
+| 场景 | 示例提示 |
+|---|---|
+| 查找约定 | 使用 tao-dev，查找导出取消行为的规格、设计和相关决策，列出权威来源。 |
+| 更新文档 | 使用 tao-dev，更新导出功能的取消行为约定；复用现有规格与设计，不为小改动新建整套文档。 |
+| 恢复项目进度 | 使用 tao-dev，读取我指定的计划，核对当前文件与验证结果，列出剩余任务和阻塞，不直接开始实施。 |
+| 回写成果 | 使用 tao-dev，将本次实际完成的工作、验证范围和未覆盖项写回现有计划，不把任务完成当作交付通过。 |
+| 语义审查 | 使用 tao-dev，审查 docs/product/ 下的规格，核对依据与一致性；只报告问题，不修改文件。 |
+| 格式校验 | 使用 tao-dev，校验项目受管理文档，报告实际检查范围；不要运行业务测试或构建。 |
+
+支持自动选择技能的客户端可根据任务与技能描述匹配；是否实际触发取决于客户端版本、配置和加载状态。需要明确选择时：
+
+| 客户端 | 显式调用示例 |
+|---|---|
+| Claude Code | `/tao-dev 审查 docs/product/ 下的规格，只报告问题` |
+| Codex CLI / IDE 扩展 | `$tao-dev 审查 docs/product/ 下的规格，只报告问题`，或通过 `/skills` 选择 |
+| Cursor / Kiro | 使用客户端提供的技能选择入口，或明确要求“使用 tao-dev”；不要假定所有客户端都支持 `/tao-dev` |
+
+调用语法依据 [Claude Code skills](https://code.claude.com/docs/en/skills) 与 [Codex skills](https://developers.openai.com/codex/skills)，不代表本项目已实测所有客户端版本。tao-dev 没有固定的技能参数或子命令协议；调用后的文字是任务要求，不是直接传给 Python 脚本的参数。Claude Code 即使没有 `$ARGUMENTS` 占位符，也会将附加文字传给技能。
+
+tao-dev 不自带或注册客户端事件钩子（hook）。加载技能不会自动安装依赖、运行检查或在编辑后回写计划；这些操作由智能体在已授权的任务范围内执行。若另行配置客户端 hook 调用辅助脚本，其触发条件和权限由客户端管理。
+
+### 直接运行辅助命令
+
+以下为 POSIX shell 示例，在项目根目录执行，前提是已显式准备 Python 环境及依赖。`SKILL` 必须指向实际加载的技能目录；Claude Code 使用 `.claude/skills/tao-dev`，Kiro 使用 `.kiro/skills/tao-dev`，在本源码仓库直接使用 `skills/tao-dev`。Windows 使用项目环境的 `.venv/Scripts/python.exe` 调用相同脚本。
+
+```sh
+PY=.venv/bin/python
+SKILL=.agents/skills/tao-dev
+
+# 只读查看可用能力与计划进度
+"$PY" "$SKILL/scripts/tao.py" --project . doctor --format json
+"$PY" "$SKILL/scripts/tao.py" --project . status --format json
+
+# 按项目配置校验文档，不运行项目测试
+"$PY" "$SKILL/scripts/tao.py" --project . verify --format json
+
+# 读取计划格式及中文模板；只输出 JSON，不创建文件
+"$PY" "$SKILL/scripts/read_profile.py" plan --locale zh-Hans
+```
+
+需要写入时，分别显式执行以下命令，不必按顺序运行：
+
+```sh
+# 创建计划草稿；仍需补全内容，不创建规格或设计
+"$PY" "$SKILL/scripts/tao.py" --project . new --slug export-cancel --locale zh-Hans
+
+# 构建本地 HTML；需出版依赖及已配置的 documents.book_root，不部署
+"$PY" "$SKILL/scripts/tao.py" --project . docs build --format json
+```
+
+`status` 可追加计划的 CHG、DOC 或项目相对路径。`status`／`show` 返回 `partial` 时，应核对诊断与 `outputs.documents_valid`，不能仅凭退出码认定文档有效。更多查询、ID 分配、配置和退役命令见 [工具入口](skills/tao-dev/references/tools.md)，环境准备见 [运行环境](skills/tao-dev/references/runtime.md)。
 
 ## 支持与验证边界
 
