@@ -4,8 +4,6 @@ id: DOC_20260914_7RJ1YVEC0CP478BY
 title: Skill 打包与运行依赖
 locale: zh-Hans
 status: draft
-created: '2026-09-14'
-updated: "2026-09-18"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 ---
 

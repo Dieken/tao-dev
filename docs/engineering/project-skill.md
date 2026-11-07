@@ -4,7 +4,6 @@ id: "DOC_20261108_5AH1TA6VTGQQHAA8"
 title: "项目级纯 skill 架构"
 locale: "zh-Hans"
 status: draft
-created: "2026-11-08"
 spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 ---
 
@@ -23,7 +22,7 @@ spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 <!-- tao:section contracts -->
 ## 接口与数据契约
 
-核心文档使用 v0.1 的结构、ID 和引用形态，校验必要语义章节，允许章节重排。plan 通常内联任务，也可显式关联一份 tasks 附件，两者只选其一。任务描述可验证成果，客户端任务仅表示临时执行步骤。status 返回计划、任务计数、未完成项与当前验证摘要，不返回流程建议、不作交付认证。new 只生成计划骨架；ID 支持批量生成。
+核心文档使用 v0.1 的结构、ID 和引用形态，校验必要语义章节，允许章节重排。plan 通常内联任务，也可显式关联一份 tasks 附件，两者只选其一。任务描述可验证成果，客户端任务仅表示临时执行步骤。status 返回计划位置、任务计数与未完成项，不复制验证正文、不返回流程建议、不作交付认证；验证和审查依据读取计划原文。new 只生成计划骨架；ID 支持批量生成。
 
 status/show 不因无关草稿诊断阻断读取；返回 partial 和 documents_valid=false。所选任务集合缺失、错绑或损坏时返回 unavailable、task_set_valid=false、task_counts=null，不把部分可解析任务冒充全部任务。ID 分配扫描已有文档与退役记录中的标识即可，不以前置全书校验阻断写作。
 

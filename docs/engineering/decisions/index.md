@@ -4,7 +4,6 @@ id: DOC_20260914_B8MTAJHQ1H8Q2N3H
 title: 长期架构决定
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 长期架构决定

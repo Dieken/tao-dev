@@ -4,7 +4,6 @@ id: "DOC_20261108_XMAKAG6QHVS1575K"
 title: "项目级纯 skill 重构实施计划"
 locale: "zh-Hans"
 status: draft
-created: "2026-11-08"
 change: "CHG_20261108_BDAZPV3E7WVCF92X"
 spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 design_docs: ["DOC_20261108_5AH1TA6VTGQQHAA8"]

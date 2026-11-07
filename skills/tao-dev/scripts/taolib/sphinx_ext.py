@@ -221,12 +221,11 @@ def targets(app, doctree):
     for section, key in zip(h2_sections, section_keys(source), strict=True):
         if key is not None:
             section["ids"] = [identity + "--" + key]
-    # Metadata CHG/EVD and task checkboxes are definitions too. Their
+    # Metadata CHG and task checkboxes are definitions too. Their
     # anchors are attached to real nodes without inventing new source IDs.
-    for key in ("change", "evidence"):
-        item = doc["metadata"].get(key)
-        if item and index["definitions"].get(item, {}).get("path") == docname + ".md":
-            doctree.insert(0, nodes.target(ids=[item]))
+    item = doc["metadata"].get("change")
+    if item and index["definitions"].get(item, {}).get("path") == docname + ".md":
+        doctree.insert(0, nodes.target(ids=[item]))
     for task in doc["tasks"]:
         for item in doctree.findall(nodes.list_item):
             if task in item.astext().splitlines()[0]:

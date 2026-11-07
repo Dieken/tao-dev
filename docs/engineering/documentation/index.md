@@ -4,7 +4,6 @@ id: DOC_20260914_Z2ZE43K250D4MC2D
 title: 文档系统
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 文档系统

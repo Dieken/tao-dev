@@ -2,7 +2,7 @@
   "format": "tao.document-profiles",
   "version": "0.1",
   "id": {
-    "pattern": "^(DOC|REQ|UC|ADR|TASK|CHG|EVD)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}$",
+    "pattern": "^(DOC|REQ|UC|ADR|TASK|CHG)_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}$",
     "date_format": "YYYYMMDD",
     "calendar_validation": true,
     "alphabet": "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
@@ -38,16 +38,6 @@
         "retired"
       ],
       "required": true
-    },
-    "created": {
-      "type": "string",
-      "format": "date",
-      "required": false
-    },
-    "updated": {
-      "type": "string",
-      "format": "date",
-      "required": false
     }
   },
   "structure": {
@@ -92,8 +82,7 @@
           "UC",
           "ADR",
           "TASK",
-          "CHG",
-          "EVD"
+          "CHG"
         ],
         "supersedes": [
           "REQ"
@@ -129,8 +118,7 @@
           "UC",
           "ADR",
           "TASK",
-          "CHG",
-          "EVD"
+          "CHG"
         ],
         "supersedes": [
           "UC"
@@ -168,8 +156,7 @@
           "UC",
           "ADR",
           "TASK",
-          "CHG",
-          "EVD"
+          "CHG"
         ],
         "supersedes": [
           "ADR"
@@ -299,12 +286,6 @@
         "verification"
       ],
       "metadata": {
-        "change": {
-          "type": "id",
-          "prefix": "CHG",
-          "role": "reference",
-          "required": false
-        },
         "spec_docs": {
           "type": "array",
           "items": "id",
@@ -390,57 +371,6 @@
           "avoid",
           "scope"
         ]
-      }
-    },
-    "tao.project.evidence/v0.1": {
-      "template": "templates/evidence.md",
-      "required_sections": ["checks", "findings"],
-      "sections": [
-        "scope",
-        "inputs",
-        "checks",
-        "findings",
-        "retention"
-      ],
-      "metadata": {
-        "evidence": {
-          "type": "id",
-          "prefix": "EVD",
-          "role": "definition",
-          "required": true
-        },
-        "change": {
-          "type": "id",
-          "prefix": "CHG",
-          "role": "reference",
-          "required": false
-        },
-        "recorded_at": {
-          "type": "string",
-          "format": "rfc3339",
-          "required": true
-        },
-        "result": {
-          "type": "string",
-          "enum": [
-            "passed",
-            "failed",
-            "not_run",
-            "not_applicable",
-            "stale",
-            "unknown"
-          ],
-          "required": true
-        },
-        "coverage": {
-          "type": "string",
-          "enum": [
-            "complete",
-            "partial",
-            "unknown"
-          ],
-          "required": false
-        }
       }
     },
     "tao.project.navigation/v0.1": {

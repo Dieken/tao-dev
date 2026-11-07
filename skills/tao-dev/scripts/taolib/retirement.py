@@ -65,7 +65,7 @@ def prepare(project, identity, reason, replacements):
         raise ConfigurationError('The retirement source is not a managed document.')
     original = path.read_bytes()
     source = original.decode('utf-8')
-    whole_document = target.kind in ('DOC', 'CHG', 'EVD')
+    whole_document = target.kind in ('DOC', 'CHG')
     identities = sorted(d.id for d in result.definitions.values() if d.path == target.path) if whole_document else [identity]
     updated = None if whole_document else remove_block(source, identity)
     old = [records[item] for item in identities if item in records]

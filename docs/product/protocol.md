@@ -4,8 +4,6 @@ id: DOC_20260914_4C7N0XHQSP7CY69P
 title: 项目文档与知识协议
 locale: zh-Hans
 status: draft
-created: '2026-09-14'
-updated: "2026-11-08"
 ---
 
 # 项目文档与知识协议

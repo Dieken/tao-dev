@@ -4,7 +4,6 @@ id: DOC_20260914_A8HNABEBDYE68NF2
 title: 中文规范、英文机器标识，显示语言独立选择
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 中文规范、英文机器标识，显示语言独立选择

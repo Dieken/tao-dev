@@ -19,7 +19,6 @@ id: {DOC}
 title: 文件导出
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 文件导出
@@ -89,29 +88,32 @@ def test_valid_chinese_spec_indexes_forward_references(tmp_path):
     result = check(tmp_path, spec())
     assert codes(result) == set()
     assert set(result.definitions) == {DOC, REQ, UC}
-    assert result.definitions[REQ].line == 26
 
 
-@pytest.mark.parametrize("dates,valid", [
-    ("", True),
-    ('updated: "2026-11-08"\n', True),
-    ('created: "2026-09-14"\nupdated: "2026-11-08"\n', True),
-    ('created: "2026-09-14"\nupdated: "2026-09-13"\n', False),
-    ('updated: "2026-02-30"\n', False),
-])
-def test_optional_dates_preserve_identity_and_validate_when_present(tmp_path, dates, valid):
-    result = check(tmp_path, spec().replace('created: "2026-09-14"\n', dates))
-    assert result.valid is valid, result.to_dict()
+@pytest.mark.parametrize("field", ["created", "updated"])
+def test_removed_base_dates_are_unknown_metadata(tmp_path, field):
+    metadata = f'{field}: "2026-09-14"'
+    content = spec().replace("status: draft", f"status: draft\n{metadata}")
+    result = check(tmp_path, content)
+    assert not result.valid
+    line = content.splitlines().index(metadata) + 1
+    assert any(d.rule_id == "TAO-DOC-001" and d.line == line
+               for d in result.diagnostics)
     assert set(result.definitions) == {DOC, REQ, UC}
-    if not valid:
-        assert "TAO-DOC-001" in codes(result)
+
+
+@pytest.mark.parametrize("profile", ["evidence", "review"])
+def test_removed_document_profiles_are_rejected(tmp_path, profile):
+    content = spec().replace("tao.project.spec/v0.1", f"tao.project.{profile}/v0.1")
+    result = check(tmp_path, content)
+    assert not result.valid
+    assert any(d.rule_id == "TAO-DOC-001" and d.path == "spec.md" and d.line == 2
+               for d in result.diagnostics)
 
 
 @pytest.mark.parametrize("old,new,rule", [
     ("status: draft", "status: draft\nstatus: accepted", "TAO-DOC-001"),
     ("status: draft", "status: draft\nextra: yes", "TAO-DOC-001"),
-    ('"2026-09-14"', '"2026-02-30"', "TAO-DOC-001"),
-    ('"2026-09-14"', '2026-09-14', "TAO-DOC-001"),
     ("locale: zh-Hans", "locale: !custom zh-Hans", "TAO-DOC-001"),
     ("locale: zh-Hans", "locale: zh_Hans", "TAO-DOC-001"),
     ("/v0.1", "/v99", "TAO-DOC-001"),

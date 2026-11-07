@@ -28,7 +28,6 @@ id: {RUNBOOK}
 title: Restore service
 locale: en
 status: draft
-created: "2026-09-16"
 ---
 
 # Restore service

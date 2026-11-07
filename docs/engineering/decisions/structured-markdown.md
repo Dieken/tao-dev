@@ -4,7 +4,6 @@ id: DOC_20260914_ASJCKWCWGBA1EBCY
 title: 正文保持 Markdown，机器读取明确结构
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 正文保持 Markdown，机器读取明确结构

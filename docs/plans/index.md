@@ -4,7 +4,6 @@ id: DOC_20260914_HKYJQW1VXDXH9VB1
 title: 交付与验证
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 交付与验证

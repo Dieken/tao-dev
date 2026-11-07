@@ -10,7 +10,6 @@ id: {DOC}
 title: Terms
 locale: en
 status: draft
-created: "2026-09-14"
 ---
 # Terms
 <!-- tao:section terms -->

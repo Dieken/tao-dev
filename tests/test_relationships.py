@@ -20,7 +20,6 @@ id: {CHANGE_DOC}
 title: 导出检查
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 change: {CHG}
 ---
 
@@ -84,6 +83,21 @@ def test_completed_task_accepts_inline_plan_evidence(tmp_path):
     result = check_change(tmp_path, change())
     assert codes(result) == set()
     assert result.definitions[TASK].status == "completed"
+
+
+@pytest.mark.parametrize("name", ["review.md", "evidence.md"])
+def test_task_evidence_can_link_plain_temporary_markdown_without_registering_it(tmp_path, name):
+    material = tmp_path / "tmp/tao" / name
+    material.parent.mkdir(parents=True)
+    material.write_text("# Check output\n\nExisting files were unchanged.\n", encoding="utf-8")
+    content = change().replace(
+        f"[检查结果](#{CHANGE_DOC}--verification)",
+        f"[检查结果](../../../tmp/tao/{name})")
+    result = check_change(tmp_path, content)
+    assert result.valid, result.to_dict()
+    assert result.definitions[TASK].status == "completed"
+    assert set(result.definitions) == {DOC, REQ, UC, CHANGE_DOC, CHG, TASK}
+    assert material.relative_to(tmp_path).as_posix() not in result.documents
 
 
 def test_completed_task_does_not_require_evidence_or_empty_relationships(tmp_path):
@@ -221,7 +235,6 @@ id: {CHANGE_DOC}
 title: Book
 locale: en
 status: draft
-created: "2026-09-14"
 ---
 
 # Book

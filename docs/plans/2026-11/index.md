@@ -4,7 +4,6 @@ id: DOC_20261105_VRK22BQ9DEP8JVFM
 title: 2026 年 11 月交付计划
 locale: zh-Hans
 status: draft
-created: "2026-11-05"
 ---
 
 # 2026 年 11 月交付计划

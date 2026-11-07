@@ -4,8 +4,6 @@ id: DOC_20260914_4G58K7WBCQ37HTDT
 title: 工程设计
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
-updated: "2026-11-05"
 ---
 
 # 工程设计

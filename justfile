@@ -18,7 +18,7 @@ lint:
 
 # Validate the managed book, then build it explicitly.
 docs:
-    {{ tao }} verify --simplified --format json
+    {{ tao }} verify --format json
     {{ tao }} docs build --format json
 
 # Choose a fresh output directory; never overwrite an existing package.

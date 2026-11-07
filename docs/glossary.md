@@ -4,7 +4,6 @@ id: DOC_20260914_728EZ364G48T3QRK
 title: 术语与缩写
 locale: zh-Hans
 status: draft
-created: '2026-09-14'
 ---
 
 # 术语与缩写
@@ -25,7 +24,7 @@ created: '2026-09-14'
 
 ### ID 类型前缀
 
-DOC、REQ、UC、ADR、TASK、CHG、EVD 的英文全称、用途及区别在 [tao 术语](../skills/tao-dev/references/glossary.md) 定义；精确语法由 [文档规程](../skills/tao-dev/references/documents.md) 与 [格式注册表](../skills/tao-dev/assets/document-profiles.json) 定义，不在这里重复。
+DOC、REQ、UC、ADR、TASK、CHG 的英文全称、用途及区别在 [tao 术语](../skills/tao-dev/references/glossary.md) 定义；精确语法由 [文档规程](../skills/tao-dev/references/documents.md) 与 [格式注册表](../skills/tao-dev/assets/document-profiles.json) 定义，不在这里重复。
 
 <!-- tao:section abbreviations -->
 ## 缩写与使用规则

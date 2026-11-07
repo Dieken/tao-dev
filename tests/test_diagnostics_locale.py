@@ -40,7 +40,7 @@ def test_cli_ui_locale_and_explicit_option_are_independent_of_document_locale(tm
     for result, language in ((en, 'en'), (zh, 'zh-Hans')):
         report = json.loads(result.stdout)
         assert report['diagnostics'][0]['message_locale'] == language
-        assert report['diagnostics'] == report['outputs']['documents']['diagnostics']
+        assert 'diagnostics' not in report['outputs']['documents']
     assert before == path.read_bytes()
 
 

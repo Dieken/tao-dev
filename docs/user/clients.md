@@ -4,7 +4,6 @@ id: DOC_20260916_J7HZD61YYQTTYBW0
 title: 在 coding agent 项目中接入 tao-dev
 locale: zh-Hans
 status: draft
-created: "2026-09-16"
 ---
 
 # 在 coding agent 项目中接入 tao-dev

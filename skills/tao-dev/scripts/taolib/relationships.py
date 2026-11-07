@@ -103,9 +103,7 @@ def attachments(validator):
                 if target is None:
                     continue
                 if target.metadata['schema'] != rule['target_profile']:
-                    validator.error('TAO-REF-002', doc.path, 1, Message('{arg0} must select the matching profile and change back-reference.', key))
-                if key == 'design_docs' and target.metadata.get('change') not in (None, doc.metadata.get('change')):
-                    validator.error('TAO-REF-002', doc.path, 1, 'A dedicated design must belong to the same change; shared designs omit change.')
+                    validator.error('TAO-REF-002', doc.path, 1, Message('{arg0} must select the matching profile.', key))
         for key, rule in profile.get("attachments", {}).items():
             if key not in doc.metadata:
                 continue

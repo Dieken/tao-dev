@@ -51,29 +51,21 @@ def test_docs_verify_is_not_delivery_certification(tmp_path):
     assert report["outputs"]["documents"]["valid"]
 
 
-def test_docs_verify_simplified_reports_counts_without_full_index(tmp_path):
+def test_docs_verify_reports_counts_without_full_index(tmp_path):
     project(tmp_path)
-    completed = run(tmp_path, "verify", "--simplified")
+    completed = run(tmp_path, "verify")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
-    assert report["output_mode"] == "simplified"
+    assert "output_mode" not in report
     documents = report["outputs"]["documents"]
     assert documents["valid"]
     assert documents["counts"]["definitions"] > 0
-    assert "definitions" not in documents
+    assert set(documents) == {"valid", "counts", "deletion_checked"}
+    assert set(documents["counts"]) == {"definitions", "references", "documents", "section_redirects"}
+    assert documents["deletion_checked"] is False
 
 
-def test_verify_dry_run_simplified_keeps_planned_status(tmp_path):
-    project(tmp_path)
-    completed = run(tmp_path, "verify", "--dry-run", "--simplified")
-    assert completed.returncode == 0, completed.stderr
-    report = json.loads(completed.stdout)
-    assert report["output_mode"] == "simplified"
-    assert report["status"] == "planned"
-
-
-@pytest.mark.parametrize("options", [(), ("--simplified",)])
-def test_verify_reads_current_documents_without_executing_project_commands(tmp_path, capsys, monkeypatch, options):
+def test_verify_reads_current_documents_without_executing_project_commands(tmp_path, capsys, monkeypatch):
     from taolib.cli import main
     project(tmp_path)
     (tmp_path / "check.py").write_text('raise RuntimeError("must not execute")\n', encoding="utf-8")
@@ -83,7 +75,7 @@ def test_verify_reads_current_documents_without_executing_project_commands(tmp_p
         pytest.fail("Document verification must not execute a process")
 
     monkeypatch.setattr(subprocess, "Popen", forbidden)
-    arguments = ["--project", str(tmp_path), "--format", "json", "verify", *options]
+    arguments = ["--project", str(tmp_path), "--format", "json", "verify"]
     assert main(arguments) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["status"] == "passed"
@@ -99,14 +91,14 @@ def test_verify_reads_current_documents_without_executing_project_commands(tmp_p
     assert not (tmp_path / "tmp").exists()
 
 
-def test_dry_run_never_claims_execution(tmp_path):
-    project(tmp_path)
-    report = json.loads(run(tmp_path, "verify", "--dry-run").stdout)
-    assert report["status"] == "planned"
-    assert "readiness" not in report
-    assert "documents" not in report["outputs"]
+def test_verify_rejects_empty_managed_scope(tmp_path):
+    completed = run(tmp_path, "verify")
+    assert completed.returncode == 2
+    report = json.loads(completed.stdout)
+    assert report["status"] == "not_run"
+    assert report["diagnostics"]
     assert report["outputs"] == {}
-    assert not (tmp_path / "tmp").exists()
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_show_locates_definition(tmp_path):
@@ -126,6 +118,13 @@ def test_id_generator_uses_current_local_date_and_allowed_alphabet(tmp_path):
     assert completed.returncode == 0, completed.stderr
     identity, = json.loads(completed.stdout)["outputs"]["ids"]
     assert re.fullmatch("REQ_" + date.today().strftime("%Y%m%d") + r"_[0-9A-HJKMNP-TV-Z]{16}", identity)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_removed_evidence_id_type_is_rejected_without_writes(tmp_path):
+    completed = run(tmp_path, "id", "new", "EVD")
+    assert completed.returncode == 2
+    assert json.loads(completed.stdout)["status"] == "not_run"
     assert list(tmp_path.iterdir()) == []
 
 
@@ -163,19 +162,15 @@ def test_project_config_is_local_and_determines_managed_scope(tmp_path):
     (tmp_path / "README.md").write_text("# Not managed\n", encoding="utf-8")
     completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--format", "json"], cwd=tmp_path, text=True, capture_output=True, encoding="utf-8")
     assert completed.returncode == 0, completed.stderr
-    assert list(json.loads(completed.stdout)["outputs"]["documents"]["documents"]) == ["manual/spec.md"]
+    assert json.loads(completed.stdout)["outputs"]["documents"]["counts"]["documents"] == 1
+    shown = run(tmp_path, "show", DOC)
+    assert json.loads(shown.stdout)["outputs"]["definition"]["path"] == "manual/spec.md"
 
 
 def test_symlinked_config_and_output_cannot_escape_project(tmp_path):
     project(tmp_path)
     (tmp_path / "docs/plans").symlink_to(tmp_path.parent, target_is_directory=True)
     assert run(tmp_path, "new", "--slug", "escape", "--locale", "en").returncode == 2
-
-
-def test_empty_managed_scope_does_not_pass_verification(tmp_path):
-    completed = run(tmp_path, "verify")
-    assert completed.returncode == 2
-    assert json.loads(completed.stdout)["status"] == "not_run"
 
 
 def test_unfinished_drafts_do_not_block_id_allocation_or_get_rewritten(tmp_path):
@@ -339,6 +334,7 @@ def test_removed_engine_commands_are_rejected_without_writes(tmp_path, command):
     ("--only", "docs"), ("--only", "code"), ("--only", "docs,code"),
     ("--only", ""), ("--no-reuse",), ("--scope", "all"), ("--scope", "changed"),
     ("CHG_20260914_0000000000000011",), ("docs/plan.md",),
+    ("--simplified",), ("--simplifed",), ("--summary",), ("--full",), ("--dry-run",),
 ])
 def test_removed_verify_options_are_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, options):
     from taolib.cli import main

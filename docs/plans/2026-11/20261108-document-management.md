@@ -4,7 +4,6 @@ id: "DOC_20261108_K957142Z1BMPC8N3"
 title: "文档管理与持久化计划职责收敛"
 locale: "zh-Hans"
 status: draft
-created: "2026-11-08"
 change: "CHG_20261108_J9F9HD68H04ZHSBH"
 spec_docs: ["DOC_20261108_ZT37NM8REHBYC520", "DOC_20260914_4C7N0XHQSP7CY69P"]
 design_docs: ["DOC_20261108_5AH1TA6VTGQQHAA8"]
@@ -27,7 +26,7 @@ plan/tasks 保留项目级权威进度，跨会话、协作或需要追踪的工
 <!-- tao:section design -->
 ## 实现边界
 
-skill 从文档需求选择材料，不再提供通用 implement、review code、continue、handoff 或强制阶段主线。CLI 移除 handoff 与 new/status 的 next_actions 编排字段；保留 new 计划骨架、只读 status、ID/索引、退役、出版及文档校验。status 继续区分任务进度、验证摘要与未知审查，不把全部勾选等同交付。
+skill 从文档需求选择材料，不再提供通用 implement、review code、continue、handoff 或强制阶段主线。CLI 保留 new 计划骨架、只读 status、ID/索引、退役、出版及文档校验，不返回下一执行动作。status 只报进度、待办与定位，不复制验证正文或推断审查、交付；长期依据和实际验证结论留在文档原文。
 
 分发只保留被文档管理消费者读取或运行的资源；开发 tao 自身所需的工程依据留在顶层 docs。项目测试、lint 等由项目原生命令入口管理，不在 .tao/config.toml 保存或执行。客户端安装路径及项目隔离边界不变，不修改全局配置，不启动真实模型会话。
 
@@ -52,18 +51,27 @@ skill 从文档需求选择材料，不再提供通用 implement、review code�
 - [x] `TASK_20261108_3E6F6A8FMGADVZXV` 项目检查交回原生命令入口，tao 仅管理文档校验与结果知识。
   - relates: ["REQ_20260914_0J68SDKV86ENKER2"]
   - verify: just check 实际执行原测试、lint 和依赖核对；CLI smoke 确认 verify 仅校验文档、旧配置及选项拒绝且不执行命令，计划验证摘要仍可查询。
+- [x] `TASK_20261108_JF1STEYRTENB7XDF` 删除没有独立知识或进度价值的可选元数据，并迁移全部受管理文档。
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3"]
+  - verify: created/updated、design.change 从 schema 与已有材料移除；旧字段拒绝，退役日期、真实关系、跨计划共享设计和全部保留的 profile 保持有效。
+- [x] `TASK_20261108_DTFVVJ6B6WP4GTNH` CLI 采用单一简洁输出，结果知识仍从文档读取。
+  - relates: ["REQ_20261108_EQQAQ6NE9CBMT5SP"]
+  - verify: 检索 summary/simplified 消费者并实际运行 verify/status/show 与底层索引；检查待办和计数、内联/附件进度变化、无验证正文复制及旧选项拒绝，查询不写文件。
+- [x] `TASK_20261108_EXNW9RYJ31J1CN84` review/evidence 不再作为长期受管理文档，结论回到计划与知识文档。
+  - relates: ["REQ_20261108_M77FHDMQ112NKMDP"]
+  - verify: evidence profile、EVD、模板及专属校验/出版/退役消费者移除；旧 schema 和 ID 拒绝，九类 profile、临时报告排除及 TASK 普通来源链接通过实际校验。
 
 <!-- tao:section verification -->
 ## 验证
 
-本次补充全部 schema 字段审查与项目命令职责切换；长期字段矩阵与取舍见 [文档契约](../../engineering/documentation/contract.md)，命令及缓存归属见 [架构决定](../../engineering/decisions/per-check-reuse.md)。保留已有 DOC/CHG/TASK ID、真实日期、有效关系和计划结果摘要。
+本次完成 schema 字段、输出模式与长期文档范围精简；长期取舍见 [文档契约](../../engineering/documentation/contract.md)，项目检查归属见 [架构决定](../../engineering/decisions/per-check-reuse.md)。保留既有 DOC/CHG/TASK ID、有效关系与计划结果知识。
 
-- 字段：created 改可选并从全部十类模板移除；evidence.coverage 改可选，默认用正文说明范围；plan/tasks 模板省略空依赖和重复所属 CHG。移除无消费者的 results 成对标记和 handoff 模板，不删除身份、生命周期、验收或追溯关系。
-- 命令：.tao/config.toml 仅保留版本、语言与文档配置；原 Python 测试、Ruff 命令及报告路径迁到 justfile，check 另保留依赖导出核对。CLI 删除通用执行、缓存、指标和候选扫描，verify 仅校验文档；旧配置、选择器与执行参数拒绝。
-- 实际 CLI smoke：en/zh-Hans 各通过十类模板的独立生成与校验，每组 10 份文档、17 个定义、2 个引用；无需 created 或 coverage，未写入受检文件。错误 coverage、旧 --only 与 verification 配置被拒绝，无命令执行或文件副作用。
-- 实际计划 smoke：new → 填写 → verify → status 返回 pending；勾选后新进程返回 tasks_complete，验证正文准确且 review 仍为 unknown。默认骨架不含日期、空依赖或重复 CHG；隔离项目已清理。
-- 项目检查：`just check` 实际通过，323 项测试通过、1 项原生发现按默认策略跳过；包括全部 profile/locale、日期与 coverage 边界、文档关系、状态、退役、出版、复制及旧接口拒绝。Ruff 的 E9/F63/F7/F82 结果为空，依赖清单核对通过；覆盖率合并报告为 88%，原始数据保留 tmp/tao。
-- 文档：`just docs` 通过，当前 36 份文档、99 个定义、99 个引用，HTML 构建与 99 个稳定入口校验通过。未提供历史基线，deletion_checked=false，不证明历史删除追溯完整。浏览器实际点击字段最小集，确认表格可读，并从导航打开开发指南核对项目命令归属。
-- 审查：只读审查覆盖全部十类 profile、基础字段、REQ/UC/ADR/TASK、术语、导航和退役记录；集成者核对代码与文档一致性。没有独立代码审查或真实模型行为验收。
-
-限制：仅在本机 Python 3.14 运行；未实测 Windows、其他 Python 版本、真实客户端发现或模型会话。并发测试中上游 mini-racer 产生 36 条弃用警告，coverage 的父进程提示无数据，但子进程数据合并及最终报告成功；未压制警告。个人配置和其他项目未改动；普通检查日志与 HTML 留在忽略的临时目录，不另建证据文档。
+- 字段：删除 created、updated、design.change，并迁移全部 36 份受管理文档；保留有知识或进度价值的关系、任务依赖、来源链接及退役日期。evidence profile、EVD、模板、专属时间/结果/范围元数据与校验、出版、退役消费者完整移除；review 本就无独立 profile，两者不再作为长期文档管理。
+- 结果归属：review/evidence 详情放临时目录或 CI，结论合并到计划、规格、设计或 ADR。TASK.evidence 仅为普通 Markdown 来源链接。仓库没有需迁移的独立正式 evidence 文档或 EVD 退役记录。
+- 命令：.tao/config.toml 仅保留版本、语言与文档配置；测试、lint、报告和依赖核对由 justfile 管理。verify/status 固定紧凑输出，删除 simplified 与只读 verify 的 dry-run；status 不复制已完成任务及验证正文，不输出固定审查占位。完整结构索引仍通过底层校验入口读取。
+- summary 检索：运行时代码不再有摘要复制或单独 summary 功能；剩余命中为旧参数拒绝测试、临时文件样例、契约说明或历史检查命令。普通临时总结与导航说明不需要 CLI 模式；历史真实命令不改写成现行接口。
+- 实际 CLI smoke：en/zh-Hans 分别生成并校验全部九类模板，每组 9 份文档、15 个定义、2 个引用；旧基础日期、design.change、review/evidence schema 和 EVD 分配均拒绝。verify/status 查询前后逐文件内容一致。
+- 实际进度 smoke：new 后填写两项任务，新进程依次观察 pending、in_progress、tasks_complete；迁移到唯一 tasks 附件后继续正确读取状态。show 定位附件任务，底层 JSON 索引包含正式定义；旧输出参数拒绝，验证正文保留在计划源文件。
+- 项目检查：`just check` 通过，325 项测试通过、1 项原生客户端发现按默认策略跳过；覆盖九类 profile/locale、字段拒绝、共享设计、临时材料排除、普通来源链接、状态、退役与出版。Ruff 的 E9/F63/F7/F82 与依赖导出核对通过；合并覆盖率 87%。首轮有一项模板行布局断言失败，删除该偶然断言后通过，未重设行号常量。
+- 文档：`just docs` 通过，36 份文档、102 个定义、102 个引用，HTML 构建与 102 个稳定入口校验通过。未提供历史基线，deletion_checked=false。浏览器实际点击字段最小集并核对九类 profile 的表格，再沿导航打开产物保存页面，确认无长期 evidence 类型且普通任务来源链接仍保留。
+- 审查与限制：集成者核对字段价值、CLI 和指引一致性；没有独立代码审查或真实模型行为验收。只在本机 Python 3.14 运行，未实测 Windows、其他 Python 或真实客户端发现。上游 mini-racer 仍有 36 条弃用警告，coverage 父进程提示无数据，子进程合并及报告成功，未压制警告。隔离 smoke 项目已清理，原始日志与 HTML 留忽略目录，个人客户端配置未改动。

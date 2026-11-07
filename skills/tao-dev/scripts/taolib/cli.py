@@ -42,7 +42,7 @@ def arguments(argv):
     show.add_argument("id")
     identifier = commands.add_parser("id", parents=[common])
     generator = identifier.add_subparsers(dest="operation", required=True).add_parser("new", parents=[common])
-    generator.add_argument("type", choices=("DOC", "REQ", "UC", "ADR", "TASK", "CHG", "EVD"))
+    generator.add_argument("type", choices=("DOC", "REQ", "UC", "ADR", "TASK", "CHG"))
     generator.add_argument("--count", type=int, default=1)
     new = commands.add_parser("new", parents=[common])
     new.add_argument("--slug", required=True)
@@ -55,15 +55,12 @@ def arguments(argv):
     configure.add_argument("--expect")
     status = commands.add_parser("status", parents=[common])
     status.add_argument("target", nargs="?", help="Plan CHG, DOC or project-relative path; omit to list plans.")
-    status.add_argument("--simplified", action="store_true", help="Omit completed task details.")
     retirement = commands.add_parser("retire", parents=[common])
     retirement.add_argument("id")
     retirement.add_argument("--reason", required=True)
     retirement.add_argument("--replaced-by", action="append", default=[])
     retirement.add_argument("--apply", action="store_true")
-    verify_parser = commands.add_parser("verify", parents=[common])
-    verify_parser.add_argument("--dry-run", action="store_true")
-    verify_parser.add_argument("--simplified", action="store_true")
+    commands.add_parser("verify", parents=[common])
     docs = commands.add_parser("docs", parents=[common])
     docs.add_subparsers(dest="operation", required=True).add_parser("build", parents=[common])
     args = parser.parse_args(argv)
@@ -116,16 +113,7 @@ def skeleton(project, args, registry, existing):
             "draft_complete": False}
 
 
-def section_summary(project, document, section):
-    start = document.sections.get(section)
-    if start is None:
-        return None
-    lines = contained(project.root, document.path).read_text(encoding="utf-8").splitlines()
-    end = min((line - 1 for line in document.sections.values() if line > start), default=len(lines))
-    return re.sub(r"<!-- tao:section [^>]+ -->", "", "\n".join(lines[start:end])).strip()
-
-
-def plan_status(project, result, target=None, *, simplified=False):
+def plan_status(result, target=None):
     plans = select_plans(result, target)
     rows = []
     linked = set()
@@ -150,9 +138,9 @@ def plan_status(project, result, target=None, *, simplified=False):
                and (d.path in task_paths or any(location["path"] in task_paths for location in d.related_locations))
                for d in result.diagnostics):
             task_set_valid = False
-        tasks = [asdict(result.definitions[t]) for t in task_source.tasks
+        tasks = [result.definitions[t] for t in task_source.tasks
                  if t in result.definitions] if task_source else []
-        pending = [task for task in tasks if task["status"] != "completed"]
+        pending = [asdict(task) for task in tasks if task.status != "completed"]
         completed = len(tasks) - len(pending)
         progress = ("unavailable" if not task_set_valid else "planning" if not tasks
                     else "tasks_complete" if not pending else "in_progress" if completed else "pending")
@@ -162,27 +150,25 @@ def plan_status(project, result, target=None, *, simplified=False):
                      "task_source": task_source.path if task_source else None,
                      "task_set_valid": task_set_valid,
                      "task_counts": {"total": len(tasks), "completed": completed, "pending": len(pending)} if task_set_valid else None,
-                     "tasks": pending if simplified else tasks, "pending_tasks": pending,
-                     "verification_summary": section_summary(project, plan, "verification"),
-                     "review": "unknown"})
+                     "pending_tasks": pending})
     planning = [{"id": doc.metadata.get("id"), "path": doc.path, "title": doc.metadata.get("title", doc.path),
-                 "progress": "planning", "review": "unknown"}
+                 "progress": "planning"}
                 for doc in result.documents.values()
                 if target is None and doc.metadata.get("schema") in ("tao.project.spec/v0.1", "tao.project.design/v0.1")
                 and (not isinstance(doc.metadata.get("id"), str) or doc.metadata["id"] not in linked)]
     return {"plans": rows, "planning": planning,
-            "validation": "Read-only document diagnostics; task progress is not review or delivery certification.",
-            "output_mode": "simplified" if simplified else "full"}
+            "validation": "Read-only document diagnostics; task progress is not review or delivery certification."}
 
 
-def verify(project, args, report):
-    if args.dry_run:
-        report["status"] = "planned"
-        return report, 0
+def verify(project, report):
     if not project.sources():
         raise ConfigurationError("No managed documents matched the configured scope.")
     result = index(project)
-    report["outputs"]["documents"] = result.to_dict()
+    report["outputs"]["documents"] = {
+        "valid": result.valid,
+        "counts": {"definitions": len(result.definitions), "references": len(result.references),
+                   "documents": len(result.documents), "section_redirects": len(result.section_redirects)},
+        "deletion_checked": result.deletion_checked}
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     report["status"] = "passed" if result.valid else "failed"
     return report, 0 if result.valid else 1
@@ -209,8 +195,7 @@ def dispatch(args):
         report["outputs"] = build(project)
         return report, 0
     if args.command == "verify":
-        report, code = verify(project, args, report)
-        return (simplified_verification(report), code) if args.simplified else (report, code)
+        return verify(project, report)
     if args.command == "retire":
         from .retirement import retire
         outcome, code = retire(project, args.id, args.reason, args.replaced_by, apply=args.apply)
@@ -240,26 +225,13 @@ def dispatch(args):
             raise ConflictError("ID not found in the managed source and retirement index.")
         report["outputs"] = {"definition": asdict(target), "references": [asdict(r) for r in result.references if r.target == args.id], "url": None}
     elif args.command == "status":
-        report["outputs"] = plan_status(project, result, args.target, simplified=args.simplified)
+        report["outputs"] = plan_status(result, args.target)
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     if args.command in ("show", "status"):
         report["outputs"]["documents_valid"] = result.valid
         if not result.valid:
             report["status"] = "partial"
     return report, 0
-
-
-def simplified_verification(report):
-    """Keep document counts and actionable diagnostics, omit the full index."""
-    outputs = report.get("outputs", {})
-    docs = outputs.get("documents")
-    if isinstance(docs, dict):
-        outputs["documents"] = {"valid": docs.get("valid"), "counts": {
-            "definitions": len(docs.get("definitions", {})), "references": len(docs.get("references", [])),
-            "documents": len(docs.get("documents", {})), "section_redirects": len(docs.get("section_redirects", {}))},
-            "deletion_checked": docs.get("deletion_checked")}
-    report["output_mode"] = "simplified"
-    return report
 
 
 def main(argv=None):

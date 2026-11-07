@@ -77,7 +77,7 @@ def test_configuration_is_validated_idempotent_and_compare_before_replace(tmp_pa
 
 
 @pytest.mark.parametrize('command', [
-    ('verify',), ('verify', '--dry-run'), ('verify', '--simplified'),
+    ('verify',),
     ('doctor',), ('status',), ('project', 'inspect'),
     ('project', 'configure', '--from', 'setup.toml'),
 ])

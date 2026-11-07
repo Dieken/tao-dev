@@ -4,8 +4,6 @@ id: DOC_20260915_P8J10N4KDFYZY2EN
 title: 项目 skill 分发与接入
 locale: zh-Hans
 status: draft
-created: "2026-09-15"
-updated: "2026-11-08"
 spec_docs: ["DOC_20260914_E1B61A3F8V1TYAZB"]
 ---
 

@@ -5,6 +5,8 @@ import json
 import pytest
 
 from taolib.project import Project
+from taolib.documents import validate
+from test_documents import DOC, REQ, UC, spec
 
 
 @pytest.mark.parametrize('exclude,removed', [
@@ -45,16 +47,22 @@ def test_reads_use_existing_defaults_without_creating_configuration(tmp_path, mo
     assert list(tmp_path.iterdir()) == []
 
 
-def test_temporary_handoffs_are_excluded_even_from_broad_document_scope(tmp_path):
-    summary = tmp_path / "scratch/handoffs/summary.md"
-    summary.parent.mkdir(parents=True)
-    summary.write_text("# Disposable context\n", encoding="utf-8")
+@pytest.mark.parametrize("temporary", ["tmp/tao", "scratch"])
+@pytest.mark.parametrize("name", ["handoffs/summary.md", "reviews/export.md", "evidence.md"])
+def test_temporary_material_is_excluded_even_from_broad_document_scope(tmp_path, temporary, name):
+    material = tmp_path / temporary / name
+    material.parent.mkdir(parents=True)
+    material.write_text("# Disposable context\n\nPlain Markdown, not a managed document.\n", encoding="utf-8")
     document = tmp_path / "docs/spec.md"
     document.parent.mkdir()
-    document.write_text("# Indexed document\n", encoding="utf-8")
+    document.write_text(spec(), encoding="utf-8")
     project = Project(tmp_path, config={"version": 1, "documents": {"include": ["**/*.md"]},
-                                       "paths": {"temporary": "scratch"}})
+                                       "paths": {"temporary": temporary}})
     assert project.sources() == [document]
+    result = validate(tmp_path, project.sources())
+    assert result.valid, result.to_dict()
+    assert set(result.documents) == {"docs/spec.md"}
+    assert set(result.definitions) == {DOC, REQ, UC}
 
 
 @pytest.mark.parametrize("removed", [{"hooks": {}}, {"paths": {"workflows": "docs/workflows"}}])

@@ -4,7 +4,6 @@ id: DOC_20260914_HSQGY4BRYYMA3693
 title: 日期与随机串组成的标识符保持稳定
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 日期与随机串组成的标识符保持稳定

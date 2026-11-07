@@ -7,7 +7,7 @@ examples and quoted directives cannot register formal definitions.
 import json
 import re
 from collections import Counter
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -24,8 +24,6 @@ SECTION = re.compile(r"<!-- tao:section ([a-z][a-z0-9-]*) -->\n?\Z")
 FIELD = re.compile(r"<!-- tao:field ([a-z][a-z0-9-]*) -->\n?\Z")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z][A-Za-z0-9_.]*\}\}")
 LOCALE = re.compile(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*\Z")
-# Explicit evidence preserves historical citations independently of task progress.
-RECORD = "tao.project.evidence/v0.1"
 
 
 def need_role(state, silent):
@@ -168,24 +166,13 @@ class Validator:
             if rule.get("enum") and value not in rule["enum"]:
                 self.error("TAO-DOC-001", path, line, Message('{arg0} must be one of {arg1}.', key, rule['enum']))
             fmt = rule.get("format")
-            if fmt == "date" and not valid_date(value):
-                self.error("TAO-DOC-001", path, line, Message('Invalid calendar date: {arg0}.', value))
             if fmt == "bcp47" and not LOCALE.fullmatch(value):
                 self.error("TAO-DOC-001", path, line, Message('Invalid locale tag: {arg0}.', value))
-            if fmt == "rfc3339":
-                try:
-                    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", value):
-                        raise ValueError()
-                    datetime.fromisoformat(value)
-                except ValueError:
-                    self.error("TAO-DOC-001", path, line, Message('Invalid RFC 3339 timestamp: {arg0}.', value))
             if rule["type"] == "id" and self.identifier(value, rule["prefix"], path, line):
                 if rule["role"] == "definition":
                     self.define(value, path, line, values.get("status", "draft"), values.get("title", ""))
                 else:
                     self.reference(value, [rule["prefix"]], path, line, key, values.get("id"))
-        if valid_date(values.get("created")) and valid_date(values.get("updated")) and values["updated"] < values["created"]:
-            self.error("TAO-DOC-001", path, locations["updated"], "updated precedes created.")
         return values, profile, "".join(lines[end + 1:]), end + 1
 
     def fields(self, tokens, expected, path, offset):
@@ -203,8 +190,7 @@ class Validator:
         if set(found) != set(expected) or len(found) != len(set(found)):
             self.error("TAO-ENTITY-001", path, offset + 1, Message('Expected fields {arg0}; found {arg1}.', expected, found))
 
-    def inline(self, tokens, path, offset, doc=None):
-        record = doc is not None and doc.metadata.get("schema") == RECORD
+    def inline(self, tokens, path, offset):
         for token in tokens:
             if token.type != "inline":
                 continue
@@ -223,7 +209,7 @@ class Validator:
                         linked = True
                 elif child.type == "link_close":
                     linked = False
-                elif not linked and not record and child.type in ("text", "code_inline"):
+                elif not linked and child.type in ("text", "code_inline"):
                     self.unlinked_reference(child, path, line)
 
     def unlinked_reference(self, child, path, line):
@@ -301,7 +287,7 @@ class Validator:
         first_field = next((i for i, t in enumerate(body_tokens) if t.type == "html_block" and FIELD.fullmatch(t.content)), len(body_tokens))
         if kind == "REQ" and not any(t.type == "paragraph_open" for t in body_tokens[:first_field]):
             self.error("TAO-ENTITY-001", path, body_offset + 1, "REQ requires a behavior paragraph before its fields.")
-        self.inline(body_tokens, path, body_offset, doc)
+        self.inline(body_tokens, path, body_offset)
 
     def document(self, source, path):
         parsed = self.metadata(source, path)
@@ -344,8 +330,8 @@ class Validator:
                     if not re.fullmatch(r" {0,3}`{3,}[ \t]*", body_lines[token.map[1] - 1]):
                         self.error("TAO-ENTITY-001", path, line, "Formal directive is missing its closing fence.")
                     self.entity(token, section, doc, path, offset)
-                elif re.match(r"\{(?:chg|evd)\}", token.info):
-                    self.error("TAO-ENTITY-001", path, line, "CHG and EVD are defined only in frontmatter.")
+                elif re.match(r"\{chg\}", token.info):
+                    self.error("TAO-ENTITY-001", path, line, "CHG is defined only in frontmatter.")
                 elif re.match(r"\{term\}(?:\s|$)", token.info):
                     glossary.term(self, token, section, doc, offset)
                 elif token.info.strip() == "{toctree}":
@@ -371,7 +357,7 @@ class Validator:
             content_tokens = self.section_tokens(tokens, doc, section_key, offset)
             if not any(t.type in ("inline", "fence", "code_block") for t in content_tokens):
                 self.error("TAO-DOC-002", path, doc.sections[section_key], Message('Section {arg0} requires content or an explanation of non-applicability.', section_key))
-        self.inline(tokens, path, offset, doc)
+        self.inline(tokens, path, offset)
         counts = Counter(d.kind for d in self.result.definitions.values() if d.path == path)
         for kind, count in profile.get("minimum_entities", {}).items():
             if counts[kind] < count:
@@ -396,9 +382,6 @@ class Validator:
             if target is None:
                 self.error("TAO-REF-001", ref.path, ref.line, Message('Unresolved ID: {arg0}.', ref.target))
             elif target.status in ("retired", "superseded"):
-                citing = self.result.documents.get(ref.path)
-                if citing is not None and citing.metadata.get("schema") == RECORD:
-                    continue  # The record describes what existed then; the ID is not a task.
                 self.result.diagnostics.append(Diagnostic("TAO-REF-003", "warning", ref.path, ref.line,
                     Message('Reference to {arg0} ID: {arg1}.', target.status, target.id), "Review the replacement or explain the historical use."))
         replaced = {r.target for r in self.result.references if r.relation == "supersedes"}

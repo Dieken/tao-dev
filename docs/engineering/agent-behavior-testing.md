@@ -4,7 +4,6 @@ id: DOC_20260916_9JTJ8914RCDARFGJ
 title: Agent 行为验收边界
 locale: zh-Hans
 status: draft
-created: "2026-09-16"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 

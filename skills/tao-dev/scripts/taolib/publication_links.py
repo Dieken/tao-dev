@@ -22,7 +22,7 @@ def kind(app, identity):
     if prefix == 'DOC':
         doc = index['documents'].get(definition.get('path'), {})
         return doc.get('metadata', {}).get('schema', 'tao.project.document/v0.1').split('/')[0].rsplit('.', 1)[-1]
-    return {'REQ': 'requirement', 'UC': 'case', 'ADR': 'decision', 'TASK': 'task', 'CHG': 'change', 'EVD': 'evidence'}.get(prefix, 'document')
+    return {'REQ': 'requirement', 'UC': 'case', 'ADR': 'decision', 'TASK': 'task', 'CHG': 'change'}.get(prefix, 'document')
 
 
 def reference(app, docname, identity, *, typed=True, title=None):

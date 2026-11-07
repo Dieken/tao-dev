@@ -4,8 +4,6 @@ id: DOC_20260914_0VF190409FQCN197
 title: 确定性文档与计划 CLI
 locale: zh-Hans
 status: draft
-created: '2026-09-14'
-updated: "2026-09-24"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
@@ -26,9 +24,9 @@ new --slug 只写计划骨架；id new TYPE --count N 返回 outputs.ids。show 
 <!-- tao:section contracts -->
 ## 公开接口
 
-`status [CHG|DOC|项目相对计划路径]`：省略目标列全部计划和未关联计划的规划材料。提供任务计数、未完成项、验证正文及推断进度 planning/pending/in_progress/tasks_complete；review 无记录为 unknown。任务可表示任何项目成果，不能从全部勾选推断已验证、已审查或已交付。
+`status [CHG|DOC|项目相对计划路径]`：省略目标列全部计划和未关联计划的规划材料。固定提供任务计数、pending_tasks、源文件位置及推断进度 planning/pending/in_progress/tasks_complete。已完成任务通过计数表达，不再复制 tasks 列表；不输出验证正文或固定的 review 占位。需要判断验证与审查时，读取计划路径中的实际记录，不能从全部勾选推断已验证、已审查或已交付。
 
-`verify [--dry-run] [--simplified]`：只校验受管理文档。没有目标或 docs/code 选择器，不执行、缓存或汇总项目命令；不提供审查导入、任务完成门槛或流程 gate。检查成功只表示实际文档范围内的结果，不代替语义审查。
+`verify`：只校验受管理文档，固定返回 valid、counts、deletion_checked 与诊断，不构造完整索引再裁剪。没有 simplified/summary 模式或 dry-run；验证本身只读，空的 planned 不提供范围或结果价值。明确需要完整索引时使用既有 validate_documents.py --format json 入口。检查成功只表示实际文档范围内的结果，不代替文档语义审查或项目测试。
 
 提供 doctor、show、docs build、project inspect/configure 与正式对象 retire。入口的帮助与版本查询只用标准库；文档命令缺依赖时明确诊断，不自动准备环境。安装生命周期不属于 CLI。
 

@@ -4,8 +4,6 @@ id: DOC_20260914_E1B61A3F8V1TYAZB
 title: Skill 运行依赖与项目隔离
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
-updated: "2026-09-18"
 ---
 
 # Skill 运行依赖与项目隔离

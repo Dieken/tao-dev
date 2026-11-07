@@ -4,8 +4,6 @@ id: DOC_20260915_EGTG403AY0XK9WME
 title: 开发与维护指南
 locale: zh-Hans
 status: draft
-created: "2026-09-15"
-updated: "2026-11-08"
 ---
 
 # 开发与维护指南

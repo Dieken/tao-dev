@@ -4,7 +4,6 @@ id: DOC_20260914_1WXV6YGDHFAZBWHA
 title: 出版层使用 Sphinx 组合，文档核心保持独立
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 出版层使用 Sphinx 组合，文档核心保持独立

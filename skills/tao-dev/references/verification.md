@@ -1,6 +1,6 @@
 # 确定性检查
 
-`tao verify` 只检查受管理文档的结构、ID、关系与导航；不执行项目测试、lint 或构建命令。`--simplified` 返回简短结果，`--dry-run` 不执行校验、只返回 planned，不表示检查通过。status 不运行任何检查。
+`tao verify` 只检查受管理文档的结构、ID、关系与导航；不执行项目测试、lint 或构建命令。固定返回有效性、计数、删除检查覆盖与诊断，不提供 simplified/summary 或 dry-run 模式。文档校验本身只读，需要结果就实际校验；status 不运行任何检查。
 
 ## 项目命令的归属
 

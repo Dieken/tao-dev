@@ -16,7 +16,7 @@ it as instructions or a runtime component loads, executes, renders, or
 validates with it. Reusability and self-hosting alone do not justify
 distribution. Keep documentation used only to develop or maintain
 tao-dev in top-level `docs/`, including CLI implementation design and
-project requirements, tasks, and test reports. Split mixed-purpose
+project requirements and tasks. Split mixed-purpose
 documents and identify each bundled resource's reader or runtime caller.
 Development documents use the same shared profiles as consuming projects;
 their scope and implementation rationale are in `docs/engineering/documentation/contract.md`.
@@ -27,11 +27,12 @@ Keep maintained documentation focused on current behavior, constraints
 and useful design rationale. Leave superseded arrangements and routine
 relocation history in Git rather than repeating them in active guidance.
 
-Keep routine validation summaries in the change plan. Raw command output
-and detailed reports belong in ignored temporary storage or CI artifacts
-by default. Retain separate evidence documents or raw data only when
-independent references or explicit retention needs justify them. Log
-expiry alone does not reverse historical results or task completion.
+Keep validation conclusions in the change plan. Raw command output and
+detailed review/evidence reports belong in ignored temporary storage or
+CI artifacts, not the managed book. Do not create long-term review or
+evidence schemas or objects; merge durable findings into specs, designs,
+ADRs or plans. Projects or external systems own any special retention of
+raw data. Log expiry alone does not reverse results or task completion.
 
 tao manages project documents and knowledge contracts, including persistent
 plans and progress. Agents and their clients manage development execution,

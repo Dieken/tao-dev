@@ -4,7 +4,6 @@ id: DOC_20260920_A73MEQTXF57YRFTM
 title: 项目检查与缓存由项目原生工具管理
 locale: zh-Hans
 status: draft
-created: "2026-09-20"
 ---
 
 # 项目检查与缓存由项目原生工具管理

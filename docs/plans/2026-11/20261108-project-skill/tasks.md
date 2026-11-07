@@ -4,7 +4,6 @@ id: "DOC_20261108_SJVF6ABRNSPFGRBF"
 title: "项目级纯 skill 重构任务"
 locale: "zh-Hans"
 status: draft
-created: "2026-11-08"
 change: "CHG_20261108_BDAZPV3E7WVCF92X"
 ---
 

@@ -4,7 +4,6 @@ id: DOC_20260914_YQSPSWMMX08JRR2B
 title: 共享 skill 与项目客户端适配分层
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 共享 skill 与项目客户端适配分层

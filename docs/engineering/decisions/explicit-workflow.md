@@ -4,7 +4,6 @@ id: DOC_20260914_F1ZWHX2HJN02WP01
 title: 文档管理、持久计划与确定性工具
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 ---
 
 # 文档管理、持久计划与确定性工具

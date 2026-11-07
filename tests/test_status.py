@@ -8,6 +8,7 @@ import pytest
 
 from taolib.cli import main
 from test_documents import spec
+from test_cli import run
 from test_relationships import change, CHANGE_DOC, CHG, TASK, TASK_TWO
 
 
@@ -28,7 +29,6 @@ id: {TASKS_DOC}
 title: 导出检查任务
 locale: zh-Hans
 status: draft
-created: "2026-09-14"
 change: {CHG}
 ---
 
@@ -75,8 +75,9 @@ def test_status_without_configuration_is_read_only_and_project_scoped(tmp_path, 
     assert plan["progress_basis"] == "inferred_from_tasks"
     assert plan["task_counts"] == {"total": 1, "completed": 0, "pending": 1}
     assert plan["pending_tasks"][0]["id"] == TASK
-    assert plan["review"] == "unknown"
-    assert plan["verification_summary"] == "本例仅用于格式测试，不能作为开发完成证据。"
+    assert not {"review", "delivery", "tasks", "verification_summary", "section_summary"} & plan.keys()
+    assert "本例仅用于格式测试，不能作为开发完成证据。" not in json.dumps(report, ensure_ascii=False)
+    assert "本例仅用于格式测试，不能作为开发完成证据。" in (tmp_path / PLAN).read_text(encoding="utf-8")
     assert files(tmp_path) == before
     assert not (tmp_path / ".tao").exists()
     assert not (tmp_path / "tmp").exists()
@@ -87,33 +88,35 @@ def test_all_checked_means_tasks_complete_not_reviewed(tmp_path, capsys, attachm
     make_plan(tmp_path, completed=True)
     if attachment:
         split(tmp_path)
-    code, report = call(tmp_path, capsys, "status", CHG, "--simplified")
+    code, report = call(tmp_path, capsys, "status", CHG)
     assert code == 0, report
     outputs = report["outputs"]
     plan, = outputs["plans"]
-    assert outputs["output_mode"] == "simplified"
+    assert "output_mode" not in outputs
     assert plan["progress"] == "tasks_complete"
-    assert plan["review"] == "unknown"
-    assert plan["tasks"] == plan["pending_tasks"] == []
+    assert not {"review", "delivery", "tasks", "verification_summary"} & plan.keys()
+    assert plan["pending_tasks"] == []
     assert plan["task_counts"] == {"total": 1, "completed": 1, "pending": 0}
     assert plan["task_source"] == ("docs/tasks.md" if attachment else PLAN)
     assert "readiness" not in report
     assert "workflows" not in outputs and "evidence" not in outputs
 
 
-def test_mixed_tasks_are_in_progress_and_simplified_preserves_pending(tmp_path, capsys):
+def test_mixed_tasks_are_in_progress_and_preserve_pending_only(tmp_path, capsys):
     path = make_plan(tmp_path, completed=True)
     source = path.read_text(encoding="utf-8")
     task = re.search(r"- \[x\].*?(?=<!-- tao:section verification -->)", source, re.S)[0]
     source = source.replace("<!-- tao:section verification -->",
                             task.replace(TASK, TASK_TWO).replace("- [x]", "- [ ]") + "<!-- tao:section verification -->")
     path.write_text(source, encoding="utf-8")
-    code, report = call(tmp_path, capsys, "status", "--simplified")
+    code, report = call(tmp_path, capsys, "status")
     assert code == 0, report
     plan, = report["outputs"]["plans"]
     assert plan["progress"] == "in_progress"
     assert plan["task_counts"] == {"total": 2, "completed": 1, "pending": 1}
-    assert [task["id"] for task in plan["tasks"]] == [TASK_TWO]
+    assert [task["id"] for task in plan["pending_tasks"]] == [TASK_TWO]
+    assert "tasks" not in plan
+    assert TASK not in json.dumps(report)
 
 
 def test_spec_without_plan_is_planning_and_creates_nothing(tmp_path, capsys):
@@ -124,6 +127,7 @@ def test_spec_without_plan_is_planning_and_creates_nothing(tmp_path, capsys):
     assert code == 0, report
     assert report["outputs"]["plans"] == []
     assert report["outputs"]["planning"][0]["progress"] == "planning"
+    assert "review" not in report["outputs"]["planning"][0]
     assert files(tmp_path) == before
 
 
@@ -173,7 +177,7 @@ def test_corrupt_task_source_never_implies_tasks_complete(tmp_path, capsys, prob
     row, = report["outputs"]["plans"]
     assert row["progress"] == "unavailable"
     assert row["task_set_valid"] is False and row["task_counts"] is None
-    assert row["review"] == "unknown"
+    assert "review" not in row
 
 
 @pytest.mark.parametrize('attachment', [False, True])
@@ -189,4 +193,46 @@ def test_documents_pass_independently_of_task_completion_or_reviews(tmp_path, ca
     assert code == 0, result
     plan, = result['outputs']['plans']
     assert plan['task_counts']['pending'] == 1
-    assert plan['review'] == 'unknown'
+    assert "review" not in plan
+
+
+@pytest.mark.parametrize("attachment", [False, True])
+def test_status_reads_task_updates_across_processes_without_copying_results(tmp_path, attachment):
+    path = make_plan(tmp_path)
+    if attachment:
+        split(tmp_path)
+    source = tmp_path / "docs/tasks.md" if attachment else path
+    before = files(tmp_path)
+    first = run(tmp_path, "status", CHG)
+    assert first.returncode == 0, first.stdout
+    assert json.loads(first.stdout)["outputs"]["plans"][0]["progress"] == "pending"
+    assert files(tmp_path) == before
+
+    source.write_text(source.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+    before = files(tmp_path)
+    second = run(tmp_path, "status", CHG)
+    assert second.returncode == 0, second.stdout
+    plan, = json.loads(second.stdout)["outputs"]["plans"]
+    assert plan["progress"] == "tasks_complete"
+    assert plan["pending_tasks"] == []
+    assert plan["task_source"] == ("docs/tasks.md" if attachment else PLAN)
+    assert not {"tasks", "verification_summary", "review", "delivery"} & plan.keys()
+    assert "本例仅用于格式测试，不能作为开发完成证据。" not in second.stdout
+    assert "本例仅用于格式测试，不能作为开发完成证据。" in path.read_text(encoding="utf-8")
+    assert files(tmp_path) == before
+
+
+@pytest.mark.parametrize("option", ["--simplified", "--simplifed", "--summary", "--full"])
+def test_removed_status_options_are_rejected_without_writes(tmp_path, capsys, monkeypatch, option):
+    make_plan(tmp_path)
+    before = files(tmp_path)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Rejected options must not execute a process")
+
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    code, report = call(tmp_path, capsys, "status", CHG, option)
+    assert code == 2 and report["status"] == "not_run"
+    assert report["diagnostics"]
+    assert report["outputs"] == {}
+    assert files(tmp_path) == before

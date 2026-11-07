@@ -4,7 +4,6 @@ id: DOC_20260916_K2DPG4RYHSYNNXTF
 title: 用户指南
 locale: zh-Hans
 status: draft
-created: "2026-09-16"
 ---
 
 # 用户指南

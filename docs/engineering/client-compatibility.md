@@ -4,7 +4,6 @@ id: DOC_20260916_6N9TWCTX0K6XV2A7
 title: 客户端兼容性与验收边界
 locale: zh-Hans
 status: draft
-created: "2026-09-16"
 ---
 
 # 客户端兼容性与验收边界

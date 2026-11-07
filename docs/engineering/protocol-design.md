@@ -4,8 +4,6 @@ id: DOC_20260914_AG3NSZ8RBSFA0YHW
 title: 文档协作与知识架构
 locale: zh-Hans
 status: draft
-created: '2026-09-14'
-updated: "2026-09-18"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 

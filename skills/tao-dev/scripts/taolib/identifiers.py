@@ -6,7 +6,7 @@ from tao_messages import Message
 
 
 def new_id(kind, registry, existing, *, today=None, random_bytes=secrets.token_bytes):
-    if kind not in {"DOC", "REQ", "UC", "ADR", "TASK", "CHG", "EVD"}:
+    if kind not in {"DOC", "REQ", "UC", "ADR", "TASK", "CHG"}:
         raise ValueError(Message('Unknown ID type: {arg0}', kind))
     rule = registry["id"]
     prefix = kind + "_" + (today or date.today()).strftime("%Y%m%d") + "_"

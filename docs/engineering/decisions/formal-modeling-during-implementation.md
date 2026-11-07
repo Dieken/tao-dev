@@ -4,7 +4,6 @@ id: DOC_20260927_7W1XHRDA6GKJK54Y
 title: 保持自然语言需求，按风险在实施阶段建模
 locale: zh-Hans
 status: draft
-created: "2026-09-27"
 ---
 
 # 保持自然语言需求，按风险在实施阶段建模
