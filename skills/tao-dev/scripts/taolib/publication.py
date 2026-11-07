@@ -210,6 +210,7 @@ def build(project):
                 f"project = {title!r}\nhtml_title = {title!r}\n"
                 f"language = {'zh_CN' if project.locale == 'zh-Hans' else 'en'!r}\n"
                 "myst_enable_extensions = ['colon_fence']\n"
+                "myst_heading_anchors = 6\n"
                 "html_copy_source = False\nhtml_show_sourcelink = False\n"
                 "tao_index = json.loads(Path('_tao-index.json').read_text(encoding='utf-8'))\n")
         # Sphinx executes conf.py from its source directory.

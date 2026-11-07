@@ -17,10 +17,10 @@ status: draft
 :links: REQ_20260914_3JQXRKWXKAZSNJ5R, REQ_20260914_95193C19C90NRXV4
 
 <!-- tao:field context -->
-**背景与备选：** mdBook 简洁，但语义追踪需补充；Antora 适合多仓库版本聚合，当前负担偏大。
+**背景与备选：** mdBook 简洁，但需要补充语义追溯能力；Antora 适合聚合多个仓库和版本的文档，对当前项目而言维护负担偏大。
 
 <!-- tao:field decision -->
-**选择：** 采用 MyST、Sphinx 与 sphinx-book-theme，薄扩展复用源校验器的显式 ID、关系索引与永久链接；文档检查与计划查询独立于项目原生测试命令，不形成开发流程 gate。
+**选择：** 采用 MyST、Sphinx 与 sphinx-book-theme，通过小型扩展复用源文档校验器的显式 ID、关系索引与永久链接；文档检查与计划查询独立于项目原生测试命令，不控制开发流程能否继续。
 
 <!-- tao:field consequences -->
 **影响与后果：** 需要可选的 Python 构建依赖和小型 Sphinx 扩展。现有校验器已覆盖任务、元数据与章节键，引入 Sphinx-Needs 会重复建立索引，因此当前直接复用既有索引；不宣称已验收 Sphinx-Needs 或 PDF。HTML 的固定入口、侧栏锚点、改名及退役由实际构建回归测试检查。

@@ -2,17 +2,17 @@
 
 编写或审查规格、设计、计划正文时读取对应小节及片段模板。共同元数据、ID 和文档检查见 [文档规程](documents.md)；精确字段与允许位置以 [格式注册表](../assets/document-profiles.json) 为准。
 
-questions 只写尚未确定的目标、范围、方案或验收条件；没有则省略或写“无”。确需延后的需求说明原因与后续承接。已知范围归 scope，验证结果及缺口归 verification，后续工作归 tasks。
+未决问题（`questions`）只写尚未确定的目标、范围、方案或验收条件；没有则省略或写“无”。确需延后的需求说明原因与后续安排。已知范围归 `scope`，验证结果及缺口归 `verification`，后续工作归 `tasks`。
 
 ## 条目的共同语法
 
-正式条目使用文档顶层的三反引号 MyST 块，类型为 req、uc、adr；选项后空一行再写正文，不嵌入列表、引用或其他条目。选项、状态取值与关系目标类型见注册表的 `entities` 节；关系值是逗号分隔的完整 ID，不含空项或重复项。superseded 对象须有另一条目的 supersedes 指向它。
+正式条目使用文档顶层的三反引号 MyST 块，类型为 `req`、`uc`、`adr`；选项后空一行再写正文，不嵌入列表、引用或其他条目。选项、状态取值与关系目标类型见注册表的 `entities` 节；关系值是逗号分隔的完整 ID，不含空项或重复项。状态为 `superseded` 的对象须有另一条目的 `supersedes` 指向它。
 
 字段用 `<!-- tao:field key -->` 标记，每个适用字段为非空 Markdown 段落，保留稳定键而不强制顺序；标记在代码或引用中不生效。多个独立承诺拆成条目，通过 ID 关联，不复制验收标准。
 
 ## REQ：系统承诺
 
-使用 [REQ 片段](../assets/templates/req-block.md)，在 spec.requirements 定义；每份规格至少一个 REQ。正文采用 EARS 条件化表达，每个 REQ 对应可独立接受、修改或失败的一个承诺：
+使用 [REQ 片段](../assets/templates/req-block.md)，在 `spec.requirements` 定义；每份规格至少一个 REQ。正文采用 EARS 条件化表达，每个 REQ 对应可独立接受、修改或失败的一个承诺：
 
 | 条件 | 中文写法 | 英文关键词 |
 |---|---|---|
@@ -33,18 +33,18 @@ questions 只写尚未确定的目标、范围、方案或验收条件；没有�
 
 ## UC：场景与性质
 
-使用 [UC 片段](../assets/templates/uc-block.md)，位于 cases 或 invariants；用户明确合并文档时也可位于 plan.design。
+使用 [UC 片段](../assets/templates/uc-block.md)，位于 `cases` 或 `invariants`；用户明确合并文档时也可位于 `plan.design`。
 
 - UC_GIVEN：初始条件、输入域和约束。
 - UC_WHEN：触发动作或操作序列。
 - UC_THEN：可观察、可断言的结果；性质说明适用输入范围和谓词。
-- verifies：关联被验证的 REQ。
+- `verifies`：关联被验证的 REQ。
 
 项目已有可执行 Gherkin 场景时引用其位置和关联 ID，不复制步骤。MyST UC 本身不是可执行测试。
 
 ## ADR：选择与后果
 
-使用 [ADR 片段](../assets/templates/adr-block.md)，位于 decisions、design 或 architecture。长期决定的抽取条件见 [文档归属](documents.md#文档归属)。
+使用 [ADR 片段](../assets/templates/adr-block.md)，位于 `decisions`、`design` 或 `architecture`。长期决定的抽取条件见 [文档归属](documents.md#文档归属)。
 
 - ADR_CONTEXT：问题、约束和实际备选。
 - ADR_DECISION：选择与理由。
@@ -58,9 +58,9 @@ questions 只写尚未确定的目标、范围、方案或验收条件；没有�
 
 明确系统边界与数据流、公开接口和调用方、数据约束和所有者、状态转换、失败后的状态与恢复。重要取舍记录可行备选、理由和代价，已有 ADR 则引用；只记录影响决定的签名、模型、公式或图。已有基线时说明保持哪些可观察行为。
 
-涉及并发、多步操作或权限时，说明原子性、信任边界及失败后的状态；重试说明幂等或去重依据与边界。安全或迁移设计说明适用资产、数据和消费者的约束。
+涉及并发、多步操作或权限时，说明原子性、信任边界及失败后的状态；重试说明幂等或去重依据与边界。安全或迁移设计说明适用资产、数据和使用方的约束。
 
-verification 说明检查什么、输入与环境、比较基线、执行办法、通过条件及必要报告；正确性性质关联 UC，具体任务关联 REQ／CHG。说明需求的验收层次和不适用条件，断言注明需求、独立算例或性质依据。文档校验入口见 [文档校验](tools.md#文档校验)，结果解释见 [结果保存](planning.md#结果保存)。
+验证章节（`verification`）说明检查什么、输入与环境、比较基线、执行办法、通过条件及必要报告；正确性性质关联 UC，具体任务关联 REQ／CHG。说明需求的验收层次和不适用条件，断言注明需求、独立算例或性质依据。文档校验入口见 [文档校验](tools.md#文档校验)，结果解释见 [结果保存](planning.md#结果保存)。
 
 形式化模型的结论须注明待检查规则、模型边界、反例判据及与真实系统的对应关系。“未发现反例”仅对声明的规则、边界、版本和配置成立，不等于完整证明、实现符合模型或验收通过。反例须区分模型错误和真实契约缺陷。
 
@@ -68,7 +68,7 @@ verification 说明检查什么、输入与环境、比较基线、执行办法�
 
 ## 任务与证据
 
-正式 TASK 仅位于 tasks 章节，每项为扁平 checkbox 和固定字段；分组可用三级标题：
+正式 TASK 仅位于 `tasks` 章节，每项为扁平复选框和固定字段；分组可用三级标题：
 
 ```markdown
 - [ ] `TASK_<YYYYMMDD>_<16位随机串>` 可验证的结果
@@ -76,9 +76,9 @@ verification 说明检查什么、输入与环境、比较基线、执行办法�
   - verify: 实际检查办法及预期结果。
 ```
 
-字段编码和允许的引用类型见注册表的 `tasks` 节。字段行缩进两个空格；relates、depends_on 与 evidence 可选，提供关系时不含重复成员且依赖不得成环。没有依赖时省略 depends_on；所属事项由 plan/tasks 的 change 表达，不要求每项任务重复关联同一 CHG。verify 为非空单行文本，写实际检查办法与预期结果，不能仅写“完成某模块”。
+字段编码和允许的引用类型见注册表的 `tasks` 节。字段行缩进两个空格；`relates`、`depends_on` 与 `evidence` 可选，提供关系时不含重复成员且依赖不得成环。没有依赖时省略 `depends_on`；所属事项由计划与任务文档的 `change` 表达，不要求每项任务重复关联同一 CHG。`verify` 为非空单行文本，写实际检查办法与预期结果，不能仅写“完成某模块”。
 
-evidence 为单个普通 Markdown 链接。任务完成含义、唯一任务集、计划状态与客户端进度归属见 [持久计划](planning.md)；verification 的当前摘要与 evidence 来源处理见 [结果保存](planning.md#结果保存)。
+`evidence` 为单个普通 Markdown 链接。任务完成含义、唯一任务集、计划状态与客户端进度归属见 [持久计划](planning.md)；`verification` 的当前摘要与 `evidence` 来源处理见 [结果保存](planning.md#结果保存)。
 
 ## 内容审查
 

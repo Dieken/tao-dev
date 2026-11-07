@@ -2,6 +2,7 @@ from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
+from urllib.parse import unquote, urlsplit
 import pytest
 
 from py_mini_racer import MiniRacer
@@ -65,6 +66,32 @@ def chinese_project(root):
     (root / "docs/index.md").write_text(navigation("spec.md"), encoding='utf-8')
     (root / "docs/spec.md").write_text(spec(), encoding='utf-8')
     return Project(root)
+
+
+def test_links_to_unmanaged_chinese_and_english_headings_resolve(tmp_path):
+    configured = project(tmp_path)
+    reference = tmp_path / "reference.md"
+    reference.write_text(
+        "# Reference\n\n## 文档校验\n\n检查结构。\n\n"
+        "### Query and progress\n\nRead the plan.\n",
+        encoding="utf-8",
+    )
+    source = tmp_path / "docs/spec.md"
+    source.write_text(
+        source.read_text(encoding="utf-8")
+        + "\n[校验](../reference.md#文档校验)\n"
+        + "[Progress](../reference.md#query-and-progress)\n",
+        encoding="utf-8",
+    )
+    output = build(configured)
+    directory = tmp_path / output["directory"]
+    page = Page((directory / "docs/spec.html").read_text(encoding="utf-8"))
+    target = Page((directory / "reference.html").read_text(encoding="utf-8"))
+    for label in ("校验", "Progress"):
+        link = next(link for link in page.links if link["text"] == label)
+        destination = urlsplit(link["href"])
+        assert destination.path == "../reference.html"
+        assert unquote(destination.fragment) in target.ids
 
 
 def test_chinese_book_search_loads_and_finds_body_text(tmp_path):

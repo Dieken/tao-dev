@@ -1,107 +1,43 @@
-# Repository scope
+# 仓库范围
 
-This directory is an independent Git repository. Run Git commands from
-this repository. Do not track it in the enclosing repository or register
-it as a submodule.
+本目录是独立的 Git 仓库。Git 命令须在本仓库内执行，不得将本目录纳入上级仓库的版本管理，也不得注册为子模块。
 
-# Develop with tao-dev
+# 使用 tao-dev 开发
 
-Read `skills/tao-dev/SKILL.md` and its relevant bundled
-references when developing this project. This is a project-local source
-entry point. `CLAUDE.md` imports this guidance for the other target client.
+开发本项目时，先阅读 `skills/tao-dev/SKILL.md` 及相关的包内参考文档。该文件是本项目的源码入口；`CLAUDE.md` 引用本说明，供 Claude Code 使用。
 
-Use the bundled document profiles and templates for new delivery
-documents. Bundle a resource only when a consuming project's LLM reads
-it as instructions or a runtime component loads, executes, renders, or
-validates with it. Reusability and self-hosting alone do not justify
-distribution. Keep documentation used only to develop or maintain
-tao-dev in top-level `docs/`, including CLI implementation design and
-project requirements and tasks. Split mixed-purpose
-documents and identify each bundled resource's reader or runtime caller.
-Development documents use the same shared profiles as consuming projects;
-their scope and implementation rationale are in `docs/engineering/documentation/contract.md`.
-Check each document against its declared schema and report the actual
-validation scope. Preserve existing IDs and references when editing.
+新增交付文档时，使用技能包内的文档格式和模板。仅在使用方项目的大语言模型将资源作为指令读取，或运行时组件需要加载、执行、渲染或校验该资源时，才将其纳入技能包。仅仅便于复用或用于自举，不足以成为分发理由。
 
-Keep maintained documentation focused on current behavior, constraints
-and useful design rationale. Leave superseded arrangements and routine
-relocation history in Git rather than repeating them in active guidance.
+只用于开发或维护 tao-dev 的文档放在顶层 `docs/`，包括命令行工具的实现设计、项目需求和任务。混合用途的文档应拆分，并说明每份分发资源的指令读者或运行时调用方。开发文档与使用方项目采用同一套文档格式；范围和设计理由见 `docs/engineering/documentation/contract.md`。按各文档声明的结构规范校验，并报告实际检查范围。编辑时保留已有 ID 和引用。
 
-Keep validation conclusions in the change plan. Raw command output and
-detailed review/evidence reports belong in ignored temporary storage or
-CI artifacts, not the managed book. Do not create long-term review or
-evidence schemas or objects; merge durable findings into specs, designs,
-ADRs or plans. Projects or external systems own any special retention of
-raw data. Log expiry alone does not reverse results or task completion.
+维护文档只保留当前行为、约束和有用的设计理由。已被替代的安排和常规文件迁移历史留在 Git，不在现行指引中反复叙述。
 
-tao manages project documents and knowledge contracts, including persistent
-plans and progress. Agents and their clients manage development execution,
-permissions, scheduling and sessions; tao does not impose a development
-pipeline. Reuse relevant specs and designs rather than creating a complete
-document set for every edit. Continue within existing authorization.
+验证结论写入变更计划。原始命令输出、详细审查报告和证据材料放在已忽略的临时目录或持续集成（CI）产物中，不纳入受管理的文档书籍。不为审查或证据另设长期结构规范或正式对象；长期有效的结论合并到规格、设计、架构决策记录（ADR）或计划。原始数据的特殊保留要求由项目或外部系统负责。日志过期本身不改变已有结果或任务完成状态。
 
-For cross-session, collaborative or explicitly tracked work, keep project
-progress in the plan's inline tasks or its single task attachment. Client
-task lists are temporary execution steps, not a second project progress
-source. Write actual outcomes, remaining work, blockers and verification
-summaries back to the plan; reconcile it with current files when resuming.
-Checked tasks do not imply verified, reviewed or delivered; absent review
-evidence is unknown. Completed plans record changes, while current
-requirements and lasting decisions belong in specs, designs and ADRs.
+tao 管理项目文档及其内容约定，包括持久计划和进度。智能体及其客户端管理开发执行、权限、调度和会话；tao 不规定开发流水线。复用相关规格和设计，不为每次编辑创建全套文档。在已有授权范围内继续工作。
 
-Use the bundled source validator and project-local Python environment
-for explicitly requested document checks. Project tests, lint, build
-commands and caching belong in native entry points such as justfile,
-Makefile or CI, not .tao/config.toml. Local HTML publication and code
-checks are separate from semantic review and actual client behavior.
-Distribute the complete skill by project-local copying, or an optional
-external skills tool. Document Claude, Codex, Cursor and Kiro discovery
-paths; tao does not manage installation lifecycles or client configuration.
-Report only exercised validation and its actual scope.
-Prepare dependencies explicitly; reading or installing the skill must
-not require publication dependencies or automatic environment setup.
-Always pass `--no-config` to `uv`. This machine's global `uv.toml`
-declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
-rewrites every registry and wheel URL in `uv.lock`, producing a large
-diff nobody asked for. CI already passes it; justfile uses the prepared
-environment directly. For one-off calls prefer
-`.venv/bin/python` directly, which is what the justfile's own `tao` and
-`python` variables do. If `uv.lock` shows unintended mass URL changes,
-inspect the diff and preserve unrelated user changes when correcting it.
+跨会话、协作或明确要求跟踪的工作，应将项目进度保存在计划的内联任务或唯一任务附件中。客户端任务列表只记录临时执行步骤，不是第二份项目进度。将实际成果、剩余工作、阻塞原因和验证摘要写回计划；恢复工作时，核对计划与当前文件是否一致。任务勾选不表示已验证、已审查或已交付；没有审查依据时，审查状态就是未知。完成的计划记录变更，当前需求和长期决策则保存在规格、设计和架构决策记录中。
 
-# CLI experiments
+用户明确要求检查文档时，使用技能包内的源文档校验器和项目本地 Python 环境。项目测试、代码静态检查、构建命令及缓存由 justfile、Makefile 或 CI 等项目原有入口管理，不放在 `.tao/config.toml`。本地 HTML 出版、代码检查、语义审查和实际客户端行为分别验证。
 
-These constraints govern experiments on a maintainer machine, where they
-exist to protect personal client state. Use the existing agent CLI commands
-and their configured authentication; do not reinstall or reconfigure any
-agent CLI for testing.
+分发时，将完整技能复制到目标项目，也可选用外部技能工具。文档须说明 Claude、Codex、Cursor 和 Kiro 的发现路径；tao 不管理安装、更新、移除或客户端配置。只报告实际执行的验证及其范围。显式准备依赖；读取或安装技能不得依赖出版环境，也不得自动配置环境。
 
-Enable tao-dev only inside an isolated experiment project, using a
-verified project-local or invocation-local loading mechanism. Changing
-the working directory alone does not establish installation scope.
-Never install or register the test skill globally, or change global
-client configuration. Pass these constraints to agents and scripts used
-during the experiment.
+调用 `uv` 时始终传入 `--no-config`。本机全局 `uv.toml` 配置了镜像索引，不带该选项的 `uv run` 或 `uv lock` 会重新解析依赖，并重写 `uv.lock` 中所有软件源和 wheel 包的 URL，造成无关的大量改动。CI 已传入该选项；justfile 直接使用已准备好的环境。单次调用优先使用 `.venv/bin/python`，与 justfile 的 `tao`、`python` 变量一致。如发现 `uv.lock` 中意外出现大量 URL 改动，应先检查差异，修正时保留用户的无关修改。
 
-Verify both activation inside the experiment and absence outside it.
-Keep test configuration and cleanup within the experiment scope. If the
-selected CLI cannot provide the required isolation, report that test as
-blocked rather than falling back to a global installation.
+# 命令行实验
 
-CI file-deployment tests must remain project-scoped too. Real model
-sessions require explicit authorization and a separately reported result;
-file installation does not prove client discovery or agent behavior.
+以下约束用于保护维护者机器上的个人客户端状态。实验使用已有的智能体命令行工具及其已配置的认证；不得为了测试重新安装或配置这些工具。
 
-# Commits
+只在隔离的实验项目内启用 tao-dev，并使用经过验证的项目级或单次调用级加载机制。仅切换工作目录不能证明安装范围受限。不得全局安装或注册测试技能，不得修改全局客户端配置。向参与实验的智能体和脚本传达这些约束。
 
-Commit each completed, cohesive, independently reviewable change. Keep
-unrelated work and incomplete changes out of the commit.
+同时验证技能在实验项目内生效、在项目外不可见。测试配置和清理仅限实验范围。若所选命令行工具无法提供所需隔离，应报告测试受阻，不得改用全局安装。
 
-Always write commit messages in English. Use a concise summary, a blank
-line, and a descriptive body explaining the context, resulting behavior,
-implementation, and relevant validation or limitations. Use paragraphs
-where helpful; do not reduce the message to a one-line summary.
+CI 文件部署测试也必须限定在项目范围内。真实模型会话须经明确授权，并单独报告结果；文件安装成功不能证明客户端发现或智能体行为正确。
 
-Hard-wrap every body line at no more than 72 characters. Preserve actual
-newlines. When using a message file, pass it with `git commit --file`.
-Check the saved message's formatting before committing.
+# 提交
+
+每完成一项内容完整、可独立审阅的变更，就单独提交。无关工作和未完成的修改不得纳入提交。
+
+提交信息始终使用英文：先写简明标题，空一行，再用正文说明背景、变更后的行为、实现方式及相关验证或限制。按需分段，不能只写一行标题。
+
+正文每行不超过 72 个字符，使用实际换行。使用消息文件时，通过 `git commit --file` 提交，并在提交前检查文件中的消息格式。

@@ -17,7 +17,7 @@ status: draft
 :links: REQ_20260914_42AXMZ2KH2RAZ8M3, REQ_20260914_NN0AEQ2E1GTVSMTV
 
 <!-- tao:field context -->
-**背景与备选：** 纯自由文本难稳定校验；全部改为 YAML 对人阅读不友好；维护并行 JSON 与正文会产生双份事实。
+**背景与备选：** 纯自由文本难以稳定校验；全部改为 YAML 不便于阅读；并行维护 JSON 与正文会重复记录同一事实。
 
 <!-- tao:field decision -->
 **选择：** 采用受约束 Markdown：YAML 元数据、稳定章节键、MyST 风格条目块及固定任务列表。正文继续自然表达；机器数据从同一源文件提取。
