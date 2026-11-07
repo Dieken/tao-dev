@@ -7,7 +7,7 @@ status: draft
 created: '2026-11-07'
 change: CHG_20261107_JB6DVKHK61CWHCWM
 slug: native-version-and-batch-upgrade
-record_revision: 4
+record_revision: 6
 lifecycle: active
 phase: implement
 plan_path: docs/plans/2026-11/20261107-native-version-and-batch-upgrade.md
@@ -26,7 +26,7 @@ approvals:
     digest: 199e89115c3b9ecefe2c15a2ab5a10e418811bdc0ed21253595ec55e81d3058b
     algorithm: doc-v1
   plan:
-    digest: c0184a89df633a4e5521bedf7cb526dc65a4b1402506ab432af8597c0cdc5c7b
+    digest: bc6bf0d3c37e947483f76be018904ff8abf0f09aae1472d498791655a18d3d07
     algorithm: doc-v1
 baseline:
   branch: tao/native-version-and-batch-upgrade
@@ -35,7 +35,7 @@ baseline:
 review_control: {}
 closure: null
 provenance: {}
-last_operation_id: 9d48726a68a84691a15c73b4f40d2478
+last_operation_id: cb1f1df42a5a4006b8dd645369866daa
 ---
 
 # 修正 native 版本发现并支持批量升级
