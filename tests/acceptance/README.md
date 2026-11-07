@@ -17,7 +17,7 @@ python3 tests/acceptance/project_skills.py --client kiro
 uv run --no-config --locked --extra publication pytest -q tests/test_acceptance_project_skills.py tests/test_native_clients.py
 ```
 
-回归覆盖副本缺失、内容损坏、额外文件及隔离环境被修改的检测；不维护安装器事务或归属保护测试。复制后辅助命令的独立运行由 standalone 测试覆盖。
+回归覆盖副本缺失、内容损坏、额外文件及隔离环境被修改的检测。复制后辅助命令的独立运行由 standalone 测试覆盖。
 
 ## 真实原生发现（不调用模型）
 

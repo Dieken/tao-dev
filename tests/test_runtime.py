@@ -75,7 +75,7 @@ def test_missing_dependencies_use_stderr_for_text_output(tmp_path):
 
 
 @pytest.mark.parametrize('command', ['install', 'upgrade', 'list', 'uninstall', 'handoff'])
-def test_removed_management_commands_are_rejected_without_writes(tmp_path, command):
+def test_unsupported_management_commands_are_rejected_without_writes(tmp_path, command):
     home = tmp_path / 'home'
     project = tmp_path / 'project'
     home.mkdir()

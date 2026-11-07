@@ -12,11 +12,11 @@
 
 ## 元数据与结构
 
-文档保留 YAML frontmatter、受支持的 schema、唯一 DOC、标题、locale 及对应 profile 的基础字段。正文使用自然语言和已有 `<!-- tao:section key -->`、`<!-- tao:field key -->` 稳定键。章节按实际内容组织，不强制固定顺序、数量或无关章节；重复键仍非法。保留各类型的必要语义章节：spec 的 scope/requirements、design 的 overview/architecture、plan 的 scope（内联任务所在章节使用 tasks 键）、tasks 的 tasks、decision 的 decisions、指南与 runbook 的 steps、glossary 的 terms、navigation 的 contents。
+文档保留 YAML frontmatter、受支持的 schema、唯一 DOC、标题、locale 及对应 profile 的基础字段。正文使用自然语言和已有 `<!-- tao:section key -->`、`<!-- tao:field key -->` 稳定键。章节按实际内容组织，不强制固定顺序、数量或无关章节；重复键非法。保留各类型的必要语义章节：spec 的 scope/requirements、design 的 overview/architecture、plan 的 scope（内联任务所在章节使用 tasks 键）、tasks 的 tasks、decision 的 decisions、指南与 runbook 的 steps、glossary 的 terms、navigation 的 contents。
 
-基础必填为 schema、id、title、locale、status。不维护 created/updated：编辑时间不能说明知识仍有效或任务已有进展；确有业务意义的生效日期、观察时间写入相应正文。退役记录的 retired_on 标识具体事件，继续保留。检查的输入、执行时间与限制按 [结果保存](evidence-retention.md) 记录，不另设正式证据元数据。
+基础必填为 schema、id、title、locale、status。不维护 created/updated：编辑时间不能说明知识仍有效或任务已有进展；确有业务意义的生效日期、观察时间写入相应正文。退役记录使用 retired_on 标识具体事件。检查的输入、执行时间与限制按 [结果保存](evidence-retention.md) 记录，不另设正式证据元数据。
 
-条目仍用 MyST req/uc/adr 块；任务仍用扁平 checkbox 与 TASK ID、verify，可选 relates、depends_on、evidence。任务全勾选不是验证、审查或交付通过。accepted 等元数据只能反映真实决定，不能由格式校验自动设置。
+条目使用 MyST req/uc/adr 块；任务使用扁平 checkbox 与 TASK ID、verify，可选 relates、depends_on、evidence。任务全勾选不是验证、审查或交付通过。accepted 等元数据只能反映真实决定，不能由格式校验自动设置。
 
 ## 标识与关系
 

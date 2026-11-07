@@ -91,7 +91,7 @@ def test_valid_chinese_spec_indexes_forward_references(tmp_path):
 
 
 @pytest.mark.parametrize("field", ["created", "updated"])
-def test_removed_base_dates_are_unknown_metadata(tmp_path, field):
+def test_base_dates_are_unknown_metadata(tmp_path, field):
     metadata = f'{field}: "2026-09-14"'
     content = spec().replace("status: draft", f"status: draft\n{metadata}")
     result = check(tmp_path, content)
@@ -103,7 +103,7 @@ def test_removed_base_dates_are_unknown_metadata(tmp_path, field):
 
 
 @pytest.mark.parametrize("profile", ["evidence", "review"])
-def test_removed_document_profiles_are_rejected(tmp_path, profile):
+def test_unsupported_document_profiles_are_rejected(tmp_path, profile):
     content = spec().replace("tao.project.spec/v0.1", f"tao.project.{profile}/v0.1")
     result = check(tmp_path, content)
     assert not result.valid

@@ -223,7 +223,7 @@ def test_status_reads_task_updates_across_processes_without_copying_results(tmp_
 
 
 @pytest.mark.parametrize("option", ["--simplified", "--simplifed", "--summary", "--full"])
-def test_removed_status_options_are_rejected_without_writes(tmp_path, capsys, monkeypatch, option):
+def test_unsupported_status_options_are_rejected_without_writes(tmp_path, capsys, monkeypatch, option):
     make_plan(tmp_path)
     before = files(tmp_path)
 

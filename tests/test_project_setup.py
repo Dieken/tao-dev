@@ -81,7 +81,7 @@ def test_configuration_is_validated_idempotent_and_compare_before_replace(tmp_pa
     ('doctor',), ('status',), ('project', 'inspect'),
     ('project', 'configure', '--from', 'setup.toml'),
 ])
-def test_legacy_verification_configuration_is_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, command):
+def test_unsupported_verification_configuration_is_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, command):
     content = ('version=1\n[verification]\ninputs=["check.py"]\n'
                '[[verification.checks]]\nid="tests"\nargv=['
                + json.dumps(sys.executable) + ', "check.py"]\ntimeout_seconds=5\n')

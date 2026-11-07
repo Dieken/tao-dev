@@ -25,11 +25,11 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 ## 结构边界
 
-保留 YAML 元数据、profile、DOC 和条目语法；必要语义章节仍要求存在，章节顺序、数量及不相关模板章节不再强制。自定义章节允许，稳定 section/field 键若出现不得重复。正文语言与显示标签不决定结构，locale 不改变 ID、规则号或结果。
+文档使用 YAML 元数据、profile、DOC 和条目语法；必要语义章节必须存在，章节顺序、数量及不相关模板章节不强制。自定义章节允许，稳定 section/field 键若出现不得重复。正文语言与显示标签不决定结构，locale 不改变 ID、规则号或结果。
 
 文档契约同时约束含义：规格说明可观察行为与验收，设计解释结构、接口、不变量及失败，ADR 保留背景、决定与后果，计划定义范围、成果任务与验证方法。语义审查核对一致性、可验证性和当前事实，不能由必填字段存在推断完成。按实际知识缺口选用类型，不强制每次改动形成文档三件套。
 
-REQ/UC/ADR 仍采用 MyST 指令与现有关系选项。TASK 是 tasks 章节的扁平 checkbox，必须有唯一 TASK ID 和非空 verify；relates、depends_on、evidence 可选。提供的关系必须合法，任务依赖无环。任务描述可验证成果，不照抄客户端临时步骤；完成勾选不要求证据附件，也不推断验证、审查或交付完成。
+REQ/UC/ADR 采用 MyST 指令与关系选项。TASK 是 tasks 章节的扁平 checkbox，必须有唯一 TASK ID 和非空 verify；relates、depends_on、evidence 可选。提供的关系必须合法，任务依赖无环。任务描述可验证成果，不照抄客户端临时步骤；完成勾选不要求证据附件，也不推断验证、审查或交付完成。
 
 plan.change 定义 CHG；tasks.change 引用同一计划。plan 内联任务或通过 tasks_doc 指向一份附件，不同时维护两份任务。spec_docs/design_docs 如提供，应引用对应类型文档。草稿可缺尚未形成的依据，审查根据实际内容判断其完整性。
 
@@ -48,15 +48,15 @@ plan.change 定义 CHG；tasks.change 引用同一计划。plan 内联任务或�
 | runbook | steps | 检查与恢复章节按实际操作风险保留 |
 | glossary | terms | term 的名称与定义必需；english/code 保存语言和代码映射，avoid/scope 表达禁用歧义与适用边界 |
 | navigation | contents、单个非空 toctree | 保留阅读路径及图约束；固定显示选项保持统一出版，不增加每页可调状态 |
-| REQ | id、status、行为、acceptance、source | links、supersedes 可选；来源与验收不是重复行为正文，仍保留 |
+| REQ | id、status、行为、acceptance、source | links、supersedes 可选；来源与验收具有独立语义，不能由行为正文替代 |
 | UC | id、status、verifies、given/when/then | links、supersedes 可选；verifies 提供有类型的需求追溯 |
 | ADR | id、status、context/decision/consequences | links、supersedes 可选；取舍和后果不能由决定一句话代替 |
 | TASK | checkbox、ID、标题、verify | relates、depends_on、evidence 可选；模板省略空依赖和重复的所属 CHG，保留真实依赖及需求关系 |
 | 退役记录 | id、retired_on、reason、replaced_by | 日期与替代信息使单行记录可独立解释；空 replaced_by 表示无替代，不改协议 |
 
-保留可选关系并非因为存在消费者：spec_docs/design_docs 记录“为何实现、依据什么”，长期可追溯；tasks_doc 确定唯一进度来源；TASK.relates 说明任务服务的需求，depends_on 表达短期真实阻塞，evidence 作为普通 Markdown 链接指向实际依据；links/supersedes 保存跨知识关联与替代原因。这些信息无法从标题、排序或完成计数可靠恢复，仍按需记录，不填空数组凑结构。TASK.evidence 不意味着存在独立 evidence 文档或 EVD 对象。
+可选关系保存独立知识：spec_docs/design_docs 记录“为何实现、依据什么”，长期可追溯；tasks_doc 确定唯一进度来源；TASK.relates 说明任务服务的需求，depends_on 表达短期真实阻塞，evidence 作为普通 Markdown 链接指向实际依据；links/supersedes 保存跨知识关联与替代原因。这些信息无法从标题、排序或完成计数可靠恢复，按需记录，不填空数组凑结构。TASK.evidence 不意味着存在独立 evidence 文档或 EVD 对象。
 
-迁移时直接移除已有文档的 created、updated 和 design.change；旧字段作为未知元数据报错，不保留兼容别名。review/evidence schema、EVD 及其专属字段不再支持；已有报告的有价值结论回到适用知识文档或计划，原始输出移出受管理范围。retired_on、现存正式 ID 和有效关系不变；确有独立语义的时间或版本事实保留在正文。plan.verification 继续保存结果知识，由 agent 读取，CLI 不抽取整段正文充当 summary。
+未知元数据报错。确有独立语义的时间或版本事实写入正文，退役日期使用 retired_on。plan.verification 保存结果知识，由 agent 读取，CLI 不抽取整段正文充当 summary。
 
 ## 知识与记录
 

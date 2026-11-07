@@ -34,7 +34,7 @@ def test_doctor_reports_only_implemented_capabilities_without_writing(tmp_path):
     assert list(tmp_path.iterdir()) == before
 
 
-def test_doctor_does_not_advertise_removed_runtime_or_workflow_commands(tmp_path):
+def test_doctor_does_not_advertise_unsupported_runtime_or_workflow_commands(tmp_path):
     report = json.loads(run(tmp_path, "doctor").stdout)
     assert not {"env.prepare", "workflow", "review", "verify.evidence"} & set(report["capabilities"])
     assert "runtime" not in report["outputs"]
@@ -121,7 +121,7 @@ def test_id_generator_uses_current_local_date_and_allowed_alphabet(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
-def test_removed_evidence_id_type_is_rejected_without_writes(tmp_path):
+def test_unsupported_evidence_id_type_is_rejected_without_writes(tmp_path):
     completed = run(tmp_path, "id", "new", "EVD")
     assert completed.returncode == 2
     assert json.loads(completed.stdout)["status"] == "not_run"
@@ -325,7 +325,7 @@ def test_batch_ids_are_unique_and_read_only(tmp_path):
 @pytest.mark.parametrize("command", [("workflow", "status"), ("workflow", "finish"),
                                     ("review", "--from", "review.json"), ("finish",),
                                     ("verify", "--only", "evidence")])
-def test_removed_engine_commands_are_rejected_without_writes(tmp_path, command):
+def test_unsupported_engine_commands_are_rejected_without_writes(tmp_path, command):
     assert run(tmp_path, *command).returncode == 2
     assert list(tmp_path.iterdir()) == []
 
@@ -336,7 +336,7 @@ def test_removed_engine_commands_are_rejected_without_writes(tmp_path, command):
     ("CHG_20260914_0000000000000011",), ("docs/plan.md",),
     ("--simplified",), ("--simplifed",), ("--summary",), ("--full",), ("--dry-run",),
 ])
-def test_removed_verify_options_are_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, options):
+def test_unsupported_verify_options_are_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, options):
     from taolib.cli import main
     project(tmp_path)
     before = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}

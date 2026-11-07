@@ -51,7 +51,7 @@ status: draft
 | [Matt Pocock 的 skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | `codebase-design` 的模块与接口词汇；`to-spec` 的复用已知上下文；`tdd` 的行为测试 | 不依赖 issue 发布、不重复访谈、不要求每个测试接口重新取得确认 |
 | [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/blob/ed387446052dfbc6b52de149406b70efa65edc59/skills/verification-loop/SKILL.md) | 分项执行并汇总构建、类型、测试等检查 | 不采用统一覆盖率门槛；保留原始退出码，不靠输出截断判断成功 |
 | [gstack](https://github.com/garrytan/gstack/blob/a3259400a366593e0c909dd9ac3e59752efd2488/context-save/SKILL.md) | 保存与恢复当前目标、决定和剩余工作；检查客户端命令重名 | 不引入全局状态目录、自动遥测或修改用户全局安装 |
-| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型协同执行和复杂常驻调度列为初版前提 |
+| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/docs/guide/overview.md) | 区分协调与执行职责、按任务选择上下文 | 不把多模型协同执行和复杂常驻调度列为使用前提 |
 
 外部依据：[Kiro 规格结构](https://kiro.dev/docs/specs/)、[EARS 需求表达](https://alistairmavin.com/ears/)、[ULID 规范](https://github.com/ulid/spec)、[arc42](https://arc42.org/overview/)、[Diátaxis](https://diataxis.fr/)、[MyST 引用](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)、[Sphinx-Needs 配置](https://sphinx-needs.readthedocs.io/en/latest/configuration.html)、[BCP 47 语言标签说明](https://www.w3.org/International/articles/language-tags/index.en)、[Sphinx 国际化](https://www.sphinx-doc.org/en/master/usage/advanced/intl.html)。这些来源支持相关能力与组织思想，不表示本草案已符合某项完整行业标准。
 

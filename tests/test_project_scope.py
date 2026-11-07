@@ -65,7 +65,7 @@ def test_temporary_material_is_excluded_even_from_broad_document_scope(tmp_path,
     assert set(result.definitions) == {DOC, REQ, UC}
 
 
-@pytest.mark.parametrize("removed", [{"hooks": {}}, {"paths": {"workflows": "docs/workflows"}}])
-def test_removed_engine_configuration_is_rejected(tmp_path, removed):
+@pytest.mark.parametrize("unsupported", [{"hooks": {}}, {"paths": {"workflows": "docs/workflows"}}])
+def test_unsupported_engine_configuration_is_rejected(tmp_path, unsupported):
     with pytest.raises(ValueError):
-        Project(tmp_path, config={"version": 1, **removed})
+        Project(tmp_path, config={"version": 1, **unsupported})

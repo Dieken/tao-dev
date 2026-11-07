@@ -49,7 +49,7 @@ def test_two_plans_can_reuse_the_same_design(tmp_path):
     }
 
 
-def test_removed_design_change_is_unknown_metadata(tmp_path):
+def test_design_change_is_unknown_metadata(tmp_path):
     check_change(tmp_path, linked_plan(designs=[DESIGN]))
     content = design().replace('status: draft', f'status: draft\nchange: {CHG}')
     (tmp_path / 'design.md').write_text(content, encoding='utf-8')

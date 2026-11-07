@@ -17,6 +17,6 @@
 
 status/show 遇到无关草稿错误仍返回可用结果，并标为 `partial`、`outputs.documents_valid=false`；完整校验用 verify。所选任务集合缺失、错绑或结构损坏时，进度是 `unavailable`、计数为 null，不推断任务完成。任务全部勾选时进度 `tasks_complete` 不代表已验证、已审查或已交付；验证与审查记录从计划原文核对，CLI 不代作结论。ID 分配会保留未完成草稿和退役记录中的已有 ID，但不要求整本书先通过校验。
 
-日常机器可读查询使用 `--format json`。verify 固定返回有效性、计数、删除检查覆盖与诊断；status 固定返回计数、待办和源文件位置，不复制已完成任务或验证正文。不提供 simplified/summary 输出模式；临时总结由 agent 按用户问题读取权威文档后完成。需要定位具体定义用 show；明确需要完整结构索引时，使用底层 `python <skill>/scripts/validate_documents.py --project <root> --format json <文档相对路径...>`，不让日常检查默认输出整本书。
+日常机器可读查询使用 `--format json`。verify 固定返回有效性、计数、删除检查覆盖与诊断；status 固定返回计数、待办和源文件位置，不复制已完成任务或验证正文。临时总结由 agent 按用户问题读取权威文档后完成。需要定位具体定义用 show；明确需要完整结构索引时，使用底层 `python <skill>/scripts/validate_documents.py --project <root> --format json <文档相对路径...>`，不让日常检查默认输出整本书。
 
 new/status 不提供下一执行动作或流程关卡；查询不触发检查，计划骨架不授权执行。文档管理与持久计划规则由 agent 按 [文档规程](documents.md) 和 [持久计划](planning.md) 使用。检查未运行、审查未知与任务完成须分开报告。文档配置见 [可选项目接入](project-setup.md)，项目原生命令与结果限制见 [确定性检查](verification.md)，项目复制与依赖准备见 [运行环境](runtime.md)。临时总结是普通用户请求，不需要专用辅助命令。

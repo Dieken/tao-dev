@@ -17,7 +17,7 @@ tao-dev 负责文档的创建、修订、语义审查、关联、查询、退役
 - **真实结果**：agent 核对事实后更新任务与计划摘要。status 只读，不跑检查、不写状态；任务全勾选不代表已验证、已审查或已交付。
 - **长期知识**：已完成计划保留为变更记录；当前有效事实回到规格、设计、ADR 或指南。稳定 ID、正向引用与书籍导航支持换会话和换客户端继续协作。
 
-项目测试、lint、构建与缓存由项目的 justfile、Makefile、manifest 或 CI 管理；`.tao/config.toml` 仅保存文档配置，`tao verify` 只校验文档。执行结果仍写回计划，不在 tao 重复注册命令。
+项目测试、lint、构建与缓存由项目的 justfile、Makefile、manifest 或 CI 管理；`.tao/config.toml` 仅保存文档配置，`tao verify` 只校验文档。执行结果写回计划，不在 tao 重复注册命令。
 
 ## 项目安装
 
@@ -40,7 +40,7 @@ cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 
 同一客户端不要放置重复副本。更新前保存本地改动，再完整替换旧目录，避免叠加复制遗留废弃文件；移除只针对 skill 目录，不删除项目文档或配置。来源与版本由项目 Git 或所选安装工具记录；手工复制没有修改保护或失败回滚。
 
-也可自行使用 [通用 skills CLI](https://github.com/vercel-labs/skills)，在目标项目内显式选择 skill、客户端与项目作用域；它不是 tao 的依赖。具体用法、旧副本迁移及验证边界见 [客户端接入](docs/user/clients.md)。
+也可自行使用 [通用 skills CLI](https://github.com/vercel-labs/skills)，在目标项目内显式选择 skill、客户端与项目作用域；它不是 tao 的依赖。具体用法、副本更新与移除及验证边界见 [客户端接入](docs/user/clients.md)。
 
 只有运行辅助命令才需要 Python 3.11–3.14。显式创建项目 `.venv` 并安装该 skill 的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用实际 skill 的 `scripts/tao.py`，不依赖全局 launcher，不因读取或复制 skill 自动准备依赖。
 
@@ -54,7 +54,7 @@ cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 
 - [文档协作指南](docs/user/workflow.md)
 - [文档书籍入口](docs/index.md)
-- [当前 skill 规格](docs/product/project-skill.md) · [设计](docs/engineering/project-skill.md) · [文档管理重构计划](docs/plans/2026-11/20261108-document-management.md)
+- [当前 skill 规格](docs/product/project-skill.md) · [设计](docs/engineering/project-skill.md) · [文档管理计划](docs/plans/2026-11/20261108-document-management.md)
 - [共享 skill](skills/tao-dev/SKILL.md)
 
 ## 许可
