@@ -421,3 +421,81 @@ def test_kiro_scope_aliases_have_one_identity(scope, tmp_path):
     args = install.arguments(['install', '--client', 'kiro', '--scope', scope, '--project', str(tmp_path)])
     assert args.scope == 'project'
     assert state.install_id('kiro', args.scope, tmp_path) == state.install_id('kiro', 'project', tmp_path)
+
+
+def test_upgrade_all_runs_managed_records_in_stable_order(tmp_path, monkeypatch):
+    first = {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project',
+             'project': str(tmp_path / 'a')}
+    second = {'id': 'codex-project-b', 'client': 'codex', 'scope': 'project',
+              'project': str(tmp_path / 'b')}
+    monkeypatch.setattr(install.state, 'records', lambda _client: [second, first])
+    selected = []
+
+    def upgrade_one(args):
+        selected.append(args.project)
+        return {'installation': {'project': str(args.project)}, 'files': [], 'warnings': []}
+
+    monkeypatch.setattr(install, 'install', upgrade_one)
+    result = install.upgrade(install.arguments([
+        'upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]))
+    assert result['status'] == 'passed'
+    assert [item['id'] for item in result['results']] == ['codex-project-a', 'codex-project-b']
+    assert selected == [tmp_path / 'a', tmp_path / 'b']
+
+
+def test_upgrade_all_continues_after_one_failure(tmp_path, monkeypatch):
+    rows = [
+        {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')},
+        {'id': 'codex-project-b', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'b')},
+    ]
+    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
+
+    def upgrade_one(args):
+        if args.project.name == 'a':
+            raise install.InstallError('injected failure', [str(args.project)])
+        return {'installation': {'project': str(args.project)}, 'files': [], 'warnings': []}
+
+    monkeypatch.setattr(install, 'install', upgrade_one)
+    result = install.upgrade(install.arguments([
+        'upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]))
+    assert result['status'] == 'partial'
+    assert result['succeeded'] == 1 and result['failed'] == 1
+    assert [item['status'] for item in result['results']] == ['failed', 'passed']
+    assert result['results'][0]['files'] == [str(tmp_path / 'a')]
+
+
+def test_upgrade_id_and_all_are_mutually_exclusive(tmp_path):
+    with pytest.raises(SystemExit):
+        install.arguments(['upgrade', '--client', 'codex', '--all', '--id', 'codex-project-a',
+                           '--project', str(tmp_path)])
+
+
+def test_list_prints_recorded_and_native_versions_without_version_field(tmp_path, monkeypatch, capsys):
+    rows = [{
+        'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path),
+        'plugin_id': 'tao-dev@test', 'managed_root': str(tmp_path / '.local/tao-dev'),
+        'plugin_path': str(tmp_path / 'cache/1.0.0'), 'plugin_base': str(tmp_path / 'cache'),
+        'recorded_version': '0.16.0', 'native_version': '0.16.1', 'files': [], 'file_actions': {},
+    }]
+    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
+    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path)]) == 0
+    assert 'version' not in rows[0]
+    printed = capsys.readouterr().out
+    assert 'recorded=0.16.0 | native=0.16.1' in printed
+    assert '| 0.16.1' not in printed
+
+
+def test_list_json_uses_separate_version_fields(tmp_path, monkeypatch, capsys):
+    rows = [{
+        'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path),
+        'plugin_id': 'tao-dev@test', 'managed_root': str(tmp_path / '.local/tao-dev'),
+        'plugin_path': str(tmp_path / 'cache/1.0.0'), 'plugin_base': str(tmp_path / 'cache'),
+        'recorded_version': '1.0.0', 'native_version': '1.1.0', 'files': [], 'file_actions': {},
+    }]
+    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
+    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path), '--format', 'json']) == 0
+    report = json.loads(capsys.readouterr().out)
+    item = report['outputs']['installations'][0]
+    assert item['recorded_version'] == '1.0.0'
+    assert item['native_version'] == '1.1.0'
+    assert 'version' not in item

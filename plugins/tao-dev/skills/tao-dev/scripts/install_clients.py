@@ -69,6 +69,38 @@ def _config(path):
         raise ClientError(f'Cannot read native configuration {path}: {exc}') from exc
 
 
+_SEMVER = re.compile(
+    r'^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+    r'(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?'
+    r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$'
+)
+
+
+def _semver_key(version, path):
+    """Sort valid SemVer above invalid values without using filesystem time."""
+    match = _SEMVER.fullmatch(version) if isinstance(version, str) else None
+    path_key = Path(path).resolve().as_posix()
+    if match is None:
+        return (0, 0, 0, 0, 0, (), path_key)
+    prerelease = match.group(4)
+    identifiers = () if prerelease is None else tuple(
+        (0, int(identifier))
+        if identifier.isascii() and identifier.isdigit() else (1, identifier)
+        for identifier in prerelease.split('.')
+    )
+    raw_identifiers = prerelease.split('.') if prerelease else ()
+    if any(identifier[0] == 0 and len(raw) > 1 and raw.startswith('0')
+           for raw, identifier in zip(raw_identifiers, identifiers)):
+        return (0, 0, 0, 0, 0, (), path_key)
+    return (1, int(match.group(1)), int(match.group(2)), int(match.group(3)),
+            1 if prerelease is None else 0, identifiers, path_key)
+
+
+def _select_latest_version(candidates):
+    """Choose (path, version) by SemVer, with deterministic invalid fallback."""
+    return max(candidates, key=lambda item: _semver_key(item[1], item[0]))
+
+
 def _executable(name):
     """Windows ships the clients as .cmd shims, so a bare name never resolves."""
     resolved = shutil.which(name)
@@ -724,10 +756,10 @@ def discover(client, project):
                             and candidate.resolve().is_relative_to(base.absolute())):
                         metadata = _read_json(manifest)
                         if metadata.get('name') == 'tao-dev':
-                            candidates.append((candidate.stat().st_mtime_ns, candidate, metadata.get('version', candidate.name)))
+                            candidates.append((candidate, metadata.get('version', candidate.name)))
             if not candidates:
                 continue
-            _, plugin, version = max(candidates, key=lambda row: (row[0], str(row[1])))
+            plugin, version = _select_latest_version(candidates)
             result.append(_native_row(plugin_id, 'user' if target is None else 'project', target,
                                       plugin.resolve(), version, [str(config), str(base)], enabled=enabled))
     return result
@@ -883,12 +915,12 @@ def _discover_cursor(home, project):
             plugin = None
             version = 'unknown'
             if base.is_dir() and not base.is_symlink():
-                candidates = [path for path in base.iterdir()
-                              if path.is_dir() and not path.is_symlink()
-                              and (path / '.cursor-plugin/plugin.json').is_file()]
+                candidates = []
+                for path in base.iterdir():
+                    if path.is_dir() and not path.is_symlink() and (path / '.cursor-plugin/plugin.json').is_file():
+                        candidates.append((path, _cursor_manifest(path).get('version', path.name)))
                 if candidates:
-                    plugin = max(candidates, key=lambda path: path.stat().st_mtime_ns)
-                    version = _cursor_manifest(plugin).get('version', plugin.name)
+                    plugin, version = _select_latest_version(candidates)
             if plugin is None:
                 continue
             result.append(_native_row(plugin_id, 'project', project, plugin, version,

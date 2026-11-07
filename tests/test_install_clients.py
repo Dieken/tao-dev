@@ -2,6 +2,7 @@
 import errno
 import importlib.util
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -1106,3 +1107,39 @@ def test_codex_scratch_cleanup_does_not_retry_unrelated_error(monkeypatch, tmp_p
         clients._remove_temporary_directory(tmp_path / 'scratch')
     assert raised.value.errno == errno.EACCES
     assert attempts == [tmp_path / 'scratch']
+
+
+def test_codex_discovery_uses_semver_not_mtime(state):
+    root, project = state
+    base = root / 'codex/plugins/cache/custom/tao-dev'
+    for version in ('2.0.0', '1.9.0', '2.0.0-rc.1', 'not-semver'):
+        plugin = base / version / '.codex-plugin'
+        plugin.mkdir(parents=True)
+        (plugin / 'plugin.json').write_text(json.dumps({'name': 'tao-dev', 'version': version}), encoding='utf-8')
+    os.utime(base / '2.0.0', ns=(1, 1))
+    os.utime(base / '1.9.0', ns=(4, 4))
+    os.utime(base / '2.0.0-rc.1', ns=(5, 5))
+    os.utime(base / 'not-semver', ns=(6, 6))
+    (project / '.codex').mkdir()
+    (project / '.codex/config.toml').write_text('[plugins."tao-dev@custom"]\nenabled=true\n', encoding='utf-8')
+    rows = clients.discover('codex', project)
+    assert rows[0]['version'] == '2.0.0'
+    assert rows[0]['plugin_path'].endswith('/2.0.0')
+
+
+def test_cursor_discovery_uses_semver_not_mtime(state):
+    root, project = state
+    base = root / 'cursor/plugins/cache/custom/tao-dev'
+    for version in ('1.10.0', '1.9.0', '1.10.0-beta.1'):
+        plugin = base / version / '.cursor-plugin'
+        plugin.mkdir(parents=True)
+        (plugin / 'plugin.json').write_text(json.dumps({'name': 'tao-dev', 'version': version}), encoding='utf-8')
+    os.utime(base / '1.10.0', ns=(1, 1))
+    os.utime(base / '1.9.0', ns=(4, 4))
+    os.utime(base / '1.10.0-beta.1', ns=(5, 5))
+    (project / '.cursor').mkdir()
+    (project / '.cursor/settings.json').write_text(
+        json.dumps({'plugins': {'custom/tao-dev': {'enabled': True}}}), encoding='utf-8')
+    rows = clients.discover('cursor', project)
+    assert rows[0]['version'] == '1.10.0'
+    assert rows[0]['plugin_path'].endswith('/1.10.0')

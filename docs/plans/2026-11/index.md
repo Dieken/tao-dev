@@ -22,6 +22,7 @@ created: "2026-11-05"
 :titlesonly:
 
 20261105-workflow-recovery.md
+20261107-native-version-and-batch-upgrade.md
 20261105-workflow-recovery/reviews/20261105-recovery-contract/index.md
 20261105-workflow-recovery/reviews/20261105-implementation/index.md
 ```

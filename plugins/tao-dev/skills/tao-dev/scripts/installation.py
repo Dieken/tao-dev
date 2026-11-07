@@ -49,8 +49,11 @@ def arguments(argv):
             command.add_argument('--bin-dir', type=Path,
                                  help='CLI launcher directory; defaults to ~/.local/bin.')
         elif name == 'upgrade':
-            command.add_argument('--id', help='Installation identifier shown by tao list; '
-                                              'selects that installation whatever --project says.')
+            selection = command.add_mutually_exclusive_group()
+            selection.add_argument('--id', help='Installation identifier shown by tao list; '
+                                   'selects that installation whatever --project says.')
+            selection.add_argument('--all', action='store_true',
+                                   help='Upgrade every tao-managed installation for this client.')
         elif name == 'uninstall':
             command.add_argument('--list', action='store_true', help='Only discover installations.')
             command.add_argument('--id', help='Installation identifier shown by tao list.')
@@ -557,21 +560,57 @@ def unselected(args, known):
             'or tao install to create one.')
 
 
+def _selected_installation(args, row):
+    return argparse.Namespace(
+        command='install', client=args.client, scope=row['scope'],
+        project=Path(row['project']) if row['project'] else args.project,
+        format=args.format, marketplace=None, source=None, ref=args.ref,
+        wheelhouse=args.wheelhouse, timeout=args.timeout, bin_dir=None)
+
+
+def _upgrade_all(args, rows):
+    results = []
+    for row in sorted(rows, key=lambda item: item['id']):
+        try:
+            result = install(_selected_installation(args, row))
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            results.append({
+                'id': row['id'],
+                'client': row['client'],
+                'scope': row['scope'],
+                'project': row['project'],
+                'status': 'failed',
+                'error': str(exc),
+                'files': list(getattr(exc, 'files', [])),
+            })
+        else:
+            results.append({
+                'id': row['id'],
+                'client': row['client'],
+                'scope': row['scope'],
+                'project': row['project'],
+                'status': 'passed',
+                'installation': result['installation'],
+                'files': result['files'],
+                'warnings': result.get('warnings', []),
+            })
+    failed = sum(result['status'] == 'failed' for result in results)
+    return {
+        'status': 'partial' if failed else 'passed',
+        'results': results,
+        'total': len(results),
+        'succeeded': len(results) - failed,
+        'failed': failed,
+    }
+
+
 def upgrade(args):
-    """Renew a recorded installation in place.
-
-    Repeating install also upgrades, but only when the caller repeats the
-    scope and project that identify the installation: its --scope default of
-    user quietly creates a second installation instead. Upgrading a recorded
-    one never has to guess those, and never creates one.
-
-    Without --id the candidates are the recorded installations that serve
-    --project, which defaults to the working directory. Selecting the only
-    recorded installation whatever the project renews another project's
-    installation from here, under a report that reads like success. --id
-    still reaches any recorded installation deliberately.
-    """
+    """Renew one recorded installation or all recorded installations."""
     known = state.records(args.client)
+    if args.all:
+        if not known:
+            raise InstallError(f'Cannot upgrade {args.client}: {unselected(args, known)}')
+        return _upgrade_all(args, known)
     if args.id:
         rows = [row for row in known if row['id'] == args.id]
     else:
@@ -581,13 +620,7 @@ def upgrade(args):
     if len(rows) > 1:
         raise InstallError('Several installations match; choose one with --id: '
                            + ', '.join(sorted(row['id'] for row in rows)))
-    row = rows[0]
-    selected = argparse.Namespace(
-        command='install', client=args.client, scope=row['scope'],
-        project=Path(row['project']) if row['project'] else args.project,
-        format=args.format, marketplace=None, source=None, ref=args.ref,
-        wheelhouse=args.wheelhouse, timeout=args.timeout, bin_dir=None)
-    return install(selected)
+    return install(_selected_installation(args, rows[0]))
 
 
 def inventory(args):
@@ -621,14 +654,20 @@ def guide(record):
 def discover(client, project):
     import install_clients as clients
     managed = state.records(client)
+    for row in managed:
+        row['recorded_version'] = row.pop('version', None)
+        row['native_version'] = None
     keys = {(row['plugin_id'], row['scope'], row['project']): row for row in managed}
     found = []
     for row in clients.discover(client, project):
         key = (row['plugin_id'], row['scope'], row.get('project'))
         if key in keys:
-            keys[key].update({name: row[name] for name in ('plugin_path', 'version', 'enabled') if name in row})
+            keys[key].update({name: row[name] for name in ('plugin_path', 'enabled') if name in row})
+            keys[key]['native_version'] = row.get('version')
             continue
-        row = dict(row, client=client, native=True)
+        row = dict(row, client=client, native=True, recorded_version=None,
+                   native_version=row.get('version'))
+        row.pop('version', None)
         row['id'] = 'native-' + hashlib.sha256(json.dumps(key).encode()).hexdigest()[:16]
         row['files'] = collapse_paths(row.get('files', [row['plugin_path']]))
         found.append(row)
@@ -759,11 +798,18 @@ def uninstall(args):
             'shared_plugin_retained': bool(others)}
 
 
+def _display_version(value):
+    return value if isinstance(value, str) and value else 'unknown'
+
+
 def print_inventory(rows):
     if not rows:
         print('No tao-dev installations found.')
     for number, row in enumerate(rows, 1):
-        print(f'{number}. {row["id"]}: {row["scope"]} | {row.get("project") or "all projects"} | {row.get("version", "unknown")}')
+        recorded = _display_version(row.get('recorded_version'))
+        native = _display_version(row.get('native_version'))
+        print(f'{number}. {row["id"]}: {row["scope"]} | {row.get("project") or "all projects"} | '
+              f'recorded={recorded} | native={native}')
         actions = row.get('file_actions', {})
         for path in row.get('files', []):
             note = actions.get(path)
@@ -772,15 +818,27 @@ def print_inventory(rows):
         print('Removal legend: ' + '; '.join(f'{name} = {meaning}' for name, meaning in ACTIONS.items()) + '.')
 
 
+def _print_batch_upgrade(result):
+    for index, item in enumerate(result['results'], 1):
+        project = item.get('project') or 'all projects'
+        print(f'{index}. {item["id"]}: {item["status"]} | {item["scope"]} | {project}')
+        if item['status'] == 'failed':
+            print('   Error: ' + item['error'])
+            for path in item.get('files', []):
+                print('   ' + path)
+    print('Summary: ' + f'{result["succeeded"]} succeeded, {result["failed"]} failed, '
+          f'{result["total"]} total.')
+
+
 def main(argv=None):
     args = arguments(list(sys.argv[1:] if argv is None else argv))
     try:
         operations = {'install': install, 'upgrade': upgrade, 'uninstall': uninstall, 'list': inventory}
         result = operations[args.command](args)
-        report = dict(tool='tao-dev', command=args.command,
-                      status='cancelled' if result.get('cancelled') else 'passed',
+        status = 'cancelled' if result.get('cancelled') else result.get('status', 'passed')
+        report = dict(tool='tao-dev', command=args.command, status=status,
                       outputs=result, diagnostics=[])
-        code = 0
+        code = 0 if status in ('passed', 'cancelled') else 2
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         report = dict(tool='tao-dev', command=args.command, status='not_run',
                       outputs={'files': getattr(exc, 'files', [])}, diagnostics=[{'message': str(exc)}])
@@ -790,11 +848,16 @@ def main(argv=None):
     else:
         print(f'tao {args.command}: {report["status"]}')
         if code:
-            print(report['diagnostics'][0]['message'])
-            for path in report['outputs']['files']:
-                print('  ' + path)
+            if report['diagnostics']:
+                print(report['diagnostics'][0]['message'])
+                for path in report['outputs']['files']:
+                    print('  ' + path)
+            elif args.command == 'upgrade' and args.all:
+                _print_batch_upgrade(result)
         elif args.command == 'list':
             print_inventory(result['installations'])
+        elif args.command == 'upgrade' and args.all:
+            _print_batch_upgrade(result)
         elif args.command in ('install', 'upgrade'):
             row = result['installation']
             print(f'{row["client"]} | {row["version"]} | {row["scope"]} | {row["project"] or "all projects"}')

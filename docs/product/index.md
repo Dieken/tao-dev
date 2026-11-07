@@ -23,5 +23,6 @@ created: "2026-09-14"
 
 protocol.md
 workflow-recovery.md
+native-version-and-batch-upgrade.md
 runtime.md
 ```
