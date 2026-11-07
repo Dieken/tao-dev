@@ -309,8 +309,8 @@ def main():
         prompt = boundary + (
             'Use the advertised tao-dev skill to fix only the syntax error in example.py. '
             'This is a local implementation correction with no requirement, design, or documentation change. '
-            'After invoking the tao-dev skill, read only its references/engineering.md and '
-            'references/workflow.md. Do not read workflow-actions.md, document-format, '
+            'After invoking the tao-dev skill, read only its references/engineering.md, '
+            'references/workflow.md and references/workflow-actions.md. Do not read document-format, '
             'publication, localization, glossary, evidence-retention, or template resources because this task '
             'has no documentation responsibility. Do not scan plugin resource directories. Do not create files '
             'under docs or change requirements.txt, .tao, or plugin resources. Check the repaired source by '

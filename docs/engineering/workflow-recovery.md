@@ -13,7 +13,7 @@ spec_docs: [DOC_20261105_27RJ5NTQG9BNBJHX]
 <!-- tao:section overview -->
 ## 概述
 
-本设计实现[工作流状态恢复与事项生命周期规格](../product/workflow-recovery.md)，供 tao-dev 维护者实现 CLI、校验器及 skill 使用。以下接口与新 profile 是待实现契约，不表示当前版本已提供。当前阶段仅形成设计，不生成计划、运行记录格式或实现代码。
+本设计实现[工作流状态恢复与事项生命周期规格](../product/workflow-recovery.md)，供 tao-dev 维护者实现 CLI、校验器及 skill 使用。以下接口与新 profile 描述当前实现；行为变化时同步更新本设计、代码与回归测试。
 
 正式文档保留跨机器不可丢失的决定，本地 JSON 保留高频执行协调。恢复重建后者，不从文件存在推断授权。每个事项独立存储，会话选择不写入全项目活动指针。
 
