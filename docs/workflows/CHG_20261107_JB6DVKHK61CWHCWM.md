@@ -7,9 +7,9 @@ status: draft
 created: '2026-11-07'
 change: CHG_20261107_JB6DVKHK61CWHCWM
 slug: native-version-and-batch-upgrade
-record_revision: 12
-lifecycle: active
-phase: implement
+record_revision: 15
+lifecycle: completed
+phase: complete
 plan_path: docs/plans/2026-11/20261107-native-version-and-batch-upgrade.md
 artifacts:
   spec:
@@ -32,21 +32,20 @@ baseline:
   branch: tao/native-version-and-batch-upgrade
   base_commit: c2b0baf7dad8c8fdd799baacf783ae1421493892
   base_branch: main
-review_control:
-  code:
-    batch: 135c05467fcd40b392e4f2b6bb6a49ee
-    phase: implement
-    used: 1
-    limit: 1
-    decision: 用户明确选择新开一轮最终独立实现审查，核对当前最终输入和上一轮 D1/D2 修复。
-    limits:
-      timeout_seconds: 1200
-      cost_limit_usd: null
-    in_flight: null
-    local_digest: 7400b8e56bba3eb72e7e84a733d1ce14bda86d0a9b921c1439e9e0872ab85735
-closure: null
+review_control: {}
+closure:
+  evidence:
+  - 完整 tao verify CHG_20261107_JB6DVKHK61CWHCWM 返回 checks-satisfied，需求覆盖 4/4，任务全部完成。
+  - 配置代码检查通过：diagnostics-locale、python-tests、python-lint；python-tests 覆盖率 78.6039%。
+  - 受管理文档验证通过。
+  - 最终独立实现审查 attestation 已通过 tao review 导入并满足 independent-implementation-review。
+  - 实现、审查记录和 workflow 状态均已提交到 tao/native-version-and-batch-upgrade。
+  unfinished: []
+  result: completed
+  decision: 实现、完整交付验证和最终独立实现审查均已完成；审查保留的 malformed cache manifest 为非阻断后续维护建议。
+  recorded_at: '2026-11-07T14:55:51.861046+08:00'
 provenance: {}
-last_operation_id: 6728413ed1eb43dba8bcaf91491a03e8
+last_operation_id: 6ee919a3384b40a9b687f9cc3a08ff9e
 ---
 
 # 修正 native 版本发现并支持批量升级
@@ -54,4 +53,4 @@ last_operation_id: 6728413ed1eb43dba8bcaf91491a03e8
 <!-- tao:section overview -->
 ## 概述
 
-active · implement
+completed · complete
