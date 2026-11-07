@@ -475,13 +475,13 @@ def test_list_prints_recorded_and_native_versions_without_version_field(tmp_path
         'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path),
         'plugin_id': 'tao-dev@test', 'managed_root': str(tmp_path / '.local/tao-dev'),
         'plugin_path': str(tmp_path / 'cache/1.0.0'), 'plugin_base': str(tmp_path / 'cache'),
-        'recorded_version': '0.16.0', 'native_version': '0.16.1', 'files': [], 'file_actions': {},
+        'recorded_version': '9.8.7', 'native_version': '9.8.8', 'files': [], 'file_actions': {},
     }]
     monkeypatch.setattr(install, 'discover', lambda *_args: rows)
     assert install.main(['list', '--client', 'codex', '--project', str(tmp_path)]) == 0
     assert 'version' not in rows[0]
     printed = capsys.readouterr().out
-    assert 'recorded=0.16.0 | native=0.16.1' in printed
+    assert 'recorded=9.8.7 | native=9.8.8' in printed
     assert '| 0.16.1' not in printed
 
 

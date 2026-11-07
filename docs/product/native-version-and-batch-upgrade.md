@@ -103,13 +103,13 @@ created: "2026-11-07"
 :verifies: REQ_20261107_R3MBRP0VSP65JMKX
 
 <!-- tao:field given -->
-**给定：** 一个受管 receipt 记录 `0.16.0`，native discovery 发现 `0.16.1`，另有一行没有 receipt 的 native-only 安装。
+**给定：** 一个受管 receipt 记录 `9.8.7`，native discovery 发现 `9.8.8`，另有一行没有 receipt 的 native-only 安装。
 
 <!-- tao:field when -->
 **当：** 执行 `tao list --client <client> --format text` 和 `--format json`。
 
 <!-- tao:field then -->
-**则：** 受管行同时显示 `recorded_version=0.16.0` 与 `native_version=0.16.1`；native-only 行的 recorded version 为空，两个输出格式表达同一结果。
+**则：** 受管行同时显示 `recorded_version=9.8.7` 与 `native_version=9.8.8`；native-only 行的 recorded version 为空，两个输出格式表达同一结果。
 ```
 
 ```{uc} 批量升级保持单项边界

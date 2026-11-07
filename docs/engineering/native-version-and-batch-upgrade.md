@@ -41,7 +41,7 @@ Codex 和 Cursor project cache 使用共享的标准库 SemVer key：major、min
 text 输出在版本位置明确打印：
 
 ```text
-recorded=0.16.0 | native=0.16.1
+recorded=9.8.7 | native=9.8.8
 ```
 
 `tao upgrade --client <client> --all [--ref ...] [--wheelhouse ...] [--timeout ...]` 升级全部受管 records；`--id` 与 `--all` 互斥。JSON 批量结果在 `outputs.results` 保存逐项结果，并提供 `total`、`succeeded`、`failed`；每项失败保留诊断字符串和实际 files（若有）。text 输出逐项状态和最终汇总。单项命令继续返回现有 installation 摘要，但版本字段使用新 recorded/native 语义时只影响 list rows，避免改变 install/upgrade 成功摘要。
