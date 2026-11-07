@@ -213,7 +213,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 :id: REQ_20260914_BWAY1ZF6HNPM855Y
 :status: proposed
 
-发布物遵循 Agent Skills 的入口与资源组织，安装适配只写支持客户端的原生项目 skill 目录。Codex 与 Claude Code 保留真实行为验收目标，Cursor 与 Kiro 同样支持项目文件安装；各层能力分别报告。
+发布物遵循 Agent Skills 的入口与资源组织，完整包由使用者复制到客户端项目发现目录，或由可选通用工具管理；tao 不提供安装适配。Codex 与 Claude Code 保留真实行为验收目标，Cursor 与 Kiro 同样记录项目发现路径；各层能力分别报告。
 
 <!-- tao:field acceptance -->
 **验收：** 同一包在隔离项目执行文件部署与移除，保护用户文件并验证项目外不受影响；实际客户端加载与行为另外验收，未运行不得标记兼容，不依赖开发文档或其他客户端配置。

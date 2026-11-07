@@ -1,4 +1,4 @@
-"""Harness safety and consumer-visible project installation guarantees."""
+"""Harness safety and complete project-local skill copy guarantees."""
 
 import json
 from pathlib import Path
@@ -23,32 +23,72 @@ def test_environment_does_not_inherit_credentials_or_personal_paths(tmp_path, mo
     assert environment["GIT_CONFIG_NOSYSTEM"] == "1"
 
 
-@pytest.mark.parametrize("client", tuple(acceptance.CLIENT_PATHS))
-def test_cli_refuses_modified_installed_skill_without_changing_files(tmp_path, client):
-    environment = acceptance.isolated_environment(tmp_path)
-    project = tmp_path / "project"
-    project.mkdir()
-    acceptance.invoke("install", project, client, environment)
-    destination = project / acceptance.CLIENT_PATHS[client]
-    (destination / "SKILL.md").write_text("My local edits.\n", encoding="utf-8")
-    before = acceptance.snapshot(tmp_path)
-    for action in ("upgrade", "uninstall"):
-        with pytest.raises(RuntimeError, match=f"{client} {action} failed"):
-            acceptance.invoke(action, project, client, environment)
-        assert acceptance.snapshot(tmp_path) == before
+def test_source_snapshot_ignores_only_generated_bytecode(tmp_path):
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "tao.py").write_text("source", encoding="utf-8")
+    (scripts / "tao.pyc").write_bytes(b"bytecode")
+    cache = scripts / "__pycache__"
+    cache.mkdir()
+    (cache / "tao.pyc").write_bytes(b"bytecode")
+    assert set(acceptance.snapshot(tmp_path, ignore_bytecode=True)) == {"scripts", "scripts/tao.py"}
+    assert "scripts/__pycache__/tao.pyc" in acceptance.snapshot(tmp_path)
 
 
 @pytest.mark.parametrize("client", tuple(acceptance.CLIENT_PATHS))
-def test_cli_refuses_unowned_destination_without_changing_files(tmp_path, client):
-    environment = acceptance.isolated_environment(tmp_path)
-    project = tmp_path / "project"
-    destination = project / acceptance.CLIENT_PATHS[client]
-    destination.mkdir(parents=True)
-    (destination / "SKILL.md").write_text("Existing user skill.\n", encoding="utf-8")
-    before = acceptance.snapshot(tmp_path)
-    with pytest.raises(RuntimeError, match=f"{client} install failed"):
-        acceptance.invoke("install", project, client, environment)
-    assert acceptance.snapshot(tmp_path) == before
+def test_copy_acceptance_never_launches_subprocesses_by_default(monkeypatch, client):
+    def forbidden(*args, **kwargs):
+        pytest.fail("File-copy acceptance must not launch a CLI or model session")
+
+    monkeypatch.setattr(acceptance.subprocess, "Popen", forbidden)
+    monkeypatch.setattr(acceptance.subprocess, "run", forbidden)
+    assert acceptance.run(client) == {
+        "client": client, "copy": "passed", "native_discovery": "not_run",
+    }
+
+
+@pytest.mark.parametrize("mutation", ("missing-reference", "changed-script", "extra-file"))
+def test_copy_acceptance_checks_the_entire_bundle(monkeypatch, mutation):
+    copytree = acceptance.shutil.copytree
+
+    def incomplete_copy(source, destination, *args, **kwargs):
+        result = copytree(source, destination, *args, **kwargs)
+        destination = Path(destination)
+        if Path(source) == acceptance.SOURCE:
+            if mutation == "missing-reference":
+                (destination / "references/workflow.md").unlink()
+            elif mutation == "changed-script":
+                (destination / "scripts/tao.py").write_text("changed", encoding="utf-8")
+            else:
+                (destination / "unexpected.txt").write_text("extra", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(acceptance.shutil, "copytree", incomplete_copy)
+    with pytest.raises(RuntimeError, match="complete source bundle"):
+        acceptance.run("codex")
+
+
+@pytest.mark.parametrize("location", ("docs", "sibling", "outside", "home"))
+def test_copy_acceptance_detects_changes_outside_the_copied_skill(monkeypatch, location):
+    copytree = acceptance.shutil.copytree
+
+    def unsafe_copy(source, destination, *args, **kwargs):
+        result = copytree(source, destination, *args, **kwargs)
+        destination = Path(destination)
+        if Path(source) == acceptance.SOURCE:
+            project = destination.parents[2]
+            targets = {
+                "docs": project / "docs/keep.md",
+                "sibling": destination.parent / "user-skill/SKILL.md",
+                "outside": project.parent / "outside/docs/keep.md",
+                "home": project.parent / "home/personal-config",
+            }
+            targets[location].write_text("unexpected change", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(acceptance.shutil, "copytree", unsafe_copy)
+    with pytest.raises(RuntimeError, match="changed"):
+        acceptance.run("codex")
 
 
 def fake_server(tmp_path, monkeypatch, *, mode="success", rows=None):
@@ -153,14 +193,14 @@ def test_discovery_requires_enabled_exact_project_skill(tmp_path, mutation):
     else:
         rows[inside].clear()
     with pytest.raises(RuntimeError):
-        acceptance.assert_discovery(rows, inside, outside, installed=True)
+        acceptance.assert_discovery(rows, inside, outside, copied=True)
 
 
-def test_discovery_rejects_skill_remaining_after_uninstall(tmp_path):
+def test_discovery_rejects_skill_remaining_after_copy_removal(tmp_path):
     inside, outside = tmp_path / "inside", tmp_path / "outside"
-    with pytest.raises(RuntimeError, match="after uninstall"):
+    with pytest.raises(RuntimeError, match="after removing the copied skill"):
         acceptance.assert_discovery({inside: [{"name": "tao-dev"}], outside: []},
-                                    inside, outside, installed=False)
+                                    inside, outside, copied=False)
 
 
 def test_native_discovery_does_not_claim_unsupported_clients():

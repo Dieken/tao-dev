@@ -1,4 +1,4 @@
-"""Read-only entry dispatch; installation never imports document dependencies."""
+"""Read-only entry dispatch with explicit optional document dependencies."""
 
 import json
 from pathlib import Path
@@ -16,8 +16,8 @@ def operation(argv):
         elif argv[index].startswith(('--project=', '--format=', '--diagnostic-locale=')):
             index += 1
         else:
-            return argv[index], index
-    return 'unknown', len(argv)
+            return argv[index]
+    return 'unknown'
 
 
 def tool_version():
@@ -32,17 +32,11 @@ def usage():
         f'tao-dev {tool_version()}',
         'Usage: python <skill>/scripts/tao.py [--project <directory>] <command>',
         '',
-        'Project skill management (Python standard library only):',
-        '  install | upgrade | uninstall --project <directory> --client <client>',
-        '  list --project <directory> [--client <client>]',
-        '  install/upgrade accept --source <local repository or skill directory>',
-        '  Clients: claude, codex, cursor, kiro. No user/global installation.',
-        '',
         'Document helpers (optional dependencies in your Python environment):',
         '  doctor, show, id new, new, status, handoff, verify, docs, project, retire',
         '  See <command> --help for options.',
         '',
-        'Reading SKILL.md and managing installations never prepares dependencies.',
+        'Reading SKILL.md and using help/version never prepares dependencies.',
     ])
 
 
@@ -52,10 +46,7 @@ def main(argv=None, entry='tao.py'):
         if hasattr(stream, 'reconfigure'):
             stream.reconfigure(encoding='utf-8')
     argv = list(sys.argv[1:] if argv is None else argv)
-    command, position = operation(argv)
-    if entry == 'tao.py' and command in ('install', 'upgrade', 'list', 'uninstall'):
-        from installation import main as installation_main
-        return installation_main([command, *argv[:position], *argv[position + 1:]])
+    command = operation(argv)
     if entry == 'tao.py' and command in ('--help', '-h', 'unknown'):
         print(usage())
         return 0
@@ -73,7 +64,7 @@ def main(argv=None, entry='tao.py'):
         message = (f'Optional document dependency is unavailable: {exc.name}. '
                    'Create a project-local virtual environment with python -m venv .venv, '
                    f'then use its Python to run -m pip install -r "{requirements}" '
-                   'and invoke this script. Skill reading and install/upgrade/list/uninstall need no packages.')
+                   'and invoke this script. Skill reading and help/version need no packages.')
         report = {'tool': 'tao-dev', 'command': command, 'status': 'not_run',
                   'outputs': {}, 'diagnostics': [{'severity': 'error', 'message': message}]}
         json_output = '--format=json' in argv or any(argv[i:i + 2] == ['--format', 'json'] for i in range(len(argv)))

@@ -38,8 +38,8 @@ jobs:
       - name: Sync locked environment
         run: uv sync --no-config --locked --extra publication
 
-      # Native client discovery is explicit, non-billable acceptance. The
-      # deterministic suite needs neither installed clients nor credentials.
+      # Complete project-local skill copy acceptance runs in the deterministic
+      # suite without installed clients or credentials. Native discovery is opt-in.
       - name: Run unified check
         run: just check
 

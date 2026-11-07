@@ -16,7 +16,7 @@ tasks_doc: "DOC_20261108_SJVF6ABRNSPFGRBF"
 <!-- tao:section scope -->
 ## 范围
 
-维护项目级 skill 的规格、实现、文档及发布资源，保持文档模型、检查器与当前命令契约一致。
+维护项目级 skill 的规格、实现、文档及发布资源，保持文档模型、检查器与当前命令契约一致。本次将分发简化为完整复制与可选通用工具，移除 tao 安装生命周期及包装脚本，不新增插件或安装器依赖。
 
 <!-- tao:section references -->
 ## 参考
@@ -26,7 +26,7 @@ tasks_doc: "DOC_20261108_SJVF6ABRNSPFGRBF"
 <!-- tao:section design -->
 ## 设计
 
-按契约先行、并行修改独立子系统、集中路径切换与验收推进。安装、CLI 状态、文档检查与知识规程各自有明确文件所有者，集成者统一处理源码移动、发布、CI 和回归。
+skill 提供方法与资源，CLI 只保留领域辅助命令；文件分发交给项目复制或使用者选择的通用工具。运行入口与版本维护、复制验收与 CI 分开修改，集成者统一更新契约、指南并执行验证。
 
 <!-- tao:section tasks -->
 ## 任务
@@ -38,13 +38,14 @@ tasks_doc: "DOC_20261108_SJVF6ABRNSPFGRBF"
 
 源码为 skills/tao-dev；文档采用核心 v0.1 profile 与稳定 ID。文档维护只保留当前契约、有效设计依据和当前计划；运行原始输出不作为长期文档保存。
 
-- 回归：`.venv/bin/python -m pytest -q`，384 项通过、1 项显式原生发现默认跳过；上游 mini-racer 在 Python 3.14 下产生两条弃用警告。
-- 源校验：`tao verify --only docs --simplified --format json` 通过，覆盖 35 份文档、90 个定义、86 个引用，无诊断。未提供历史基线，`deletion_checked=false`；该结果只证明当前集合一致，不证明历史删除追溯完整。
-- 出版：`tao docs build --format json` 通过，90 个稳定入口检查通过；浏览器确认打包设计页面、两个改名文档的稳定 ID 跳转及交付导航。
-- 安装：`.venv/bin/python tests/acceptance/project_skills.py --client codex` 的隔离项目文件安装、升级、查看和卸载通过；未运行原生发现。
-- 状态：`tao status --simplified --format json` 只列出现行计划，文档集合有效；任务完成与审查状态仍分别报告。
+- 回归：`.venv/bin/python -m pytest -q`，339 项通过、1 项显式原生发现默认跳过；上游 mini-racer 在 Python 3.14 下产生两条弃用警告。复制后文档校验使用真实规格输入，不把空文档范围误判为可通过。
+- 静态与发布：Ruff 的 E9/F63/F7/F82 检查、`scripts/export_dependencies.py --check` 通过；`scripts/bump_version.py --dry-run` 正确列出版本源与生成文件，未写入版本。
+- 源校验：`tao verify --only docs --simplified --format json` 通过，覆盖 35 份文档、91 个定义、89 个引用。未提供历史基线，`deletion_checked=false`；只证明当前集合一致，不证明历史删除追溯完整。
+- 出版：`tao docs build --format json` 通过，91 个稳定入口检查通过；浏览器确认客户端复制指南、可选工具与旧副本迁移说明，以及分发设计的稳定 ID 入口。
+- 复制：隔离项目文件复制／移除验收通过。另用打包产物经实际 `cp -R` 复制到 Claude、Codex、Cursor、Kiro 的项目路径，分别从副本运行无依赖 help，以及已准备依赖环境下的 doctor、ID 分配、真实文档 verify 与 new；四个旧管理命令均被拒绝。移除副本保留项目文档，隔离 HOME 未改变，临时产物已清理。
+- 审查：集成者自查运行入口、能力声明、版本工具、复制与原生发现验收边界，以及规格／设计／指南一致性；未另行执行独立审查。
 
-限制：本次为文档维护及对应回归，未执行 Windows/其他 Python 的 CI 矩阵、远程下载安装、真实客户端发现或模型会话；个人配置与其他项目不在维护范围。
+限制：未执行 Windows／其他 Python 的 CI 矩阵、第三方 skills 安装工具、真实客户端发现或模型会话。路径 smoke 仅证明文件分发与辅助 CLI，不证明客户端加载；个人配置与其他项目未改动。
 
 <!-- tao:section questions -->
 ## 未决问题

@@ -1,4 +1,4 @@
-"""The entry point dispatches installation before optional document imports."""
+"""Entry points stay read-only until an explicitly requested domain operation."""
 
 import json
 import os
@@ -8,73 +8,87 @@ import sys
 
 import pytest
 
-import runtime
-
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'skills/tao-dev/scripts'
 
 
-def invoke(*args, cwd, home, scripts=SCRIPTS):
+def invoke(*args, cwd, home, scripts=SCRIPTS, site_packages=False):
     env = dict(os.environ, HOME=str(home), USERPROFILE=str(home), PYTHONUTF8='1')
-    # -S excludes site packages even when pytest itself uses a prepared venv.
-    return subprocess.run([sys.executable, '-I', '-S', '-B', str(scripts / 'tao.py'), *args],
+    # Exclude site packages unless the caller explicitly exercises prepared dependencies.
+    options = ['-I', '-B'] if site_packages else ['-I', '-S', '-B']
+    return subprocess.run([sys.executable, *options, str(scripts / 'tao.py'), *args],
                           cwd=cwd, env=env, text=True, encoding='utf-8', capture_output=True)
 
 
-@pytest.mark.parametrize('prefix', [[], ['--project', '/project'], ['--project=/project'], ['--format=json']])
-def test_operation_skips_global_option_values(prefix):
-    assert runtime.operation([*prefix, 'install'])[0] == 'install'
-
-
-def test_stdlib_help_and_version_are_read_only(tmp_path):
+@pytest.mark.parametrize('prefix', [[], ['--project', '/project'], ['--project=/project'],
+                                    ['--format=json'], ['--diagnostic-locale', 'en']])
+def test_stdlib_help_and_version_are_read_only(tmp_path, prefix):
     home = tmp_path / 'home'
     home.mkdir()
-    for option in ('--help', '--version'):
-        result = invoke(option, cwd=tmp_path, home=home)
+    version = json.loads((SCRIPTS / 'runtime.json').read_text(encoding='utf-8'))['version']
+    for option in ('--help', '-h', '--version', '-V'):
+        result = invoke(*prefix, option, cwd=tmp_path, home=home)
         assert result.returncode == 0, result.stderr
-        assert 'tao-dev' in result.stdout
+        assert result.stdout
+        assert not result.stderr
+        if option in ('--version', '-V'):
+            assert result.stdout.strip() == f'tao-dev {version}'
     assert list(home.iterdir()) == []
     assert list(tmp_path.iterdir()) == [home]
 
 
-def test_install_commands_work_without_site_packages(tmp_path):
+@pytest.mark.parametrize(('command', 'requirements'), [
+    (['status'], 'requirements.txt'),
+    (['docs', 'build'], 'requirements-publication.txt'),
+])
+@pytest.mark.parametrize('output_format', [['--format', 'json'], ['--format=json']])
+def test_missing_dependencies_report_without_preparing_environment(tmp_path, command, requirements, output_format):
     home = tmp_path / 'home'
     project = tmp_path / 'project'
     home.mkdir()
     project.mkdir()
-    for command in ('install', 'upgrade', 'list', 'uninstall'):
-        result = invoke('--project', str(project), command, '--client', 'codex', '--format', 'json',
-                        cwd=tmp_path, home=home)
-        assert result.returncode == 0, result.stdout + result.stderr
-        report = json.loads(result.stdout)
-        assert report['command'] == command and report['status'] == 'passed'
+    result = invoke('--project', str(project), *output_format, *command, cwd=project, home=home)
+    assert result.returncode == 2, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report['tool'] == 'tao-dev'
+    assert report['command'] == command[0]
+    assert report['status'] == 'not_run'
+    assert report['outputs'] == {}
+    diagnostic, = report['diagnostics']
+    assert diagnostic['severity'] == 'error'
+    assert str(SCRIPTS / requirements) in diagnostic['message']
+    assert not result.stderr
     assert list(home.iterdir()) == []
-    assert not (project / '.agents/skills/tao-dev').exists()
+    assert list(project.iterdir()) == []
+    assert set(tmp_path.iterdir()) == {home, project}
 
 
-def test_document_dependency_error_is_actionable_and_never_installs(tmp_path):
+def test_missing_dependencies_use_stderr_for_text_output(tmp_path):
+    home = tmp_path / 'home'
+    home.mkdir()
+    result = invoke('status', cwd=tmp_path, home=home)
+    assert result.returncode == 2
+    assert not result.stdout
+    assert str(SCRIPTS / 'requirements.txt') in result.stderr
+    assert list(home.iterdir()) == []
+    assert list(tmp_path.iterdir()) == [home]
+
+
+@pytest.mark.parametrize('command', ['install', 'upgrade', 'list', 'uninstall'])
+def test_removed_management_commands_are_rejected_without_writes(tmp_path, command):
     home = tmp_path / 'home'
     project = tmp_path / 'project'
     home.mkdir()
     project.mkdir()
-    result = invoke('--project', str(project), '--format', 'json', 'status', cwd=project, home=home)
+    result = invoke('--project', str(project), '--format=json', command,
+                    cwd=tmp_path, home=home, site_packages=True)
     assert result.returncode == 2, result.stdout + result.stderr
     report = json.loads(result.stdout)
     assert report['status'] == 'not_run'
-    message = report['diagnostics'][0]['message']
-    assert 'Optional document dependency' in message
-    assert 'python -m venv .venv' in message
-    assert 'requirements.txt' in message
+    assert report['outputs'] == {}
+    diagnostic, = report['diagnostics']
+    assert diagnostic['rule_id'] == 'TAO-CLI-001'
+    assert diagnostic['severity'] == 'error'
     assert list(home.iterdir()) == []
     assert list(project.iterdir()) == []
-
-
-def test_installation_errors_are_structured_without_optional_imports(tmp_path):
-    home = tmp_path / 'home'
-    home.mkdir()
-    missing = tmp_path / 'missing'
-    result = invoke('install', '--project', str(missing), '--client', 'codex', '--format=json',
-                    cwd=tmp_path, home=home)
-    assert result.returncode == 2
-    assert 'does not exist' in json.loads(result.stdout)['diagnostics'][0]['message']
-    assert not missing.exists() and not list(home.iterdir())
+    assert set(tmp_path.iterdir()) == {home, project}

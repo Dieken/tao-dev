@@ -19,20 +19,28 @@
 
 ## 项目安装
 
-需要 Python 3.11–3.14；阅读 skill 无需 Python 或出版依赖。在本仓库运行：
+复制完整 `skills/tao-dev/` 到目标项目的发现目录，无需 Python 或安装器：
+
+| 客户端 | 项目目录 |
+|---|---|
+| Codex / Cursor | `.agents/skills/tao-dev/` |
+| Claude Code | `.claude/skills/tao-dev/` |
+| Kiro | `.kiro/skills/tao-dev/` |
+
+例如在本仓库为 Codex / Cursor 复制；先确认项目已存在、目标路径没有指向项目外的符号链接：
 
 ```sh
-python3 skills/tao-dev/scripts/tao.py install --project /path/to/project --client codex
-python3 skills/tao-dev/scripts/tao.py list --project /path/to/project
-python3 skills/tao-dev/scripts/tao.py upgrade --project /path/to/project --client codex --source /path/to/new-checkout
-python3 skills/tao-dev/scripts/tao.py uninstall --project /path/to/project --client codex
+mkdir -p /path/to/project/.agents/skills
+test ! -e /path/to/project/.agents/skills/tao-dev &&
+test ! -L /path/to/project/.agents/skills/tao-dev &&
+cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 ```
 
-支持 `claude`、`codex`、`cursor`、`kiro`，分别部署到项目 `.claude/skills/tao-dev`、`.agents/skills/tao-dev`、`.cursor/skills/tao-dev`、`.kiro/skills/tao-dev`。install/upgrade/uninstall 显式选 client；list 可列本项目全部四种。不修改用户配置或其他项目。客户端可能按自身规则发现其他原生目录，不承诺同一项目内仅一个客户端可见。
+同一客户端不要放置重复副本。更新前保存本地改动，再完整替换旧目录，避免叠加复制遗留废弃文件；移除只针对 skill 目录，不删除项目文档或配置。来源与版本由项目 Git 或所选安装工具记录；手工复制没有修改保护或失败回滚。
 
-install/upgrade 的 --source 接受本地仓库或完整 skill，省略使用当前运行副本；升级前取得新源码。根 install.sh/install.ps1 可从本地源码或临时抓取的仓库转交同一安装器。修改过的受管文件、未知文件和符号链接会阻止覆盖或卸载；先保存个人改动，不能强制删除。卸载不删除项目文档。
+也可自行使用 [通用 skills CLI](https://github.com/vercel-labs/skills)，在目标项目内显式选择 skill、客户端与项目作用域；它不是 tao 的依赖。具体用法、旧副本迁移及验证边界见 [客户端接入](docs/user/clients.md)。
 
-安装只用标准库，不自动准备依赖。需要文档辅助命令时，显式创建项目 `.venv` 并安装该 skill 的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用实际 skill 的 scripts/tao.py，不依赖全局 launcher。详见 [客户端接入](docs/user/clients.md)。
+只有运行辅助命令才需要 Python 3.11–3.14。显式创建项目 `.venv` 并安装该 skill 的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用实际 skill 的 `scripts/tao.py`，不依赖全局 launcher，不因读取或复制 skill 自动准备依赖。
 
 ## 支持与验证边界
 

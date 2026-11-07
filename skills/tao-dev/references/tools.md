@@ -4,7 +4,6 @@
 
 | 命令 | 用途 |
 |---|---|
-| `tao <install\|upgrade\|list\|uninstall> --project <root> --client <client>` | 项目文件安装管理；list 可省 client，详见运行环境 |
 | `tao doctor` | 只读诊断可用能力 |
 | `tao show <ID>` | 定位已定义对象 |
 | `tao id new <TYPE> --count <N>` | 批量生成唯一 ID；JSON 使用 outputs.ids |
@@ -21,4 +20,4 @@ status/show 遇到无关草稿错误仍返回可用结果，并标为 `partial`�
 
 日常机器可读查询使用 `--format json`；verify 和 status 优先加 `--simplified`，避免把完整文档索引或已完成任务反复送入上下文。需要定位具体定义时用 show，不为简单动作重复输出整本书。
 
-new 的 spec/design/plan 编排、review doc/code、implement、refine、continue 是 skill 动作，不是同名 Python 状态机。没有 workflow、review 导入、finish 或 evidence-only gate。检查未运行、审查未知与任务完成须分开报告。安装管理见 [运行环境](runtime.md)，文档规则见 [文档规程](documents.md)。
+new 的 spec/design/plan 编排、review doc/code、implement、refine、continue 是 skill 动作，不是同名 Python 状态机。没有 workflow、review 导入、finish 或 evidence-only gate。检查未运行、审查未知与任务完成须分开报告。项目复制与依赖准备见 [运行环境](runtime.md)，文档规则见 [文档规程](documents.md)。

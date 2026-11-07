@@ -44,8 +44,10 @@ temporary Markdown summary and is not required to resume.
 Use the bundled source validator and project-local Python environment
 for explicitly requested checks. Local HTML publication and configured
 code checks are separate from semantic review and actual client behavior.
-Skill installation supports project-local Claude, Codex, Cursor and Kiro
-paths. Report only exercised validation and its actual scope.
+Distribute the complete skill by project-local copying, or an optional
+external skills tool. Document Claude, Codex, Cursor and Kiro discovery
+paths; tao does not manage installation lifecycles or client configuration.
+Report only exercised validation and its actual scope.
 Prepare dependencies explicitly; reading or installing the skill must
 not require publication dependencies or automatic environment setup.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`

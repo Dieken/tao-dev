@@ -18,7 +18,7 @@ spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 <!-- tao:section architecture -->
 ## 架构
 
-源码位于 skills/tao-dev/。安装器只复制 skill 到客户端原生项目 skill 目录，项目内保存必要所有权记录。辅助 CLI 提供 doctor、id、show、new、status、handoff、verify、docs 及必要项目设置；review/refine/continue/implement 是 skill 动作，由 agent 依据文档与代码执行。
+源码位于 skills/tao-dev/。完整 skill 由使用者复制到客户端项目发现目录，或交给通用 skills 工具；tao 不管理分发生命周期，不记录安装归属。辅助 CLI 提供 doctor、id、show、new、status、handoff、verify、docs 及必要项目设置；review/refine/continue/implement 是 skill 动作，由 agent 依据文档与代码执行。
 
 <!-- tao:section contracts -->
 ## 接口与数据契约
@@ -30,12 +30,12 @@ status/show 不因无关草稿诊断阻断读取；返回 partial 和 documents_
 <!-- tao:section invariants -->
 ## 不变量
 
-不修改用户级配置；安装不覆盖非归属内容；目录符号链接不能逃出项目。status 不写盘、不运行检查。所有任务勾选只表示实现进度，不代表审查通过。普通 evidence/review 不自动建档或提交。保留有长期价值的已有文档与稳定 ID；删除过时契约时同步引用和导航，不为不兼容接口保留 shim。
+不修改用户级配置；项目辅助命令的输出不能逃出授权项目。复制前确认目标为项目内新目录，不覆盖用户改动；手工复制不提供所有权检测或事务保证。status 不写盘、不运行检查。所有任务勾选只表示实现进度，不代表审查通过。普通 evidence/review 不自动建档或提交。保留有长期价值的已有文档与稳定 ID；删除过时契约时同步引用和导航，不为不兼容接口保留 shim。
 
 <!-- tao:section errors -->
 ## 错误与恢复
 
-文档歧义如实列候选，不按 mtime 猜测。缺交接不阻断恢复，损坏计划给出路径和诊断，不覆盖用户文件。安装替换失败时回滚替换前的目录树；已提交后的清理失败明确报告状态与残留路径，仍独立释放锁，不伪称回滚。卸载遇到用户改动拒绝破坏；只在显式调用时运行检查。
+文档歧义如实列候选，不按 mtime 猜测。缺交接不阻断恢复，损坏计划给出路径和诊断，不覆盖用户文件。手工更新前保存本地改动，完整替换旧副本，避免叠加复制遗留废弃文件；移除只针对确认过的 skill 目录，不删除项目文档。第三方安装工具的保护与恢复由该工具定义；只在显式调用时运行检查。
 
 <!-- tao:section verification -->
 ## 验证

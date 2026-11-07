@@ -27,14 +27,8 @@ def test_unknown_native_client_is_rejected():
         native_clients.cli_skip_reason("unknown")
 
 
-@pytest.mark.parametrize("client", tuple(project_skills.CLIENT_PATHS))
-def test_project_only_install_upgrade_list_uninstall(client):
-    result = project_skills.run(client)
-    assert result == {"client": client, "lifecycle": "passed", "native_discovery": "not_run"}
-
-
 @pytest.mark.skipif(os.environ.get("TAO_NATIVE_ACCEPTANCE") != "1",
                     reason="Native discovery is explicit; set TAO_NATIVE_ACCEPTANCE=1")
-def test_codex_discovers_only_installed_project_skill():
+def test_codex_discovers_only_copied_project_skill():
     native_clients.require_cli("codex")
     assert project_skills.run("codex", native=True)["native_discovery"] == "passed"

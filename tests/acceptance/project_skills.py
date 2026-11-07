@@ -1,4 +1,4 @@
-"""Project-only installation and non-billable native discovery acceptance."""
+"""Project-only complete skill copy and opt-in non-billable native discovery."""
 
 from __future__ import annotations
 
@@ -10,17 +10,16 @@ from pathlib import Path
 import queue
 import shutil
 import subprocess
-import sys
 import tempfile
 import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
-ENTRY = ROOT / "skills/tao-dev/scripts/tao.py"
+SOURCE = ROOT / "skills/tao-dev"
 CLIENT_PATHS = {
     "claude": ".claude/skills/tao-dev",
     "codex": ".agents/skills/tao-dev",
-    "cursor": ".cursor/skills/tao-dev",
+    "cursor": ".agents/skills/tao-dev",
     "kiro": ".kiro/skills/tao-dev",
 }
 
@@ -49,24 +48,16 @@ def isolated_environment(workspace):
     return environment
 
 
-def snapshot(directory):
+def snapshot(directory, *, ignore_bytecode=False):
     return {
-        str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest()
+        path.relative_to(directory).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         if path.is_file() else None
         for path in sorted(directory.rglob("*"))
+        if not ignore_bytecode or not any(
+            part == "__pycache__" or part.endswith(".pyc")
+            for part in path.relative_to(directory).parts
+        )
     }
-
-
-def invoke(action, project, client, environment):
-    result = subprocess.run(
-        [sys.executable, "-I", "-S", "-B", str(ENTRY), action,
-         "--project", str(project), "--client", client, "--format", "json"],
-        cwd=project, env=environment, capture_output=True, text=True,
-        encoding="utf-8", timeout=30, check=False,
-    )
-    if result.returncode:
-        raise RuntimeError(f"{client} {action} failed: {result.stdout}\n{result.stderr}")
-    return json.loads(result.stdout)
 
 
 def _stop(process):
@@ -159,16 +150,16 @@ def discover_codex(projects, environment, *, timeout=20):
     return rows
 
 
-def assert_discovery(rows, inside, outside, *, installed):
+def assert_discovery(rows, inside, outside, *, copied):
     expected = inside / CLIENT_PATHS["codex"] / "SKILL.md"
     found = [skill for skill in rows[inside] if skill["name"] == "tao-dev"]
-    if installed:
+    if copied:
         if len(found) != 1 or not found[0].get("enabled"):
             raise RuntimeError("Codex did not discover exactly one enabled project tao-dev skill")
         if Path(found[0]["path"]).resolve() != expected.resolve():
             raise RuntimeError("Codex discovered tao-dev from a different location")
     elif found:
-        raise RuntimeError("Codex still discovered tao-dev after uninstall")
+        raise RuntimeError("Codex still discovered tao-dev after removing the copied skill")
     if any(skill["name"] == "tao-dev" for skill in rows[outside]):
         raise RuntimeError("Codex discovered tao-dev in the untouched project")
 
@@ -192,41 +183,38 @@ def run(client, *, native=False):
         sibling.mkdir(parents=True)
         user_skill = "---\nname: user-skill\ndescription: User-owned local skill.\n---\n\nUser-owned skill.\n"
         (sibling / "SKILL.md").write_text(user_skill, encoding="utf-8")
+        inside_before = snapshot(inside)
         home_before = snapshot(workspace / "home")
         outside_before = snapshot(outside)
-        source = (ROOT / "skills/tao-dev/SKILL.md").read_bytes()
-        invoke("install", inside, client, environment)
-        if (destination / "SKILL.md").read_bytes() != source:
-            raise RuntimeError("Installed skill differs from the source")
-        installed_before = snapshot(destination)
-        for _ in range(2):
-            invoke("upgrade", inside, client, environment)
-        if snapshot(destination) != installed_before:
-            raise RuntimeError("Repeated upgrade changed the installed skill")
-        listing = invoke("list", inside, client, environment)
-        rows = listing["outputs"]["installations"]
-        if len(rows) != 1 or rows[0]["client"] != client or rows[0]["state"] != "installed":
-            raise RuntimeError("List did not report the installed project skill")
+        source_before = snapshot(SOURCE, ignore_bytecode=True)
+        for resource in ("SKILL.md", "references", "assets", "scripts/tao.py",
+                         "scripts/requirements.txt", "scripts/requirements-publication.txt"):
+            if resource not in source_before:
+                raise RuntimeError(f"Source skill is missing {resource}")
+        shutil.copytree(SOURCE, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        if snapshot(destination) != source_before:
+            raise RuntimeError("Copied skill differs from the complete source bundle")
         if snapshot(workspace / "home") != home_before:
-            raise RuntimeError("Installation changed the isolated home directory")
+            raise RuntimeError("Copying the skill changed the isolated home directory")
         if native:
-            assert_discovery(discover_codex([inside, outside], environment), inside, outside, installed=True)
-        invoke("uninstall", inside, client, environment)
+            assert_discovery(discover_codex([inside, outside], environment), inside, outside, copied=True)
+        home_before_removal = snapshot(workspace / "home")
+        shutil.rmtree(destination)
         if destination.exists():
-            raise RuntimeError("Uninstall left the managed skill behind")
-        if (inside / "docs/keep.md").read_text(encoding="utf-8") != "User project knowledge.\n":
-            raise RuntimeError("Uninstall changed project knowledge")
-        if (sibling / "SKILL.md").read_text(encoding="utf-8") != user_skill:
-            raise RuntimeError("Uninstall changed an unmanaged skill")
-        if snapshot(outside) != outside_before:
-            raise RuntimeError("Lifecycle changed the untouched project")
-        if not native and snapshot(workspace / "home") != home_before:
-            raise RuntimeError("Lifecycle changed the isolated home directory")
-        if invoke("list", inside, client, environment)["outputs"]["installations"]:
-            raise RuntimeError("List still reported the uninstalled project skill")
+            raise RuntimeError("Removing the copied skill left files behind")
+        if snapshot(workspace / "home") != home_before_removal:
+            raise RuntimeError("Removing the copied skill changed the isolated home directory")
         if native:
-            assert_discovery(discover_codex([inside, outside], environment), inside, outside, installed=False)
-    return {"client": client, "lifecycle": "passed", "native_discovery": "passed" if native else "not_run"}
+            assert_discovery(discover_codex([inside, outside], environment), inside, outside, copied=False)
+        if snapshot(inside) != inside_before:
+            raise RuntimeError("Copy acceptance changed project knowledge or neighboring files")
+        if snapshot(outside) != outside_before:
+            raise RuntimeError("Copy acceptance changed the untouched project")
+        if not native and snapshot(workspace / "home") != home_before:
+            raise RuntimeError("Copy acceptance changed the isolated home directory")
+        if snapshot(SOURCE, ignore_bytecode=True) != source_before:
+            raise RuntimeError("Copy acceptance changed the source skill")
+    return {"client": client, "copy": "passed", "native_discovery": "passed" if native else "not_run"}
 
 
 def main():

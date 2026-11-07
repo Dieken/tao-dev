@@ -19,14 +19,14 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 <!-- tao:section architecture -->
 ## 包与入口
 
-scripts/package_skill.py --output <新目录> 复制 canonical skills/tao-dev，just package <新目录> 提供同一入口。安装器只将完整 skill 写入明确客户端项目目录；具体边界见 [安装设计](installation.md)。
+scripts/package_skill.py --output <新目录> 复制 canonical skills/tao-dev，just package <新目录> 提供同一入口。完整包可手工复制到明确项目的发现目录，或由使用者选择通用工具；具体边界见 [分发设计](installation.md)。
 
 SKILL.md 按需加载工程、动作、文档与工具参考，不能依赖开发仓库 docs 才能完成使用方任务。模板和文档注册表来自同包，不另维护客户端专用版本。
 
 <!-- tao:section contracts -->
 ## 依赖与执行
 
-阅读 skill 与标准库安装管理不依赖文档解析库。辅助命令使用调用者选择的 Python；明确需要时在项目 .venv 安装 scripts/requirements.txt，HTML 出版额外使用 scripts/requirements-publication.txt。没有 env prepare 或自动依赖下载，不写系统 Python、用户数据目录或业务环境。
+阅读与复制 skill 不需要 Python 或文档解析库。辅助命令使用调用者选择的 Python；明确需要时在项目 .venv 安装 scripts/requirements.txt，HTML 出版额外使用 scripts/requirements-publication.txt。没有 env prepare 或自动依赖下载，不写系统 Python、用户数据目录或业务环境。
 
 开发由 pyproject.toml/uv.lock 锁定，发布依赖清单由现有导出工具产生并核对一致性；读取 skill 不触发这些工具。未准备能力由 doctor 和实际错误明确报告。
 
@@ -38,4 +38,4 @@ SKILL.md 按需加载工程、动作、文档与工具参考，不能依赖开�
 <!-- tao:section verification -->
 ## 验证
 
-在仓库外检查完整包的资源、引用、标准库安装路径及使用显式依赖环境的 CLI。真实客户端按 [兼容边界](client-compatibility.md) 分层报告实际运行结果与未覆盖项。
+在仓库外检查完整包的资源、引用、项目复制路径及使用显式依赖环境的 CLI。真实客户端按 [兼容边界](client-compatibility.md) 分层报告实际运行结果与未覆盖项。
