@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 import native_clients
 
 
@@ -31,6 +33,16 @@ def test_session_probe_accepts_installed_logged_in_client(monkeypatch):
     monkeypatch.setattr(native_clients, 'logged_in', lambda client: True)
     for client in ('claude', 'codex', 'cursor', 'kiro'):
         assert native_clients.session_skip_reason(client) is None
+
+
+def test_billable_sessions_require_explicit_opt_in(monkeypatch):
+    monkeypatch.setattr(native_clients.shutil, 'which', lambda name: '/bin/true')
+    monkeypatch.setattr(native_clients, 'logged_in', lambda client: True)
+    monkeypatch.delenv('TAO_LIVE_ACCEPTANCE', raising=False)
+    with pytest.raises(pytest.skip.Exception, match='TAO_LIVE_ACCEPTANCE'):
+        native_clients.require_session('claude')
+    monkeypatch.setenv('TAO_LIVE_ACCEPTANCE', '1')
+    assert native_clients.require_session('claude') is None
 
 
 def test_claude_login_accepts_configured_third_party_auth(monkeypatch, tmp_path):

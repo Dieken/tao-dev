@@ -158,8 +158,15 @@ def require_cli(client):
         pytest.skip(reason)
 
 
+def live_acceptance_enabled():
+    """Billable model sessions run only when the operator opts in."""
+    return os.environ.get('TAO_LIVE_ACCEPTANCE', '').strip().lower() in {'1', 'true', 'yes'}
+
+
 def require_session(client):
     import pytest
+    if not live_acceptance_enabled():
+        pytest.skip('Set TAO_LIVE_ACCEPTANCE=1 to run billable model acceptance.')
     reason = session_skip_reason(client)
     if reason:
         pytest.skip(reason)
