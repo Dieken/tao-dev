@@ -1,0 +1,13 @@
+# 确定性检查
+
+`tao verify --only docs` 检查受管理文档；`tao verify --only code` 显式运行项目已配置的检查；省略 --only 或使用 docs,code 执行两类。它们报告实际覆盖与结果，不是审查、审批或交付认证。status 不运行任何检查。
+
+## 配置项目检查
+
+优先复用 manifest、CI 和现有项目命令。用 `tao project inspect` 只读发现候选，核对副作用与运行条件后通过 project configure 写入配置。argv 不经隐式 shell；业务工具不安装到 tao 自身环境。检查的输入、超时及复用策略按项目配置，具体可用字段以 inspect 与当前 CLI 帮助为准。
+
+## 解释结果
+
+只声称实际运行或明确标识复用的结果；保留实际执行时间、输入范围、退出码和未覆盖内容。旧输入的结果不能冒充新改动通过，缺工具或未运行不等于通过。可复用本地检查记录不构成 review 回执，不需要导入审查或满足任务完成门槛。输入变化按影响重验，不降低断言来隐藏失败。
+
+计划 verification 保存当前简短摘要，详情放 temporary 或 CI 产物。任务勾选、结构检查与行为检查分别报告；审查由 agent 按 [审查规程](review.md) 执行。没有 evidence-only gate 或 finish。

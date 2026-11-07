@@ -6,26 +6,15 @@ include = ["docs/**/*.md"]
 book_root = "docs/index.md"
 
 [verification]
-inputs = ["plugins/**/*", "tests/**/*", "docs/**/*.md", "pyproject.toml", "uv.lock", "scripts/**/*", "AGENTS.md", "CLAUDE.md", "README.md"]
-budget_seconds = 7200
+inputs = ["skills/**/*", "tests/**/*", "docs/**/*.md", "pyproject.toml", "uv.lock", "scripts/**/*", "AGENTS.md", "CLAUDE.md", "README.md"]
+budget_seconds = 1800
 reuse_seconds = 3600
-required_reviews = ["independent-implementation-review"]
-environment = ["TAO_LIVE_ACCEPTANCE", "TAO_ACCEPTANCE_MODEL_TIMEOUT", "TAO_CLAUDE_MAX_BUDGET_USD"]
-
-# Ordered first and scoped narrowly: a missing diagnostics catalogue entry is
-# a common slip, and learning about it here costs seconds rather than the
-# quarter hour the full regression takes. python-tests runs it again as part
-# of the suite; the duplicate is worth the earlier signal.
-[[verification.checks]]
-id = "diagnostics-locale"
-inputs = ["plugins/tao-dev/skills/tao-dev/scripts/**/*", "plugins/tao-dev/skills/tao-dev/assets/locales/**/*", "tests/test_diagnostics_locale.py", "pyproject.toml", "uv.lock"]
-argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "-m", "pytest", "tests/test_diagnostics_locale.py", "-q"]
-timeout_seconds = 120
+environment = ["TAO_NATIVE_ACCEPTANCE"]
 
 [[verification.checks]]
 id = "python-tests"
 argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "tests/acceptance/quality.py"]
-timeout_seconds = 7200
+timeout_seconds = 1700
 metrics = {format = "coverage-json", path = "tmp/tao/coverage/coverage.json"}
 
 [[verification.checks]]
@@ -33,7 +22,7 @@ id = "python-lint"
 # Ruff reads only these two trees; its version is pinned by pyproject.toml and
 # uv.lock, and every rule comes from argv, so there is no separate config file.
 # python-tests declares nothing: it really does depend on the managed documents.
-inputs = ["plugins/tao-dev/skills/tao-dev/scripts/**/*", "tests/**/*", "pyproject.toml", "uv.lock"]
-argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "-m", "ruff", "check", "--select", "E9,F63,F7,F82", "--output-format", "json", "--output-file", "tmp/tao/ruff.json", "plugins/tao-dev/skills/tao-dev/scripts", "tests"]
-timeout_seconds = 15
+inputs = ["skills/tao-dev/scripts/**/*", "scripts/**/*", "tests/**/*", "pyproject.toml", "uv.lock"]
+argv = ["uv", "run", "--no-config", "--locked", "--extra", "publication", "python", "-m", "ruff", "check", "--select", "E9,F63,F7,F82", "--output-format", "json", "--output-file", "tmp/tao/ruff.json", "skills/tao-dev/scripts", "scripts", "tests"]
+timeout_seconds = 60
 metrics = {format = "ruff-json", path = "tmp/tao/ruff.json"}

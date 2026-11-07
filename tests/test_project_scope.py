@@ -34,3 +34,30 @@ def test_a_rooted_or_traversing_document_pattern_is_refused_on_every_platform(tm
         'version = 1\n[documents]\ninclude = ' + json.dumps([pattern]) + '\n', encoding='utf-8')
     with pytest.raises(ValueError, match='project-relative'):
         Project(tmp_path)
+
+
+def test_reads_use_existing_defaults_without_creating_configuration(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    project = Project()
+    assert project.root == tmp_path
+    assert project.sources() == []
+    assert project.paths == {"plans": "docs/plans", "retired": "docs/retired", "temporary": "tmp/tao"}
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_temporary_handoffs_are_excluded_even_from_broad_document_scope(tmp_path):
+    summary = tmp_path / "scratch/handoffs/summary.md"
+    summary.parent.mkdir(parents=True)
+    summary.write_text("# Disposable context\n", encoding="utf-8")
+    document = tmp_path / "docs/spec.md"
+    document.parent.mkdir()
+    document.write_text("# Indexed document\n", encoding="utf-8")
+    project = Project(tmp_path, config={"version": 1, "documents": {"include": ["**/*.md"]},
+                                       "paths": {"temporary": "scratch"}})
+    assert project.sources() == [document]
+
+
+@pytest.mark.parametrize("removed", [{"hooks": {}}, {"paths": {"workflows": "docs/workflows"}}])
+def test_removed_engine_configuration_is_rejected(tmp_path, removed):
+    with pytest.raises(ValueError):
+        Project(tmp_path, config={"version": 1, **removed})

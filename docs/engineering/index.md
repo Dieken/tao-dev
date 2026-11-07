@@ -26,11 +26,10 @@ development.md
 installation.md
 client-compatibility.md
 protocol-design.md
-workflow-recovery.md
-native-version-and-batch-upgrade.md
 agent-behavior-testing.md
 documentation/index.md
 cli-design.md
 plugin-design.md
 decisions/index.md
+project-skill.md
 ```

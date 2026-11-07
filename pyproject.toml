@@ -1,6 +1,6 @@
 [project]
 name = "tao-dev"
-version = "0.17.0"
+version = "0.18.0"
 requires-python = ">=3.11,<3.15"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -23,14 +23,14 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["plugins/tao-dev/skills/tao-dev/scripts", "tests"]
+pythonpath = ["skills/tao-dev/scripts", "tests"]
 addopts = "-ra"
 
 [tool.coverage.run]
 branch = true
 parallel = true
 patch = ["subprocess"]
-source = ["${TAO_COVERAGE_SOURCE-plugins/tao-dev/skills/tao-dev/scripts}"]
+source = ["${TAO_COVERAGE_SOURCE-skills/tao-dev/scripts}"]
 data_file = "${TAO_COVERAGE_DATA-tmp/tao/coverage/.coverage}"
 
 [tool.coverage.report]

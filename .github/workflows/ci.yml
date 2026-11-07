@@ -17,7 +17,7 @@ jobs:
   tests:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -25,81 +25,6 @@ jobs:
         python: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-
-      # Floating versions intentionally detect native client compatibility
-      # changes. No credentials are configured, so authenticated model
-      # acceptance tests skip while CLI-only probes still execute.
-      - name: Install Claude Code and Codex
-        shell: bash
-        run: |
-          npm install -g @anthropic-ai/claude-code
-          npm install -g @openai/codex
-          claude --version
-          codex --version
-
-      - name: Persist npm global bin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $npmBin = (npm prefix -g).Trim()
-          $npmBin | Out-File -FilePath $env:GITHUB_PATH -Append
-          $env:Path = "$npmBin;$env:Path"
-          claude --version
-          codex --version
-
-      - name: Install Cursor CLI (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          curl https://cursor.com/install -fsS | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.local/bin:$HOME/.cursor/bin:$PATH"
-          agent --version
-
-      - name: Install Cursor CLI (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          irm 'https://cursor.com/install?win32=true' | iex
-          "$HOME\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-          "$HOME\.cursor\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-          $env:Path = "$HOME\.local\bin;$HOME\.cursor\bin;$env:Path"
-          agent --version
-
-      - name: Install Kiro CLI (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          curl -fsSL https://cli.kiro.dev/install | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.local/bin:$PATH"
-          kiro-cli --version
-
-      - name: Install Kiro CLI (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $base = 'https://prod.download.cli.kiro.dev/stable'
-          $manifest = Invoke-RestMethod "$base/latest/manifest.json"
-          $package = $manifest.packages | Where-Object {
-            $_.os -eq 'windows' -and $_.architecture -eq 'x86_64'
-          } | Select-Object -First 1
-          if (!$package) { throw 'Kiro manifest has no Windows x86_64 package.' }
-          $msi = Join-Path $env:RUNNER_TEMP 'kiro-cli.msi'
-          Invoke-WebRequest "$base/$($package.download)" -OutFile $msi
-          $actual = (Get-FileHash $msi -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne $package.sha256) { throw 'Kiro MSI checksum mismatch.' }
-          $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi, '/qn', '/norestart') -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw "Kiro MSI failed: $($process.ExitCode)" }
-          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-            [Environment]::GetEnvironmentVariable('Path', 'User')
-          $env:Path | Out-File -FilePath $env:GITHUB_PATH -Append
-          kiro-cli --version
 
       - uses: extractions/setup-just@v2
         with:
@@ -113,10 +38,8 @@ jobs:
       - name: Sync locked environment
         run: uv sync --no-config --locked --extra publication
 
-      # The same entry point is used locally and in every CI matrix cell.
-      # just check prepares locked wheels, runs the configured pytest suite
-      # in parallel, and performs dependency/lint verification. Billable
-      # model acceptance stays opt-in through TAO_LIVE_ACCEPTANCE=1.
+      # Native client discovery is explicit, non-billable acceptance. The
+      # deterministic suite needs neither installed clients nor credentials.
       - name: Run unified check
         run: just check
 

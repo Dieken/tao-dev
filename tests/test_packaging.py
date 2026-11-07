@@ -1,85 +1,48 @@
-"""Complete installation catalogs must resolve to self-contained plugins."""
+"""Packaging must not overwrite user data or follow source symlinks."""
 
-import json
-import subprocess
-import sys
+import importlib.util
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location('package_skill', ROOT / 'scripts/package_skill.py')
+package = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(package)
 
 
-def test_github_catalogs_resolve_one_complete_compatible_source():
-    codex = json.loads((ROOT / '.agents/plugins/marketplace.json').read_text(encoding='utf-8'))
-    claude = json.loads((ROOT / '.claude-plugin/marketplace.json').read_text(encoding='utf-8'))
-    cursor = json.loads((ROOT / '.cursor-plugin/marketplace.json').read_text(encoding='utf-8'))
-    assert codex['name'] == claude['name'] == cursor['name'] == 'tao-dev'
-    codex_entry, = codex['plugins']
-    claude_entry, = claude['plugins']
-    cursor_entry, = cursor['plugins']
-    plugin = (ROOT / codex_entry['source']['path']).resolve()
-    assert plugin == (ROOT / claude_entry['source']).resolve()
-    assert plugin == (ROOT / cursor_entry['source']).resolve()
-    # Codex 0.154.0 skips hooks when a portable root manifest takes precedence.
-    assert not (plugin / 'plugin.json').exists()
-    manifest = json.loads((plugin / '.codex-plugin/plugin.json').read_text(encoding='utf-8'))
-    claude_manifest = json.loads((plugin / '.claude-plugin/plugin.json').read_text(encoding='utf-8'))
-    cursor_manifest = json.loads((plugin / '.cursor-plugin/plugin.json').read_text(encoding='utf-8'))
-    for key in ('name', 'version', 'description'):
-        assert manifest[key] == claude_manifest[key] == cursor_manifest[key]
-    hooks = json.loads((plugin / manifest['hooks']).read_text(encoding='utf-8'))
-    assert hooks['hooks']['PostToolUse']
-    cursor_hooks = json.loads((plugin / cursor_manifest['hooks']).read_text(encoding='utf-8'))
-    assert cursor_hooks['hooks']['postToolUse']
-    assert cursor_manifest['agents'] == './com.cursor/agents/'
-    assert cursor_manifest['commands'] == './com.cursor/commands/'
-    assert claude_manifest['hooks'] == './com.anthropic/hooks/hooks.json'
-    assert claude_manifest['agents'] == ['./com.anthropic/agents/reviewer.md']
-    assert claude_manifest['commands'] == './com.anthropic/commands/'
-    assert (plugin / 'skills/tao-dev/scripts/tao.py').is_file()
+def test_existing_output_is_preserved(tmp_path):
+    output = tmp_path / 'existing'
+    output.mkdir()
+    user_file = output / 'notes.md'
+    user_file.write_text('do not erase', encoding='utf-8')
+    with pytest.raises(ValueError, match='must be new'):
+        package.build(output)
+    assert user_file.read_text(encoding='utf-8') == 'do not erase'
+    assert list(output.iterdir()) == [user_file]
 
 
-@pytest.mark.parametrize('package_format', ['public', 'codex-legacy'])
-def test_installation_catalog_resolves_complete_plugin(tmp_path, package_format):
-    output = tmp_path / 'marketplace with spaces'
-    command = [sys.executable, str(ROOT / 'scripts/package_plugin.py'),
-               '--format', package_format, '--marketplace', '--output', str(output)]
-    result = subprocess.run(command, capture_output=True, text=True, check=False, encoding='utf-8')
-    assert result.returncode == 0, result.stderr
-    report = json.loads(result.stdout)
-    assert report['installed'] is False
-    catalog_path = output / ('.agents/plugins/marketplace.json' if package_format == 'codex-legacy'
-                             else '.claude-plugin/marketplace.json')
-    catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
-    assert catalog['name'] == 'tao-dev-local'
-    entry, = catalog['plugins']
-    relative = entry['source']['path'] if package_format == 'codex-legacy' else entry['source']
-    plugin = (output / relative).resolve()
-    assert plugin.is_relative_to(output)
-    assert plugin.name == entry['name'] == 'tao-dev'
-    folders = ('skills', 'com.openai') if package_format == 'codex-legacy' else (
-        'skills', 'com.anthropic', 'com.cursor', '.claude-plugin', '.cursor-plugin')
-    for folder in folders:
-        source = ROOT / 'plugins/tao-dev' / folder
-        for path in source.rglob('*'):
-            if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
-                assert (plugin / path.relative_to(ROOT / 'plugins/tao-dev')).read_bytes() == path.read_bytes()
-    assert not list(plugin.rglob('__pycache__'))
-    assert not (plugin / 'docs').exists()
-    manifest = plugin / ('.codex-plugin/plugin.json' if package_format == 'codex-legacy'
-                         else '.claude-plugin/plugin.json')
-    assert json.loads(manifest.read_text(encoding='utf-8'))['name'] == 'tao-dev'
-    if package_format == 'public':
-        portable = json.loads((plugin / 'plugin.json').read_text(encoding='utf-8'))
-        assert portable['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
-        assert (plugin / portable['extensions']['com.openai']['hooks']).is_file()
-        kiro = json.loads((plugin / 'com.kiro/hooks/tao-dev.json').read_text(encoding='utf-8'))
-        assert kiro['version'] == 'v1' and kiro['hooks'][0]['trigger'] == 'PostToolUse'
-        assert not (plugin / '.codex-plugin').exists()
-    else:
-        assert not (plugin / 'com.kiro').exists()
-    previous = catalog_path.read_bytes()
-    repeated = subprocess.run(command, capture_output=True, text=True, check=False, encoding='utf-8')
-    assert repeated.returncode != 0
-    assert catalog_path.read_bytes() == previous
+def test_source_subdirectory_is_rejected_without_mutation(tmp_path, monkeypatch):
+    source = tmp_path / 'source'
+    source.mkdir()
+    monkeypatch.setattr(package, 'SOURCE', source)
+    with pytest.raises(ValueError, match='outside'):
+        package.build(source / 'output')
+    assert not (source / 'output').exists()
+
+
+def test_symlink_source_cannot_leak_external_files(tmp_path, monkeypatch):
+    source = tmp_path / 'source'
+    source.mkdir()
+    (source / 'SKILL.md').write_text('skill', encoding='utf-8')
+    private = tmp_path / 'private'
+    private.write_text('secret', encoding='utf-8')
+    try:
+        (source / 'secret').symlink_to(private)
+    except OSError:
+        pytest.skip('Symlinks are unavailable')
+    monkeypatch.setattr(package, 'SOURCE', source)
+    with pytest.raises(ValueError, match='symbolic links'):
+        package.build(tmp_path / 'output')
+    assert not (tmp_path / 'output').exists()
+    assert private.read_text(encoding='utf-8') == 'secret'

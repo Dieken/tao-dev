@@ -1,4 +1,4 @@
-"""ADR source fields must remain distinguishable to Markdown readers."""
+"""ADR semantic fields remain required without enforcing display typography."""
 
 import json
 import re
@@ -28,21 +28,12 @@ def test_chinese_adr_template_names_all_consequences_not_only_costs():
     assert "**影响与后果:**" in source
 
 
-@pytest.mark.parametrize("content", [
-    "比较共享环境与独立环境。",
-    "背景与备选：比较共享环境与独立环境。",
-    "**背景与备选：**",
-    "**：** 比较共享环境与独立环境。",
-    "**背景与备选** 比较共享环境与独立环境。",
-    "`**背景与备选：**` 比较共享环境与独立环境。",
-    "**背景与备选：** <!-- Description is still missing. -->",
-])
-def test_adr_rejects_missing_label_or_description(tmp_path, content):
+@pytest.mark.parametrize("content", ["", "<!-- No description. -->"])
+def test_adr_rejects_missing_field_content(tmp_path, content):
     path = tmp_path / "decision.md"
     path.write_text(decision(context=content), encoding='utf-8')
     result = validate(tmp_path, [path])
     assert "TAO-ENTITY-001" in {item.rule_id for item in result.diagnostics}
-    assert any("context" in item.message for item in result.diagnostics)
 
 
 @pytest.mark.parametrize("locale,content", [
@@ -50,6 +41,9 @@ def test_adr_rejects_missing_label_or_description(tmp_path, content):
     ("en", "**Context and alternatives:** Compare shared and isolated environments."),
     ("fr", "**Contexte et options** : Comparer les environnements."),
     ("zh-Hans", "__背景与备选__：比较共享环境与独立环境。"),
+    ("zh-Hans", "比较共享环境与独立环境。"),
+    ("en", "Context: compare shared and isolated environments."),
+    ("en", "**Context** Compare shared and isolated environments."),
 ])
 def test_adr_label_words_and_punctuation_are_localizable(tmp_path, locale, content):
     path = tmp_path / "decision.md"

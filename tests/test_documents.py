@@ -188,3 +188,48 @@ def test_bad_utf8_is_a_diagnostic_not_an_exception(tmp_path):
 def test_input_file_outside_root_is_not_read(tmp_path):
     result = validate(tmp_path, [tmp_path.parent / "outside.md"])
     assert "TAO-REF-004" in codes(result)
+
+
+def test_sections_can_be_reordered_omitted_and_extended(tmp_path):
+    text = spec()
+    start = text.index("<!-- tao:section terms -->")
+    end = text.index("<!-- tao:section requirements -->")
+    terms, text = text[start:end], text[:start] + text[end:]
+    text = text[:text.index("<!-- tao:section questions -->")]
+    text += terms + "\n## Local notes\n\nUseful unregistered prose.\n"
+    text += "\n<!-- tao:section project-notes -->\n## Project notes\n\nA stable custom section.\n"
+    result = check(tmp_path, text)
+    assert result.valid, result.to_dict()
+    assert "questions" not in result.documents["spec.md"].sections
+    assert "project-notes" in result.documents["spec.md"].sections
+
+
+@pytest.mark.parametrize("section", ["scope", "requirements"])
+def test_required_semantic_section_cannot_be_renamed(tmp_path, section):
+    result = check(tmp_path, spec().replace(f"<!-- tao:section {section} -->",
+                                          "<!-- tao:section other -->"))
+    assert "TAO-DOC-002" in codes(result)
+
+
+def test_entity_fields_allow_reordering_but_not_duplicates(tmp_path):
+    acceptance = "<!-- tao:field acceptance -->\n比较导出前后的内容。\n"
+    source = "<!-- tao:field source -->\n用户的数据保护要求。\n"
+    text = spec().replace(acceptance + "\n" + source, source + "\n" + acceptance)
+    assert check(tmp_path, text).valid
+    assert "TAO-ENTITY-001" in codes(check(tmp_path, text.replace(source, source + "\n" + source)))
+
+
+def test_optional_section_cannot_borrow_content_from_next_unmarked_heading(tmp_path):
+    text = spec().replace("文件指输出目标。", "## Local notes\n\nUnrelated prose.")
+    assert "TAO-DOC-002" in codes(check(tmp_path, text))
+
+
+def test_workflow_profile_is_not_a_managed_document(tmp_path):
+    result = check(tmp_path, spec().replace("tao.project.spec/v0.1", "tao.project.workflow/v0.1"))
+    assert "TAO-DOC-001" in codes(result)
+
+
+def test_malformed_optional_section_key_is_not_ordinary_prose(tmp_path):
+    result = check(tmp_path, spec().replace("<!-- tao:section terms -->",
+                                          "<!-- tao:section Invalid_Key -->"))
+    assert "TAO-DOC-002" in codes(result)

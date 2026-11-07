@@ -15,7 +15,6 @@ from test_relationships import CHG, CHANGE_DOC, change, check_change
 @pytest.mark.parametrize("content", [
     spec().replace("<!-- tao:section terms -->", "<!-- tao:section terms -->\n<!-- tao:section alien -->"),
     spec().replace("<!-- tao:field source -->", "<!-- tao:field alien -->\n\nUnused.\n\n<!-- tao:field source -->"),
-    spec().replace("无。", ""),
     spec().replace("```\n\n<!-- tao:section cases", "\n\n<!-- tao:section cases"),
 ])
 def test_damaged_structure_is_not_silently_accepted(tmp_path, content):
@@ -56,15 +55,6 @@ def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
         assert result.valid, result.to_dict()
 
 
-def test_chinese_evidence_template_labels_the_input_reference():
-    labels = json.loads((ASSETS / "locales/zh-Hans.json").read_text(encoding="utf-8"))
-    template = (ASSETS / "templates/evidence.md").read_text(encoding="utf-8")
-    rendered = template.replace(
-        "{{label.fingerprint}}", labels["label.fingerprint"]
-    )
-    assert "**受检输入引用:**" in rendered
-
-
 def test_split_task_attachment_requires_matching_change_and_no_duplicate_collection(tmp_path):
     task_doc = "DOC_20260914_0000000000000008"
     source = change().replace(f"change: {CHG}", f"change: {CHG}\ntasks_doc: {task_doc}")
@@ -97,6 +87,15 @@ Check export.
     check_change(tmp_path, source)
     result = validate(tmp_path, list(tmp_path.rglob("*.md")))
     assert "TAO-TASK-001" in codes(result)
+    start = source.index("<!-- tao:section tasks -->")
+    end = source.index("<!-- tao:section verification -->")
+    check_change(tmp_path, source[:start] + source[end:])
+    result = validate(tmp_path, list(tmp_path.rglob("*.md")))
+    assert result.valid, result.to_dict()
+    path.write_text(path.read_text(encoding="utf-8").replace(CHG, "CHG_20260914_0000000000000099"),
+                    encoding="utf-8")
+    result = validate(tmp_path, list(tmp_path.rglob("*.md")))
+    assert "TAO-REF-002" in codes(result)
 
 
 def test_runtime_copy_works_without_development_repository(tmp_path):

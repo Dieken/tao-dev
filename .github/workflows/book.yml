@@ -30,18 +30,10 @@ jobs:
       - name: Sync locked environment
         run: uv sync --no-config --locked --extra publication
 
-      - name: Prepare locked wheels
-        run: uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
-
-      # Source bootstrap keeps the runtime inside the project temporary root,
-      # exactly as docs/engineering/development.md describes it.
       - name: Build the development book
-        env:
-          TAO_RUNTIME_DIR: ${{ github.workspace }}/tmp/tao/runtime
-          TAO_PYTHON: ${{ github.workspace }}/.venv/bin/python
         run: |
-          tao=plugins/tao-dev/skills/tao-dev/scripts/tao.py
-          .venv/bin/python "$tao" env prepare --wheelhouse tmp/tao/wheels
+          mkdir -p tmp/tao
+          tao=skills/tao-dev/scripts/tao.py
           .venv/bin/python "$tao" docs build --format json | tee tmp/tao/docs-build.json
 
       # The configured book root is docs/index.md, so the built tree carries no

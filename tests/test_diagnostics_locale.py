@@ -1,7 +1,6 @@
 """Language selection changes display text, never validation meaning or scope."""
 
 import json
-import os
 import subprocess
 import sys
 
@@ -12,7 +11,7 @@ from test_cli import project, run
 def broken(root):
     project(root)
     path = root / 'docs/spec.md'
-    path.write_text(path.read_text(encoding='utf-8').replace('<!-- tao:field acceptance -->', '<!-- tao:field wrong -->'), encoding='utf-8')
+    path.write_text(path.read_text(encoding='utf-8').replace(':verifies: REQ_', ':verifies: DOC_'), encoding='utf-8')
     return path
 
 
@@ -54,35 +53,6 @@ def test_cli_errors_use_requested_language_and_unknown_locale_reports_fallback(t
     assert item['requested_locale'] == 'fr'
 
 
-def test_standard_library_bootstrap_localizes_without_preparing_runtime(tmp_path):
-    env = os.environ | {'TAO_RUNTIME_DIR': str(tmp_path / 'unprepared')}
-    result = subprocess.run([sys.executable, str(ASSETS.parent / 'scripts/tao.py'),
-                             '--diagnostic-locale=zh-Hans', 'verify', '--format=json'],
-                            capture_output=True, text=True, env=env, encoding='utf-8')
-    report = json.loads(result.stdout)
-    assert result.returncode == 2 and report['command'] == 'verify'
-    assert report['diagnostics'][0]['message_locale'] == 'zh-Hans'
-    assert not (tmp_path / 'unprepared').exists()
-
-
-def test_bootstrap_reports_failure_when_tomllib_is_unavailable(tmp_path):
-    entry = ASSETS.parent / 'scripts/tao.py'
-    code = '''import runpy, sys
-class NoTomllib:
-    def find_spec(self, fullname, path=None, target=None):
-        if fullname == "tomllib":
-            raise ModuleNotFoundError("tomllib unavailable")
-sys.meta_path.insert(0, NoTomllib())
-sys.argv = [sys.argv[1], "doctor", "--format=json"]
-runpy.run_path(sys.argv[0], run_name="__main__")
-'''
-    env = os.environ | {'TAO_PYTHON': str(tmp_path / 'missing-python')}
-    result = subprocess.run([sys.executable, '-I', '-c', code, str(entry)],
-                            capture_output=True, text=True, env=env, encoding='utf-8')
-    assert result.returncode == 2, result.stderr
-    assert json.loads(result.stdout)['diagnostics'][0]['rule_id'] == 'TAO-RUNTIME-001'
-
-
 def test_standalone_validator_accepts_diagnostic_language(tmp_path):
     broken(tmp_path)
     result = subprocess.run([sys.executable, str(ASSETS.parent / 'scripts/validate_documents.py'),
@@ -100,30 +70,6 @@ def test_missing_message_translation_is_honest_and_preserves_external_details():
     assert item['message'] == 'External failure: raw ENGLISH detail'
 
 
-def test_nested_owned_errors_translate_without_changing_raw_parameters():
-    from tao_messages import Message, diagnostic
-    error = ValueError(Message('Supported Python versions: {arg0} to below {arg1}', [3, 11], [3, 15]))
-    message = Message('Python is unavailable or unsupported: {arg0}', error)
-    zh, en = diagnostic(message, 'zh-Hans'), diagnostic(message, 'en')
-    assert '支持的 Python 版本' in zh['message']
-    assert zh['parameters'] == en['parameters']
-
-
-def test_chinese_diagnostics_preserve_executable_command_names():
-    from tao_messages import Message, diagnostic
-    runtime = diagnostic(
-        Message('Runtime imports failed; run tao env prepare for a new environment.'),
-        'zh-Hans',
-    )
-    workflow = diagnostic(
-        Message('Workflow checkpoint changed; run tao workflow status and reconcile before retrying.'),
-        'zh-Hans',
-    )
-    assert runtime['message_locale'] == workflow['message_locale'] == 'zh-Hans'
-    assert 'tao env prepare' in runtime['message']
-    assert 'tao workflow status' in workflow['message']
-
-
 def test_localization_has_no_process_global_language_state(tmp_path):
     broken(tmp_path)
     def run_one(locale):
@@ -133,38 +79,3 @@ def test_localization_has_no_process_global_language_state(tmp_path):
         assert list(pool.map(run_one, ['en', 'zh-Hans'] * 5)) == ['en', 'zh-Hans'] * 5
 
 
-def test_catalogue_covers_owned_diagnostics_and_preserves_placeholder_sets():
-    import ast
-    from string import Formatter
-    catalogue = json.loads((ASSETS / 'locales/diagnostics.zh-Hans.json').read_text(encoding='utf-8'))
-    def fields(text):
-        return {name for _, name, _, _ in Formatter().parse(text) if name is not None}
-    for source, translated in catalogue.items():
-        assert translated and fields(source) == fields(translated), source
-    for path in (ASSETS.parent / 'scripts').rglob('*.py'):
-        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
-            if not isinstance(node, ast.Call):
-                continue
-            name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ''
-            index = 3 if name == 'error' and len(node.args) >= 4 else 4 if name == 'Diagnostic' else 0 if name in ('Message', 'ConfigurationError', 'ConflictError', 'RuntimeFailure', 'ValueError', 'display') else None
-            if index is None or len(node.args) <= index:
-                continue
-            argument = node.args[index]
-            assert not isinstance(argument, ast.JoinedStr), (path, node.lineno)
-            if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
-                assert argument.value in catalogue, (path, node.lineno, argument.value)
-
-
-def test_hook_uses_ui_language_and_invalidates_cached_translations(tmp_path, monkeypatch):
-    from taolib.hook import run as hook
-    broken(tmp_path)
-    (tmp_path / '.tao').mkdir()
-    config = tmp_path / '.tao/config.toml'
-    config.write_text('version = 1\n[ui]\nlocale = "zh-Hans"\n[hooks]\ntimeout_seconds = 30\n', encoding='utf-8')
-    monkeypatch.chdir(tmp_path)
-    first = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']
-    assert first.startswith('tao docs 反馈')
-    assert '仅检查文档' in first and '期望字段' in first
-    config.write_text(config.read_text(encoding='utf-8').replace('zh-Hans', 'en'), encoding='utf-8')
-    second = hook({'hook_event_name': 'PostToolUse'})['hookSpecificOutput']['additionalContext']
-    assert 'docs only' in second and 'Expected fields' in second

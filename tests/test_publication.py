@@ -108,6 +108,32 @@ def test_book_has_stable_heading_and_entity_links_that_survive_moves(tmp_path):
     assert not (directory / "docs/spec.html").exists()
 
 
+def test_book_preserves_stable_keys_among_optional_and_unmarked_headings(tmp_path):
+    configured = project(tmp_path)
+    text = spec()
+    start = text.index("<!-- tao:section terms -->")
+    end = text.index("<!-- tao:section requirements -->")
+    text = text[:start] + text[end:]
+    text = text[:text.index("<!-- tao:section questions -->")]
+    text = text.replace("<!-- tao:section requirements -->",
+                        "## Local notes\n\nUnregistered prose.\n\n<!-- tao:section requirements -->")
+    text += f"""
+<!-- tao:section project-notes -->
+## Project notes
+
+[Requirements](#{DOC}--requirements)
+[These notes](#{DOC}--project-notes)
+"""
+    (tmp_path / "docs/spec.md").write_text(text, encoding="utf-8")
+    output = build(configured)
+    page = Page((tmp_path / output["directory"] / "docs/spec.html").read_text(encoding="utf-8"))
+    assert f"{DOC}--requirements" in page.ids
+    assert f"{DOC}--project-notes" in page.ids
+    assert f"{DOC}--terms" not in page.ids
+    assert f"{DOC}--questions" not in page.ids
+    assert len(page.ids) == len(set(page.ids))
+
+
 def test_book_numbers_sections_without_putting_numbers_in_permalinks(tmp_path):
     configured = project(tmp_path)
     second_doc = "DOC_20260914_0000000000000010"

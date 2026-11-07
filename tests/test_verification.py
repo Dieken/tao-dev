@@ -7,8 +7,8 @@ import sys
 import pytest
 
 from test_cli import run
-from test_relationships import change, CHG, TASK
-from test_documents import DOC, REQ, spec
+from test_relationships import change, CHG
+from test_documents import spec
 
 
 def configured(root, body='print("checked")', *, timeout=5, budget=20):
@@ -69,11 +69,18 @@ def report(root, *arguments):
     return p.returncode, json.loads(p.stdout)
 
 
-def test_real_checks_are_partial_and_reused_without_reexecution(tmp_path):
+def current_receipt(root):
+    from taolib.project import Project
+    from taolib.verification import evidence, policy
+    project = Project(root)
+    return evidence(project, policy(project))
+
+
+def test_real_checks_are_bounded_and_reused_without_reexecution(tmp_path):
     configured(tmp_path, 'from pathlib import Path\np=Path("tmp/tao/calls")\np.write_text(p.read_text()+"x" if p.exists() else "x")')
     code, first = report(tmp_path, 'verify', '--only', 'code')
     assert code == 0, first
-    assert first['coverage'] == 'partial'
+    assert 'readiness' not in first
     assert first['outputs']['execution']['checks'][0]['status'] == 'passed'
     assert first['outputs']['execution']['checks'][0]['elapsed_seconds'] >= 0
     code, second = report(tmp_path, 'verify', '--only', 'code')
@@ -95,21 +102,17 @@ def test_simplified_verification_keeps_check_results_without_input_snapshots(tmp
     assert execution['checks'][0]['argv']
     assert 'inputs' not in execution
 
-    code, evidence = report(tmp_path, 'verify', '--only', 'evidence', '--simplified')
-    assert code == 0, evidence
-    current = evidence['outputs']['evidence']
-    assert current['state'] == 'reusable'
-    assert current['checks'][0]['status'] == 'passed'
-    assert 'saved' not in current
 
 
-def test_status_detects_changed_and_new_inputs_without_running_checks(tmp_path):
+def test_status_does_not_inspect_receipts_or_run_checks(tmp_path):
     configured(tmp_path)
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'reusable'
+    assert current_receipt(tmp_path)['state'] == 'reusable'
     (tmp_path / 'check.py').write_text('raise Exception("changed")', encoding='utf-8')
     status = report(tmp_path, 'status')[1]
-    assert status['outputs']['evidence_reusability'] == 'stale'
+    assert 'evidence' not in status['outputs']
+    assert 'evidence_reusability' not in status['outputs']
+    assert current_receipt(tmp_path)['state'] == 'stale'
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 1
 
 
@@ -141,46 +144,33 @@ def test_log_expiry_does_not_reverse_history_or_force_reexecution(tmp_path):
     assert code == 0
     log = tmp_path / result['outputs']['execution']['checks'][0]['log']
     log.unlink()
-    status = report(tmp_path, 'status')[1]['outputs']
-    assert status['evidence_reusability'] == 'reusable'
-    assert status['evidence']['logs_available'] is False
+    current = current_receipt(tmp_path)
+    assert current['state'] == 'reusable'
+    assert current['logs_available'] is False
     assert report(tmp_path, 'verify', '--only', 'code')[1]['outputs']['execution']['reused']
 
 
-def test_full_verification_requires_closed_target_tasks(tmp_path):
+@pytest.mark.parametrize('attachment', [False, True])
+def test_checks_pass_independently_of_task_completion_or_reviews(tmp_path, attachment):
     configured(tmp_path)
-    code, result = report(tmp_path, 'verify', CHG)
-    assert code == 1 and result['readiness'] == 'blocked'
-    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
-    text = path.read_text(encoding='utf-8').replace('- [ ]', '- [x]')
-    path.write_text(text, encoding='utf-8')
+    if attachment:
+        split(tmp_path)
     code, result = report(tmp_path, 'verify', CHG)
     assert code == 0, result
-    assert result['coverage'] == 'complete'
-    assert result['readiness'] == 'checks-satisfied'
-
-
-def test_full_verification_reads_the_task_attachment_the_plan_declares(tmp_path):
-    """A split task set is the change's task set: its open items block, and
-    closing them satisfies the gate that reading the plan alone never could."""
-    configured(tmp_path)
-    split(tmp_path)
-    code, result = report(tmp_path, 'verify', CHG)
-    assert code == 1 and result['readiness'] == 'blocked'
-    assert result['outputs']['open_tasks'] == [TASK]
-    path = tmp_path / 'docs/tasks.md'
-    path.write_text(path.read_text(encoding='utf-8').replace('- [ ]', '- [x]'), encoding='utf-8')
-    code, result = report(tmp_path, 'verify', CHG)
-    assert code == 0, result
-    assert result['outputs']['open_tasks'] == []
-    assert result['coverage'] == 'complete' and result['readiness'] == 'checks-satisfied'
+    assert 'readiness' not in result
+    assert 'open_tasks' not in result['outputs']
+    assert 'reviews' not in result['outputs']
+    assert 'requirement_coverage' not in result['outputs']
+    status = report(tmp_path, 'status', CHG)[1]['outputs']['plans'][0]
+    assert status['task_counts']['pending'] == 1
+    assert status['review'] == 'unknown'
 
 
 def test_dry_run_does_not_execute_or_save_receipts(tmp_path):
     configured(tmp_path)
     code, result = report(tmp_path, 'verify', CHG, '--dry-run')
     assert code == 0, result
-    assert result['coverage'] == 'unknown'
+    assert result['status'] == 'planned'
     assert not (tmp_path / 'tmp').exists()
 
 
@@ -188,15 +178,15 @@ def test_new_input_and_required_log_are_not_silently_ignored(tmp_path):
     configured(tmp_path)
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
     (tmp_path / 'docs/extra.md').write_text('new untracked input', encoding='utf-8')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'stale'
+    assert current_receipt(tmp_path)['state'] == 'stale'
 
 
-def test_unknown_review_requirements_and_empty_input_scope_fail_closed(tmp_path):
+def test_removed_review_policy_is_rejected(tmp_path):
     configured(tmp_path)
     config = tmp_path / '.tao/config.toml'
     config.write_text(config.read_text(encoding='utf-8').replace('[verification]', '[verification]\nrequired_reviews = ["independent"]'), encoding='utf-8')
     code, result = report(tmp_path, 'verify', CHG)
-    assert code == 2 and result['readiness'] == 'blocked'
+    assert code == 2 and result['status'] == 'not_run'
 
 
 def test_corrupt_or_empty_pass_receipt_is_not_reused(tmp_path):
@@ -206,7 +196,7 @@ def test_corrupt_or_empty_pass_receipt_is_not_reused(tmp_path):
     saved = json.loads(receipt.read_text(encoding='utf-8'))
     saved['checks'] = []
     receipt.write_text(json.dumps(saved), encoding='utf-8')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'invalid'
+    assert current_receipt(tmp_path)['state'] == 'invalid'
 
 
 def test_policy_can_require_logs_for_reuse(tmp_path):
@@ -215,7 +205,7 @@ def test_policy_can_require_logs_for_reuse(tmp_path):
     config.write_text(config.read_text(encoding='utf-8').replace('[verification]', '[verification]\nrequire_logs = true'), encoding='utf-8')
     _, result = report(tmp_path, 'verify', '--only', 'code')
     (tmp_path / result['outputs']['execution']['checks'][0]['log']).unlink()
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'materials-missing'
+    assert current_receipt(tmp_path)['state'] == 'materials-missing'
 
 
 def test_expiry_and_environment_change_prevent_reuse(tmp_path, monkeypatch):
@@ -224,13 +214,13 @@ def test_expiry_and_environment_change_prevent_reuse(tmp_path, monkeypatch):
     config.write_text(config.read_text(encoding='utf-8').replace('[verification]', '[verification]\nenvironment = ["TAO_TEST_DATASET"]'), encoding='utf-8')
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
     monkeypatch.setenv('TAO_TEST_DATASET', 'changed')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'stale'
+    assert current_receipt(tmp_path)['state'] == 'stale'
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
     receipt = tmp_path / 'tmp/tao/verification/latest.json'
     saved = json.loads(receipt.read_text(encoding='utf-8'))
     saved['recorded_epoch'] -= 3601
     receipt.write_text(json.dumps(saved), encoding='utf-8')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'expired'
+    assert current_receipt(tmp_path)['state'] == 'expired'
 
 
 def test_same_vcs_revision_with_dirty_inputs_is_stale(tmp_path):
@@ -263,25 +253,12 @@ def test_missing_metric_report_is_not_a_pass_and_report_values_are_observed(tmp_
     assert result['outputs']['execution']['checks'][0]['metrics']['percent_covered'] == 75
 
 
-def test_unknown_or_exceeded_model_budget_does_not_start_checks(tmp_path):
-    configured(tmp_path, 'from pathlib import Path\nPath("ran").touch()')
-    config = tmp_path / '.tao/config.toml'
-    config.write_text(config.read_text(encoding='utf-8').replace('[verification]', '[verification]\nmax_model_tokens = 5\nusage_reports = ["tmp/tao/usage.jsonl"]'), encoding='utf-8')
-    code, result = report(tmp_path, 'verify', '--only', 'code')
-    assert code == 2
-    assert not (tmp_path / 'ran').exists()
-    (tmp_path / 'tmp/tao').mkdir(parents=True, exist_ok=True)
-    (tmp_path / 'tmp/tao/usage.jsonl').write_text(json.dumps({'type':'turn.completed','usage':{'input_tokens':6,'output_tokens':1}})+'\n', encoding='utf-8')
-    assert report(tmp_path, 'verify', '--only', 'code')[0] == 1
-    assert not (tmp_path / 'ran').exists()
-
-
 def test_check_cannot_close_tasks_while_full_verification_is_running(tmp_path):
     configured(tmp_path, 'from pathlib import Path\np=Path("docs/plans/2026-09/20260914-export.md")\np.write_text(p.read_text().replace("- [ ]", "- [x]"))')
     config = tmp_path / '.tao/config.toml'
     config.write_text(config.read_text(encoding='utf-8').replace('"check.py", "docs/**/*.md"', '"check.py"'), encoding='utf-8')
     code, result = report(tmp_path, 'verify', CHG)
-    assert code == 1 and result['readiness'] == 'blocked'
+    assert code == 1 and result['status'] == 'failed'
     assert result['outputs']['documents_changed_during_checks'] is True
 
 
@@ -296,7 +273,7 @@ def test_committing_identical_inputs_does_not_rerun_checks(tmp_path):
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-m', 'Fixture')
     assert report(tmp_path, 'verify', '--only', 'code')[0] == 0
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-m', 'Metadata only')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'reusable'
+    assert current_receipt(tmp_path)['state'] == 'reusable'
 
 
 def test_empty_only_is_rejected_without_running_project_checks(tmp_path):
@@ -374,7 +351,7 @@ def test_only_the_check_whose_own_scope_changed_is_re_executed(tmp_path):
     # A document is inside verification.inputs but outside the declared scope:
     # the whole receipt goes stale, yet only the undeclared check must re-run.
     (tmp_path / 'docs/spec.md').write_text(spec() + '\n<!-- edited -->\n', encoding='utf-8')
-    assert report(tmp_path, 'status')[1]['outputs']['evidence_reusability'] == 'stale'
+    assert current_receipt(tmp_path)['state'] == 'stale'
     code, second = report(tmp_path, 'verify', '--only', 'code')
     assert code == 0, second
     carried, rerun = rows(second)['scoped'], rows(second)['whole']
@@ -413,10 +390,9 @@ def test_a_carried_row_ages_from_its_own_execution_not_the_receipt(tmp_path):
     receipt.write_text(json.dumps(saved), encoding='utf-8')
     # The receipt itself is fresh and its inputs unchanged, so only the row's
     # own execution moment can make this expired.
-    code, current = report(tmp_path, 'verify', '--only', 'evidence')
-    assert code == 2, current
-    assert current['outputs']['evidence']['state'] == 'expired'
-    assert current['outputs']['evidence']['expired_checks'] == ['scoped']
+    current = current_receipt(tmp_path)
+    assert current['state'] == 'expired'
+    assert current['expired_checks'] == ['scoped']
     code, rerun = report(tmp_path, 'verify', '--only', 'code')
     assert code == 0, rerun
     assert rows(rerun)['scoped']['reused'] is False
@@ -439,9 +415,8 @@ def test_a_malformed_log_path_in_a_receipt_fails_closed(tmp_path):
     for row in saved['checks']:
         row['log'] = '../../escape.log'
     receipt.write_text(json.dumps(saved), encoding='utf-8')
-    code, current = report(tmp_path, 'verify', '--only', 'evidence')
-    assert code == 2, current
-    assert current['outputs']['evidence']['state'] == 'invalid'
+    current = current_receipt(tmp_path)
+    assert current['state'] == 'invalid'
     code, rerun = report(tmp_path, 'verify', '--only', 'code')
     assert code == 0, rerun
     assert all(row['reused'] is False for row in rerun['outputs']['execution']['checks'])
@@ -449,34 +424,6 @@ def test_a_malformed_log_path_in_a_receipt_fails_closed(tmp_path):
     assert (tmp_path / 'tmp/tao/second').read_text(encoding='utf-8') == 'yy'
 
 
-def test_full_verification_fails_on_the_declared_range_without_a_baseline(tmp_path):
-    """The range is checkable without VCS, so it gates a complete run in the
-    very case that leaves the baseline comparison unevaluated."""
-    configured(tmp_path)
-    path = tmp_path / 'docs/plans/2026-09/20260914-export.md'
-    text = path.read_text(encoding='utf-8').replace('- [ ]', '- [x]')
-    declared = text.replace('created: "2026-09-14"', f'created: "2026-09-14"\nspec_docs: [{DOC}]')
-    path.write_text(declared.replace(f'"{CHG}", "{REQ}"', f'"{CHG}"'), encoding='utf-8')
-    code, result = report(tmp_path, 'verify', CHG)
-    scope = result['outputs']['requirement_coverage']['scope']
-    assert code == 1, result
-    assert scope['uncovered'] == [REQ] and result['readiness'] == 'blocked'
-    path.write_text(declared, encoding='utf-8')
-    code, result = report(tmp_path, 'verify', CHG)
-    assert code == 0, result
-    assert result['outputs']['requirement_coverage']['scope']['uncovered'] == []
-
-
-def test_verify_tolerates_recovered_workflow_without_a_recorded_baseline(tmp_path):
-    configured(tmp_path)
-    from taolib.project import Project
-    from taolib.workflow_recovery import recover
-    preview = recover(Project(tmp_path), CHG)
-    recover(Project(tmp_path), CHG, True, preview['source_digest'])
-    code, result = report(tmp_path, 'verify', CHG)
-    assert code == 2, result
-    coverage = result['outputs']['requirement_coverage']
-    assert coverage['state'] == 'not-evaluated'
 
 def test_no_reuse_forces_configured_checks_to_execute_again(tmp_path):
     configured(tmp_path, 'from pathlib import Path\np=Path("tmp/tao/calls")\np.write_text(p.read_text()+"x" if p.exists() else "x")')

@@ -5,7 +5,6 @@ import re
 import pytest
 
 from taolib.documents import validate
-from taolib.project import ConfigurationError
 from taolib.publication import build
 from test_publication import Page, project
 from test_relationships import CHANGE_DOC, navigation
@@ -41,7 +40,7 @@ created: "2026-09-16"
 
 
 @pytest.mark.parametrize("missing", [None, *SECTIONS])
-def test_runbook_requires_all_operational_sections(tmp_path, missing):
+def test_runbook_requires_steps_but_allows_optional_sections(tmp_path, missing):
     path = tmp_path / "restore.md"
     content = runbook()
     if missing:
@@ -52,7 +51,7 @@ def test_runbook_requires_all_operational_sections(tmp_path, missing):
     path.write_text(content, encoding='utf-8')
     result = validate(tmp_path, [path])
     errors = [item for item in result.diagnostics if item.severity == "error"]
-    if missing:
+    if missing == "steps":
         assert any(item.rule_id == "TAO-DOC-002" for item in errors)
     else:
         assert not errors
@@ -93,9 +92,3 @@ def test_operations_book_has_explicit_group_and_stable_runbook_links(tmp_path):
     resolver = (directory / f"refs/{RUNBOOK}.html").read_text(encoding='utf-8')
     assert f"../docs/operations/restore.html#{RUNBOOK}" in resolver
 
-    # Invalid operational instructions must fail before replacing the book.
-    source.write_text(runbook().split("<!-- tao:section recovery -->")[0], encoding='utf-8')
-    previous = (directory / "docs/operations/restore.html").read_text(encoding='utf-8')
-    with pytest.raises(ConfigurationError, match="Book sources are invalid"):
-        build(configured)
-    assert (directory / "docs/operations/restore.html").read_text(encoding='utf-8') == previous

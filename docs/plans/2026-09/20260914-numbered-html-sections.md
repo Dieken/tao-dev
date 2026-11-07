@@ -13,6 +13,8 @@ updated: "2026-09-17"
 
 # Sphinx HTML 章节显示编号
 
+> 历史计划：保留当时的目标、任务与实测范围，不作为当前操作规程；当前纯 skill 契约见 [项目级重构](../2026-11/20261108-project-skill.md)。旧机制的历史通过不证明当前版本通过。
+
 <!-- tao:section scope -->
 ## 目标与边界
 
@@ -54,7 +56,7 @@ Sphinx 扩展先在根 toctree 的 AST 节点上设置 `numbered`，启动 Sphin
 |---|---|
 | `.venv/bin/python -m pytest -q tests/test_publication.py tests/test_relationships.py` | 38 项通过；覆盖正文、左侧导航、页内目录、嵌套导航、同级重排、navigation 标题排除、稳定 DOM ID 与永久链接 |
 | `.venv/bin/python -m pytest -q` | 237 项通过，耗时 283.77 秒 |
-| `.venv/bin/python -m ruff check --select E9,F63,F7,F82 plugins/tao-dev/skills/tao-dev/scripts tests` | 通过，无诊断 |
+| `.venv/bin/python -m ruff check --select E9,F63,F7,F82 skills/tao-dev/scripts tests` | 通过，无诊断 |
 | skill 快速校验 | `Skill is valid!` |
 | 全部开发文档源校验 | 28 份文档、81 个定义通过结构与关系校验 |
 | 本项目 Sphinx HTML 构建 | 81 个定义、0 个章节重定向；稳定链接检查通过 |

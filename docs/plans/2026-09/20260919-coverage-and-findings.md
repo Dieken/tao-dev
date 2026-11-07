@@ -12,6 +12,8 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 # 覆盖核对与发现处置
 
+> 历史计划：保留当时的目标、任务与实测范围，不作为当前操作规程；当前纯 skill 契约见 [项目级重构](../2026-11/20261108-project-skill.md)。旧机制的历史通过不证明当前版本通过。
+
 <!-- tao:section scope -->
 ## 目标与边界
 
@@ -19,17 +21,17 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 逐条核对现有参考页后确认，这五类观察对应的规则要么缺失，要么只以静默延后的形式存在：项目设计已经承诺「任务通过关系字段生成依赖图」「阻断未被伪装为假设」「只存在代码、连接、测试或引用均不足以证明行为已验证」「意见写明场景、后果与解除条件」，但 skill 的运行参考页没有把这些承诺落成可执行的核对步骤。本次修正这一实现缺口。
 
-范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md)、[review.md](../../../plugins/tao-dev/skills/tao-dev/references/review.md)、[review-reports.md](../../../plugins/tao-dev/skills/tao-dev/references/review-reports.md)、[document-content.md](../../../plugins/tao-dev/skills/tao-dev/references/document-content.md)、[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../plugins/tao-dev/skills/tao-dev/references/engineering-practices.md)（仅新增两处反向链接，本身不改），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
+范围限于 skill 的六份按需读取参考页与用户指南：[workflow-actions.md](../../../skills/tao-dev/references/workflow-actions.md)、[review.md](../../../skills/tao-dev/references/review.md)、[review-reports.md](../../../skills/tao-dev/references/review-reports.md)、[document-content.md](../../../skills/tao-dev/references/document-content.md)、[project-setup.md](../../../skills/tao-dev/references/project-setup.md)、[engineering-practices.md](../../../skills/tao-dev/references/engineering-practices.md)（仅新增两处反向链接，本身不改），以及 [用户工作流指南](../../user/workflow.md) 的对应说明。
 
 不改 `document-profiles.json` 的 schema 契约、不改工作流状态机。CLI 与校验器源码改三处，均为下述既有缺陷的修正：审查调度的受检范围载荷诊断、任务识别的触发模式、审查结论被调度状态覆盖。除此之外不改 CLI 行为。任务关联需求依赖注册表已有的 `relates_types: ["REQ", "CHG"]`，无需扩展格式。
 
-**必读底座不得增大。** 上一批刚把 [SKILL.md](../../../plugins/tao-dev/skills/tao-dev/SKILL.md) 加 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 从 9,880 字节压到实测 6,580 字节，本次一个字都不进这两份文件，全部改动落在按需读取页。
+**必读底座不得增大。** 上一批刚把 [SKILL.md](../../../skills/tao-dev/SKILL.md) 加 [workflow.md](../../../skills/tao-dev/references/workflow.md) 从 9,880 字节压到实测 6,580 字节，本次一个字都不进这两份文件，全部改动落在按需读取页。
 
 另收四项与本批规则改动无关、但在本次执行中确认的既有缺陷，各自单独成任务、单独提交：
 
 其一，[tao 命令设计](../../engineering/cli-design.md) 的 `tao handoff` 行长期留有一条 TAO-LINK-002 warning。此前至少五个批次记录过该告警，其中 [操作与审查证据](20260918-operation-review-evidence.md) 明确判定它「表示尚未生成的文件名，不是可导航对象，人工核对后保留」。本次按用户明确要求重议并改为修正；审查规程的强度表规定项目或用户有明确要求时按该要求执行，因此这是正当的重议，而非无依据地推翻既有决定。
 
-其二，本次编写计划时实际踩到：审查调度的 `review-begin --from` 要求传入预览输出的 `outputs` 对象，而 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 只说「把预览 JSON 保存到项目 temporary 目录」，未区分完整 CLI 信封与其 `outputs`。传入信封时返回的诊断是「审查范围属于另一个工作流」，把载荷形状问题误报为事项不匹配。
+其二，本次编写计划时实际踩到：审查调度的 `review-begin --from` 要求传入预览输出的 `outputs` 对象，而 审查调度（当时接口，现已移除） 只说「把预览 JSON 保存到项目 temporary 目录」，未区分完整 CLI 信封与其 `outputs`。传入信封时返回的诊断是「审查范围属于另一个工作流」，把载荷形状问题误报为事项不匹配。
 
 其三，编写本批审查报告时撞到 TAO-TASK-001 误报：任务识别的模式用 `\[[^]]*\]` 匹配方括号以寻找复选框，但该写法同样匹配 Markdown 链接的链接文字，于是同一列表项内既有链接又引用 TASK 时被误判为 tasks 章节外的任务定义。这与 TAO-LINK-002 不同——后者按设计工作，这一条是实现与意图不符。
 
@@ -83,13 +85,13 @@ change: "CHG_20260919_CN6CCKSK3NPBCGMF"
 
 全新项目在写代码前配不出完整的 `[verification]`：`inputs` 要列源码目录与锁文件，而锁文件本身是产物。所以选工具、定命令、定门槛属于设计决定，落在 design 的 verification 章节；建骨架、装依赖、写配置、跑通首次基线属于实现，落在计划的前置任务。该任务的验证是自指的——`tao verify --only code` 不再返回未完成，并产出第一份检查回执。
 
-两个配套约束按已有规则推导：`inputs` 是「调用方声明的完整行为输入范围」，全新项目若只列当前存在的文件，每长出一个目录就会让历史结果过期，所以按预期目录结构声明；[project-setup.md](../../../plugins/tao-dev/skills/tao-dev/references/project-setup.md) 已说明重复 setup 只检查、补充，所以首个任务只落最小可跑通的检查集合，新工具随对应任务增量补配，避免一批 `not_run` 把交付判定长期卡在未完成。
+两个配套约束按已有规则推导：`inputs` 是「调用方声明的完整行为输入范围」，全新项目若只列当前存在的文件，每长出一个目录就会让历史结果过期，所以按预期目录结构声明；[project-setup.md](../../../skills/tao-dev/references/project-setup.md) 已说明重复 setup 只检查、补充，所以首个任务只落最小可跑通的检查集合，新工具随对应任务增量补配，避免一批 `not_run` 把交付判定长期卡在未完成。
 
 ### 发现的呈现复用报告字段，不另立一套
 
 正式报告的发现字段已经覆盖定位、约束、触发条件、证据或待证假设、后果和最小改动。缺的是三样：分类、根源（触发条件不等于根因），以及对话呈现本身没有任何契约——现有规则只约束写进 evidence 文件的内容，agent 在对话里怎么讲无人规定，用户的阅读负担正出在这里。因此新增的呈现规则只规定顺序与分批，字段定义指向报告写法，不产生第二份正文。
 
-分批规则直接沿用 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 已有的提问原则（一次一个关键问题、有依赖先问前置、独立简单问题可合问），扩展到发现上按阻断级、依赖前置、同类聚合分批，不引入新概念。
+分批规则直接沿用 [workflow.md](../../../skills/tao-dev/references/workflow.md) 已有的提问原则（一次一个关键问题、有依赖先问前置、独立简单问题可合问），扩展到发现上按阻断级、依赖前置、同类聚合分批，不引入新概念。
 
 ### 三项明确不做及依据
 
@@ -97,17 +99,17 @@ plan／tasks 不引入四轮独立审查：审查规程的默认预算是一次�
 
 implement 不强制端到端测试：与正文写法明文的「选择单元、集成、端到端或属性测试依据风险和验证目标，不按固定测试次数或覆盖率一刀切」直接冲突，会让改一行文案也要跑端到端，诱发仪式性测试。改为按需求逐条核对验收是否被实际执行过，层级仍由风险决定。
 
-不要求每条发现都给出备选与推荐解法：与 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 的「不凑反对意见、选项或固定分析表」和审查规程的「允许无发现，不凑数量」冲突，会稳定制造假选项。改为只在确有代价不同的可行备选时才写备选、推荐与理由。
+不要求每条发现都给出备选与推荐解法：与 [workflow.md](../../../skills/tao-dev/references/workflow.md) 的「不凑反对意见、选项或固定分析表」和审查规程的「允许无发现，不凑数量」冲突，会稳定制造假选项。改为只在确有代价不同的可行备选时才写备选、推荐与理由。
 
 ### 既有 TAO-LINK-002 的判定与修正方向
 
 该诊断不是校验器缺陷。规则对任何行内代码中的 `*.md` 一律告警，其测试 `test_unlinked_citations_are_visible_but_not_invented_references` 说明意图就是让未链接的文件引用可见，并拒绝自动补链；文档规程也明写不为消除 warning 编造链接。因此不放宽规则。
 
-handoff 附件是每个开发事项各自的文件，没有可链接的静态目标，CLI 按事项返回其实际路径。权威定义已由 [工作流状态](../../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md) 维护，按信息只维护一处，命令设计不必重复该字面名。修正为在正文改用「handoff 文档」的说法，保留原意并消除该告警，不新增链接、不改规则、不加忽略项。
+handoff 附件是每个开发事项各自的文件，没有可链接的静态目标，CLI 按事项返回其实际路径。权威定义已由 工作流状态（当时接口，现已移除） 维护，按信息只维护一处，命令设计不必重复该字面名。修正为在正文改用「handoff 文档」的说法，保留原意并消除该告警，不新增链接、不改规则、不加忽略项。
 
 ### 审查范围载荷的三层缺陷
 
-本次执行中实际踩到，逐层核实如下。命令行把 `--from` 文件整个读为 JSON 直接传给登记函数，而该函数只认顶层的 `change` 键，因此唯一可用的载荷是预览输出的 `outputs` 对象；[审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 没有写明这一点。登记函数把三种不同原因——载荷不是对象、缺少 `change` 键、确实属于另一个事项——合并为同一条「属于另一个工作流」的消息，前两种其实是载荷传错，该消息把排查引向了事项身份。
+本次执行中实际踩到，逐层核实如下。命令行把 `--from` 文件整个读为 JSON 直接传给登记函数，而该函数只认顶层的 `change` 键，因此唯一可用的载荷是预览输出的 `outputs` 对象；审查调度（当时接口，现已移除） 没有写明这一点。登记函数把三种不同原因——载荷不是对象、缺少 `change` 键、确实属于另一个事项——合并为同一条「属于另一个工作流」的消息，前两种其实是载荷传错，该消息把排查引向了事项身份。
 
 根因在第三层：现有回归全部在进程内直接以预览函数的返回值调用登记函数，绕过了保存文件再读回的这一步，而那是 agent 唯一能走的路径，因此前两层缺陷长期没有暴露。修正相应分三部分：参考页写明载荷形状，诊断区分这三种原因并在载荷形似完整 CLI 信封时直接指出，回归补一条覆盖文件往返的用例。诊断消息是否需要本地化条目由执行时核实，不预先断言。
 
@@ -115,7 +117,7 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 
 读到审查发现后先修订产物、再登记轮次结果，登记时输入绑定即不匹配，结果被记为 stale 而非实际的审查结论。该失效是登记顺序规则的由来。
 
-根因不是疏忽。正确顺序只存在于 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 的一句「输入改变会记为 stale」中，属于对后果的描述；而 [开发动作](../../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md) 的 review 步骤没有这一步。读到发现后「先修」是最自然的下一个动作，写在另一份参考页里的后果说明拦不住它。这与本批其余各项是同一类问题——约束存在于参考页，但没有进入动作步骤——因此并入发现处置闭环一并解决，不新增任务。
+根因不是疏忽。正确顺序只存在于 审查调度（当时接口，现已移除） 的一句「输入改变会记为 stale」中，属于对后果的描述；而 [开发动作](../../../skills/tao-dev/references/workflow-actions.md) 的 review 步骤没有这一步。读到发现后「先修」是最自然的下一个动作，写在另一份参考页里的后果说明拦不住它。这与本批其余各项是同一类问题——约束存在于参考页，但没有进入动作步骤——因此并入发现处置闭环一并解决，不新增任务。
 
 ### 两处过宽的模式匹配
 
@@ -179,7 +181,7 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 
 按任务的 verify 字段执行，检查办法如下。每份参考页改动后运行 `tao verify --only docs` 与全仓相对 Markdown 链接解析；这两项确定性检查覆盖结构、ID、关系与链接目标，不判断规则本身是否有效。
 
-必读底座体积用实测字节数核对 [SKILL.md](../../../plugins/tao-dev/skills/tao-dev/SKILL.md) 与 [workflow.md](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 之和不超过本次实测的 6,580 字节。上一批记为 6,537 字节，本次复测发现该数字当时就是错的：这两份文件自 `2469362` 起未改动，在产出该说法的提交上实测同样是 6,580。本次以实测值为准，不沿用错误基线。当前没有任何回归测试断言这个数值，它是本计划自设的约束，须人工测量并记录，不能声称由测试保障。
+必读底座体积用实测字节数核对 [SKILL.md](../../../skills/tao-dev/SKILL.md) 与 [workflow.md](../../../skills/tao-dev/references/workflow.md) 之和不超过本次实测的 6,580 字节。上一批记为 6,537 字节，本次复测发现该数字当时就是错的：这两份文件自 `2469362` 起未改动，在产出该说法的提交上实测同样是 6,580。本次以实测值为准，不沿用错误基线。当前没有任何回归测试断言这个数值，它是本计划自设的约束，须人工测量并记录，不能声称由测试保障。
 
 维护回归按已记录的做法在全部编辑完成后运行一次，不在每个任务后重跑；上一批基线为 490 passed、5 skipped、约 466 秒，跳过项是未启用的原生客户端安装探针。`tests/test_repository.py` 会检查参考页的链接可达性与文档角色，是本批最相关的回归面。 全仓受管理文档校验的既有诊断为 1 条，本批结束后应为 0 条。
 
@@ -207,7 +209,7 @@ handoff 附件是每个开发事项各自的文件，没有可链接的静态目
 | {need}`REQ_20260914_0J68SDKV86ENKER2` | 预留输出绑定与历史结论保留实际使用，旧记录有兼容回归；未触及的费用及历史报告条款不扩大本次结论 |
 | {need}`REQ_20260914_4CS6P421MGW68PME` | 本批未执行两端隔离场景行为验收；指导规则的实际效果仍未验收，须另行安排 |
 
-正式发现、来源归因及逐项处置见[实现审查批次](20260919-coverage-and-findings/reviews/20260919-implementation/index.md)。关键保留结论是：任务判别须区分内联、引用式及折叠式链接和畸形复选框；验证摘要只能指向实际观察的版本；来源归因必须可由对应报告核实。原报告不随本摘要改写。
+正式发现、来源归因及逐项处置见实现审查批次（程序性记录已退役，保留本计划当前历史摘要）。关键保留结论是：任务判别须区分内联、引用式及折叠式链接和畸形复选框；验证摘要只能指向实际观察的版本；来源归因必须可由对应报告核实。原报告不随本摘要改写。
 
 本批规则的确定性结构和链接检查通过，不等于agent服从性或双客户端行为验收通过。原始日志与临时输入不长期保存。
 

@@ -1,21 +1,14 @@
-"""Apply the distributed contract to the actual development documents.
-
-Configured sources answer to the full document contract. The remaining
-tracked pages carry ordinary links only, and a page shipped inside the
-plugin may address just the files an installation actually receives.
-"""
+"""The book and shipped skill must not contain broken local links."""
 
 from pathlib import Path
 import re
 from urllib.parse import unquote, urlsplit
 
 from taolib.documents import validate
-from taolib.git_workflow import run
 from taolib.project import Project
 
 ROOT = Path(__file__).resolve().parents[1]
 LINK = re.compile(r'\[[^]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)')
-PLUGIN_ROOT = '${CLAUDE_PLUGIN_ROOT}/'
 
 
 def test_development_documents_use_the_shared_runtime_contract():
@@ -34,33 +27,19 @@ def stable_anchors():
 
 
 def unmanaged_pages():
-    """Tracked Markdown the validator never reads; discovered, so no page name is fixed here."""
-    managed = {path.resolve() for path in Project(ROOT).sources()}
-    names = run(ROOT, 'ls-files', '-z', '*.md').split('\0')
-    return [ROOT / name for name in names if name and (ROOT / name).resolve() not in managed]
-
-
-def test_tracked_markdown_outside_document_scope_has_a_runtime_or_entry_role():
-    """A new reports/ or reviews/ tree must not silently escape schema checks."""
-    entry_points = {'AGENTS.md', 'CLAUDE.md', 'README.md', 'tests/acceptance/README.md'}
-    runtime_roots = (
-        'plugins/tao-dev/com.anthropic/agents/', 'plugins/tao-dev/com.anthropic/commands/',
-        'plugins/tao-dev/skills/tao-dev/references/',
-        'plugins/tao-dev/skills/tao-dev/assets/templates/',
-    )
-    for page in unmanaged_pages():
-        name = page.relative_to(ROOT).as_posix()
-        assert (name in entry_points or name == 'plugins/tao-dev/skills/tao-dev/SKILL.md'
-                or name.startswith(runtime_roots)), f'Declare the document role and schema scope: {name}'
+    """Read shipped skill pages and maintained repository entry points."""
+    skill = ROOT / 'skills/tao-dev'
+    return [*skill.rglob('*.md'), *(ROOT / name for name in
+            ('AGENTS.md', 'CLAUDE.md', 'README.md', 'tests/acceptance/README.md')
+            if (ROOT / name).is_file())]
 
 
 def test_links_of_unmanaged_pages_stay_reachable():
     anchors = stable_anchors()
     pages = unmanaged_pages()
-    placeholders = 0
-    assert pages
     for page in pages:
-        plugin = next((p for p in page.parents if (p / '.claude-plugin/plugin.json').is_file()), None)
+        skill = ROOT / 'skills/tao-dev'
+        boundary = skill if page.is_relative_to(skill) else ROOT
         # A link inside a fenced example is sample syntax, not a shipped resource.
         prose = re.sub(r'^```.*?^```', '', page.read_text(encoding='utf-8'), flags=re.S | re.M)
         for target in LINK.findall(prose):
@@ -68,16 +47,9 @@ def test_links_of_unmanaged_pages_stay_reachable():
             if url.scheme in ('http', 'https', 'mailto') or '{{' in target:
                 continue  # Templates keep their placeholders until a project renders them.
             location = unquote(url.path)
-            if location.startswith(PLUGIN_ROOT):
-                # Clients expand this to the installed plugin directory.
-                assert plugin is not None, (page, target)
-                placeholders += 1
-                resolved = (plugin / location[len(PLUGIN_ROOT):]).resolve()
-            else:
-                resolved = ((page.parent / location) if location else page).resolve()
-            assert resolved.is_relative_to(plugin or ROOT), (page, target)
+            resolved = ((page.parent / location) if location else page).resolve()
+            assert resolved.is_relative_to(boundary), (page, target)
             assert resolved.exists(), (page, target)
             relative = resolved.relative_to(ROOT).as_posix()
             if url.fragment and relative in anchors:
                 assert unquote(url.fragment) in anchors[relative], (page, target)
-    assert placeholders, 'Plugin pages address bundled resources through the client placeholder.'

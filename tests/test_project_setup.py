@@ -1,6 +1,11 @@
-"""Project setup discovers existing contracts and only writes approved configuration."""
+"""Project setup discovers tools and writes only explicitly supplied configuration."""
 import json
-from test_workflows import call
+from taolib.cli import main
+
+
+def call(root, capsys, *args):
+    code = main(["--project", str(root), "--format", "json", *args])
+    return code, json.loads(capsys.readouterr().out)
 
 
 def test_empty_inspection_is_read_only_and_has_no_tool_recommendations(tmp_path, capsys):

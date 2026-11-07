@@ -12,6 +12,8 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 # 检查按自己的输入范围复用
 
+> 历史计划：保留当时的目标、任务与实测范围，不作为当前操作规程；当前纯 skill 契约见 [项目级重构](../2026-11/20261108-project-skill.md)。旧机制的历史通过不证明当前版本通过。
+
 <!-- tao:section scope -->
 ## 目标与边界
 
@@ -102,7 +104,7 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 - [x] `TASK_20260920_R76R9DDKYGM4TM6C` 在本仓库自己的策略上实测一次逐项复用
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260920_Y0WCT88THT8JXXS2"]
   - depends_on: ["TASK_20260920_3JT1MKMYG9Y95T9W"]
-  - verify: 给 `.tao/config.toml` 的 `python-lint` 声明其真实输入范围（该检查只读 `plugins/tao-dev/skills/tao-dev/scripts` 与 `tests` 两棵树，其工具版本由 `pyproject.toml` 与 `uv.lock` 固定，ruff 规则全部来自 argv，无独立配置文件）；`python-tests` 不声明，因其确实依赖受管理文档。执行一次完整 `tao verify --only code` 取得基线回执，随后只改动一份文档后重新执行，记录 `python-lint` 是否被沿用、其执行时刻是否保持原值、`python-tests` 是否重新执行，并写出两次调用的实际命令、改动的文件与观察到的回执内容。这是本次改动在真实策略上的端到端观察，不以回归用例顶替。
+  - verify: 给 `.tao/config.toml` 的 `python-lint` 声明其真实输入范围（该检查只读 `skills/tao-dev/scripts` 与 `tests` 两棵树，其工具版本由 `pyproject.toml` 与 `uv.lock` 固定，ruff 规则全部来自 argv，无独立配置文件）；`python-tests` 不声明，因其确实依赖受管理文档。执行一次完整 `tao verify --only code` 取得基线回执，随后只改动一份文档后重新执行，记录 `python-lint` 是否被沿用、其执行时刻是否保持原值、`python-tests` 是否重新执行，并写出两次调用的实际命令、改动的文件与观察到的回执内容。这是本次改动在真实策略上的端到端观察，不以回归用例顶替。
   - evidence: [验证记录](#DOC_20260920_RYR02DHVTJJVR8DY--verification)
 
 - [x] `TASK_20260920_B66GBH9CSPTNYFBN` 审查绑定不再把本轮声明的报告输出算作受检输入
@@ -123,7 +125,7 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 本次不声称已验证「声明完整性」这一类人为约束：工具只能拒绝越界声明，不能发现声明不全，这一限制由 {need}`ADR_20260920_YB4X14PK7D277PS7` 记录，不在本计划的验证范围内。
 
 <!-- tao:results -->
-实现逐项inputs、版本2回执及逐行时效：单项范围只决定重跑选择，整份回执仍绑定全局输入；策略、工具或环境变化不沿用旧行。公开契约见[验证规程](../../../plugins/tao-dev/skills/tao-dev/references/verification.md)与[工具规程](../../../plugins/tao-dev/skills/tao-dev/references/tools.md)，声明不全的取舍见 {need}`ADR_20260920_YB4X14PK7D277PS7`。
+实现逐项inputs、版本2回执及逐行时效：单项范围只决定重跑选择，整份回执仍绑定全局输入；策略、工具或环境变化不沿用旧行。公开契约见[验证规程](../../../skills/tao-dev/references/verification.md)与[工具规程](../../../skills/tao-dev/references/tools.md)，声明不全的取舍见 {need}`ADR_20260920_YB4X14PK7D277PS7`。
 
 ### 真实复用观察
 
@@ -140,13 +142,13 @@ change: "CHG_20260920_Y0WCT88THT8JXXS2"
 
 回归覆盖非法/越界/空匹配范围、版本1回执拒绝复用、单行过期而其他行沿用、损坏缓存不得提取可用行，以及自身预留报告不移动审查绑定。范围子集判定使用排除前全集，摘要使用排除后集合，避免排除规则掩盖越界输入。
 
-当时的审查观察为：有开放阻断时导入回执得到changes-requested；预留报告落盘后仍为changes-requested；未声明的父级导航变更后为stale。该结果说明绑定与结论各自独立，不能把无阻断的satisfied当作唯一正确结果；操作接口见[审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md)，后续批次记录排除规则见对应架构决定。
+当时的审查观察为：有开放阻断时导入回执得到changes-requested；预留报告落盘后仍为changes-requested；未声明的父级导航变更后为stale。该结果说明绑定与结论各自独立，不能把无阻断的satisfied当作唯一正确结果；操作接口见审查调度（当时接口，现已移除），后续批次记录排除规则见对应架构决定。
 
-本事项三批正式审查及发现处置见[计划批次](20260920-check-input-scope/reviews/20260920-plan-review/index.md)、[实现批次](20260920-check-input-scope/reviews/20260920-implementation/index.md)和[加固复核](20260920-check-input-scope/reviews/20260920-implementation-followup/index.md)。模型为claude-sonnet-5，来源字段firstParty，未执行跨供应商审查；不从该字段另推供应商身份。
+本事项三批正式审查及发现处置见计划批次（程序性记录已退役，保留本计划当前历史摘要）、实现批次（程序性记录已退役，保留本计划当前历史摘要）和加固复核（程序性记录已退役，保留本计划当前历史摘要）。模型为claude-sonnet-5，来源字段firstParty，未执行跨供应商审查；不从该字段另推供应商身份。
 
 ### 最终历史判定
 
-合入前复核包含a6a93f5和27caa46的改动，固定审查树与文件范围以[加固复核报告](20260920-check-input-scope/reviews/20260920-implementation-followup/02-hardening-recheck-claude.md)为准。该回执导入后执行完整verify：passed／complete／checks-satisfied，任务无开放项，证据reusable，必需审查satisfied，诊断0。python-tests实际977.06秒、528 passed/5 skipped；lint实际0.25秒、0诊断。测试因逐行时效过期而重跑，证明整体记录刷新不能延长旧行时效。
+合入前复核包含a6a93f5和27caa46的改动，固定审查树与文件范围以加固复核报告（程序性记录已退役，保留本计划当前历史摘要）为准。该回执导入后执行完整verify：passed／complete／checks-satisfied，任务无开放项，证据reusable，必需审查satisfied，诊断0。python-tests实际977.06秒、528 passed/5 skipped；lint实际0.25秒、0诊断。测试因逐行时效过期而重跑，证明整体记录刷新不能延长旧行时效。
 
 此判定发生于该轮报告和父级导航落盘之前；按当时规则，导航落盘后审查为stale。历史判定保留，不作为当前代码的通过。此前507 passed/1 failed/5 skipped的完整检查因缺三条中文诊断失败，补齐后回归通过；不把该次失败改称单次全绿。原始回执和日志仅在忽略临时存储保留。
 

@@ -1,7 +1,7 @@
 ---
 schema: tao.project.design/v0.1
 id: DOC_20260914_0VF190409FQCN197
-title: tao 命令与流程接入
+title: 确定性 CLI 与 skill 动作
 locale: zh-Hans
 status: draft
 created: '2026-09-14'
@@ -9,208 +9,37 @@ updated: "2026-09-24"
 spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 ---
 
-# tao 命令与流程接入
-
-本文定义工具接口及实现边界，落实 {need}`REQ_20260914_95193C19C90NRXV4`、{need}`REQ_20260914_42AXMZ2KH2RAZ8M3`、{need}`REQ_20260914_0J68SDKV86ENKER2` 和 {need}`REQ_20260914_6YZ1XE1GC369655H`。已实现操作及精确调用方式以 [工具规程](../../plugins/tao-dev/skills/tao-dev/references/tools.md) 和 doctor 返回的能力为准；本文保留尚待实现接口的边界说明。 [开发动作](../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md) 规定 agent 的调用时机与当前回退行为。
-
-使用方格式由 [文档规程](../../plugins/tao-dev/skills/tao-dev/references/documents.md) 和 [格式注册表](../../plugins/tao-dev/skills/tao-dev/assets/document-profiles.json) 定义。CLI 读取同包注册表，按 schema 选择结构规则；生成器使用其模板，不根据使用方目录名或模型判断另造格式。本项目交付文档也使用这些 profile；开发文档的校验范围见 [文档契约](documentation/contract.md)。
+# 确定性 CLI 与 skill 动作
 
 <!-- tao:section overview -->
-## 用户操作与命名依据
+## 职责
 
-安装后的日常操作在 agent 会话内完成。动作统一为 setup、new、continue、refine、implement、review、debug、status、handoff、docs、finish。完整流程为澄清 → spec → design → plan/tasks → implement → review → finish；文档阶段通过检查点推进，不另设三个文档动作。实际调用示例见 [用户指南](../user/workflow.md)。
-
-**tao CLI 只承接确定性操作。** 解析、生成、验证、查询和保存记录可以在普通终端或 CI 执行；需求判断、设计、对抗式审查仍由 skill、可用客户端或人工完成。`tao review` 仅返回输入绑定或导入实际审查记录，不隐式调用模型，不从报告数量或客户端名称推导审查通过；精确格式见 [审查记录](../../plugins/tao-dev/skills/tao-dev/references/review-receipts.md)。
-
-### 参考项目的实际入口
-
-以下为所审阅版本中的代表性入口，不是完整目录或流行度排名；链接固定到该版本。名称省略重复的斜杠命名空间时保留操作部分，并区分 CLI、command 与 skill。共同倾向是核心动作简短、必要时加对象或用途；不存在统一的行业命令标准。
-
-| 项目 | 代表名称 | 对 tao-dev 的启示 |
-|---|---|---|
-| [Spec Kit](https://github.com/github/spec-kit/tree/ad601e5d52251f9131220c621d1cbbb7d61bebee/templates/commands) | specify、plan、tasks、implement、clarify | 按流程动作命名；保留 specify／plan 等语义，不强制每步一个入口 |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec/tree/0a99f410457271aa773d8b106f03f637f7c6b3c0/src/core/templates/workflows) | CLI new change；斜杠 new、propose、apply、verify、archive；skill openspec-new-change | 同一动作可以有短入口和描述性 skill 名；new 适合创建，propose 还包含内容生成 |
-| [Trellis](https://github.com/mindfold-ai/trellis/tree/e7c5ead4d0dfd717d11a40b6bc0c80d8af94c49a/packages/cli/src/templates/codex/skills) | start、brainstorm、check、finish-work、record-session | start 表示建立或恢复会话上下文，record-session 偏进度日志，均不等于创建变更 |
-| [GSD](https://github.com/open-gsd/gsd-core/tree/a68f1be10e8338128065691d5ea777a14eaca51a/commands/gsd) | new-project、plan-phase、execute-phase、pause-work、resume-work、verify-work | 对象或阶段确有区分需要时才加后缀；保存交接不应暗示已暂停执行 |
-| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin/tree/0a2957852e2034d04eb01120fd7da6ed5307dc56/skills) | ce-brainstorm、ce-plan、ce-work、ce-handoff | handoff 用于生成或读取交接摘要；前缀用于命名空间 |
-| [Matt Pocock Skills](https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills) | handoff；工程 skill 另有 to-spec、implement、tdd | handoff 明确产出给后续 agent 阅读的摘要；不照搬其保存位置或 issue 依赖 |
-| [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent/blob/dec381ed201a1326883db9f42bdb3c2add91b299/packages/omo-opencode/src/features/builtin-commands/commands.ts) | start-work、handoff、refactor | start-work 进入计划执行；handoff 生成会话摘要，含义与本项目交接吻合 |
-| [gstack](https://github.com/garrytan/gstack/tree/a3259400a366593e0c909dd9ac3e59752efd2488) | spec、review、ship、context-save、context-restore | 短核心动词与必要复合词并存；保存摘要不等于 ship 或恢复客户端内部上下文 |
-| [Everything Claude Code](https://github.com/affaan-m/everything-claude-code/tree/ed387446052dfbc6b52de149406b70efa65edc59/commands) | plan、code-review、save-session、resume-session、checkpoint | save-session 表意明确；checkpoint 还创建 stash／commit，不适合仅保存摘要 |
-| [Superpowers](https://github.com/obra/superpowers/tree/d884ae04edebef577e82ff7c4e143debd0bbec99/skills) | brainstorming、writing-plans、executing-plans、verification-before-completion | 长名称用于能力发现与自动触发，不作为要求用户记住长命令的依据 |
-| [Addy Osmani Agent Skills](https://github.com/addyosmani/agent-skills/tree/98967c45a42b88d6b8fb3a88b7ff6273920763d6/skills) | idea-refine、interview-me、planning-and-task-breakdown、context-engineering | 描述性 skill 名说明能力范围，不必映射成同长的 CLI 或斜杠命令 |
-| [BMAD](https://github.com/bmad-code-org/BMAD-METHOD/tree/1cd4a7f5c06421727d779cbb3f3b5953b4c7282d/src/core-skills) | bmad-spec、bmad-brainstorming、bmad-review-adversarial-general | 命名空间与审查类型各有作用；不为简短而丢失必要区分 |
-
-### 本项目的命名规则
-
-客户端入口只选择动作并传递完整请求，共用 skill 中的流程规程；原生调用语法集中在 [接入指南](../user/clients.md)。用户也可直接表达自然语言，不必逐项记住 CLI 参数。verify 保留为底层确定性验证，review 统一组织实际检查与语义审查，不增加审查范围子动作。
-
-Claude 的斜杠命令包装统一命名为 `/tao-<动作>`，文件名即 `com.anthropic/commands/tao-<动作>.md`。动作名本身保持不带前缀，供自然语言和其他客户端使用。前缀的作用是让包装命令不与客户端内置命令重名：new、review、status、docs 在 Claude 或 Codex 中都是已占用的斜杠命令，其中 Codex 的 `/new` 会开启新会话。没有前缀时 Claude 会把裸名解析到本插件，从而养成在 Codex 中误用的习惯。
-
-Claude 按插件名注册命令，正式名恒为 `/tao-dev:tao-<动作>`。每个命令文件另需 frontmatter `name: tao-<动作>`，Claude 据此注册同名别名，`/tao-<动作>` 才可直接调用；缺少该字段时裸名报未知命令。新增命令必须同时提供文件名和该字段。
-
-agent 的 new 接受业务需求，调查并澄清，在获准后建立工作流、创建隔离 worktree 并编写 spec。底层 `tao workflow start` 保存 CHG、分支起点和预留计划位置；到 plan 阶段才由 `tao new --slug <slug> --change <CHG>` 创建骨架。生成器不理解需求或调用模型，返回成功只表示创建成功，agent 必须填写并检查草稿。
-
-CLI 与 agent 动作有意区分职责：`tao env prepare` 准备 tao 自身运行环境，setup 动作接入业务项目；`tao review` 导入实际来源记录，review 动作调度有界审查；finish 动作处理用户选中的集成与清理，没有同名底层命令。handoff 由 agent 整理内容、CLI 验证并保存，不停止会话或转交执行权。
+skill 负责 new（spec → design → plan）、review doc、implement、review code 及 refine/status/continue/handoff 协作；CLI 只处理文件、ID、查询与检查，不调用模型、不认证交付。精确命令见 [工具规程](../../skills/tao-dev/references/tools.md)。
 
 <!-- tao:section architecture -->
-## 流程接入
+## 数据来源
 
-skill 对照 [开发动作](../../plugins/tao-dev/skills/tao-dev/references/workflow-actions.md) 自动选择调用：编辑文档后用文档子集反馈；实施中按当前工作运行相关项目检查；对用户作完成声明前执行完整 verify 并读取报告。用户不用分别记住检查类型；finish 动作呈现具体收尾选择。没有自动事件适配时由 skill 显式调用，不能宣称 hook 已触发。
+唯一任务源是 plan 内联任务或 tasks_doc 指定的附件。CHG 由 plan 定义；没有 plan 时保留 spec/design 为规划材料，不自动建计划。status 读取明确项目内文档，不查询全局索引或发现其他 worktree，不创建配置、执行检查或修复文件。
 
-运行环境准备以 [运行环境](../../plugins/tao-dev/skills/tao-dev/references/runtime.md) 为准；agent setup 通过 project inspect/configure 接入项目检查。doctor 在进入项目、工具或配置变化时检测能力；入口必须来自受信任的包或项目配置，不能随意执行 PATH 中同名程序，缺失时不自动安装。某项 CLI 能力缺失时继续使用项目已有检查和简明交接，但明确未自动完成的条件，不把人工查看报告成 tao verify 通过。
-
-hook 仅在已验证的平台事件上触发预算内的短检查，例如 `verify --only docs --scope changed`；它不启动完整跨模型评审、全量长测试或生成／退役操作。相同输入的重复事件合并，避免验证报告写入后再次触发自身。完整交付验证由 skill 在收尾时发起，CI 按项目配置复核；未来自动化不能绕过既有授权或未解决阻断。
-
-两端试验只在隔离项目或单次调用内生效，直接使用已配置的 `codex`、`claude`。核心命令已提供，斜杠命令和 hook 的平台适配另行以真实行为验收。
+new --slug 只写计划骨架；id new TYPE --count N 返回 outputs.ids。show 读取正式对象。辅助命令配置可选，路径均受选定项目边界约束。
 
 <!-- tao:section contracts -->
-## 命令与执行契约
+## 公开接口
 
-### 命令、输入与副作用
+`status [CHG|DOC|项目相对计划路径]`：省略目标列全部计划和未关联计划的规划材料。提供任务计数、未完成项、验证正文及推断进度 planning/pending/in_progress/implementation_complete；review 无记录为 unknown。不能从任务全勾选推断已审查或已交付。
 
-表中的 `tao` 代表受信任的项目局部入口。实现随 skill 提供 `scripts/tao.py`，由已确认的 Python 环境通过文件路径调用；可由项目任务运行器提供 `tao` 别名，不要求全局安装。不能因为 PATH 中存在同名程序就认定它属于 tao-dev。
+`handoff [同类目标] --from <项目相对 Markdown>`：省略目标必须只有一个计划。读取普通 Markdown，替换 temporary/handoffs/<CHG-or-DOC>.md，不分配 ID、不改计划、不加入 book。continue 不依赖它。
 
-| 拟议接口 | 输入与结果 | 副作用及实施顺序 |
-|---|---|---|
-| `tao new --slug <slug>` | 在 `docs/plans/<yyyy-mm>/` 创建 `<yyyymmdd>-<slug>.md` 变更计划的模板骨架，不生成需求或启动实现；返回实际路径与分配的标识符；语言从项目约定取得，必要时用 `--locale` 覆盖；日期取执行环境的本地日期，无需选择时区 | 模板生成器阶段；检查计划与附件路径，排他创建；重名返回错误，不覆盖或自动加计数后缀 |
-| `tao verify [CHG-ID]` | 自动选择必要检查，执行后汇总文档、项目行为、证据及收尾条件 | 按已配置策略执行获准检查并保存报告，不修改受检源文件或批准交付 |
-| `tao status [CHG-ID]` | 查询任务、依赖、未决项和证据时效；不运行检查，不刷新旧证据 | 证据阶段；只读，无目标时可展示项目摘要，不能因查询而勾选任务 |
-| `tao show <ID>` | 展示正式条目、定义位置、退役信息及可用的发布入口 | 首批；只读，类型从 ID 得到，不要求用户另选；未构建站点时 URL 可为空 |
-| `tao handoff [CHG-ID] --from <file>` | 保存 agent 提供的目标、决定、阻碍和下一步，并附实际状态与证据索引；不总结整段原始会话 | 恢复阶段；原子更新变更附件中的 handoff 文档，不停止会话、创建快照或自动移交执行，不提交或推送 |
-| `tao upgrade --client <客户端> [--id <标识> \| --all]` | 按安装记录就地更新已有安装，不新建；`--all` 升级该 client 的全部 tao 受管 user/project 记录 | 安装管理；无 `--all` 只选服务于 `--project` 的单项，`--id` 与 `--all` 互斥；批量逐项回滚，部分失败返回 2；native-only 安装不自动升级 |
-| `tao list --client <客户端>` | 只读列出安装、`recorded_version`、`native_version`、作用域及各路径在移除时的处置 | 安装管理；Codex/Cursor project cache 按 SemVer 发现版本，不按 mtime；不删除任何内容，与 `tao uninstall --list` 同一视图 |
-| `tao doctor` | 检测项目根、配置、工具、schema 与命令能力 | 首批；只读，不安装依赖、不修复配置、不主动试跑构建 |
-| `tao env prepare [--wheelhouse <目录>] [--timeout <秒数>]` | 在已有安装授权内显式准备相互隔离的核心与出版环境 | 标准库入口；不依赖 uv，不向插件源码或业务 Python 安装依赖。独立 skill 接入没有可用的 `tao install --client`，这是其准备运行环境的唯一入口。沿用调用者配置的包来源而非其安装位置；逐包进度写 stderr；`--timeout` 覆盖整条准备，默认 300 秒，0 取消上限 |
-| `tao --version` / `tao --help` | 报告工具版本；有运行环境时给出完整命令帮助，否则给出无需依赖即可使用的命令 | 标准库入口；不准备依赖、不要求已有安装，卸载后仍可用 |
-| `tao id new <TYPE>` | 为已支持的条目类型生成本地日期＋80 位安全随机部分的 ID，检查当前索引与退役记录是否重复 | 首批辅助命令；只输出 ID；正常生成文档由生成器自动分配，用户不逐项选号 |
-| `tao retire <ID> --reason <text>` | 展示条目及引用影响，移除正文并登记到 `docs/retired/<yyyymmdd>.jsonl`，日期取退役的本地日期 | 已实现默认预览，显式 `--apply` 才写入；不把退役叫作 deprecate 或 archive，以免混淆弃用通知、删除承诺与归档已完成工作 |
-| `tao docs build` | 生成书籍、条目索引与永久链接入口 | 出版阶段；只写配置的生成目录，默认 `tmp/tao/book/`，不部署网站 |
+`verify [计划目标] --only docs|code|docs,code`：默认 docs,code；只报告格式检查和已配置行为检查，允许真实本地结果复用，但没有 evidence 类别、审查导入、任务完成门槛或 readiness gate。
 
-doctor、编号、保存等由 agent 按时机调用。完整 verify 汇总确定性条件，finish 动作核对语义审查并执行用户选中的收尾；验证成功不附带提交、合入或发布授权。
-
-doctor 返回当前已实现能力。能力列表区分 `verify.docs`、`verify.code`、`verify.evidence`；只实现文档子集时不能声称支持完整交付验证。没有实现的命令或子能力不列为可用，也不用返回成功的空实现占位。
-
-### 持久流程与审查调度
-
-接口精确定义集中在运行包的 [工作流状态](../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md)、[项目接入](../../plugins/tao-dev/skills/tao-dev/references/project-setup.md) 和 [审查调度](../../plugins/tao-dev/skills/tao-dev/references/review-runs.md)，这里说明实现边界：
-
-- `docs/workflows/<CHG>.md` 保存阶段、批准、产物身份及生命周期；`.tao/workflows/<CHG>.json` 保存本地执行协调，可通过 recover 重建；写入采用锁与版本条件，防止旧会话覆盖新进度。正式 TASK 仍在计划内，客户端 UI 状态由其重建。
-- 批准绑定文档契约；任务完成勾选、任务证据和明确的执行结果区域不改变原计划契约。契约变化使受影响的批准失效。状态记录决定，不提供身份认证或伪造用户批准。
-- status 只读；continue 先协调实际文件、任务、证据和进程，再登记恢复。handoff 是保留的正式文档，通过内容版本识别是否已协调，不自动删除或重放下一步。
-- review-preview 以固定分支起点计算累计修改，显式覆盖工作树与 index；review-begin 固定所选输入和上下文快照并登记轮次上限，review-end 记录实际报告。并行调度仍由 agent 执行，CLI 不调用模型；调度记录不代替来源校验的正式审查记录。
-- 完整隔离流程当前依赖 Git；基本文档校验和配置检查保持独立，不预建其他 VCS 适配框架。
-
-预览可用 `--output` 预留本轮尚不存在的 Markdown 输出，精确路径进入确认记录。重算输入时仅排除该轮声明的输出；既有、已跟踪或已删除的源文件不能作为新输出隐藏，历史报告和未声明新文件仍参与变化检测。新输出独立接受文档检查；修改已有导航不是输出豁免。省略该选项时保留旧预览结构，已有轮次可继续核对。该分离使正式报告的保存不再让自己的审查结果过期。
-
-#### 审查来源适配
-
-导入器按 source.format 校验原始输出，运行参考只声明支持哪些格式和模型／供应商能否证实；事件级规则由 `taolib/reviews.py` 实现并在此维护：
-
-- `human-json`：来源文件恰有 binding、summary、findings、limitations 四个字段，内容与记录一致；model 与 provider 必须为 null，reviewer.name 不同于作者。
-- `claude-stream-json`：恰有一个 init 和一个成功 result，两个 session_id 与 reviewer.context 一致。model 必须出现在实际 assistant 或 modelUsage 中；provider 取 init.apiProvider，或匹配实际模型／canonicalModel 的 modelUsage.provider，来源冲突时拒绝，均未提供时写 unknown。result.structured_output，或可解析为 JSON 的 result.result，必须是上述四字段结论且与记录一致。
-- `codex-exec-jsonl`：恰有一个 thread.started，thread_id 与 reviewer.context 一致，随后是单个 turn.started 至 turn.completed，所有已开始的 item 均完成；最后一个已完成的 agent_message 是上述结论 JSON。该事件格式没有模型和供应商字段，两者只能为 unknown，不从配置、角色名或模型自述补全。
-
-失败、超时、缺结果、截断、重复或混合会话与轮次、结论被改写均拒绝导入。新增适配器须同时提供损坏样例的回归，并保持“不能从品牌名或 CLI 名称推断来源差异”的约束。
-
-### 自动选择与公共执行契约
-
-#### 默认选择，特殊情况才覆盖
-
-`tao verify` 默认检查当前目标的全部必需条件，而非只检查语法。目标优先来自显式 CHG ID，其次是当前变更目录或当前任务已有绑定；只有一个活动变更时可以自动选中。存在多个候选且上下文不能区分时才要求指定，不以“最近修改”猜测。项目级调用按明确的项目验证配置执行，不凭文件扩展名推断项目只有文档。
-
-项目接入时确定一次检查策略：检查标识、适用输入、依赖、执行命令、必需条件、输入识别规则及预算。每次调用按变更、契约关系和策略选择检查，并输出选择原因。有可靠基线和依赖信息时选择受影响范围；没有基线、依赖不完整或遇到共享配置变更时扩大到全部相关范围，不能把“不知道影响什么”当作没有影响。全局 ID 唯一性、必要跨文件引用及项目硬性门槛不因局部修改而被省略。
-
-接入由 agent 优先发现并复用现有构建、测试、CI 和项目约定，不把工具清单交给用户逐项勾选。只有目标、预算或权限等无法从已有信息确定的关键选择才询问；策略确定后日常调用自动复用，不静默降低既有门槛。
-
-以下底层验证选项供 skill、hook、CI 或排障使用；语义审查的范围和方式通过 review 动作的提问确定：
-
-| 选项 | 意义与限制 |
-|---|---|
-| `--only docs`、`--only code`、`--only evidence` | 仅运行指定分类，也可逗号组合。docs 包含格式与关系；code 包含配置的构建、类型、测试等行为检查；evidence 检查当前执行凭据与时效；目标任务和必需审查在完整调用汇总。属于局部验证，报告必须标记 partial，不构成整体完成依据 |
-| `--scope changed` 或 `--scope all` | 覆盖范围选择；changed 仍包含必要依赖与全局规则，无可靠基线时回退 all 并说明。all 扩大相关范围，不意味着执行项目未声明、未授权的操作 |
-| `--dry-run` | 展示目标、检查集合、选择原因、预计副作用和缺失能力，不执行检查子进程；不生成通过证据 |
-| `--format text` 或 `--format json` | 选择输出格式，不改变检查内容和通过条件 |
-
-不增加 fast／strict 等通用等级开关，也不要求每次选 `--profile`。快速反馈通过局部分类及有效证据复用获得；高风险需要的额外检查由既定策略和明确的风险判断决定。预算不足或能力缺失时记录 not_run，不偷偷降级。后续修订策略应有明确理由与版本，不能为本次通过临时降低要求。
-
-输入识别采用 skill 中的保存规则：默认在证据内记录固定 VCS 版本、受检范围及版本一致性结论，必要时引用持久差异或快照，不默认生成逐文件哈希清单。有效的旧检查结果可以复用，但需匹配本次完整输入、工具／配置版本和保存期限；报告指出 reused 与证据位置。仅因文件时间戳或 VCS 修订未变不能推导有效。新验证执行前后比较受检输入，执行中发生变化则标记 stale。摘要默认写入计划 verification；原始输出只在生成目录或 CI 保存，确有持久需求才按 [产物保存约定](documentation/layout.md) 归档。日志不可用与输入不匹配分别报告，不因前者改写历史 passed 或任务状态。
-
-审查绑定排除的范围是该批次自身的记录——批次目录下的文件与计划中记录本次执行的结果块——而不只是本轮预留的新报告输出；取舍与代价见 {need}`ADR_20260921_7GKEM95QP289V30G`。其他批次的报告、源码与未声明的新文件照旧使结果过期。同一判定同时用于必需审查的时效与进入 finish 的条件，二者不各自解释什么算改动。
-
-`review-end` 在登记前校验受管理报告，格式或引用不合格则拒绝登记；范围外的报告逐份标明未校验。校验前移使结论与材料摘要在登记时一致，避免登记后修正报告导致绑定失效，也不把未运行的校验读作通过。
-
-完整验证按事项基线核对需求承接：本次新增或修改的正式需求条目，须被本事项任务的 `relates` 覆盖，或在计划中显式声明延后并写明触发条件；两者都没有时报告未承接项并使完整判定不通过。左列按受管理规格文档相对工作流状态所记 fork commit 的条目差异枚举，不由元数据划定范围——元数据在此只作豁免声明，缺失时检查失败而非静默缩小范围。该核对需要 VCS 与工作流状态，因此只在完整 `tao verify <CHG>` 中执行；文档校验保持无 VCS 依赖，`--only docs` 与其钩子路径不受影响。
-
-每项检查可在策略中声明自己的输入范围，其匹配的文件集合须是全局输入范围匹配集合的子集，越界按配置错误拒绝。该声明只决定本次是否重新执行这一项：整份回执仍绑定全局输入全集，任一输入变化仍使整份回执过期；重新执行时，声明范围内无变化、上次已通过且未超出复用时效的检查沿用上次结果，报告标出其复用来源、原执行时刻与原耗时，不计入本次执行耗时。复用时效按每项检查各自的实际执行时刻判定，整份回执刷新记录时刻不使未重新执行的检查显示为新鲜。声明得比真实依赖窄会使该项静默停止重跑，该取舍及其补偿见 {need}`ADR_20260920_YB4X14PK7D277PS7`；策略、工具与环境指纹的变化仍使全部检查失效，不设逐项例外。
-
-#### 结果与完成语义
-
-所有命令支持 `--format text|json`。JSON 公共结果包含 `tool: "tao-dev"`、`protocol_version`、`tool_version`、`command`、`status`、`diagnostics` 和 `outputs`；doctor 额外返回支持的 schema 和 `capabilities`。verify 额外记录目标、检查清单及选择原因、未覆盖条件、`coverage`（complete／partial／unknown）和 `readiness`（checks-satisfied／blocked／not-evaluated）。子工具原始输出进入报告，进度写 stderr，不混入 JSON。
-
-完整 verify 汇总格式、项目必需检查、任务与依赖、已要求的审查记录及当前证据；缺失完成条件时 readiness 为 blocked。该结果只证明记录和确定性条件，不能代替语义评审、真实性判断或人工授权。调用 status 只读取已有结果，不能获得更高保障。
-
-退出码 `0` 表示本次所选检查通过，`1` 表示发现不满足条件的结果，`2` 表示配置／工具故障、能力缺失或检查未完成。带 `--only` 的通过可以返回 0，但 coverage 固定为 partial、readiness 为 not-evaluated。完整调用只有必需检查及收尾条件满足才返回 0，并报告 complete／checks-satisfied；开放任务或未解决阻断返回 1，必需工具不可用返回 2。CI 的交付门槛必须核实完整报告，不能把局部调用的 0 当作整体通过。dry-run 的 0 仅表示选择计划有效，coverage 为 unknown、readiness 为 not-evaluated，不是执行证据。
-
-逐项结果区分 passed、failed、not_run、not_applicable、stale；不适用必须有条件依据。不能把缺失的完整验证能力自动标为不适用。人工观察可登记为证据，但不伪造工具退出码，也不从两份模型报告的存在推导独立审查完成。
-
-#### 环境与写入边界
-
-项目根由显式 `--project <path>` 或当前目录向上最近的 `.tao/config.toml` 或 `.tao/workflows/` 确定。无配置时 doctor、id new、show 和 `verify --only docs` 可以在显式给定的项目根工作；完整验证缺少策略或目标时说明需补齐的信息，不擅自创建全局配置。
-
-Python 枚举、Markdown AST、日历解析与 `secrets` 安全随机源是正确性路径；`rg` 只作可选加速，不以全文命中决定正式定义或 ID 分配。VCS 是可选基线来源，Sphinx 是可选出版依赖，没有它们仍可执行文档子集。枚举当前文件包含未跟踪内容，不用 VCS 跟踪列表代替受检范围。
-
-写入限制在项目内明确目录，路径和符号链接解析后不得越界，不修改插件缓存或全局配置。生成器、退役和交接使用锁与原子操作，验证不自动修复语义问题。配置中新增执行命令仍需符合已有授权，不能因来自仓库就扩大权限。
-
-.tao/ 仅保存控制 CLI 和 skill 行为的配置；项目资产在 docs/ 或其显式映射位置，派生索引、缓存与短期锁默认在 tmp/tao/cache/。退役读取器遍历全部日期 JSONL 并与正文统一查重；写入时保护当日文件，正文移除与记录落盘作为一致修改处理，失败不能遗失唯一的追溯记录。具体字段与合并约束使用 skill 的文档契约，不在工具实现中另造规则。
+保留 doctor、show、docs build、project inspect/configure 与正式对象 retire。安装管理在导入可选文档依赖前分派，只用标准库。无 workflow、review-import、finish、env prepare 或兼容别名。
 
 <!-- tao:section invariants -->
-## 检查结果与写入约束
+## 边界
 
-局部检查不构成整体完成；能力缺失不自动成为不适用。验证不得修改受检源文档或扩大授权，生成与退役操作保护已有内容及稳定 ID。完整契约由上一节定义。
-
-<!-- tao:section errors -->
-## 故障与恢复
-
-退役操作使用项目写入锁与单文件原子替换，先保存退役记录，再移除正文；两步不构成跨文件事务。中断时，重复定义诊断阻止把中间状态当作有效索引，原 ID 仍有记录。相同参数重试可继续操作；常规正文变化保留在 VCS 差异中，不另建事务台账。
-
-参数、配置、工具不可用与条件不满足按公共退出码区分。写入失败不得遗失源内容或追溯记录；中断后恢复同一变更，不能通过重建 ID 掩盖部分完成。
-
-### 验证执行与度量适配
-
-检查子进程的 stdout／stderr 直接写临时日志，不累积在内存中；单项超时与剩余总预算共同约束进程，超时终止对应进程组。输入识别也有开销，不能承诺硬实时的全命令截止。
-
-结构化度量适配用独立样例验证。Claude 优先累加 modelUsage 的主模型与辅助模型计数；多个 result 可能为累计值，当前记为未知。Codex input_tokens 已含缓存命中，不重复相加。Coverage.py、Ruff 和模型用量解析须区分原始值、累计值与未知状态；不能把估算写成供应商账单。receipt 只保存合并输入、环境和策略摘要及执行结果，并逐项另存该项输入范围的合并摘要与实际执行时刻，均不持久化逐文件哈希表；记录格式版本随字段变化递增，无法按当前版本解读的回执按无效处理并重新执行，不猜测其含义。记录写入使用项目锁和原子替换。
+查询无副作用；歧义列候选而不按 mtime 猜测；损坏文档报告路径与原因，不静默覆盖。工具结果不授予写入、发布或客户端权限。详细 review/evidence 默认临时，计划只保留当前摘要。JSON 与文本输出表达相同事实。status/show 遇到无关草稿损坏可返回 partial 与 document_valid=false 并保留诊断，不把整本书有效性作为读取门槛；handoff 保护所选计划身份，但不以全书通过为保存前提。模型预算、token 用量报告及其预检不属于当前 CLI。
 
 <!-- tao:section verification -->
-## 验收与实施顺序
+## 验证设计
 
-每个命令以真实结果和独立反例验收，不能只检查帮助文字。首批文档能力到完整验证逐步实施，至少覆盖：
-
-- 同包模板填充后按注册表解析；新增 profile 同步更新规则、模板与独立测试样例；未知 schema、缺章节、残留模板变量和非法字段不能静默通过。
-- 文档错误、重复 ID、错误日期、悬空引用与任务依赖环可定位；ID 验收覆盖非法字符、随机串长度、前导零、完整字符集首位及连续碰撞后报错；围栏示例不注册定义，移动文件不破坏引用。
-- new 只创建计划；handoff 只保存交接，不能创建 VCS 快照、停止会话或移交执行。agent 入口准备 slug／摘要输入，用户无需选择对象类型或编写中间文件。
-- 常规用户只表达意图，agent 在编辑时选文档子集、交付时选完整验证；局部通过和 dry-run 均不能产生整体完成结论。
-- 改动范围或依赖未知时扩大选择；未跟踪输入不遗漏；不能因为全部文件是 Markdown 就跳过 prompt 行为验收。
-- 无 VCS、Sphinx、rg 时文档子集仍工作；多个候选变更仅在无法确定目标时要求指定，不反复询问已绑定目标。
-- new 的 agent 入口接受完整自然语言描述并自动提炼 slug；无描述时复用明确上下文，无目标时询问。CLI 缺少 --slug 不落盘，骨架创建成功不等于 agent 完成草稿；中断后保留原路径和 ID 继续填写，不创建重复计划。
-- 开放任务、证据过期、工具缺失、预算不足或执行中输入变化均不能完整通过；日志过期不自动否定历史结果，只有缺少本次判断必需的材料才阻断复用；复用有效证据须有可核实的输入引用，固定版本加未提交修改不得误判为一致；仅保存报告不改变受检源内容时不触发无意义重验。
-- 成对的契约标记未闭合、缺少一端或位于不允许的章节时报出定位与规则号；确认该错误不再转由批准或完成条件以无关原因失败，且随后内容的契约归属不被静默改变。
-- 本次新增或修改的需求未被任务承接且未声明延后时，完整验证不通过并列出未承接项；已声明延后的不报，但声明本身缺少触发条件时报错。无 VCS 或无基线时报告未评估，不按通过处理。
-- 一个批次自身的记录写入后，该批次已登记轮次的输入仍为当前，进入 finish 的条件不因这些产出而失效；其他批次的报告变化仍使结果过期。
-- `review-end` 拒绝登记不合格的报告文档；已登记轮次的报告摘要与文件一致。
-- 处理畸形持久状态的位置一律退化为已定义状态，不向调用方抛出未处理异常；该约束覆盖审查记录路径的构造与读取。
-- 逐项复用以该项声明的输入范围为准：范围内的文件变化必须使该项重新执行，范围外的变化不重新执行它但仍使整份回执过期；声明越出全局输入范围按配置错误拒绝。复用行显示原执行时刻与输入摘要，超出复用时效即便输入未变也重新执行，连续复用不因整份回执刷新而延长时效。
-- 生成、退役、归档、合入和发布不会由验证成功附带发生；短 hook 不执行完整长流程或循环触发。
-- 同日不同 slug 可共存；已有计划或附件路径及并发创建冲突均不覆盖；跨分支不同 CHG 的同名计划在集成时分别保留。模型审查、出版永久链接和隔离加载分别以其真实行为验收。
-- 退役文件名与 retired_on 相符；跨日期重复 ID、仍在正文定义的 ID、无效替代及关系环均能发现；同日并发与失败恢复不会丢记录。没有 .tao/、清空非活跃缓存或移除工具后，项目文档和退役数据仍可保留并重建索引。
-
-当前实现和配置以运行包的 [验证规程](../../plugins/tao-dev/skills/tao-dev/references/verification.md) 为准；平台与客户端的剩余验收缺口见运行环境变更记录。功能状态随证据更新，不能将本文的接口表当作全部能力已验收。
-
-审查轮次上限以一次用户确认的审查批次为单位；续审沿用原上限，明确的新阶段或范围审查另开批次并保留历史。新批次不能隐藏仍在运行的审查。调度器只记录轮次开始和结束，不调用审查模型，也没有审查者的执行区间；两次登记之间可能有人类讨论、修复和等待。因而不能从批次墙钟时间可靠扣除人类交互，也不能把 begin/end 差值称为模型耗时。历史批次保留原时间字段，但新调用只按轮次限制，实际调用时限与费用由调用方控制。
-
-计划覆盖对照按事项基线以来实际修改的全部受管理设计文档核对正式决定。计划的 `design_docs` 可省略，现有检查也不比对它与已修改设计文档的集合；若只扫描该字段，遗漏设计决定会被误判为已覆盖。
-
-新项目先在设计中决定检查策略，再在计划里安排配置任务：写代码前仍没有完整的源码目录和锁文件，不能把尚未产生的配置或首次基线写成已完成的设计。输入范围按预期目录声明，避免每新增一个目录都让历史检查结果因范围不全而失效。
-
-审查预览只排除本批次预留的新输出和本批次记录。父级导航属于已有受检输入，若在开始后才挂接批次入口，该轮会过期；所以先建导航、再登记审查。`review-end` 将结论与报告摘要一起保存，轮次结束后不能重新登记报告；受管理报告须在登记前校验，管理范围外的报告则显式标为未校验。
+覆盖零计划、唯一/多个计划、内联/附件任务、所有任务完成但审查未知、无配置只读、临时交接替换、路径越界、格式错误与缺依赖。检查 doc/code 输出不能冒充实际客户端加载或独立审查。执行结果由当前计划维护。

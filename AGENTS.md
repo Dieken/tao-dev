@@ -6,7 +6,7 @@ it as a submodule.
 
 # Develop with tao-dev
 
-Read `plugins/tao-dev/skills/tao-dev/SKILL.md` and its relevant bundled
+Read `skills/tao-dev/SKILL.md` and its relevant bundled
 references when developing this project. This is a project-local source
 entry point; it does not install or register a plugin. `CLAUDE.md` imports
 this guidance for the other target client.
@@ -34,30 +34,30 @@ by default. Retain separate evidence documents or raw data only when
 independent references or explicit retention needs justify them. Log
 expiry alone does not reverse historical results or task completion.
 
-The bundled source validator and maintained regression tests are available.
-Run the repository tests with the project-local Python environment and
-validate only explicitly managed sources against supported profiles.
-Use the bundled tao.py doctor output to identify available CLI commands.
-Local HTML publication, configured code checks and evidence freshness
-checks are available. Input-bound review imports are available. Native
-macOS client acceptance is recorded for the tested versions and package
-formats. CI runs the maintained regression on Linux, macOS and Windows
-across Python 3.11 to 3.14, and the native install probes with all
-supported agent CLIs on the same three platforms. Those probes drive
-installation, scope and removal only: no model call, no client credential
-and no PowerShell launcher. Native Windows client behavior acceptance remains incomplete. Required
-independent review must have a valid attestation bound to the current
-inputs before delivery; partial checks do not establish delivery
-readiness.
+The workflow is new (spec, design, plan), review doc, implement, review
+code, with refine, status, continue and explicit handoff. Continue within
+existing authorization; do not require step approvals, workflow
+registration, review receipts or finish. The plan or its single task
+attachment is the progress source. Checked tasks do not imply reviewed
+or delivered; absent review evidence is unknown. Handoff replaces one
+temporary Markdown summary and is not required to resume.
+
+Use the bundled source validator and project-local Python environment
+for explicitly requested checks. Local HTML publication and configured
+code checks are separate from semantic review and actual client behavior.
+Pure skill installation supports project-local Claude, Codex, Cursor and
+Kiro paths; do not inherit acceptance claims from removed plugin/hook
+implementations. Report only exercised validation and its actual scope.
+Prepare dependencies explicitly; reading or installing the skill must
+not require publication dependencies or automatic environment setup.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`
 declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
 rewrites every registry and wheel URL in `uv.lock`, producing a large
 diff nobody asked for. The justfile and CI already pass it; the gap is
 an ad-hoc command typed during a session. For one-off calls prefer
 `.venv/bin/python` directly, which is what the justfile's own `tao` and
-`python` variables do. If `uv.lock` shows a mass URL change nobody
-intended, it came from a bare `uv` invocation: restore it with
-`git checkout uv.lock`.
+`python` variables do. If `uv.lock` shows unintended mass URL changes,
+inspect the diff and preserve unrelated user changes when correcting it.
 
 # CLI experiments
 
@@ -78,9 +78,9 @@ Keep test configuration and cleanup within the experiment scope. If the
 selected CLI cannot provide the required isolation, report that test as
 blocked rather than falling back to a global installation.
 
-An ephemeral CI runner starts with neither CLI installed and holds no
-personal state or credentials, so these constraints do not bind it. Its
-workflow installs the required agent CLIs and defines its own scope.
+CI file-deployment tests must remain project-scoped too. Real model
+sessions require explicit authorization and a separately reported result;
+file installation does not prove client discovery or agent behavior.
 
 # Commits
 

@@ -1,65 +1,40 @@
-"""Global config checks allow Codex token refresh, not account changes."""
+"""Installation never alters client settings, home, or another project."""
 
-import json
-from pathlib import Path
+import pytest
 
-from acceptance import clients
-
-AUTH_KEY = str(Path('.codex') / 'auth.json')
-CONFIG_KEY = str(Path('.codex') / 'config.toml')
+from test_installation import args, snapshot, source, project  # noqa: F401
+import installation as install
+from install_clients import PROJECT_SKILLS
 
 
-def write_auth(home, *, account='account-a', access='access-a', refresh='refresh-a', refreshed=1):
-    path = home / '.codex/auth.json'
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({
-        'auth_mode': 'chatgpt',
-        'last_refresh': refreshed,
-        'tokens': {
-            'account_id': account,
-            'access_token': access,
-            'refresh_token': refresh,
-            'id_token': 'id-' + access,
-        },
-    }), encoding='utf-8')
-    return path
+@pytest.mark.parametrize('client', PROJECT_SKILLS)
+def test_lifecycle_preserves_home_and_project_client_settings(tmp_path, monkeypatch, source, project, client):  # noqa: F811
+    home = tmp_path / 'home'
+    home.mkdir()
+    other = tmp_path / 'other-project'
+    other.mkdir()
+    for variable in ('HOME', 'USERPROFILE', 'CODEX_HOME', 'CLAUDE_CONFIG_DIR', 'CURSOR_CONFIG_DIR', 'KIRO_HOME',
+                     'TAO_RUNTIME_DIR', 'TAO_CLI_DIR', 'XDG_DATA_HOME', 'LOCALAPPDATA'):
+        monkeypatch.setenv(variable, str(home))
+    for root in (home, project, other):
+        for relative in ('.claude/settings.json', '.codex/config.toml', '.cursor/hooks.json', '.kiro/settings.json'):
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('User-owned settings\n', encoding='utf-8')
+    before = {root: snapshot(root) for root in (home, project, other)}
+    install.deploy(args('install', project, source, client))
+    install.deploy(args('upgrade', project, source, client))
+    install.inventory(args('list', project, client=client))
+    install.uninstall(args('uninstall', project, client=client))
+    for root, files in before.items():
+        assert snapshot(root) == files
 
 
-def test_codex_global_snapshot_ignores_periodic_token_rotation(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, 'home', lambda: tmp_path)
-    write_auth(tmp_path)
-    before = clients.global_configuration()
-    write_auth(tmp_path, access='access-b', refresh='refresh-b', refreshed=2)
-    after = clients.global_configuration()
-
-    assert before == after
-    fingerprint = after[AUTH_KEY]
-    assert len(fingerprint) == 64
-    assert 'access-' not in fingerprint and 'refresh-' not in fingerprint
-
-
-def test_codex_global_snapshot_detects_account_and_config_changes(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, 'home', lambda: tmp_path)
-    write_auth(tmp_path)
-    before = clients.global_configuration()
-    write_auth(tmp_path, account='account-b', access='access-b', refresh='refresh-b', refreshed=2)
-    changed_account = clients.global_configuration()
-    assert before[AUTH_KEY] != changed_account[AUTH_KEY]
-
-    config = tmp_path / '.codex/config.toml'
-    config.write_text('check_for_update_on_startup = false\n', encoding='utf-8')
-    before_config = clients.global_configuration()
-    config.write_text('check_for_update_on_startup = true\n', encoding='utf-8')
-    after_config = clients.global_configuration()
-    assert before_config[CONFIG_KEY] != after_config[CONFIG_KEY]
-
-
-def test_codex_auth_snapshot_detects_malformed_file_changes(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, 'home', lambda: tmp_path)
-    path = tmp_path / '.codex/auth.json'
-    path.parent.mkdir(parents=True)
-    path.write_text('{broken', encoding='utf-8')
-    before = clients.global_configuration()
-    path.write_text('{different', encoding='utf-8')
-    after = clients.global_configuration()
-    assert before[AUTH_KEY] != after[AUTH_KEY]
+def test_home_cannot_be_selected_as_project(tmp_path, monkeypatch, source):  # noqa: F811
+    home = tmp_path / 'home'
+    home.mkdir()
+    monkeypatch.setenv('HOME', str(home))
+    monkeypatch.setenv('USERPROFILE', str(home))
+    with pytest.raises(install.InstallError, match='home or filesystem root'):
+        install.deploy(args('install', home, source))
+    assert list(home.iterdir()) == []

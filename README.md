@@ -1,113 +1,52 @@
 # tao-dev · 协作开发之道
 
-让 AI 与人围绕可验收的结果协作开发：明确需求，选择简单方案，小步实现，用实际检查支撑交付，并留下能接手的知识。
+项目级、文档驱动的 coding-agent skill：明确需求，选择简单设计，以计划推进实现，用真实检查支持结论，留下可维护的长期知识。
 
-tao-dev 是给 coding agent 用的一套**开发协议**——agent skill、共享文档模板和确定性 CLI。它把「需求 → 设计 → 计划 → 任务 → 检查结果」连成带稳定 ID 的可追踪链路，并且只在实际跑过检查后才让 agent 声称完成。
+## 开发主线
 
-## 核心能力
+**new（spec → design → plan）→ review doc → implement → review code**，支持 refine、status、continue、handoff。
 
-- **控制复杂度**：区分用户目标与实现建议，比较收益、代价及更简单的替代方案；按风险安排独立审查。
-- **需求到交付可追踪**：用稳定 ID 关联需求、设计、计划、任务和验证记录，改名或移动时保持引用。
-- **检查结果有依据**：接入项目已有测试与静态检查，识别证据过期、按条件复用结果，并汇总任务和必需审查。局部检查通过只代表其覆盖范围。
-- **文档可直接使用**：提供中英文模板、格式与关系校验、Sphinx HTML 书籍和稳定链接；项目沿用自己的语言与目录。
-- **会话可恢复**：保存目标、决定、实际状态、证据和下一步，接手时核对当前文件与检查结果。
+在目标项目加载 tao-dev 后，可以直接说：
 
-## 一次开发长什么样
+> 使用 tao-dev，为导出功能增加取消操作；完成规格、设计、计划、文档审查、实现和代码审查。
 
-安装后在目标项目启动 Claude Code 或 Codex 会话。以下每个单元格都是**一条完整消息**，按阶段逐条发送。示例是用 tao-dev 为 tao-dev 自身增加文档持续预览功能；该功能尚未实现，仅用于演示流程：
+已有授权内连续推进，不要求逐篇文档批准或 workflow 注册。每个动作给出实际结果和下一步选项；没有 finish、hook、原生插件或全局安装。
 
-| 时机 | Claude Code 输入 | Codex 输入 |
-|---|---|---|
-| 可选的项目接入 | `/tao-setup` | `$tao-dev setup` |
-| 提出业务需求 | `/tao-new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` | `$tao-dev new 我想在本机预览 tao-dev 的文档，修改后自动更新，停止后不留后台进程。` |
-| 查看 spec 后推进 | `spec 符合预期，同意开始编写 design。` | 同左 |
-| 查看 design 后推进 | `design 符合预期，同意开始编写 plan 和 tasks。` | 同左 |
-| 查看计划后审查 | `/tao-review` | `$tao-dev review` |
-| 审查完成，开始实现 | `/tao-implement` | `$tao-dev implement` |
-| 实现完成后审查 | `/tao-review` | `$tao-dev review` |
-| 构建 Sphinx HTML book | `/tao-docs` | `$tao-dev docs` |
-| 选择收尾操作 | `/tao-finish` | `$tao-dev finish` |
+- **结构化知识**：保留现有文档 profile、稳定 ID、正向引用与 Sphinx book；章节按实际需要组织，不强制无关内容。
+- **唯一进度来源**：任务内联 plan 或唯一 tasks 附件；status 只读，不跑检查、不写状态。任务全勾选不代表已审查或已交付。
+- **轻量记录**：长期结论回到规格、设计、ADR；计划只存当前结果摘要。详细 review/evidence 默认临时，不自动建报告或提交。
+- **无状态恢复**：continue 核对计划和实际文件；显式 handoff 只替换一份临时 Markdown，不是恢复前置条件。
 
-new 会先调查和澄清，再请你确认是否允许创建 worktree 和编写 spec。agent 自动处理文件名、路径和文档语言，逐阶段提供可点击的产物与下一步选择；实现获准后尽量自主完成代码、测试与必要检查。review 会让你确认范围和串行／并行方式，默认审查本功能从分支起点以来的累计修改，明确区分测试结果与审查结论。finish 会列出合入、推送、清理等选择，按你的实际授权执行。
+## 项目安装
 
-随时可用的还有：`status` 只读查看阶段与阻断，`continue` 核对实际状态后继续（无需事先 handoff），`refine` 修订 spec／design／plan，`debug` 调查缺陷，`handoff` 保存交接摘要。动作已表达操作意图，无需再附一句同义要求；加载后也可直接用自然语言提出请求。完整的澄清、修改、审查选择、中断恢复及收尾示例见 [使用指南](docs/user/workflow.md)。
-
-## 安装
-
-需要 **Python 3.11–3.14（含 pip、venv）、Git**，以及已安装并登录的 Claude Code、Codex、Cursor 或 Kiro CLI。在目标项目目录执行一条命令（换成 `--client claude`、`--client cursor` 或 `--client kiro`）：
+需要 Python 3.11–3.14；阅读 skill 无需 Python 或出版依赖。在本仓库运行：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Dieken/tao-dev/main/install.sh | sh -s -- --client codex --scope project
+python3 skills/tao-dev/scripts/tao.py install --project /path/to/project --client codex
+python3 skills/tao-dev/scripts/tao.py list --project /path/to/project
+python3 skills/tao-dev/scripts/tao.py upgrade --project /path/to/project --client codex --source /path/to/new-checkout
+python3 skills/tao-dev/scripts/tao.py uninstall --project /path/to/project --client codex
 ```
 
-<details>
-<summary>Windows PowerShell</summary>
+支持 `claude`、`codex`、`cursor`、`kiro`，分别部署到项目 `.claude/skills/tao-dev`、`.agents/skills/tao-dev`、`.cursor/skills/tao-dev`、`.kiro/skills/tao-dev`。install/upgrade/uninstall 显式选 client；list 可列本项目全部四种。没有 --scope 或 --all，不修改用户配置、其他项目或旧全局部署。客户端可能按自身规则发现其他原生目录，不承诺同一项目内仅一个客户端可见。
 
-```powershell
-& ([scriptblock]::Create((Invoke-RestMethod https://raw.githubusercontent.com/Dieken/tao-dev/main/install.ps1))) -Client codex -Scope project
-```
+install/upgrade 的 --source 接受本地仓库或完整 skill，省略使用当前运行副本；升级前取得新源码。根 install.sh/install.ps1 可从本地源码或临时抓取的仓库转交同一安装器。修改过的受管文件、未知文件和符号链接会阻止覆盖或卸载；先保存个人改动，不能强制删除。卸载不删除项目文档。
 
-hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `sh`。CI 已在 windows-latest 上跑通回归与原生安装探针，但 PowerShell 安装器与真实客户端会话尚未验收，也可在 WSL 中按 Linux 方式使用。
+安装只用标准库，不自动准备依赖。需要文档辅助命令时，显式创建项目 `.venv` 并安装该 skill 的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用实际 skill 的 scripts/tao.py，不依赖全局 launcher。详见 [客户端接入](docs/user/clients.md)。
 
-</details>
+## 支持与验证边界
 
-安装器会取得 tao-dev、准备全部 Python 依赖（含 HTML 出版）、配置插件与 hook，最后自动执行 doctor；无需设置 PATH 或 TAO 环境变量。结束时输出版本、生效范围、`tao` 启动器位置和写入的文件。启动器默认在 `~/.local/bin/tao`（Windows 为 `%USERPROFILE%\.local\bin\tao.cmd`）；安装器不修改 PATH，若该目录不在 PATH 中，直接用摘要里的完整路径。
+文件部署、客户端发现与模型行为是不同层次；官方目录依据或旧插件测试不证明新纯 skill 的真实运行。只有实际执行的组合才可报告通过，缺客户端、认证或依赖明确标为未运行。参见 [兼容性边界](docs/engineering/client-compatibility.md)。
 
-- `--scope user` 当前用户的所有项目；`--scope project` 指定项目；`--scope local` 仅 Claude 保留独立的当前项目个人范围。Codex／Cursor／Kiro 的 `repo`／`local` 均归一为 `project`。Kiro 的项目安装是本机 activation，不用于团队共享。
-- Kiro 只支持 **V3 agent harness**，不支持 V2。单次启动用 `kiro-cli --v3`；持久启用可运行 `kiro-cli settings chat.agentEngine v3`，或在 `${KIRO_HOME:-~/.kiro}/settings/cli.json` 的顶层对象中合并 `{"chat.agentEngine":"v3"}`。安装器不会替你修改该设置。
-- **重复执行同一条安装命令即可升级**，匹配的依赖环境会复用，未重新指定来源时沿用原来源。
-- 从本地工作目录安装（包含未提交修改）用 `--source .`，安装到别的项目再加 `--project /path/to/project`：
+## 开发与文档
 
-  ```sh
-  python3 plugins/tao-dev/skills/tao-dev/scripts/tao.py install \
-    --client codex --scope project --source .
-  ```
+从 [AGENTS.md](AGENTS.md) 与 [开发指南](docs/engineering/development.md) 开始。显式准备项目环境后，`just check` 执行代码检查及锁定依赖导出核对，`just docs` 校验并构建文档，`just package <新目录>` 打包纯 skill；不自动执行 env prepare。
 
-  Windows 把 `python3` 换成可用的 Python 命令，如 `py -3`。
-
-- 查看用 `tao list --client <client>`：列出各份安装的 `recorded_version`、`native_version`、范围与各路径在移除时的处置。升级用 `tao upgrade --client <client>`：按安装记录就地更新当前目录对应的一份；需要一次升级该 client 的所有 tao 管理安装时使用 `--all`，批量失败会继续处理其他项并报告失败。
-- 卸载用 `tao uninstall --client <client>`：列出各份安装的范围与文件，确认后删除；`--list` 只查看。共享配置只清理对应项目，其他安装仍在使用的缓存保留。
-
-`tao install` 完成安装和配置，`tao upgrade` 按记录升级；`tao env prepare` 只准备 tao 自身的运行环境，插件安装时自动调用，正常使用无需执行。离线安装、marketplace 来源、目录归属等完整说明见 [安装管理说明](docs/engineering/installation.md)。
-
-其他支持 Agent Skills 的客户端可以接入完整的**独立 skill**，读取相同规程、模板并调用 Python CLI；不要求 Claude／Codex。目录选择、运行准备及能力边界见 [跨客户端接入指南](docs/user/clients.md)。
-
-## 支持状态
-
-核心文档操作、配置驱动的验证与证据复用、独立审查记录导入、本地 HTML 出版已有实现。审查记录导入核对来源和输入一致性；CLI 本身不调度模型。
-
-| 范围 | 当前依据与限制 |
-|---|---|
-| macOS 客户端 | Codex CLI 0.154.0、Claude Code 2.1.270 的安装、升级、回滚和卸载已在隔离环境验证；其他场景见验收记录 |
-| Codex 原生 hook | 安装器使用兼容 manifest，并检查 skill、hook 与信任状态 |
-| Cursor／Kiro 原生 hook | Cursor CLI 2026.09.23 和 Kiro CLI 2.24.0 V3 的隔离真实写入与 hook 触发已通过；Kiro 使用 TUI，headless 不在该结论内 |
-| 其他 coding agent | 独立 skill 接入指南覆盖其他客户端；尚未原生验收的范围见 [兼容矩阵](docs/engineering/client-compatibility.md) |
-| 其他平台与版本 | CI 在 Linux、macOS、Windows 上按 Python 3.11–3.14 跑同一套回归，自动安装四种 CLI 并执行无模型安装探针；无登录时真实会话自动跳过，原生 Windows 会话仍未验收 |
-| 发布就绪 | 当前源码的完整独立审查仍待完成；已有结果不构成所有平台、版本和场景的支持承诺 |
-
-具体受检版本、环境、结果和剩余工作以 [运行环境验收记录](docs/plans/2026-09/20260914-portable-runtime.md) 为准。`tao docs build` 只产出本地 HTML，不包含站点部署——本仓库自己的手册由本仓库 CI 发布到 GitHub Pages；当前未实现 PDF 出版。
-
-## 参与开发
-
-开发 tao-dev 需要 **uv 和 Python 3.11–3.14**。进入本仓库后：
-
-```sh
-uv sync --no-config --locked --extra publication
-uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
-uv run --no-config --locked --extra publication python -m pytest -n auto
-```
-
-第二步显式下载测试所需 wheel；准备后完整回归以 `-n auto` 离线并行运行。可计费的真实会话默认跳过，显式设置 `TAO_LIVE_ACCEPTANCE=1` 后才按统一 readiness 检查 Claude/Codex 与 Cursor/Kiro：CLI 已安装且已登录时运行限时的模型会话，否则跳过；GitHub CI 无凭据，因此不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
-
-本仓库通过 [AGENTS.md](AGENTS.md) 使用自身的 skill；运行材料在 `plugins/tao-dev/`，仅供维护的资料在 `docs/`。
+- [用户工作方式](docs/user/workflow.md)
+- [文档书籍入口](docs/index.md)
+- [当前纯 skill 规格](docs/product/project-skill.md) · [设计](docs/engineering/project-skill.md) · [实施计划](docs/plans/2026-11/20261108-project-skill.md)
+- [共享 skill](skills/tao-dev/SKILL.md)
 
 ## 许可
 
-[Apache License 2.0](LICENSE)。使用、修改和再分发请保留版权声明与许可证文本。
-
-## 深入阅读
-
-- [使用指南](docs/user/workflow.md)：完整功能开发周期、审查与会话恢复。
-- [跨客户端接入指南](docs/user/clients.md)：在 Claude／Codex 之外的 agent 中使用。
-- [项目手册](https://dieken.github.io/tao-dev/)：产品需求、工程设计、长期决定与计划记录；由 main 分支自动构建的 HTML 版本，源文件在 [docs/index.md](docs/index.md)。
-- [skill 入口](plugins/tao-dev/skills/tao-dev/SKILL.md)：agent 实际读取的规程总入口。
+见 [LICENSE](LICENSE)。

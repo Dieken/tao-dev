@@ -12,6 +12,8 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 
 # 契约失效点可检查
 
+> 历史计划：保留当时的目标、任务与实测范围，不作为当前操作规程；当前纯 skill 契约见 [项目级重构](../2026-11/20261108-project-skill.md)。旧机制的历史通过不证明当前版本通过。
+
 <!-- tao:section scope -->
 ## 目标与边界
 
@@ -54,7 +56,7 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 
 ### 指导规则的落点与体积
 
-两条规则分别落在 [流程操作](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md)（阶段小结与用户行动事项）与文档规程（受管理文档记什么）。[流程操作](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 属必读底座，当前 6580 字节且有不得增大的既有约束，本次经用户同意突破，预算不超过 100 字节，超出则改写既有句子而非追加。
+两条规则分别落在 [流程操作](../../../skills/tao-dev/references/workflow.md)（阶段小结与用户行动事项）与文档规程（受管理文档记什么）。[流程操作](../../../skills/tao-dev/references/workflow.md) 属必读底座，当前 6580 字节且有不得增大的既有约束，本次经用户同意突破，预算不超过 100 字节，超出则改写既有句子而非追加。
 
 <!-- tao:section tasks -->
 ## 任务
@@ -77,7 +79,7 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 - [x] `TASK_20260921_PJ4W5TTCCGBNJ9T4` review-end 登记前校验报告文档
   - relates: ["REQ_20260914_0J68SDKV86ENKER2", "CHG_20260921_Y6MW6AX39S9RJHGZ"]
   - depends_on: []
-  - verify: `review-end` 对所提交报告执行受管理文档校验，不合格则拒绝登记并报出该报告的诊断；合格时登记的摘要与文件一致。校验范围以项目实际管理的文档为准，不在管理范围内的报告逐份标明未校验，不因未被校验而读作已校验。回归覆盖含无效引用的报告被拒、合格报告正常登记、以及失败结果允许无报告的既有路径不受影响。同步 [审查调度](../../../plugins/tao-dev/skills/tao-dev/references/review-runs.md) 中「不代替输出的 schema、引用和适用的出版检查」一句，使其不再被读作可以事后再查。
+  - verify: `review-end` 对所提交报告执行受管理文档校验，不合格则拒绝登记并报出该报告的诊断；合格时登记的摘要与文件一致。校验范围以项目实际管理的文档为准，不在管理范围内的报告逐份标明未校验，不因未被校验而读作已校验。回归覆盖含无效引用的报告被拒、合格报告正常登记、以及失败结果允许无报告的既有路径不受影响。同步 审查调度（当时接口，现已移除） 中「不代替输出的 schema、引用和适用的出版检查」一句，使其不再被读作可以事后再查。
   - evidence: [验证记录](#DOC_20260921_H676H5G6Z6WBQ55S--verification)
 - [x] `TASK_20260921_RJHMMH9870M755WV` 审查记录路径的构造与读取一律退化为已定义状态
   - relates: ["CHG_20260921_Y6MW6AX39S9RJHGZ"]
@@ -87,7 +89,7 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 - [x] `TASK_20260921_S0VXHHPNRZ759VGH` 阶段小结与用户行动事项的写法
   - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260921_Y6MW6AX39S9RJHGZ"]
   - depends_on: []
-  - verify: 核对 [流程操作](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 写明阶段小结只写影响后续决定的内容，已修复且不改变产物的操作经过记入提交消息或检查点而不占小结；需要用户行动的事项置于消息末尾并用原生提问工具或表格呈现，说明事由、为何不能自行决定与期望回复。实测必读底座字节数，确认增量不超过 100 字节。运行受管理文档校验与全仓相对链接解析无新增诊断。
+  - verify: 核对 [流程操作](../../../skills/tao-dev/references/workflow.md) 写明阶段小结只写影响后续决定的内容，已修复且不改变产物的操作经过记入提交消息或检查点而不占小结；需要用户行动的事项置于消息末尾并用原生提问工具或表格呈现，说明事由、为何不能自行决定与期望回复。实测必读底座字节数，确认增量不超过 100 字节。运行受管理文档校验与全仓相对链接解析无新增诊断。
   - evidence: [验证记录](#DOC_20260921_H676H5G6Z6WBQ55S--verification)
 - [x] `TASK_20260921_MF6MQQC8N467PWSH` 受管理文档只记结论与判断依据
   - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260921_Y6MW6AX39S9RJHGZ"]
@@ -98,7 +100,7 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 - [x] `TASK_20260921_A5M3G2KKZBN2NH9K` 界定实现期文档细化可自行恢复的边界
   - relates: ["REQ_20260914_4CS6P421MGW68PME", "CHG_20260921_Y6MW6AX39S9RJHGZ"]
   - depends_on: ["TASK_20260921_S0VXHHPNRZ759VGH"]
-  - verify: 核对 [工作流状态](../../../plugins/tao-dev/skills/tao-dev/references/workflow-state.md) 写明哪些修订属于实现期细化——把已实现的技术选择补进设计、把实测结论写回文档、修补任务 verify 的措辞或登记例外——这类修订 agent 可自行 revise 并重新批准，决定文字须记明是自评、被修订的具体内容及不属于停止条件的理由；哪些必须停下取得用户批准——改变产品承诺或验收实质、增删需求、改变任务范围、判断不准或存在两种合理改法。核对 [流程操作](../../../plugins/tao-dev/skills/tao-dev/references/workflow.md) 的授权条目指向该边界而非另述一遍。实测必读底座字节数，连同前一项合计增量不超过 130 字节。运行文档校验与全仓相对链接解析无新增诊断。
+  - verify: 核对 工作流状态（当时接口，现已移除） 写明哪些修订属于实现期细化——把已实现的技术选择补进设计、把实测结论写回文档、修补任务 verify 的措辞或登记例外——这类修订 agent 可自行 revise 并重新批准，决定文字须记明是自评、被修订的具体内容及不属于停止条件的理由；哪些必须停下取得用户批准——改变产品承诺或验收实质、增删需求、改变任务范围、判断不准或存在两种合理改法。核对 [流程操作](../../../skills/tao-dev/references/workflow.md) 的授权条目指向该边界而非另述一遍。实测必读底座字节数，连同前一项合计增量不超过 130 字节。运行文档校验与全仓相对链接解析无新增诊断。
   - evidence: [验证记录](#DOC_20260921_H676H5G6Z6WBQ55S--verification)
 
 <!-- tao:section verification -->
@@ -120,13 +122,13 @@ change: "CHG_20260921_Y6MW6AX39S9RJHGZ"
 - 派生字段须跟随相同排除变换：input_bytes按契约内容计算，excluded_files保存规则涉及的目录而非随输出增长的枚举；父级导航须在受检版本内。这些是可复现的失败机制，不依赖再真实派发一轮来验证。
 - 两条指导规则只有结构与链接检查，尚不能证明agent服从性。必读入口由6,580增至6,709字节，只是静态体积，不是行为测量。
 
-正式原始发现与裁决见[实现审查](20260921-contract-checkability/reviews/20260921-implementation/index.md)及[必需审查](20260921-contract-checkability/reviews/20260921-required/index.md)。必需审查最终取得可导入回执；已确认并修复的阻断是管理范围外报告未做schema校验却被当作已校验。派发审查材料须包含异常类与调用方，否则仅凭局部文件可能误判异常边界。
+正式原始发现与裁决见实现审查（程序性记录已退役，保留本计划当前历史摘要）及必需审查（程序性记录已退役，保留本计划当前历史摘要）。必需审查最终取得可导入回执；已确认并修复的阻断是管理范围外报告未做schema校验却被当作已校验。派发审查材料须包含异常类与调用方，否则仅凭局部文件可能误判异常边界。
 
 ### 最终历史判定
 
 固定审查输入树为2a88127d4aaa66a999daf52e98596379d12b3b5b，范围见必需审查报告。导入有效回执后实际完整verify为passed／complete／checks-satisfied，耗时636.7秒：任务开放项为空，需求承接evaluated且无缺项，当前证据可复用，必需审查satisfied，诊断0。diagnostics-locale为20.9秒、python-tests为612.3秒、lint为0.3秒，均通过。该记录只代表当时受检范围；本次文字整理不重新执行这些检查。
 
-按[文档规程](../../../plugins/tao-dev/skills/tao-dev/references/documents.md)长期保存任务、验收结果、原始审查及其处置。原始输出和逐次派发/返工经过不作为维护文档继续累积。
+按[文档规程](../../../skills/tao-dev/references/documents.md)长期保存任务、验收结果、原始审查及其处置。原始输出和逐次派发/返工经过不作为维护文档继续累积。
 
 <!-- /tao:results -->
 

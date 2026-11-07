@@ -18,22 +18,17 @@ ROOT = Path(__file__).resolve().parents[1]
 # Edited by this script.
 UPDATED = (
     "pyproject.toml",
-    "plugins/tao-dev/.claude-plugin/plugin.json",
-    "plugins/tao-dev/.codex-plugin/plugin.json",
-    "plugins/tao-dev/.cursor-plugin/plugin.json",
-    "plugins/tao-dev/skills/tao-dev/scripts/taolib/__init__.py",
+    "skills/tao-dev/scripts/taolib/__init__.py",
 )
 # Rewritten by their own generators once the sources above change.
 GENERATED = {
-    "plugins/tao-dev/skills/tao-dev/scripts/runtime.json": "scripts/export_dependencies.py",
+    "skills/tao-dev/scripts/runtime.json": "scripts/export_dependencies.py",
     "uv.lock": "uv lock",
 }
 # Historical acceptance records: a past result keeps the version it reported.
 RECORDS = ("docs/plans/",)
 # Stable examples and fixtures use synthetic versions and do not follow releases.
 FIXTURES = (
-    "docs/engineering/native-version-and-batch-upgrade.md",
-    "docs/product/native-version-and-batch-upgrade.md",
     "tests/test_installation.py",
 )
 

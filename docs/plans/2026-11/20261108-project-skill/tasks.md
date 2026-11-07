@@ -23,23 +23,23 @@ change: "CHG_20261108_BDAZPV3E7WVCF92X"
   - depends_on: []
   - verify: 用现有源校验器检查四份文档；对照六项需求完成设计审查。
   - evidence: [设计审查与源检查](../20261108-project-skill.md#DOC_20261108_XMAKAG6QHVS1575K--questions)
-- [ ] `TASK_20261108_N4R3A5GM531K0A68` 切换文档模型与检查器
+- [x] `TASK_20261108_N4R3A5GM531K0A68` 切换文档模型与检查器
   - relates: ["REQ_20261108_C06F8GD5AWHTY6AD"]
   - depends_on: ["TASK_20261108_ZWXC8S9PME6AJG19"]
   - verify: 测试章节弹性、重复 ID、引用完整性及书籍构建。
-- [ ] `TASK_20261108_MMKNQPHDYMZHAX11` 实现项目级纯 skill 安装
+- [x] `TASK_20261108_MMKNQPHDYMZHAX11` 实现项目级纯 skill 安装
   - relates: ["REQ_20261108_QYFN37DN0SHS8376"]
   - depends_on: ["TASK_20261108_ZWXC8S9PME6AJG19"]
   - verify: 隔离项目安装升级卸载，确认用户目录不变和用户改动保护。
-- [ ] `TASK_20261108_CVCXYSAEQPP91CZ9` 切换计划状态和临时交接
+- [x] `TASK_20261108_CVCXYSAEQPP91CZ9` 切换计划状态和临时交接
   - relates: ["REQ_20261108_EQQAQ6NE9CBMT5SP"]
   - depends_on: ["TASK_20261108_ZWXC8S9PME6AJG19"]
   - verify: 无 workflow 数据读取计划；全部勾选不推断审查通过；交接不进入 docs。
-- [ ] `TASK_20261108_RZASEDJRQT8B3HA6` 统一 skill、长期文档和源码发布入口
+- [x] `TASK_20261108_RZASEDJRQT8B3HA6` 统一 skill、长期文档和源码发布入口
   - relates: ["REQ_20261108_6FN7VP6CB598Y1DV"]
   - depends_on: ["TASK_20261108_ZWXC8S9PME6AJG19"]
   - verify: 全部动作不要求登记，源码与打包无插件/hook/全局入口，文档引用和导航有效。
-- [ ] `TASK_20261108_5D6MNDAKW3XB1K9J` 完成回归、真实路径验证和代码审查
+- [x] `TASK_20261108_5D6MNDAKW3XB1K9J` 完成回归、真实路径验证和代码审查
   - relates: ["REQ_20261108_QYFN37DN0SHS8376", "REQ_20261108_6FN7VP6CB598Y1DV", "REQ_20261108_EQQAQ6NE9CBMT5SP", "REQ_20261108_C06F8GD5AWHTY6AD", "REQ_20261108_M77FHDMQ112NKMDP", "REQ_20261108_2KN2TMG33K5M47TV"]
   - depends_on: ["TASK_20261108_N4R3A5GM531K0A68", "TASK_20261108_MMKNQPHDYMZHAX11", "TASK_20261108_CVCXYSAEQPP91CZ9", "TASK_20261108_RZASEDJRQT8B3HA6"]
   - verify: 集中执行完整测试及真实 CLI smoke；修复审查问题并在计划记录真实结果。

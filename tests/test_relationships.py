@@ -3,7 +3,7 @@ import json
 import pytest
 
 from taolib.documents import validate
-from test_documents import DOC, REQ, codes, spec
+from test_documents import DOC, REQ, UC, codes, spec
 
 
 CHANGE_DOC = "DOC_20260914_0000000000000003"
@@ -70,25 +70,56 @@ def check_change(tmp_path, content):
     return validate(tmp_path, [tmp_path / "spec.md", path])
 
 
+def test_two_plans_cannot_define_the_same_change(tmp_path):
+    check_change(tmp_path, change())
+    second = tmp_path / "second.md"
+    second.write_text(change().replace(CHANGE_DOC, DOC[:-1] + "8").replace(
+        TASK, TASK_TWO), encoding="utf-8")
+    result = validate(tmp_path, list(tmp_path.rglob("*.md")))
+    assert any(item.rule_id == "TAO-ID-002" and item.entity_id == CHG
+               for item in result.diagnostics)
+
+
 def test_completed_task_accepts_inline_plan_evidence(tmp_path):
     result = check_change(tmp_path, change())
     assert codes(result) == set()
     assert result.definitions[TASK].status == "completed"
 
 
+def test_completed_task_does_not_require_evidence_or_empty_relationships(tmp_path):
+    content = change().replace(f'  - evidence: [检查结果](#{CHANGE_DOC}--verification)', '')
+    content = content.replace('  - depends_on: []\n', '').replace(f'  - relates: ["{CHG}", "{REQ}"]\n', '')
+    result = check_change(tmp_path, content)
+    assert result.valid, result.to_dict()
+    assert result.definitions[TASK].status == "completed"
+
+
+def test_task_fields_can_be_reordered(tmp_path):
+    content = change().replace('  - depends_on: []\n  - verify: 执行导出后原有文件内容不变。',
+                               '  - verify: 执行导出后原有文件内容不变。\n  - depends_on: []')
+    result = check_change(tmp_path, content)
+    assert result.valid, result.to_dict()
+
+
+def test_plan_identity_is_independent_of_filename(tmp_path):
+    path = tmp_path / "implementation.md"
+    path.write_text(change().replace('../../../spec.md', 'spec.md'), encoding="utf-8")
+    (tmp_path / "spec.md").write_text(spec(), encoding="utf-8")
+    result = validate(tmp_path, [path, tmp_path / "spec.md"])
+    assert result.valid, result.to_dict()
+    assert result.definitions[CHG].path == "implementation.md"
+
+
 @pytest.mark.parametrize("old,new,rule", [
-    ("  - depends_on: []\n", "", "TAO-TASK-001"),
     ("  - depends_on: []", "   - depends_on: []", "TAO-TASK-001"),
     ("  - depends_on: []", f'  - depends_on: ["{TASK}"]', "TAO-REF-002"),
     ("  - depends_on: []", f'  - depends_on: ["{REQ}"]', "TAO-REF-002"),
     ("  - depends_on: []", f'  - depends_on: ["{TASK_TWO}"]', "TAO-REF-001"),
     (f'  - relates: ["{CHG}", "{REQ}"]', '  - relates: []', "TAO-TASK-001"),
     ("- [x]", "- [X]", "TAO-TASK-001"),
-    (f'  - evidence: [检查结果](#{CHANGE_DOC}--verification)', "", "TAO-TASK-001"),
     (f'  - evidence: [检查结果](#{CHANGE_DOC}--verification)', '  - evidence: 已检查', "TAO-TASK-001"),
     (f'  - evidence: [检查结果](#{CHANGE_DOC}--verification)', f'  - evidence: [结果](#{CHANGE_DOC}--verification) extra', "TAO-TASK-001"),
     ("  - verify: 执行导出后原有文件内容不变。", "  - verify: ", "TAO-TASK-001"),
-    ("created: \"2026-09-14\"", "created: \"2026-09-15\"", "TAO-DOC-002"),
 ])
 def test_rejects_invalid_tasks(tmp_path, old, new, rule):
     assert rule in codes(check_change(tmp_path, change().replace(old, new)))
@@ -160,6 +191,27 @@ def test_navigation_requires_a_connected_tree(tmp_path):
     assert codes(validate(tmp_path, [nav, tmp_path / "spec.md"], book_root=nav)) == set()
     nav.write_text(navigation("index.md"), encoding="utf-8")
     assert "TAO-DOC-002" in codes(validate(tmp_path, [nav, tmp_path / "spec.md"], book_root=nav))
+
+
+def test_navigation_rejects_cycles_without_a_root(tmp_path):
+    first, second = tmp_path / "one.md", tmp_path / "two.md"
+    first.write_text(navigation("two.md"), encoding="utf-8")
+    second.write_text(navigation("one.md").replace(CHANGE_DOC, DOC), encoding="utf-8")
+    result = validate(tmp_path, [first, second])
+    assert any("cycle" in item.message for item in result.diagnostics)
+
+
+def test_navigation_requires_explicit_inclusion_of_every_document(tmp_path):
+    first, second, nav = tmp_path / "spec.md", tmp_path / "other.md", tmp_path / "index.md"
+    first.write_text(spec(), encoding="utf-8")
+    second.write_text(spec().replace(DOC, DOC[:-1] + "9").replace(REQ, REQ[:-1] + "9").replace(
+        UC, UC[:-1] + "9"), encoding="utf-8")
+    nav.write_text(navigation("spec.md"), encoding="utf-8")
+    result = validate(tmp_path, [first, second, nav], book_root=nav)
+    assert not result.valid
+    assert any(item.path == "other.md" and item.rule_id == "TAO-DOC-002" for item in result.diagnostics)
+    nav.write_text(navigation("spec.md\nother.md"), encoding="utf-8")
+    assert validate(tmp_path, [first, second, nav], book_root=nav).valid
 
 
 def navigation(entries):

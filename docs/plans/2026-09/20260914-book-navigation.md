@@ -13,6 +13,8 @@ updated: "2026-09-17"
 
 # 篇章层级与统一目录页
 
+> 历史计划：保留当时的目标、任务与实测范围，不作为当前操作规程；当前纯 skill 契约见 [项目级重构](../2026-11/20261108-project-skill.md)。旧机制的历史通过不证明当前版本通过。
+
 <!-- tao:section scope -->
 ## 目标与边界
 
@@ -50,7 +52,7 @@ updated: "2026-09-17"
 | `python3 tao-navigation-template-check.py` | 退出 0；11 种模板、2 种语言、16 个错误用例符合预期 |
 | `python3 tao-navigation-check.py` | 退出 0；嵌套导航、Unicode、稳定 ID 及 12 个错误用例符合预期 |
 | `python3 tao-doc-review-check.py`、`python3 tao-navigation-package-check.py` | 均退出 0；文档结构、ID、引用与独立包检查通过 |
-| `python3 quick_validate.py plugins/tao-dev/skills/tao-dev`、`git diff --check` | 均退出 0 |
+| `python3 quick_validate.py skills/tao-dev`、`git diff --check` | 均退出 0 |
 
 覆盖为 partial；未验证完整 AST、Sphinx HTML、PDF 或真实 CLI 行为。上述临时脚本未作为维护工具交付，不能仅凭记录重放检查。摘要随计划保留，详细输出不在当前目录保留；这记录当时的结果，不证明当前版本通过。
 

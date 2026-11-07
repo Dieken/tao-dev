@@ -10,7 +10,7 @@ import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "plugins/tao-dev/skills/tao-dev/scripts"
+SCRIPTS = ROOT / "skills/tao-dev/scripts"
 
 
 def main():
@@ -40,7 +40,7 @@ def main():
         completed = subprocess.run(command, cwd=ROOT, env=environment,
                                    capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
         text = ("# Generated from pyproject.toml and uv.lock; do not edit.\n"
-                "# Regenerate: uv run --locked python scripts/export_dependencies.py\n"
+                "# Regenerate: uv run --no-config --locked python scripts/export_dependencies.py\n"
                 + completed.stdout)
         path = SCRIPTS / name
         if args.check:

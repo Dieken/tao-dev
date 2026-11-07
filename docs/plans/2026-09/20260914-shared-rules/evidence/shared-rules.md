@@ -32,7 +32,7 @@ coverage: partial
 ## 检查记录
 
 <!-- tao:field command -->
-**命令:** `python3 tao-doc-review-check.py`、`python3 tao-runtime-contract-check.py`、`python3 tao-shared-package-check.py`、`python3 quick_validate.py plugins/tao-dev/skills/tao-dev`、`git diff --check`。
+**命令:** `python3 tao-doc-review-check.py`、`python3 tao-runtime-contract-check.py`、`python3 tao-shared-package-check.py`、`python3 quick_validate.py skills/tao-dev`、`git diff --check`。
 
 <!-- tao:field expected -->
 **预期:** ID 稳定、文档与模板格式正确、包内引用完整，错误夹具被拒绝。

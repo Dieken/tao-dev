@@ -16,7 +16,7 @@ def test_release_requirements_are_current_locked_exports():
 
 
 def test_shipped_dependency_lists_have_no_development_or_local_packages():
-    scripts = ROOT / "plugins/tao-dev/skills/tao-dev/scripts"
+    scripts = ROOT / "skills/tao-dev/scripts"
     for name in ("requirements.txt", "requirements-publication.txt"):
         text = (scripts / name).read_text(encoding='utf-8')
         assert "--hash=sha256:" in text

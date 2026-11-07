@@ -18,12 +18,14 @@ spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 <!-- tao:section architecture -->
 ## 架构
 
-源码最终位于 skills/tao-dev/。先在当前路径完成契约与实现切换，再由集成者统一移动源码并更新所有调用路径。安装器只复制 skill 到客户端原生项目 skill 目录，项目内保存必要所有权记录；不依赖原生插件或用户级索引。辅助 CLI 保留 doctor、id、show、new、status、handoff、verify、docs 及必要项目设置；review/refine/continue/implement 是 skill 动作，不另造状态机。
+源码位于 skills/tao-dev/。安装器只复制 skill 到客户端原生项目 skill 目录，项目内保存必要所有权记录；不依赖原生插件或用户级索引。辅助 CLI 保留 doctor、id、show、new、status、handoff、verify、docs 及必要项目设置；review/refine/continue/implement 是 skill 动作，不另造状态机。
 
 <!-- tao:section contracts -->
 ## 接口与数据契约
 
 沿用核心文档 v0.1 的结构、ID 和引用形态；删除 workflow profile 与审批字段规则，放宽章节顺序及非必要章节要求，不新增 stage/approval/revision 字段。plan 可显式关联一份 tasks 附件，本次较大重构采用该形式；通常任务内联。status 返回计划、任务计数、未完成项、当前摘要及建议，不作交付认证。handoff 接受普通 Markdown，在项目忽略的 temporary/handoffs 下按 plan 的 CHG/DOC 保存一份摘要。ID 支持批量生成。
+
+status/show 不因无关草稿诊断阻断读取；返回 partial 和 documents_valid=false。所选任务集合缺失、错绑或损坏时返回 unavailable、task_set_valid=false、task_counts=null，不把部分可解析任务冒充全部任务。handoff 的 CHG/DOC 必须是归属于所选计划的有效唯一索引定义。ID 分配扫描已有文档与退役记录中的标识即可，不以前置全书校验阻断写作。
 
 <!-- tao:section invariants -->
 ## 不变量
@@ -33,7 +35,7 @@ spec_docs: ["DOC_20261108_ZT37NM8REHBYC520"]
 <!-- tao:section errors -->
 ## 错误与恢复
 
-旧 workflow/user scope/finish 接口不支持。文档歧义如实列候选，不按 mtime 猜测。缺交接不阻断恢复，损坏计划给出路径和诊断，不覆盖用户文件。安装中失败回滚本次管理文件，卸载遇到用户改动拒绝破坏；只在显式调用时运行检查。
+旧 workflow/user scope/finish 接口不支持。文档歧义如实列候选，不按 mtime 猜测。缺交接不阻断恢复，损坏计划给出路径和诊断，不覆盖用户文件。安装替换失败时回滚旧树；已提交后的清理失败明确报告状态与残留路径，仍独立释放锁，不伪称回滚。卸载遇到用户改动拒绝破坏；只在显式调用时运行检查。
 
 <!-- tao:section verification -->
 ## 验证

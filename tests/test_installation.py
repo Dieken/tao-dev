@@ -1,566 +1,275 @@
-"""Installer contracts: source snapshots, selection, ownership and reporting."""
+"""Project-only installation, ownership protection and transactional replacement."""
 
 import json
 from pathlib import Path
-import subprocess
-import sys
 
 import pytest
 
 import installation as install
-import installed_runtime as state
+from install_clients import PROJECT_SKILLS, destination
 
 
-@pytest.mark.parametrize('scope', ['repo', 'project', 'local'])
-def test_codex_scope_aliases_have_one_identity(scope, tmp_path):
-    args = install.arguments(['install', '--client', 'codex', '--scope', scope, '--project', str(tmp_path)])
-    assert args.scope == 'project'
-    assert state.install_id('codex', args.scope, tmp_path) == state.install_id('codex', 'project', tmp_path)
+@pytest.fixture
+def source(tmp_path):
+    root = tmp_path / 'source'
+    (root / 'scripts').mkdir(parents=True)
+    (root / 'SKILL.md').write_text('---\nname: tao-dev\ndescription: Test skill\n---\n', encoding='utf-8')
+    (root / 'scripts/tao.py').write_text('# entry\n', encoding='utf-8')
+    return root
 
 
-def test_automatic_uninstall_requires_one_explicit_id():
-    with pytest.raises(SystemExit):
-        install.arguments(['uninstall', '--client', 'claude', '--yes'])
-
-
-def test_source_modes_are_exclusive():
-    with pytest.raises(SystemExit):
-        install.arguments(['install', '--client', 'codex', '--source', '.', '--marketplace', 'a/b'])
-
-
-def test_dependency_preparation_invokes_one_complete_setup(monkeypatch, tmp_path):
-    calls = []
-    report = {'status': 'passed', 'outputs': {'runtime': {
-        'state': 'ready', 'mode': 'core',
-        'publication': {'state': 'ready', 'mode': 'publication'},
-    }}}
-
-    def run(argv, **_kwargs):
-        calls.append([str(value) for value in argv])
-        return json.dumps(report)
-
-    monkeypatch.setattr(install, 'run', run)
-    prepared = install.prepare(install.PLUGIN, Path(sys.executable), tmp_path / 'runtime', tmp_path, None)
-    assert len(calls) == 1
-    assert '--publication' not in calls[0]
-    assert calls[0][calls[0].index('--timeout') + 1] == '300'
-    assert [item['mode'] for item in prepared] == ['core', 'publication']
-    assert 'publication' not in prepared[0]
-
-
-def test_empty_selection_and_eof_do_not_delete(monkeypatch):
-    args = install.arguments(['uninstall', '--client', 'codex'])
-    monkeypatch.setattr('builtins.input', lambda *_: '')
-    assert install.choose([{'id': 'x'}], args) is None
-    def eof(*_):
-        raise EOFError
-    monkeypatch.setattr('builtins.input', eof)
-    assert install.choose([{'id': 'x'}], args) is None
-
-
-def test_changed_local_content_gets_new_native_cache_version(tmp_path):
-    source = tmp_path / 'source'
-    install.copy_plugin(install.PLUGIN, source)
-    one, _ = install.local_catalog(source, tmp_path / 'one', 'codex', 'test')
-    two, _ = install.local_catalog(source, tmp_path / 'two', 'codex', 'test')
-    path = '.codex-plugin/plugin.json'
-    assert json.loads((one / path).read_text(encoding='utf-8'))['version'] == json.loads((two / path).read_text(encoding='utf-8'))['version']
-    (source / 'skills/tao-dev/SKILL.md').write_text('changed local work directory', encoding='utf-8')
-    three, _ = install.local_catalog(source, tmp_path / 'three', 'codex', 'test')
-    assert json.loads((one / path).read_text(encoding='utf-8'))['version'] != json.loads((three / path).read_text(encoding='utf-8'))['version']
-
-
-def test_sources_cannot_escape_catalog_or_follow_links(tmp_path):
-    marketplace = tmp_path / 'market'
-    (marketplace / '.agents/plugins').mkdir(parents=True)
-    (marketplace / '.agents/plugins/marketplace.json').write_text(json.dumps({
-        'name': 'bad', 'plugins': [{'name': 'tao-dev', 'source': '../outside'}]}), encoding='utf-8')
-    with pytest.raises(install.InstallError, match='inside'):
-        install.catalog_plugin(marketplace, 'codex')
-    (marketplace / 'link').symlink_to(tmp_path)
-    with pytest.raises(install.InstallError, match='symbolic'):
-        install.copy_plugin(marketplace, tmp_path / 'copy')
-
-
-def test_owned_root_never_replaces_existing_user_directory(tmp_path):
-    root = tmp_path / 'existing'
+@pytest.fixture
+def project(tmp_path):
+    root = tmp_path / 'project'
     root.mkdir()
-    (root / 'notes.txt').write_text('mine', encoding='utf-8')
+    return root
+
+
+def args(command, project, source=None, client='codex'):
+    argv = [command, '--project', str(project), '--client', client]
+    if source is not None:
+        argv.extend(['--source', str(source)])
+    return install.arguments(argv)
+
+
+def snapshot(root):
+    return {path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob('*') if path.is_file()}
+
+
+def link(target, source, *, directory=False):
+    try:
+        target.symlink_to(source, target_is_directory=directory)
+    except OSError as exc:
+        pytest.skip(f'Symbolic links unavailable: {exc}')
+
+
+@pytest.mark.parametrize('client', PROJECT_SKILLS)
+def test_project_lifecycle_is_deterministic_and_preserves_documents(project, source, client):
+    (project / 'docs').mkdir()
+    (project / 'docs/plan.md').write_text('User plan', encoding='utf-8')
+    install.deploy(args('install', project, source, client))
+    target = destination(project, client)
+    before = snapshot(target)
+    for _ in range(2):
+        install.deploy(args('upgrade', project, source, client))
+        assert snapshot(target) == before
+    assert install.inventory(args('list', project, client=client))['installations'] == [
+        {'client': client, 'path': str(target), 'state': 'installed'}]
+    install.uninstall(args('uninstall', project, client=client))
+    assert not target.exists()
+    assert (project / 'docs/plan.md').read_text(encoding='utf-8') == 'User plan'
+    assert not list(target.parent.glob('.tao-dev-*'))
+
+
+def test_upgrade_replaces_removed_and_added_files(project, source):
+    (source / 'old').write_text('old', encoding='utf-8')
+    install.deploy(args('install', project, source))
+    (source / 'old').unlink()
+    (source / 'new').write_text('new', encoding='utf-8')
+    install.deploy(args('upgrade', project, source))
+    target = destination(project, 'codex')
+    assert not (target / 'old').exists()
+    assert (target / 'new').read_text(encoding='utf-8') == 'new'
+
+
+@pytest.mark.parametrize('change', ['modified', 'added', 'missing', 'directory'])
+@pytest.mark.parametrize('command', ['install', 'upgrade', 'uninstall'])
+def test_user_modifications_block_all_destructive_operations(project, source, change, command):
+    install.deploy(args('install', project, source))
+    target = destination(project, 'codex')
+    if change == 'modified':
+        (target / 'SKILL.md').write_text('User instructions', encoding='utf-8')
+    elif change == 'added':
+        (target / 'notes.txt').write_text('User notes', encoding='utf-8')
+    elif change == 'missing':
+        (target / 'SKILL.md').unlink()
+    else:
+        (target / 'user-directory').mkdir()
+    before = snapshot(target)
+    operation = install.uninstall if command == 'uninstall' else install.deploy
+    with pytest.raises(install.InstallError, match='modified, missing or unowned'):
+        operation(args(command, project, source if command != 'uninstall' else None))
+    assert snapshot(target) == before
+    assert install.inventory(args('list', project))['installations'][0]['state'] == 'modified'
+
+
+@pytest.mark.parametrize('marker', [None, '{}', 'not json'])
+def test_unowned_target_is_never_adopted(project, source, marker):
+    target = destination(project, 'codex')
+    target.mkdir(parents=True)
+    if marker is not None:
+        (target / install.MARKER).write_text(marker, encoding='utf-8')
+    before = snapshot(target)
     with pytest.raises(install.InstallError, match='ownership'):
-        install.owned_root(root, 'test')
-    assert (root / 'notes.txt').read_text(encoding='utf-8') == 'mine'
+        install.deploy(args('install', project, source))
+    assert snapshot(target) == before
+    assert install.inventory(args('list', project))['installations'][0]['state'] == 'unmanaged'
 
 
-def test_removal_preserves_unknown_files_and_external_symlink_targets(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    identifier = state.install_id('codex', 'project', tmp_path)
-    root = state.managed_root('codex', 'project', tmp_path)
-    install.owned_root(root, identifier)
-    (root / 'runtime').mkdir()
-    outside = tmp_path / 'precious'
+@pytest.mark.parametrize('position', ['client', 'skills', 'target', 'file', 'marker'])
+def test_symlinks_never_write_outside_project(project, source, tmp_path, position):
+    outside = tmp_path / 'outside'
     outside.mkdir()
-    (outside / 'notes').write_text('mine', encoding='utf-8')
-    (root / 'runtime/link').symlink_to(outside)
-    (root / 'notes.txt').write_text('keep this unknown file', encoding='utf-8')
-    paths, warnings = install.remove_owned({'id': identifier, 'client': 'codex', 'scope': 'project',
-                                            'project': str(tmp_path), 'managed_root': str(root)})
-    assert paths == [str(root / 'runtime')]
-    assert warnings and (root / 'notes.txt').is_file() and (outside / 'notes').read_text(encoding='utf-8') == 'mine'
-
-
-def test_report_collapses_fully_owned_directory(tmp_path):
-    owned = tmp_path / 'runtime'
-    owned.mkdir()
-    shared = tmp_path / 'config.toml'
-    assert set(install.collapse_paths([str(owned), str(owned / 'a/b'), str(shared)])) == {str(owned), str(shared)}
-
-
-def test_shared_cli_binding_uses_current_installation(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    identifier = state.install_id('codex', 'user', None)
-    owned = state.managed_root('codex', 'user', None)
-    plugin = tmp_path / 'codex/plugins/cache/test/tao-dev/1.0.0'
-    cli = state.cli_root()
-    row = dict(schema=1, id=identifier, client='codex', scope='user', project=None,
-               managed_root=str(owned), plugin_id='tao-dev@test', plugin_path=str(plugin),
-               plugin_base=str(plugin.parent), python=sys.executable, runtime_dir=str(owned / 'runtime'),
-               version='1.0.0', source={}, status='ready', files=[], cli_path=str(cli))
-    state.save_record(row)
-    assert state.binding(cli / 'skills/tao-dev/scripts', tmp_path)['id'] == identifier
-
-
-@pytest.mark.parametrize('failure_stage', ['prepare', 'doctor', 'cli'])
-@pytest.mark.parametrize('managed', [True, False])
-def test_failed_upgrade_restores_source_cache_receipt_and_cli(tmp_path, monkeypatch, failure_stage, managed):
-    import install_clients as clients
-    import runtime
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    args = install.arguments(['install', '--client', 'codex', '--scope', 'project',
-                              '--project', str(tmp_path), '--source', str(install.PLUGIN),
-                              '--bin-dir', str(tmp_path / 'bin')])
-    identifier = state.install_id('codex', 'project', tmp_path)
-    root = state.managed_root('codex', 'project', tmp_path)
-    install.owned_root(root, identifier)
-    _, plugin_id = install.local_catalog(install.PLUGIN, root / 'marketplace', 'codex', identifier)
-    (root / 'marketplace/old-source').write_text('previous source', encoding='utf-8')
-    base = tmp_path / 'codex/plugins/cache' / plugin_id.split('@')[1] / 'tao-dev'
-    old_cache, new_cache = base / 'old', base / 'new'
-    install.copy_plugin(install.PLUGIN, old_cache)
-    launcher, cli = install.install_cli(Path(sys.executable), tmp_path / 'bin', old_cache)
-    old_launcher = launcher.read_bytes()
-    (cli / 'old-cli').write_text('previous CLI', encoding='utf-8')
-    previous = dict(schema=1, id=identifier, client='codex', scope='project', project=str(tmp_path),
-                    managed_root=str(root), plugin_id=plugin_id, plugin_path=str(old_cache),
-                    plugin_base=str(base), python=sys.executable, runtime_dir=str(root / 'runtime'),
-                    version='old', source={'kind': 'source', 'location': str(install.PLUGIN)}, status='ready',
-                    files=[], launcher=str(launcher), cli_path=str(cli))
-    if managed:
-        state.save_record(previous)
-    monkeypatch.setattr(runtime, 'inspect_python', lambda *_: None)
-    monkeypatch.setattr(install.shutil, 'which', lambda name: name)
-    monkeypatch.setattr(install, 'run', lambda *_args, **_kwargs: '')
-    monkeypatch.setattr(clients, 'snapshot_activation', lambda *_: {'previous': True, 'cache_paths': [str(old_cache)]}, raising=False)
-    restored = []
-    def restore(snapshot, **kwargs):
-        assert (root / 'marketplace/old-source').read_text(encoding='utf-8') == 'previous source'
-        assert (old_cache / 'skills/tao-dev/scripts/tao.py').is_file()
-        restored.append((snapshot, kwargs))
-    monkeypatch.setattr(clients, 'restore_activation', restore, raising=False)
-    def native(*_args, **_kwargs):
-        install.shutil.rmtree(old_cache)  # Native upgrade can retire an old cache.
-        install.copy_plugin(install.PLUGIN, new_cache)
-        return dict(plugin_path=str(new_cache), plugin_base=str(base), version='new', files=[])
-    monkeypatch.setattr(clients, 'install_plugin', native)
-    calls = []
-    def prepare(*_args):
-        calls.append(True)
-        if failure_stage == 'prepare' and len(calls) == 2:
-            raise install.InstallError('injected prepare failure')
-        return []
-    monkeypatch.setattr(install, 'prepare', prepare)
-    def fail(*_args):
-        raise install.InstallError('injected failure')
-    monkeypatch.setattr(install, 'doctor', fail if failure_stage == 'doctor' else lambda *_: {})
-    if failure_stage == 'cli':
-        monkeypatch.setattr(install, 'install_cli', fail)
-    with pytest.raises(install.InstallError, match='injected'):
-        install.install(args)
-    assert restored and restored[0][1]['attempted_plugin_path'] == str(new_cache)
-    if managed:
-        assert state.records('codex') == [previous]
+    (outside / 'precious').write_text('keep', encoding='utf-8')
+    target = destination(project, 'codex')
+    if position in ('file', 'marker'):
+        install.deploy(args('install', project, source))
+        path = target / ('SKILL.md' if position == 'file' else install.MARKER)
+        path.unlink()
+        link(path, outside / 'precious')
     else:
-        assert state.records('codex')[0]['status'] == 'preparing'
-    assert (root / 'marketplace/old-source').read_text(encoding='utf-8') == 'previous source'
-    assert not (root / '.marketplace-previous').exists()
-    assert launcher.read_bytes() == old_launcher and (cli / 'old-cli').is_file()
+        path = {'client': project / '.agents', 'skills': target.parent, 'target': target}[position]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        link(path, outside, directory=True)
+    with pytest.raises(install.InstallError):
+        install.deploy(args('install', project, source))
+    assert snapshot(outside) == {'precious': b'keep'}
 
 
-def test_launcher_write_failure_keeps_previous_shared_cli(tmp_path, monkeypatch):
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    launcher, cli = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    # The rollback is only reachable when the launcher content actually changes.
-    with launcher.open('a', encoding='utf-8', newline='') as stream:
-        stream.write('# stale\n')
-    original = launcher.read_bytes()
-    (cli / 'previous').write_text('keep', encoding='utf-8')
-    def fail(*_args):
-        raise OSError('injected launcher failure')
-    monkeypatch.setattr(install.os, 'replace', fail)
-    with pytest.raises(OSError, match='injected'):
-        install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    assert launcher.read_bytes() == original and (cli / 'previous').read_text(encoding='utf-8') == 'keep'
+def test_source_symlink_is_rejected_before_project_changes(project, source, tmp_path):
+    link(source / 'unsafe', tmp_path, directory=True)
+    with pytest.raises(install.InstallError, match='Symbolic'):
+        install.deploy(args('install', project, source))
+    assert list(project.iterdir()) == []
 
 
-def receipt(tmp_path, monkeypatch):
-    home = tmp_path / 'client'
-    project = tmp_path / 'project'
-    monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(home))
-    identifier = 'claude-local-abcdef0123456789'
-    cache = home / 'plugins/cache' / f'tao-dev-{identifier}' / 'tao-dev'
-    return {
-        'id': identifier, 'client': 'claude', 'scope': 'local', 'project': str(project),
-        'plugin_id': f'tao-dev@tao-dev-{identifier}', 'version': '1.0',
-        'managed_root': str(project / '.local/tao-dev/claude/local'),
-        'plugin_path': str(cache / '1.0'), 'plugin_base': str(cache),
-        'cli_path': str(tmp_path / 'shared/cli'), 'launcher': str(tmp_path / 'bin/tao'),
-        'files': [str(home / 'plugins/installed_plugins.json'),
-                  str(home / 'plugins/known_marketplaces.json'),
-                  str(tmp_path / 'shared/cli'), str(tmp_path / 'bin/tao'),
-                  str(home / f'tao-dev/installations/{identifier}.json'),
-                  str(project / '.claude/settings.local.json'), str(cache),
-                  str(project / '.git/info/exclude'),
-                  str(project / '.local/tao-dev/claude/local')],
-    }
+@pytest.mark.parametrize('failure', ['copy', 'swap'])
+def test_failed_upgrade_restores_exact_previous_install(project, source, monkeypatch, failure):
+    install.deploy(args('install', project, source))
+    target = destination(project, 'codex')
+    before = snapshot(target)
+    (source / 'SKILL.md').write_text('New release', encoding='utf-8')
+    if failure == 'copy':
+        def fail_copy(*_args, **_kwargs):
+            raise OSError('Injected copy failure')
+        monkeypatch.setattr(install.shutil, 'copy2', fail_copy)
+    else:
+        rename = Path.rename
+        def fail_swap(self, other):
+            if self.name == 'new':
+                raise OSError('Injected swap failure')
+            return rename(self, other)
+        monkeypatch.setattr(Path, 'rename', fail_swap)
+    with pytest.raises(OSError, match='Injected'):
+        install.deploy(args('upgrade', project, source))
+    assert snapshot(target) == before
+    assert not list(target.parent.glob('.tao-dev-*'))
 
 
-def test_planned_actions_separate_owned_edited_and_retained_paths(tmp_path, monkeypatch):
-    row = receipt(tmp_path, monkeypatch)
-    actions = install.planned_actions(row, [row])
-    assert [actions[path] for path in row['files']] == [
-        'modify', 'keep', 'keep', 'keep', 'delete', 'modify', 'client', 'keep', 'delete']
-    shared = dict(row, id='claude-project-0123456789abcdef')
-    assert install.planned_actions(row, [row, shared])[row['plugin_base']] == 'keep'
+def test_failed_first_install_leaves_no_partial_destination(project, source, monkeypatch):
+    def fail_copy(*_args, **_kwargs):
+        raise OSError('Injected copy failure')
+    monkeypatch.setattr(install.shutil, 'copy2', fail_copy)
+    with pytest.raises(OSError, match='Injected'):
+        install.deploy(args('install', project, source))
+    assert list(project.iterdir()) == []
 
 
-def test_inventory_annotates_every_listed_path_with_a_legend(tmp_path, monkeypatch, capsys):
-    row = receipt(tmp_path, monkeypatch)
-    row['file_actions'] = install.planned_actions(row, [row])
-    install.print_inventory([row])
-    printed = capsys.readouterr().out
-    assert all(f'{path}  [{action}]' in printed for path, action in row['file_actions'].items())
-    assert printed.rstrip().splitlines()[-1].startswith('Removal legend: delete = ')
+def test_lock_blocks_concurrent_writer_without_touching_existing_skill(project, source):
+    install.deploy(args('install', project, source))
+    target = destination(project, 'codex')
+    before = snapshot(target)
+    lock = target.parent / '.tao-dev-install.lock'
+    lock.mkdir()
+    with pytest.raises(install.InstallError, match='locked'):
+        install.deploy(args('upgrade', project, source))
+    assert snapshot(target) == before and lock.is_dir()
 
 
-def test_cancelled_removal_is_reported_as_cancelled(tmp_path, monkeypatch, capsys):
-    row = receipt(tmp_path, monkeypatch)
-    monkeypatch.setattr(install, 'discover', lambda *_args: [row])
-    monkeypatch.setattr('builtins.input', lambda *_args: '')
-    code = install.main(['uninstall', '--client', 'claude', '--project', str(tmp_path)])
-    printed = capsys.readouterr().out
-    assert code == 0
-    assert 'tao uninstall: cancelled' in printed
-    assert 'Removed or updated' not in printed
+def test_list_is_read_only_and_scoped_to_explicit_project(project, source, tmp_path):
+    other = tmp_path / 'other'
+    other.mkdir()
+    install.deploy(args('install', project, source))
+    assert install.inventory(args('list', other))['installations'] == []
+    assert list(other.iterdir()) == []
 
 
-def test_child_diagnostic_survives_the_installer_layer():
-    report = {'status': 'not_run', 'outputs': {},
-              'diagnostics': [{'message': 'Preparation exceeded its time limit; raise --timeout.'}]}
-    completed = subprocess.CompletedProcess([], 2, json.dumps(report), None)
-    assert install.detail(completed) == report['diagnostics'][0]['message']
-    assert install.detail(subprocess.CompletedProcess([], 2, 'plain', 'stderr text')) == 'stderr text'
-
-
-def test_unchanged_launcher_is_not_rewritten_during_an_upgrade(tmp_path, monkeypatch):
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    launcher, _cli = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    before = launcher.stat().st_mtime_ns, launcher.read_bytes()
-    def refuse(*_args, **_kwargs):
-        raise AssertionError('a running launcher must not be replaced without a change')
-    monkeypatch.setattr(install.tempfile, 'mkstemp', refuse)
-    install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    assert (launcher.stat().st_mtime_ns, launcher.read_bytes()) == before
-
-
-def stored(tmp_path, scope='project', project=None):
-    identifier = state.install_id('codex', scope, project)
-    root = state.managed_root('codex', scope, project)
-    base = tmp_path / 'cache/tao-dev'
-    return dict(schema=1, id=identifier, client='codex', scope=scope,
-                project=str(project) if project else None, managed_root=str(root),
-                plugin_id='tao-dev@test', plugin_path=str(base / '1.0'), plugin_base=str(base),
-                python=sys.executable, runtime_dir=str(root / 'runtime'), version='1.0',
-                source={'kind': 'source', 'location': str(tmp_path / 'origin')}, status='ready', files=[])
-
-
-def test_upgrade_renews_a_recorded_installation_and_never_creates_one(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    project = tmp_path / 'work'
-    project.mkdir()
-    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(project)])
-    with pytest.raises(install.InstallError, match='tao list'):
-        install.upgrade(args)
-    state.save_record(stored(tmp_path, 'project', project))
-    captured = []
-    def record_args(selected):
-        captured.append(selected)
-        return {'installation': {}}
-    monkeypatch.setattr(install, 'install', record_args)
-    install.upgrade(args)
-    assert captured[0].scope == 'project' and captured[0].project == project
-    assert captured[0].source is None and captured[0].marketplace is None and captured[0].bin_dir is None
-    # A user installation serves this project too, so the choice is now the caller's.
-    state.save_record(stored(tmp_path, 'user'))
-    with pytest.raises(install.InstallError, match='--id'):
-        install.upgrade(args)
-    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(project),
-                                       '--id', state.install_id('codex', 'user', None)]))
-    assert captured[1].scope == 'user' and captured[1].project == project
-
-
-def test_upgrade_does_not_renew_an_installation_recorded_for_another_directory(tmp_path, monkeypatch):
-    """A worktree sits inside its main checkout, and renews nothing there.
-
-    Selecting the only recorded installation whatever the project renewed
-    the enclosing checkout from inside the worktree, and reported that as
-    a successful upgrade.
-    """
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    checkout = tmp_path / 'work'
-    worktree = checkout / '.worktrees/feature'
-    worktree.mkdir(parents=True)
-    state.save_record(stored(tmp_path, 'project', checkout))
-    captured = []
-    monkeypatch.setattr(install, 'install', lambda selected: captured.append(selected))
-    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(worktree)])
-    with pytest.raises(install.InstallError) as failure:
-        install.upgrade(args)
-    message = str(failure.value)
-    assert not captured
-    assert str(args.project) in message and str(checkout) in message
-    assert state.install_id('codex', 'project', checkout) in message and '--id' in message
-    # Naming it renews it deliberately, from anywhere.
-    install.upgrade(install.arguments(['upgrade', '--client', 'codex', '--project', str(worktree),
-                                       '--id', state.install_id('codex', 'project', checkout)]))
-    assert captured[0].project == checkout
-
-
-def test_upgrade_names_the_takeover_for_a_native_installation(tmp_path, monkeypatch):
-    """tao list shows native installations; upgrade records no source for one."""
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    args = install.arguments(['upgrade', '--client', 'codex', '--project', str(tmp_path)])
-    native = {'native': True, 'id': 'native-0123456789abcdef', 'plugin_id': 'tao-dev@test',
-              'scope': 'project', 'project': str(args.project), 'version': '0.5.0', 'files': []}
-    monkeypatch.setattr(install, 'discover', lambda *_args: [native])
-    monkeypatch.setattr(install, 'install',
-                        lambda *_args: pytest.fail('a native installation records no source'))
-    for selection in ([], ['--id', native['id']]):
-        with pytest.raises(install.InstallError) as failure:
-            install.upgrade(install.arguments(['upgrade', '--client', 'codex',
-                                               '--project', str(tmp_path), *selection]))
-        message = str(failure.value)
-        assert native['id'] in message
-        assert f'tao install --client codex --scope project --project {args.project}' in message
-
-
-def test_list_reports_installations_without_offering_removal(tmp_path, monkeypatch, capsys):
-    row = receipt(tmp_path, monkeypatch)
-    monkeypatch.setattr(install, 'discover', lambda *_args: [row])
-    monkeypatch.setattr('builtins.input', lambda *_args: pytest.fail('list must not prompt'))
-    code = install.main(['list', '--client', 'claude', '--project', str(tmp_path)])
-    printed = capsys.readouterr().out
-    assert code == 0 and 'tao list: passed' in printed
-    assert f"{row['files'][0]}  [modify]" in printed and 'Removal legend: ' in printed
-
-
-def test_shared_cli_lives_outside_every_client_home(tmp_path, monkeypatch):
-    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'codex'))
-    monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(tmp_path / 'claude'))
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    launcher, root = install.install_cli(Path(sys.executable), tmp_path / 'bin', install.PLUGIN)
-    assert root == (tmp_path / 'shared/cli').resolve()
-    assert not (tmp_path / 'claude/tao-dev').exists() and not (tmp_path / 'codex/tao-dev').exists()
-    assert str(root) in launcher.read_text(encoding='utf-8')
-    assert state.shared_cli(root / 'skills/tao-dev/scripts')
-
-
-def test_shared_cli_replaces_itself_while_running_from_inside_it(tmp_path, monkeypatch):
-    """An upgrade runs from the very directory it replaces.
-
-    Windows refuses to rename a directory that holds an open file, so a
-    swap that works on POSIX can still fail there. The child process loads
-    the installer from the shared copy, as the launcher does.
-    """
-    monkeypatch.setenv('TAO_CLI_DIR', str(tmp_path / 'shared'))
-    bin_dir = tmp_path / 'bin'
-    launcher, root = install.install_cli(Path(sys.executable), bin_dir, install.PLUGIN)
-    (root / 'generation').write_text('first', encoding='utf-8')
-    driver = root / 'upgrade-probe.py'
-    driver.write_text(
-        'import sys\n'
-        'from pathlib import Path\n'
-        "sys.path.insert(0, str(Path(__file__).resolve().parent / 'skills/tao-dev/scripts'))\n"
-        'import installation\n'
-        'print(installation.install_cli(Path(sys.executable), Path(sys.argv[1]), Path(sys.argv[2]))[1])\n',
-        encoding='utf-8')
-    replaced = subprocess.run([sys.executable, '-I', '-B', str(driver), str(bin_dir), str(install.PLUGIN)],
-                              capture_output=True, text=True, encoding='utf-8', timeout=180)
-    assert replaced.returncode == 0, replaced.stdout + replaced.stderr
-    assert replaced.stdout.strip().endswith(str(root))
-    assert not (root / 'generation').exists() and not driver.exists()
-    assert not (tmp_path / 'shared/.cli-previous').exists()
-    assert not list((tmp_path / 'shared').glob('.cli-*'))
-    served = subprocess.run([str(launcher), '--version'], capture_output=True, text=True,
-                            encoding='utf-8', timeout=120)
-    assert served.returncode == 0 and 'tao-dev ' in served.stdout
-
-
-@pytest.mark.parametrize('scope', ['repo', 'project', 'local'])
-def test_kiro_scope_aliases_have_one_identity(scope, tmp_path):
-    args = install.arguments(['install', '--client', 'kiro', '--scope', scope, '--project', str(tmp_path)])
-    assert args.scope == 'project'
-    assert state.install_id('kiro', args.scope, tmp_path) == state.install_id('kiro', 'project', tmp_path)
-
-
-def test_upgrade_all_runs_managed_records_in_stable_order(tmp_path, monkeypatch):
-    first = {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project',
-             'project': str(tmp_path / 'a')}
-    second = {'id': 'codex-project-b', 'client': 'codex', 'scope': 'project',
-              'project': str(tmp_path / 'b')}
-    monkeypatch.setattr(install.state, 'records', lambda _client: [second, first])
-    selected = []
-
-    def upgrade_one(args):
-        selected.append(args.project)
-        return {'installation': {'project': str(args.project)}, 'files': [], 'warnings': []}
-
-    monkeypatch.setattr(install, 'install', upgrade_one)
-    result = install.upgrade(install.arguments([
-        'upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]))
-    assert result['status'] == 'passed'
-    assert [item['id'] for item in result['results']] == ['codex-project-a', 'codex-project-b']
-    assert selected == [tmp_path / 'a', tmp_path / 'b']
-
-
-def test_upgrade_all_continues_after_one_failure(tmp_path, monkeypatch):
-    rows = [
-        {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')},
-        {'id': 'codex-project-b', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'b')},
-    ]
-    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
-
-    def upgrade_one(args):
-        if args.project.name == 'a':
-            raise install.InstallError('injected failure', [str(args.project)])
-        return {'installation': {'project': str(args.project)}, 'files': [], 'warnings': []}
-
-    monkeypatch.setattr(install, 'install', upgrade_one)
-    result = install.upgrade(install.arguments([
-        'upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]))
-    assert result['status'] == 'partial'
-    assert result['succeeded'] == 1 and result['failed'] == 1
-    assert [item['status'] for item in result['results']] == ['failed', 'passed']
-    assert result['results'][0]['files'] == [str(tmp_path / 'a')]
-
-
-def test_upgrade_id_and_all_are_mutually_exclusive(tmp_path):
+@pytest.mark.parametrize('option', ['--scope=user', '--all', '--yes', '--marketplace=a/b'])
+def test_legacy_install_options_are_rejected(project, option):
     with pytest.raises(SystemExit):
-        install.arguments(['upgrade', '--client', 'codex', '--all', '--id', 'codex-project-a',
-                           '--project', str(tmp_path)])
+        install.arguments(['install', '--project', str(project), '--client', 'codex', option])
 
 
-def test_list_prints_recorded_and_native_versions_without_version_field(tmp_path, monkeypatch, capsys):
-    rows = [{
-        'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path),
-        'plugin_id': 'tao-dev@test', 'managed_root': str(tmp_path / '.local/tao-dev'),
-        'plugin_path': str(tmp_path / 'cache/1.0.0'), 'plugin_base': str(tmp_path / 'cache'),
-        'recorded_version': '9.8.7', 'native_version': '9.8.8', 'files': [], 'file_actions': {},
-    }]
-    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
-    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path)]) == 0
-    assert 'version' not in rows[0]
-    printed = capsys.readouterr().out
-    assert 'recorded=9.8.7 | native=9.8.8' in printed
-    assert '| 0.16.1' not in printed
+def test_project_and_mutation_client_are_required():
+    with pytest.raises(SystemExit):
+        install.arguments(['install', '--client', 'codex'])
+    with pytest.raises(SystemExit):
+        install.arguments(['install', '--project', '.'])
 
 
-def test_list_json_uses_separate_version_fields(tmp_path, monkeypatch, capsys):
-    rows = [{
-        'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path),
-        'plugin_id': 'tao-dev@test', 'managed_root': str(tmp_path / '.local/tao-dev'),
-        'plugin_path': str(tmp_path / 'cache/1.0.0'), 'plugin_base': str(tmp_path / 'cache'),
-        'recorded_version': '1.0.0', 'native_version': '1.1.0', 'files': [], 'file_actions': {},
-    }]
-    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
-    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path), '--format', 'json']) == 0
-    report = json.loads(capsys.readouterr().out)
-    item = report['outputs']['installations'][0]
-    assert item['recorded_version'] == '1.0.0'
-    assert item['native_version'] == '1.1.0'
-    assert 'version' not in item
+def test_repository_source_resolves_only_new_skill_layout(project, source, tmp_path):
+    repo = tmp_path / 'repository'
+    (repo / 'skills').mkdir(parents=True)
+    source.rename(repo / 'skills/tao-dev')
+    install.deploy(args('install', project, repo))
+    assert (destination(project, 'codex') / 'SKILL.md').is_file()
 
 
-@pytest.mark.parametrize('output_format', ['text', 'json'])
-def test_list_reports_missing_native_version_as_unknown(tmp_path, monkeypatch, capsys, output_format):
-    rows = [{
-        'id': 'native-codex', 'client': 'codex', 'native': True, 'scope': 'project',
-        'project': str(tmp_path), 'recorded_version': None, 'native_version': None,
-        'plugin_id': 'tao-dev@test', 'plugin_path': str(tmp_path / 'cache/unknown'),
-        'plugin_base': str(tmp_path / 'cache'), 'files': [], 'file_actions': {},
-    }]
-    monkeypatch.setattr(install, 'discover', lambda *_args: rows)
-    assert install.main(['list', '--client', 'codex', '--project', str(tmp_path),
-                         '--format', output_format]) == 0
-    printed = capsys.readouterr().out
-    if output_format == 'text':
-        assert 'recorded=unknown | native=unknown' in printed
-    else:
-        item = json.loads(printed)['outputs']['installations'][0]
-        assert item['recorded_version'] is None and item['native_version'] is None
-        assert 'version' not in item
+def test_metadata_is_project_local_and_portable(project, source):
+    install.deploy(args('install', project, source))
+    record = json.loads((destination(project, 'codex') / install.MARKER).read_text(encoding='utf-8'))
+    assert record['schema'] == install.SCHEMA
+    assert str(project) not in json.dumps(record)
+    assert str(source) not in json.dumps(record)
 
 
-def test_upgrade_all_main_reports_partial_text_and_json(tmp_path, monkeypatch, capsys):
-    rows = [
-        {'id': 'codex-project-a', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')},
-        {'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None},
-    ]
-    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
-
-    def upgrade_one(args):
-        if args.project.name == 'a':
-            raise install.InstallError('injected failure')
-        return {'installation': {'project': None}, 'files': [], 'warnings': []}
-
-    monkeypatch.setattr(install, 'install', upgrade_one)
-    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]) == 2
-    text = capsys.readouterr().out
-    assert 'partial' in text and '1 succeeded, 1 failed, 2 total' in text
-
-    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path),
-                         '--format', 'json']) == 2
-    report = json.loads(capsys.readouterr().out)
-    assert report['status'] == 'partial'
-    assert report['outputs']['succeeded'] == 1 and report['outputs']['failed'] == 1
+def test_self_upgrade_excludes_ownership_record_from_payload(project, source):
+    install.deploy(args('install', project, source))
+    target = destination(project, 'codex')
+    before = snapshot(target)
+    install.deploy(args('upgrade', project, target))
+    assert snapshot(target) == before
 
 
-def test_upgrade_all_text_prints_member_warnings(tmp_path, monkeypatch, capsys):
-    rows = [{'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None}]
-    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
-    monkeypatch.setattr(install, 'install', lambda args: {
-        'installation': {'project': None}, 'files': [],
-        'warnings': ['Native plugin version is unavailable.']})
-    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]) == 0
-    printed = capsys.readouterr().out
-    assert '1. codex-user: passed | user | all projects' in printed
-    assert 'Note: Native plugin version is unavailable.' in printed
+def test_destination_inside_source_is_rejected_without_writes(source):
+    before = snapshot(source)
+    with pytest.raises(install.InstallError, match='contain one another'):
+        install.deploy(args('install', source, source))
+    assert snapshot(source) == before
+    assert not (source / '.agents').exists()
 
 
-def test_batch_upgrade_only_trusts_an_explicitly_recorded_project(tmp_path):
-    args = install.arguments(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)])
-    user_row = {'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None}
-    project_row = {'id': 'codex-project', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')}
-    assert install._selected_installation(args, user_row, batch=True).project_trust is False
-    assert install._selected_installation(args, project_row, batch=True).project_trust is True
-    assert install._selected_installation(args, user_row).project_trust is True
+def test_failed_rollback_retains_old_tree_and_reports_recovery_path(project, source, monkeypatch):
+    install.deploy(args('install', project, source))
+    target = destination(project, 'codex')
+    before = snapshot(target)
+    rename = Path.rename
+    def fail_replacement_and_restore(self, other):
+        if self.name in ('new', 'previous'):
+            raise OSError('Injected rename failure')
+        return rename(self, other)
+    monkeypatch.setattr(Path, 'rename', fail_replacement_and_restore)
+    with pytest.raises(install.InstallError, match='Previous installation is retained at'):
+        install.deploy(args('upgrade', project, source))
+    recovery = list(target.parent.glob('.tao-dev-*/previous'))
+    assert len(recovery) == 1
+    assert snapshot(recovery[0]) == before
+    assert not (target.parent / '.tao-dev-install.lock').exists()
+
+
+def test_cleanup_failure_releases_lock_and_reports_committed_state(project, source, monkeypatch):
+    def denied(_path):
+        raise PermissionError("Injected cleanup denial")
+    monkeypatch.setattr(install, "remove_owned_tree", denied)
+    with pytest.raises(install.InstallError, match="committed; cleanup incomplete"):
+        install.deploy(args("install", project, source))
+    target = destination(project, "codex")
+    assert not (target.parent / ".tao-dev-install.lock").exists()
+    assert install.inventory(args("list", project))["installations"][0]["state"] == "installed"
+    assert (target / "SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
+
+
+def test_readonly_owned_files_can_be_upgraded_and_uninstalled(project, source):
+    entry = source / "SKILL.md"
+    mode = entry.stat().st_mode
+    entry.chmod(0o444)
+    try:
+        install.deploy(args("install", project, source))
+        install.deploy(args("upgrade", project, source))
+        install.uninstall(args("uninstall", project))
+    finally:
+        entry.chmod(mode)
+    target = destination(project, "codex")
+    assert not target.exists()
+    assert not list(target.parent.glob(".tao-dev-*"))

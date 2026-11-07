@@ -34,19 +34,19 @@ def test_doctor_reports_only_implemented_capabilities_without_writing(tmp_path):
     assert list(tmp_path.iterdir()) == before
 
 
-def test_doctor_discovers_separately_prepared_publication_environment(tmp_path):
+def test_doctor_does_not_advertise_removed_runtime_or_workflow_commands(tmp_path):
     report = json.loads(run(tmp_path, "doctor").stdout)
-    assert "docs.build" in report["capabilities"]
-    assert report["outputs"]["runtime"]["publication"]["state"] == "ready"
+    assert not {"env.prepare", "workflow", "review", "verify.evidence"} & set(report["capabilities"])
+    assert "runtime" not in report["outputs"]
 
 
-def test_docs_verify_pass_is_explicitly_partial_without_vcs(tmp_path):
+def test_docs_verify_is_not_delivery_certification(tmp_path):
     project(tmp_path)
     completed = run(tmp_path, "verify", "--only", "docs", "--scope", "changed")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
-    assert report["coverage"] == "partial"
-    assert report["readiness"] == "not-evaluated"
+    assert "coverage" not in report
+    assert "readiness" not in report
     assert report["scope"] == "all"
     assert report["outputs"]["documents"]["valid"]
 
@@ -63,27 +63,27 @@ def test_docs_verify_simplified_reports_counts_without_full_index(tmp_path):
     assert "definitions" not in documents
 
 
-def test_verify_rejects_simplified_flag_without_changing_coverage(tmp_path):
+def test_verify_dry_run_simplified_keeps_planned_status(tmp_path):
     project(tmp_path)
     completed = run(tmp_path, "verify", "--only", "docs", "--dry-run", "--simplified")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
     assert report["output_mode"] == "simplified"
-    assert report["coverage"] == "unknown"
+    assert report["status"] == "planned"
 
 
 def test_full_verify_does_not_pass_when_only_docs_are_available(tmp_path):
     project(tmp_path)
     completed = run(tmp_path, "verify")
     assert completed.returncode == 2
-    assert json.loads(completed.stdout)["readiness"] == "blocked"
+    assert json.loads(completed.stdout)["missing_capabilities"] == ["code"]
 
 
 def test_dry_run_never_claims_execution(tmp_path):
     project(tmp_path)
     report = json.loads(run(tmp_path, "verify", "--only", "docs", "--dry-run").stdout)
-    assert report["coverage"] == "unknown"
-    assert report["readiness"] == "not-evaluated"
+    assert report["status"] == "planned"
+    assert "readiness" not in report
     assert "documents" not in report["outputs"]
 
 
@@ -102,7 +102,7 @@ def test_id_generator_uses_current_local_date_and_allowed_alphabet(tmp_path):
 
     completed = run(tmp_path, "id", "new", "REQ")
     assert completed.returncode == 0, completed.stderr
-    identity = json.loads(completed.stdout)["outputs"]["id"]
+    identity, = json.loads(completed.stdout)["outputs"]["ids"]
     assert re.fullmatch("REQ_" + date.today().strftime("%Y%m%d") + r"_[0-9A-HJKMNP-TV-Z]{16}", identity)
     assert list(tmp_path.iterdir()) == []
 
@@ -156,10 +156,17 @@ def test_empty_managed_scope_does_not_pass_verification(tmp_path):
     assert json.loads(completed.stdout)["status"] == "not_run"
 
 
-def test_id_allocation_does_not_ignore_unreadable_index_scope(tmp_path):
+def test_unfinished_drafts_do_not_block_id_allocation_or_get_rewritten(tmp_path):
     project(tmp_path)
-    (tmp_path / "docs/broken.md").write_text("# Unknown schema\n", encoding="utf-8")
-    assert run(tmp_path, "id", "new", "REQ").returncode == 2
+    draft = tmp_path / "docs/broken.md"
+    draft.write_text("# Unfinished specification\n" + DOC, encoding="utf-8")
+    before = draft.read_bytes()
+    result = run(tmp_path, "id", "new", "DOC", "--count", "2")
+    assert result.returncode == 0, result.stdout
+    ids = json.loads(result.stdout)["outputs"]["ids"]
+    assert len(set(ids)) == 2 and DOC not in ids
+    assert draft.read_bytes() == before
+    assert not (tmp_path / "tmp").exists()
 
 
 def test_generator_handles_concurrent_creation_without_overwriting(tmp_path):
@@ -244,43 +251,32 @@ def test_id_collision_limit_and_full_random_alphabet():
     assert new_id("REQ", registry, set(), today=date(2026, 9, 14), random_bytes=lambda n: b"\xff" * n) == "REQ_20260914_ZZZZZZZZZZZZZZZZ"
 
 
-def test_handoff_saves_valid_summary_without_stopping_or_committing(tmp_path):
+def test_handoff_saves_plain_temporary_summary_without_plan_mutation(tmp_path):
     from test_relationships import change, check_change, CHG
 
     check_change(tmp_path, change())
-    # Include the requirement source at the default managed location.
     (tmp_path / "spec.md").rename(tmp_path / "docs/spec.md")
+    plan = tmp_path / "docs/plans/2026-09/20260914-export.md"
+    original = plan.read_bytes()
     draft = tmp_path / "draft.md"
-    identity = "DOC_20260914_0000000000000008"
-    text = f'''---
-schema: tao.project.handoff/v0.1
-id: {identity}
-title: Export handoff
-locale: en
-status: draft
-created: "2026-09-14"
-change: {CHG}
----
-
-# Export handoff
-'''
-    for key in ("scope", "state", "decisions", "evidence", "next"):
-        text += f'\n<!-- tao:section {key} -->\n## {key.title()}\n\nConcrete recovery context.\n'
+    text = "# Continue export\n\nNext: review the implementation.\n"
     draft.write_text(text, encoding="utf-8")
     completed = run(tmp_path, "handoff", CHG, "--from", "draft.md")
     assert completed.returncode == 0, completed.stdout
-    target = tmp_path / json.loads(completed.stdout)["outputs"]["path"]
-    assert target == tmp_path / "docs/plans/2026-09/20260914-export/handoff.md"
-    assert "Concrete recovery context." in target.read_text(encoding="utf-8")
-    assert "CLI observation" in target.read_text(encoding="utf-8")
+    output = json.loads(completed.stdout)["outputs"]
+    target = tmp_path / output["path"]
+    assert target == tmp_path / f"tmp/tao/handoffs/{CHG}.md"
+    assert output["temporary"] is True and "id" not in output
+    assert target.read_text(encoding="utf-8") == text
+    assert plan.read_bytes() == original
+    draft.write_text("# Updated next step\n", encoding="utf-8")
+    assert run(tmp_path, "handoff", "--from", "draft.md").returncode == 0
+    assert target.read_text(encoding="utf-8") == "# Updated next step\n"
+    assert plan.read_bytes() == original
+    target.unlink()
+    assert run(tmp_path, "status", CHG).returncode == 0
+    assert not (tmp_path / ".tao").exists()
     assert not (tmp_path / ".git").exists()
-    draft.write_text(text.replace("Concrete recovery context.", "Updated recovery context."), encoding="utf-8")
-    assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 0
-    assert "Updated recovery context." in target.read_text(encoding="utf-8")
-    previous = target.read_bytes()
-    draft.write_text(text.replace(identity, "DOC_20260914_0000000000000009"), encoding="utf-8")
-    assert run(tmp_path, "handoff", CHG, "--from", "draft.md").returncode == 1
-    assert target.read_bytes() == previous
 
 
 def test_equals_json_format_is_preserved_on_parser_failure(tmp_path):
@@ -325,3 +321,21 @@ def test_absent_retirement_directory_still_validates_boundary_and_overrides(tmp_
     })
     assert result.valid, result.to_dict()
     assert result.definitions[identity].status == 'retired'
+
+
+def test_batch_ids_are_unique_and_read_only(tmp_path):
+    completed = run(tmp_path, "id", "new", "DOC", "--count", "50")
+    assert completed.returncode == 0, completed.stdout
+    ids = json.loads(completed.stdout)["outputs"]["ids"]
+    assert len(ids) == len(set(ids)) == 50
+    assert list(tmp_path.iterdir()) == []
+    assert run(tmp_path, "id", "new", "DOC", "--count", "0").returncode == 2
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("command", [("workflow", "status"), ("workflow", "finish"),
+                                    ("review", "--from", "review.json"), ("finish",),
+                                    ("verify", "--only", "evidence")])
+def test_removed_engine_commands_are_rejected_without_writes(tmp_path, command):
+    assert run(tmp_path, *command).returncode == 2
+    assert list(tmp_path.iterdir()) == []
