@@ -29,7 +29,7 @@ protocol-design.md
 agent-behavior-testing.md
 documentation/index.md
 cli-design.md
-plugin-design.md
+skill-design.md
 decisions/index.md
 project-skill.md
 ```

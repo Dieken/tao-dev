@@ -13,7 +13,7 @@ updated: "2026-09-24"
 <!-- tao:section scope -->
 ## 适用范围
 
-在目标项目加载 tao-dev skill，以现有文档和实际代码协作；无需插件、hook、逐阶段批准或流程注册。操作名是自然语言 skill 动作，不是 slash command 保证。安装见 [客户端接入](clients.md)。
+在目标项目加载 tao-dev skill，以现有文档和实际代码协作，在用户授权范围内连续推进。操作名是自然语言 skill 动作，不是 slash command 保证。安装见 [客户端接入](clients.md)。
 
 <!-- tao:section steps -->
 ## 开发主线
@@ -36,4 +36,4 @@ updated: "2026-09-24"
 
 ## 结果与知识
 
-计划的任务计数只表示实现进度，全部完成不代表测试或审查通过；审查没有记录就是未知。实际结果在计划 verification 合并为当前摘要，详细 review/evidence 默认临时；长期要求、设计决定与操作知识回到原文档。需要独立长期引用的证据才显式使用 evidence profile 并进入 book。没有 finish，也不自动合并、推送、发布或清理工作区。
+计划的任务计数只表示实现进度，全部完成不代表测试或审查通过；审查没有记录就是未知。实际结果在计划 verification 合并为当前摘要，详细 review/evidence 默认临时；长期要求、设计决定与操作知识回到原文档。需要独立长期引用的证据才显式使用 evidence profile 并进入 book。合并、推送、发布或清理工作区需要相应授权，不自动执行。

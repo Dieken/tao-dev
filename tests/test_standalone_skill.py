@@ -1,4 +1,4 @@
-"""A copied skill is self-contained and has no plugin or launcher dependency."""
+"""A copied skill installs independently with only the standard library."""
 
 import json
 import shutil

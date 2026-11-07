@@ -12,7 +12,7 @@ created: "2026-09-16"
 <!-- tao:section scope -->
 ## 项目级接入
 
-只安装完整 skill 目录，不安装 hook、插件、marketplace 或用户级 launcher。安装命令仅复制文件，不能据此宣称客户端已实际加载或执行成功。
+只向明确项目安装完整 skill 目录，保持用户级配置不变。安装命令仅复制文件，不能据此宣称客户端已实际加载或执行成功。
 
 <!-- tao:section prerequisites -->
 ## 准备条件
@@ -44,4 +44,4 @@ install/upgrade 可用 `--source /path/to/repo-or-skill` 指定来源，默认�
 
 ## 能力边界
 
-官方路径依据、文件部署测试与真实 agent 行为验收分别报告；新项目纯 skill 的运行结果不能从旧插件测试继承。只支持表中安装适配，不声称其他客户端已支持。隔离试验必须同时核对项目内发现与项目外缺席，缺 CLI 或认证就报告未运行，不能回退全局配置。见 [兼容性边界](../engineering/client-compatibility.md)。
+官方路径依据、文件部署测试与真实 agent 行为验收分别报告。只支持表中安装适配，不声称其他客户端已支持。隔离试验必须同时核对项目内发现与项目外缺席，缺 CLI 或认证就报告未运行，不能回退全局配置。见 [兼容性边界](../engineering/client-compatibility.md)。

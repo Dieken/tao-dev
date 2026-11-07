@@ -23,9 +23,9 @@ updated: "2026-09-21"
 
 当前不建设通用项目管理平台，不绑定 issue 服务，不预装所有质量工具，不强求每次修改都执行全部阶段。自动发布、复杂调度、多仓库同步及双向 issue 同步均不属于初版必需能力。首批运行验收环境固定为 Codex CLI 和 Claude Code CLI。
 
-本协议定义必须实现的结果和验收场景。协作方式见 [流程设计](../engineering/protocol-design.md)，长期技术取舍见 [架构决定](../engineering/decisions/index.md)，既有研发任务见 [实施计划](../plans/2026-09/20260914-bootstrap.md)。同一承诺只定义一次，其他产物通过 ID 引用。
+本协议定义必须实现的结果和验收场景。协作方式见 [流程设计](../engineering/protocol-design.md)，长期技术取舍见 [架构决定](../engineering/decisions/index.md)。同一承诺只定义一次，其他产物通过 ID 引用。
 
-当前产品是项目级纯 skill，资源、模板和确定性工具见 [Skill 打包与运行依赖](../engineering/plugin-design.md)。动作由 agent 协作执行，工具能力见 [工具规程](../../skills/tao-dev/references/tools.md)，当前切换范围见 [项目级纯 skill 重构](project-skill.md)。旧计划中的测试结果只说明其当时版本，不证明当前实现通过。
+当前产品是项目级纯 skill，资源、模板和确定性工具见 [Skill 打包与运行依赖](../engineering/skill-design.md)。动作由 agent 协作执行，工具能力见 [工具规程](../../skills/tao-dev/references/tools.md)，项目边界见 [项目级文档驱动 skill](project-skill.md)。
 
 出版适配采用 [现有 Sphinx 方案](../engineering/decisions/sphinx-publication.md)。客户端版本和加载方式按 [接入指南](../user/clients.md) 选择；质量预算和检查集在各项目接入时确定，见 [项目接入](../../skills/tao-dev/references/project-setup.md)。
 
@@ -138,7 +138,7 @@ tao-dev 随 skill 分发统一、版本化的文档契约、格式注册表和�
 相同的契约与确定性检查可通过项目内普通命令执行，skill 指导协作，不绑定 issue 平台或某个客户端专用扩展。安装只部署完整 skill。
 
 <!-- tao:field acceptance -->
-**验收：** 无 hook、插件、全局安装或 issue 账号仍可完成基本流程；缺失能力明确报告，检查结果不附带发布权限。
+**验收：** 仅用项目内 skill 和可用工具即可完成基本流程，无需 issue 账号；缺失能力明确报告，检查结果不附带发布权限。
 
 <!-- tao:field source -->
 **来源：** Trellis 的平台适配实践。
@@ -164,7 +164,7 @@ tao-dev 随 skill 分发统一、版本化的文档契约、格式注册表和�
 plan/tasks 是进度来源；显式临时交接补充目标、决定、相关条目、当前结果、阻碍和下一步。并行前明确修改范围、共享契约与集成责任，不维护重复流程状态。
 
 <!-- tao:field acceptance -->
-**验收：** 无交接和 workflow 数据仍可从仓库材料恢复；status 只读明确项目，恢复时核对实际状态；多个任务集成后统一验证。
+**验收：** 无交接仍可从仓库材料恢复；status 只读明确项目，恢复时核对实际状态；多个任务集成后统一验证。
 
 <!-- tao:field source -->
 **来源：** Trellis、GSD、Compound Engineering 的上下文与恢复实践（广泛共识）。
@@ -213,7 +213,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 :id: REQ_20260914_BWAY1ZF6HNPM855Y
 :status: proposed
 
-发布物遵循 Agent Skills 的入口与资源组织，安装适配只写支持客户端的原生项目 skill 目录，不提供插件 manifest、marketplace 或 hook。Codex 与 Claude Code 保留真实行为验收目标，Cursor 与 Kiro 同样支持项目文件安装；各层能力分别报告。
+发布物遵循 Agent Skills 的入口与资源组织，安装适配只写支持客户端的原生项目 skill 目录。Codex 与 Claude Code 保留真实行为验收目标，Cursor 与 Kiro 同样支持项目文件安装；各层能力分别报告。
 
 <!-- tao:field acceptance -->
 **验收：** 同一包在隔离项目执行文件部署与移除，保护用户文件并验证项目外不受影响；实际客户端加载与行为另外验收，未运行不得标记兼容，不依赖开发文档或其他客户端配置。

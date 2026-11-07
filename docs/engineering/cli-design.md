@@ -32,7 +32,7 @@ new --slug 只写计划骨架；id new TYPE --count N 返回 outputs.ids。show 
 
 `verify [计划目标] --only docs|code|docs,code`：默认 docs,code；只报告格式检查和已配置行为检查，允许真实本地结果复用，但没有 evidence 类别、审查导入、任务完成门槛或 readiness gate。
 
-保留 doctor、show、docs build、project inspect/configure 与正式对象 retire。安装管理在导入可选文档依赖前分派，只用标准库。无 workflow、review-import、finish、env prepare 或兼容别名。
+提供 doctor、show、docs build、project inspect/configure 与正式对象 retire。安装管理在导入可选文档依赖前分派，只用标准库。
 
 <!-- tao:section invariants -->
 ## 边界

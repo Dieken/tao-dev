@@ -19,7 +19,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 <!-- tao:section architecture -->
 ## 包与入口
 
-scripts/package_skill.py --output <新目录> 复制 canonical skills/tao-dev，just package <新目录> 提供同一入口。不生成 native plugin、marketplace、hook、全局 launcher 或兼容包装。安装器只将完整 skill 写入明确客户端项目目录；具体边界见 [安装设计](installation.md)。
+scripts/package_skill.py --output <新目录> 复制 canonical skills/tao-dev，just package <新目录> 提供同一入口。安装器只将完整 skill 写入明确客户端项目目录；具体边界见 [安装设计](installation.md)。
 
 SKILL.md 按需加载工程、动作、文档与工具参考，不能依赖开发仓库 docs 才能完成使用方任务。模板和文档注册表来自同包，不另维护客户端专用版本。
 
@@ -38,4 +38,4 @@ SKILL.md 按需加载工程、动作、文档与工具参考，不能依赖开�
 <!-- tao:section verification -->
 ## 验证
 
-在仓库外检查完整包的资源、引用、标准库安装路径及使用显式依赖环境的 CLI。真实客户端按 [兼容边界](client-compatibility.md) 分层报告，不继承已移除插件机制的历史通过结论。
+在仓库外检查完整包的资源、引用、标准库安装路径及使用显式依赖环境的 CLI。真实客户端按 [兼容边界](client-compatibility.md) 分层报告实际运行结果与未覆盖项。

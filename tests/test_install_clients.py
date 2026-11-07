@@ -1,4 +1,4 @@
-"""Client adaptation is a fixed project skill path, never native plugin calls."""
+"""Client adaptation uses each client's project skill directory."""
 
 import pytest
 

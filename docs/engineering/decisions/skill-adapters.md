@@ -21,7 +21,7 @@ created: "2026-09-14"
 **背景与备选：** 为每个客户端维护独立流程会漂移；把某个客户端的扩展当公共标准会产生虚假兼容。
 
 <!-- tao:field decision -->
-**选择：** 共享完整 Agent Skill；适配仅映射 claude、codex、cursor、kiro 的原生项目 skill 路径。不生成 native plugin、marketplace、hook 或用户级配置。分发与依赖见 [打包设计](../plugin-design.md)。
+**选择：** 共享完整 Agent Skill；适配仅映射 claude、codex、cursor、kiro 的原生项目 skill 路径，用户级配置保持不变。分发与依赖见 [打包设计](../skill-design.md)。
 
 <!-- tao:field consequences -->
 **影响与后果：** 保持一份规则与模板，降低平台耦合；文件部署、实际发现和模型行为分别验收，官方目录依据不替代真实运行。客户端自身可能发现同项目的其他原生目录，不保证客户端独占。

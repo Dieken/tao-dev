@@ -16,12 +16,12 @@ tasks_doc: "DOC_20261108_SJVF6ABRNSPFGRBF"
 <!-- tao:section scope -->
 ## 范围
 
-在 main 主工作区完成不兼容切换。先保持现有文档形态，再同步放宽 schema 和检查器；不在旧检查器下提前产生新格式。
+维护项目级 skill 的规格、实现、文档及发布资源，保持文档模型、检查器与当前命令契约一致。
 
 <!-- tao:section references -->
 ## 参考
 
-规格：[项目级纯 skill 重构](../../product/project-skill.md)。设计：[项目级纯 skill 架构](../../engineering/project-skill.md)。任务：{need}`DOC_20261108_SJVF6ABRNSPFGRBF`。
+规格：[项目级文档驱动 skill](../../product/project-skill.md)。设计：[项目级纯 skill 架构](../../engineering/project-skill.md)。任务：{need}`DOC_20261108_SJVF6ABRNSPFGRBF`。
 
 <!-- tao:section design -->
 ## 设计
@@ -36,16 +36,15 @@ tasks_doc: "DOC_20261108_SJVF6ABRNSPFGRBF"
 <!-- tao:section verification -->
 ## 验证
 
-0.18.0 已在 main 主工作区完成不兼容切换。源码为 skills/tao-dev；保留核心文档 v0.1 与稳定 ID，移除 hook、插件、全局安装、workflow 状态及 finish。详细检查输出仅留 tmp/tao，不另建审查或 evidence 文档。
+源码为 skills/tao-dev；文档采用核心 v0.1 profile 与稳定 ID。文档维护只保留当前契约、有效设计依据和当前计划；运行原始输出不作为长期文档保存。
 
-- `just check`：384 项通过、1 项显式原生发现默认跳过；lint 与锁定依赖导出核对通过。最后一次本机完整入口约 8.9 秒，pytest 约 7.5 秒；仅为此次观测，不是跨机器性能承诺。
-- 真实 CLI：无配置 status、批量 ID、计划创建、任务完成推断、临时交接覆盖通过；无关草稿及重复 ID 不阻断所选有效计划交接。损坏任务集合返回 unavailable；非法事项身份拒绝写入；全勾选仍为 review unknown。
-- 安装：四种客户端项目生命周期及用户内容保护回归通过；独立纯 skill 包在禁用第三方包的解释器下完成安装、升级、list、卸载；本地 install.sh 入口通过，隔离用户目录未变化。
-- Codex：独立运行真实 app-server skills/list，项目内发现、相邻项目隔离、卸载后消失均通过；未调用模型或使用认证。
-- 文档：59 份文档、359 个含退役项的定义通过源校验；book 构建与稳定链接检查通过，浏览器确认新规格布局及跨文档 ID 跳转。历史计划对退役 ADR 的两条警告保留历史语义，不作为当前规程。
-- 独立代码审查发现的任务完成误判、交接身份冲突、安装清理锁泄漏及无关文档门禁已修复并有回归；复审无剩余阻断。另修复放宽章节后可能吞掉后续条目的未闭合正式围栏。
+- 回归：`.venv/bin/python -m pytest -q`，384 项通过、1 项显式原生发现默认跳过；上游 mini-racer 在 Python 3.14 下产生两条弃用警告。
+- 源校验：`tao verify --only docs --simplified --format json` 通过，覆盖 35 份文档、90 个定义、86 个引用，无诊断。未提供历史基线，`deletion_checked=false`；该结果只证明当前集合一致，不证明历史删除追溯完整。
+- 出版：`tao docs build --format json` 通过，90 个稳定入口检查通过；浏览器确认打包设计页面、两个改名文档的稳定 ID 跳转及交付导航。
+- 安装：`.venv/bin/python tests/acceptance/project_skills.py --client codex` 的隔离项目文件安装、升级、查看和卸载通过；未运行原生发现。
+- 状态：`tao status --simplified --format json` 只列出现行计划，文档集合有效；任务完成与审查状态仍分别报告。
 
-限制：本机为 macOS/Python 3.14；未执行 Windows/其他 Python 的 CI 矩阵、远程下载安装或 Claude/Cursor/Kiro 原生发现，也未验证模型是否遵循 skill。保留上游 mini-racer 的 Python 3.14 弃用警告与 xdist 主进程无覆盖数据提示；合并覆盖结果有效。既有个人／全局安装与其他项目未迁移。
+限制：本次为文档维护及对应回归，未执行 Windows/其他 Python 的 CI 矩阵、远程下载安装、真实客户端发现或模型会话；个人配置与其他项目不在维护范围。
 
 <!-- tao:section questions -->
 ## 未决问题

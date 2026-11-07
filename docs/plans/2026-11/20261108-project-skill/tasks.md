@@ -38,10 +38,14 @@ change: "CHG_20261108_BDAZPV3E7WVCF92X"
 - [x] `TASK_20261108_RZASEDJRQT8B3HA6` 统一 skill、长期文档和源码发布入口
   - relates: ["REQ_20261108_6FN7VP6CB598Y1DV"]
   - depends_on: ["TASK_20261108_ZWXC8S9PME6AJG19"]
-  - verify: 全部动作不要求登记，源码与打包无插件/hook/全局入口，文档引用和导航有效。
+  - verify: 全部动作不要求登记，源码与打包只提供项目 skill 入口，文档引用和导航有效。
 - [x] `TASK_20261108_5D6MNDAKW3XB1K9J` 完成回归、真实路径验证和代码审查
   - relates: ["REQ_20261108_QYFN37DN0SHS8376", "REQ_20261108_6FN7VP6CB598Y1DV", "REQ_20261108_EQQAQ6NE9CBMT5SP", "REQ_20261108_C06F8GD5AWHTY6AD", "REQ_20261108_M77FHDMQ112NKMDP", "REQ_20261108_2KN2TMG33K5M47TV"]
   - depends_on: ["TASK_20261108_N4R3A5GM531K0A68", "TASK_20261108_MMKNQPHDYMZHAX11", "TASK_20261108_CVCXYSAEQPP91CZ9", "TASK_20261108_RZASEDJRQT8B3HA6"]
   - verify: 集中执行完整测试及真实 CLI smoke；修复审查问题并在计划记录真实结果。
+- [x] `TASK_20261108_Q94VAN43D1DSSYP1` 精简现行文档与开发记录
+  - relates: ["REQ_20261108_M77FHDMQ112NKMDP"]
+  - depends_on: ["TASK_20261108_RZASEDJRQT8B3HA6"]
+  - verify: 文档仅保留当前契约与有效知识；源校验、HTML 导航与稳定链接有效，项目 skill 安装路径可运行。
 
 

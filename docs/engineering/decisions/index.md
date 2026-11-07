@@ -27,7 +27,7 @@ sphinx-publication.md
 explicit-workflow.md
 formal-modeling-during-implementation.md
 project-language.md
-plugin-adapters.md
+skill-adapters.md
 isolated-runtime.md
 per-check-reuse.md
 ```

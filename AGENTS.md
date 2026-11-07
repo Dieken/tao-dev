@@ -8,8 +8,7 @@ it as a submodule.
 
 Read `skills/tao-dev/SKILL.md` and its relevant bundled
 references when developing this project. This is a project-local source
-entry point; it does not install or register a plugin. `CLAUDE.md` imports
-this guidance for the other target client.
+entry point. `CLAUDE.md` imports this guidance for the other target client.
 
 Use the bundled document profiles and templates for new delivery
 documents. Bundle a resource only when a consuming project's LLM reads
@@ -45,9 +44,8 @@ temporary Markdown summary and is not required to resume.
 Use the bundled source validator and project-local Python environment
 for explicitly requested checks. Local HTML publication and configured
 code checks are separate from semantic review and actual client behavior.
-Pure skill installation supports project-local Claude, Codex, Cursor and
-Kiro paths; do not inherit acceptance claims from removed plugin/hook
-implementations. Report only exercised validation and its actual scope.
+Skill installation supports project-local Claude, Codex, Cursor and Kiro
+paths. Report only exercised validation and its actual scope.
 Prepare dependencies explicitly; reading or installing the skill must
 not require publication dependencies or automatic environment setup.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`
@@ -69,9 +67,9 @@ agent CLI for testing.
 Enable tao-dev only inside an isolated experiment project, using a
 verified project-local or invocation-local loading mechanism. Changing
 the working directory alone does not establish installation scope.
-Never install or register the test skill or plugin globally, or change
-global plugin, skill, marketplace, or hook configuration. Pass these
-constraints to agents and scripts used during the experiment.
+Never install or register the test skill globally, or change global
+client configuration. Pass these constraints to agents and scripts used
+during the experiment.
 
 Verify both activation inside the experiment and absence outside it.
 Keep test configuration and cleanup within the experiment scope. If the

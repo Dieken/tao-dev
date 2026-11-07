@@ -10,7 +10,7 @@
 
 > 使用 tao-dev，为导出功能增加取消操作；完成规格、设计、计划、文档审查、实现和代码审查。
 
-已有授权内连续推进，不要求逐篇文档批准或 workflow 注册。每个动作给出实际结果和下一步选项；没有 finish、hook、原生插件或全局安装。
+已有授权内连续推进，不要求逐篇文档批准或 workflow 注册。每个动作给出实际结果和下一步选项；安装和使用限定在目标项目内。
 
 - **结构化知识**：保留现有文档 profile、稳定 ID、正向引用与 Sphinx book；章节按实际需要组织，不强制无关内容。
 - **唯一进度来源**：任务内联 plan 或唯一 tasks 附件；status 只读，不跑检查、不写状态。任务全勾选不代表已审查或已交付。
@@ -28,7 +28,7 @@ python3 skills/tao-dev/scripts/tao.py upgrade --project /path/to/project --clien
 python3 skills/tao-dev/scripts/tao.py uninstall --project /path/to/project --client codex
 ```
 
-支持 `claude`、`codex`、`cursor`、`kiro`，分别部署到项目 `.claude/skills/tao-dev`、`.agents/skills/tao-dev`、`.cursor/skills/tao-dev`、`.kiro/skills/tao-dev`。install/upgrade/uninstall 显式选 client；list 可列本项目全部四种。没有 --scope 或 --all，不修改用户配置、其他项目或旧全局部署。客户端可能按自身规则发现其他原生目录，不承诺同一项目内仅一个客户端可见。
+支持 `claude`、`codex`、`cursor`、`kiro`，分别部署到项目 `.claude/skills/tao-dev`、`.agents/skills/tao-dev`、`.cursor/skills/tao-dev`、`.kiro/skills/tao-dev`。install/upgrade/uninstall 显式选 client；list 可列本项目全部四种。不修改用户配置或其他项目。客户端可能按自身规则发现其他原生目录，不承诺同一项目内仅一个客户端可见。
 
 install/upgrade 的 --source 接受本地仓库或完整 skill，省略使用当前运行副本；升级前取得新源码。根 install.sh/install.ps1 可从本地源码或临时抓取的仓库转交同一安装器。修改过的受管文件、未知文件和符号链接会阻止覆盖或卸载；先保存个人改动，不能强制删除。卸载不删除项目文档。
 
@@ -36,11 +36,11 @@ install/upgrade 的 --source 接受本地仓库或完整 skill，省略使用当
 
 ## 支持与验证边界
 
-文件部署、客户端发现与模型行为是不同层次；官方目录依据或旧插件测试不证明新纯 skill 的真实运行。只有实际执行的组合才可报告通过，缺客户端、认证或依赖明确标为未运行。参见 [兼容性边界](docs/engineering/client-compatibility.md)。
+文件部署、客户端发现与模型行为是不同层次；官方目录依据不证明 skill 的真实运行。只有实际执行的组合才可报告通过，缺客户端、认证或依赖明确标为未运行。参见 [兼容性边界](docs/engineering/client-compatibility.md)。
 
 ## 开发与文档
 
-从 [AGENTS.md](AGENTS.md) 与 [开发指南](docs/engineering/development.md) 开始。显式准备项目环境后，`just check` 执行代码检查及锁定依赖导出核对，`just docs` 校验并构建文档，`just package <新目录>` 打包纯 skill；不自动执行 env prepare。
+从 [AGENTS.md](AGENTS.md) 与 [开发指南](docs/engineering/development.md) 开始。显式准备项目环境后，`just check` 执行代码检查及锁定依赖导出核对，`just docs` 校验并构建文档，`just package <新目录>` 打包完整 skill。
 
 - [用户工作方式](docs/user/workflow.md)
 - [文档书籍入口](docs/index.md)

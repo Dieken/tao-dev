@@ -14,7 +14,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 <!-- tao:section overview -->
 ## 适用范围
 
-开发与使用方采用同包 [格式注册表](../../../skills/tao-dev/assets/document-profiles.json)、[文档规程](../../../skills/tao-dev/references/documents.md) 与模板。README、skill 指令、临时输出不自动进入受管理集合；长期 spec/design/plan/tasks/ADR、指南、术语与导航继续使用现有 v0.1 profile。需要独立长期引用的 evidence 可选；没有 workflow/handoff profile。
+开发与使用方采用同包 [格式注册表](../../../skills/tao-dev/assets/document-profiles.json)、[文档规程](../../../skills/tao-dev/references/documents.md) 与模板。README、skill 指令、临时输出不自动进入受管理集合；长期 spec/design/plan/tasks/ADR、指南、术语与导航使用现有 v0.1 profile。需要独立长期引用的 evidence 可选；handoff 使用临时 Markdown。
 
 公开写法沿用 [EARS](https://alistairmavin.com/ears/) 的条件化需求、[Gherkin](https://cucumber.io/docs/gherkin/reference/) 的给定/当/则、[ADR](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions) 的背景/决定/后果，并参考 [arc42](https://arc42.org/overview/) 和 [Diátaxis](https://diataxis.fr/) 按内容组织。它们不是本产品获得的认证；tao 的稳定键、ID 和关系是自己的契约。
 
@@ -31,7 +31,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 REQ/UC/ADR 仍采用 MyST 指令与现有关系选项。TASK 是 tasks 章节的扁平 checkbox，必须有唯一 TASK ID 和非空 verify；relates、depends_on、evidence 可选。提供的关系必须合法，任务依赖无环。完成勾选不要求证据附件，也不推断审查完成。
 
-plan.change 定义 CHG；tasks.change 引用同一计划；evidence.evidence 定义 EVD。plan 内联任务或通过 tasks_doc 指向一份附件，不同时维护两份任务。spec_docs/design_docs 如提供，应引用对应类型文档。草稿可缺尚未形成的依据，无批准绑定、基线差异覆盖或 deferred 豁免门禁。
+plan.change 定义 CHG；tasks.change 引用同一计划；evidence.evidence 定义 EVD。plan 内联任务或通过 tasks_doc 指向一份附件，不同时维护两份任务。spec_docs/design_docs 如提供，应引用对应类型文档。草稿可缺尚未形成的依据，审查根据实际内容判断其完整性。
 
 ## 知识与记录
 
