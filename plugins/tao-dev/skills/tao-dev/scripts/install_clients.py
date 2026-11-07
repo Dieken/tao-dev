@@ -683,7 +683,7 @@ def _discover_kiro(home, project):
         if owned.get('id') != 'tao-dev' or not plugin.is_absolute() or not plugin.is_dir():
             continue
         result.append(_native_row(owned.get('plugin_id', 'tao-dev@tao-dev'), scope, target, plugin,
-                                  owned.get('version', 'unknown'), [str(skill), str(hook)],
+                                  owned.get('version'), [str(skill), str(hook)],
                                   enabled=hook.is_file() and owned.get('hook_digest') == _tree_digest(hook)))
     return result
 
@@ -866,10 +866,11 @@ def _materialize_cursor_plugin(marketplace_source, plugin_id, home, *, ref=None)
             if completed.returncode:
                 raise ClientError(f'git clone failed: {(completed.stderr or completed.stdout).strip()}')
             plugin_src, _ = _cursor_plugin_from_marketplace(temporary / 'repository')
-        version = _cursor_manifest(plugin_src).get('version', '0.0.0')
+        version = _cursor_manifest(plugin_src).get('version')
         base = home / 'plugins/cache' / marketplace / 'tao-dev'
         base.mkdir(parents=True, exist_ok=True)
-        destination = base / version
+        # The cache directory needs a name, but that name is not the version.
+        destination = base / (version if isinstance(version, str) and version else 'unknown')
         if destination.exists():
             if destination.is_symlink() or not (destination / '.cursor-plugin/plugin.json').is_file():
                 raise ClientError(f'Refusing to replace unmanaged Cursor plugin cache: {destination}')
@@ -1085,7 +1086,7 @@ def _claude_scope_enabled(rows, plugin_id, scope, project):
 
 
 def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref=None, python=None,
-                   expected_version=None):
+                   expected_version=None, project_trust=True):
     project = Path(project).expanduser().resolve()
     scope = validate_scope(client, scope, project)
     marketplace = _valid_id(plugin_id)
@@ -1217,7 +1218,8 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
             # add refreshes local catalogs; upgrade refreshes a Git checkout.
             if catalog and catalog.get('source_type') == 'git':
                 _run(['codex', 'plugin', 'marketplace', 'upgrade', marketplace, '--json'], project)
-            _write_config(user_path, [(_key('projects', str(project), 'trust_level'), 'trusted')])
+            if project_trust:
+                _write_config(user_path, [(_key('projects', str(project), 'trust_level'), 'trusted')])
             activation = user_path if scope == 'user' else project / '.codex/config.toml'
             if scope != 'user' and catalog:
                 _write_config(activation, [(_key('marketplaces', marketplace), catalog)])
@@ -1237,7 +1239,7 @@ def install_plugin(client, marketplace_source, plugin_id, scope, project, *, ref
             if not plugin.is_relative_to(expected_base) or plugin == expected_base:
                 raise ClientError(f'Codex installed tao-dev outside its expected native cache: {plugin}')
             files.append(str(plugin.parent))
-            version = _read_json(plugin / '.codex-plugin/plugin.json').get('version', plugin.name)
+            version = _read_json(plugin / '.codex-plugin/plugin.json').get('version')
             if python is not None:
                 _bind_hook(client, plugin, python)
             edits = [(_key('plugins', plugin_id, 'enabled'), True), ('features.hooks', True)]

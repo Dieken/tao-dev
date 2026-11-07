@@ -445,7 +445,8 @@ def install(args):
                         encoding='utf-8'))['version'] if args.client == 'claude' else None)
                     installed = clients.install_plugin(args.client, marketplace, plugin_id, args.scope, args.project,
                                                        ref=spec.get('ref') if spec['kind'] == 'marketplace' else None,
-                                                       python=python, expected_version=expected_version)
+                                                       python=python, expected_version=expected_version,
+                                                       project_trust=getattr(args, 'project_trust', True))
                     files.extend(installed.get('files', []))
                     cached = Path(installed['plugin_path'])
                     receipt = dict(schema=1, id=identifier, client=args.client, scope=args.scope,
@@ -560,10 +561,13 @@ def unselected(args, known):
             'or tao install to create one.')
 
 
-def _selected_installation(args, row):
+def _selected_installation(args, row, *, batch=False):
     return argparse.Namespace(
         command='install', client=args.client, scope=row['scope'],
         project=Path(row['project']) if row['project'] else args.project,
+        # A batch member must not grant workspace trust to whatever directory
+        # the command was run from; only a recorded project identifies it.
+        project_trust=not batch or bool(row['project']),
         format=args.format, marketplace=None, source=None, ref=args.ref,
         wheelhouse=args.wheelhouse, timeout=args.timeout, bin_dir=None)
 
@@ -572,7 +576,7 @@ def _upgrade_all(args, rows):
     results = []
     for row in sorted(rows, key=lambda item: item['id']):
         try:
-            result = install(_selected_installation(args, row))
+            result = install(_selected_installation(args, row, batch=True))
         except (OSError, ValueError, subprocess.SubprocessError) as exc:
             results.append({
                 'id': row['id'],
@@ -826,6 +830,8 @@ def _print_batch_upgrade(result):
             print('   Error: ' + item['error'])
             for path in item.get('files', []):
                 print('   ' + path)
+        for warning in item.get('warnings', []):
+            print('   Note: ' + warning)
     print('Summary: ' + f'{result["succeeded"]} succeeded, {result["failed"]} failed, '
           f'{result["total"]} total.')
 
@@ -860,7 +866,7 @@ def main(argv=None):
             _print_batch_upgrade(result)
         elif args.command in ('install', 'upgrade'):
             row = result['installation']
-            print(f'{row["client"]} | {row["version"]} | {row["scope"]} | {row["project"] or "all projects"}')
+            print(f'{row["client"]} | {_display_version(row.get("version"))} | {row["scope"]} | {row["project"] or "all projects"}')
             print('Plugin: ' + row['plugin_path'])
             print('Python: ' + row['python'])
             print('Runtime: ' + row['runtime_dir'])

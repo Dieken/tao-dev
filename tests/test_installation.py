@@ -543,3 +543,24 @@ def test_upgrade_all_main_reports_partial_text_and_json(tmp_path, monkeypatch, c
     report = json.loads(capsys.readouterr().out)
     assert report['status'] == 'partial'
     assert report['outputs']['succeeded'] == 1 and report['outputs']['failed'] == 1
+
+
+def test_upgrade_all_text_prints_member_warnings(tmp_path, monkeypatch, capsys):
+    rows = [{'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None}]
+    monkeypatch.setattr(install.state, 'records', lambda _client: rows)
+    monkeypatch.setattr(install, 'install', lambda args: {
+        'installation': {'project': None}, 'files': [],
+        'warnings': ['Native plugin version is unavailable.']})
+    assert install.main(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)]) == 0
+    printed = capsys.readouterr().out
+    assert '1. codex-user: passed | user | all projects' in printed
+    assert 'Note: Native plugin version is unavailable.' in printed
+
+
+def test_batch_upgrade_only_trusts_an_explicitly_recorded_project(tmp_path):
+    args = install.arguments(['upgrade', '--client', 'codex', '--all', '--project', str(tmp_path)])
+    user_row = {'id': 'codex-user', 'client': 'codex', 'scope': 'user', 'project': None}
+    project_row = {'id': 'codex-project', 'client': 'codex', 'scope': 'project', 'project': str(tmp_path / 'a')}
+    assert install._selected_installation(args, user_row, batch=True).project_trust is False
+    assert install._selected_installation(args, project_row, batch=True).project_trust is True
+    assert install._selected_installation(args, user_row).project_trust is True
