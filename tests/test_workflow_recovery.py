@@ -81,6 +81,21 @@ def test_migration_partial_write_and_extension_preservation(tmp_path, monkeypatc
     assert records.synchronized(p, restored, records.read(p, state['change']))
 
 
+def test_resume_records_the_explicit_lifecycle_decision(tmp_path):
+    p, state = started(tmp_path)
+    records.path(p, state['change']).unlink()
+    local = {k: v for k, v in state.items() if not k.startswith('record_')}
+    workflows.state_path(p, state['change']).write_text(json.dumps(local))
+    preview = recovery.migrate(p, state['change'])
+    applied = recovery.migrate(p, state['change'], True, preview['revision'], preview['source_digest'])
+    restored = recovery.reconcile(p, state['change'], applied['revision'], 'Inspect and continue', 'active')
+    record = records.read(p, state['change'])
+    assert restored['lifecycle'] == 'active'
+    assert record['lifecycle'] == 'active'
+    assert record['provenance']['lifecycle_decision'] == 'Inspect and continue'
+    assert 'lifecycle' not in record['provenance'].get('unknown_fields', [])
+
+
 def test_migration_rejects_stale_preview(tmp_path):
     p, state = started(tmp_path)
     records.path(p, state['change']).unlink()

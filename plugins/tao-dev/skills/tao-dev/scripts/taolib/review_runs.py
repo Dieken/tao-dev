@@ -102,6 +102,11 @@ def preview(project, state, scope='feature', kind=None, base=None, include=None,
             files.update((Path(directory)/name).relative_to(project.root).as_posix() for name in entries)
         selected = set(files)
     temporary = Path(project.paths['temporary']).parts
+    def under_temporary(name):
+        return Path(name).parts[:len(temporary)] == temporary
+    # Temporary files are never review inputs, so they must not make a saved
+    # preview look stale when review-begin recomputes the same scope.
+    files = {name for name in files if not under_temporary(name)}
     def admitted(name):
         parts = Path(name).parts
         return (not set(parts) & (EXCLUDED - {'tmp', '.tao'}) and parts[:len(temporary)] != temporary

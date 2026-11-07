@@ -36,11 +36,15 @@ def candidate_sources(project, identity):
 def missing(project, identity, reason='missing'):
     path = workflows.state_path(project, identity)
     argv = ['tao', '--project', str(project.root), 'workflow', 'recover', identity]
+    # Recover refuses to touch an existing file, so only a missing state can
+    # point at a command that would actually help.
+    recoverable = reason == 'missing'
     return {'rule_id': 'TAO-CLI-001', 'change': identity, 'project': str(project.root),
             'state': reason, 'expected_path': str(path),
             'candidate_sources': candidate_sources(project, identity),
-            'recovery_commands': [argv, argv + ['--apply']],
-            'message': str(path) + ': ' + reason + '. Preview recovery: ' + shlex.join(argv)}
+            'recovery_commands': [argv, argv + ['--apply']] if recoverable else [],
+            'message': str(path) + ': ' + reason
+                       + ('. Preview recovery: ' + shlex.join(argv) if recoverable else '')}
 
 
 def ambiguity(project, identity, owners):
@@ -63,17 +67,25 @@ def documents(project):
 
 def candidates(project):
     result = documents(project)
-    ids = set(records.identities(project))
+    # Discovery stays read-only, so a stray CHG_* file must not turn every
+    # status call into a hard identity error.
+    def identified(identity):
+        try:
+            workflows.state_path(project, identity)
+        except ConfigurationError:
+            return False
+        return True
+
+    ids = {identity for identity in records.identities(project) if identified(identity)}
     for document in result.documents.values():
         if document.metadata.get('schema') != 'tao.project.plan/v0.1':
             continue
         identity = document.metadata.get('change')
-        try:
-            workflows.state_path(project, identity)
-        except ConfigurationError:
+        if not identified(identity):
             continue  # Invalid source metadata is reported by document validation.
         ids.add(identity)
-    ids.update(p.stem for p in (project.root / '.tao/workflows').glob('CHG_*.json'))
+    ids.update(p.stem for p in (project.root / '.tao/workflows').glob('CHG_*.json')
+               if identified(p.stem))
     return sorted(ids)
 
 

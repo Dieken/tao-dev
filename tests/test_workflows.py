@@ -52,6 +52,34 @@ def test_workflow_status_simplified_bounds_local_history(tmp_path, capsys):
     assert row['review_history_counts'] == {'code': 1}
 
 
+def test_unrelated_chg_json_does_not_break_status(tmp_path, capsys):
+    directory = tmp_path / '.tao/workflows'
+    directory.mkdir(parents=True)
+    (directory / 'CHG_notes.json').write_text('{}', encoding='utf-8')
+    code, report = call(tmp_path, capsys, 'status')
+    assert code == 0, report
+    assert report['outputs']['workflows'] == []
+
+
+def test_simplified_status_keeps_real_review_series_controls(tmp_path, capsys):
+    state = start(tmp_path, capsys)
+    path = tmp_path / '.tao/workflows' / f"{state['change']}.json"
+    stored = json.loads(path.read_text(encoding='utf-8'))
+    stored['reviews'] = {'code': {
+        'id': 'batch-1', 'phase': 'spec', 'decision': 'Authorize the series.',
+        'max_rounds': 5, 'used_rounds': 4, 'limits': {'timeout_seconds': 60, 'cost_limit_usd': None},
+        'pending': None, 'runs': [], 'round_decisions': [],
+    }}
+    path.write_text(json.dumps(stored), encoding='utf-8')
+    code, report = call(tmp_path, capsys, 'workflow', 'status', state['change'], '--simplified')
+    assert code == 0, report
+    assert report['outputs']['workflows'][0]['review_controls']['code'] == {
+        'batch': 'batch-1', 'phase': 'spec', 'used': 4, 'limit': 5,
+        'decision': 'Authorize the series.',
+        'limits': {'timeout_seconds': 60, 'cost_limit_usd': None}, 'pending': None,
+    }
+
+
 def test_checkpoint_rejects_stale_revision_and_escaping_artifact(tmp_path, capsys):
     state = start(tmp_path, capsys)
     from taolib.workflows import checkpoint
@@ -199,6 +227,8 @@ def test_parent_locates_worktree_when_local_state_is_missing_or_corrupt(tmp_path
     assert 'recover' in json.dumps(report)
     if corrupt:
         assert path.read_bytes() == b'{invalid JSON'
+        # The state exists, so recover would refuse; do not suggest it.
+        assert report['outputs']['workflow_state']['recovery_commands'] == []
     else:
         assert not path.exists()
 

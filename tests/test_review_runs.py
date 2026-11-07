@@ -107,6 +107,19 @@ def test_review_preview_summary_saves_complete_scope_to_temporary_file(tmp_path,
     assert 'context_files' not in summary
 
 
+def test_saved_preview_under_an_unignored_temporary_directory_stays_consumable(tmp_path, capsys):
+    """The saved scope is not an input, so writing it must not stale its own digest."""
+    state = repository(tmp_path, capsys)
+    (tmp_path / '.gitignore').write_text('', encoding='utf-8')
+    code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'],
+                        '--kind', 'code', '--summary', '--save-preview', 'tmp/tao/preview.json')
+    assert code == 0, report
+    code, begun = call(tmp_path, capsys, 'workflow', 'review-begin', state['change'],
+                       '--expect', str(state['revision']), '--from', 'tmp/tao/preview.json',
+                       '--mode', 'serial', '--reviewers', '1', '--decision', 'Review saved scope')
+    assert code == 0, begun
+
+
 def test_review_preview_summary_requires_saved_full_scope(tmp_path, capsys):
     state = repository(tmp_path, capsys)
     code, report = call(tmp_path, capsys, 'workflow', 'review-preview', state['change'], '--summary')

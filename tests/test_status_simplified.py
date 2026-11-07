@@ -16,7 +16,7 @@ def test_simplified_status_preserves_actions_and_bounds_review_history():
             'recovery_commands': [['tao', 'workflow', 'recover', 'CHG_20261106_0000000000000001']],
             'candidate_sources': [{'path': '/work/project with spaces/.tao/workflows/state.json'}],
             'reviews': {'code': {
-                'batch': 'batch-1', 'phase': 'implement', 'used': 4, 'limit': 5,
+                'id': 'batch-1', 'phase': 'implement', 'used_rounds': 4, 'max_rounds': 5,
                 'decision': 'Authorized five review attempts.',
                 'limits': {'timeout_seconds': 1200, 'cost_limit_usd': None},
                 'runs': [{'summary': 'large historical report'}] * 500,
@@ -39,7 +39,11 @@ def test_simplified_status_preserves_actions_and_bounds_review_history():
     assert workflow['blockers'] == ['Required review is stale.']
     assert workflow['recovery_commands'] == report['workflows'][0]['recovery_commands']
     assert workflow['candidate_sources'] == report['workflows'][0]['candidate_sources']
-    assert workflow['review_controls']['code']['used'] == 4
+    assert workflow['review_controls']['code'] == {
+        'batch': 'batch-1', 'phase': 'implement', 'used': 4, 'limit': 5,
+        'decision': 'Authorized five review attempts.',
+        'limits': {'timeout_seconds': 1200, 'cost_limit_usd': None},
+    }
     assert workflow['review_history_count'] == 500
     assert workflow['review_history_counts'] == {'code': 500}
     assert 'runs' not in workflow['review_controls']['code']
@@ -50,3 +54,18 @@ def test_simplified_status_preserves_actions_and_bounds_review_history():
     }
     assert result['reviews'] == report['reviews']
     assert len(str(result)) < len(str(report)) / 10
+
+
+def test_simplified_control_accepts_durable_projection_fields():
+    report = {'workflows': [{'change': 'CHG_20261106_0000000000000001', 'reviews': {'docs': {
+        'batch': 'batch-1', 'phase': 'plan', 'used': 2, 'limit': 3,
+        'decision': 'Authorize the review series.', 'limits': None,
+        'in_flight': {'id': 'run-1', 'round': 2}, 'local_digest': 'a' * 64,
+    }}}]}
+
+    control = simplified_status(report)['workflows'][0]['review_controls']['docs']
+    assert control == {
+        'batch': 'batch-1', 'phase': 'plan', 'used': 2, 'limit': 3,
+        'decision': 'Authorize the review series.', 'limits': None,
+        'pending': {'id': 'run-1', 'round': 2},
+    }

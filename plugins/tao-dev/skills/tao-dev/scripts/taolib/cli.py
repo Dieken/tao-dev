@@ -285,7 +285,8 @@ def verify(project, args, report):
             from . import git_workflow, workflows
             try:
                 state = workflows.read(project, args.change)
-                baseline = state.get('git', {}).get('base_commit') or ''
+                # A recovered or non-Git workflow records no baseline.
+                baseline = (state.get('git') or {}).get('base_commit') or ''
             except (ConfigurationError, ConflictError, OSError, ValueError):
                 baseline = None
             def at_baseline(revision, name):
@@ -459,7 +460,8 @@ def simplified_workflows(values):
         'handoff_state', 'handoff_path', 'handoff_digest', 'project',
         'stale_approvals', 'next_action', 'available_actions', 'observation',
         'candidate_sources', 'recovery_commands', 'selection_required', 'conflict',
-        'message', 'recovery', 'resumed_handoff',
+        'message', 'recovery', 'resumed_handoff', 'closure', 'state', 'rule_id',
+        'expected_path', 'review_budget_unknown',
     )
     workflows = []
     for value in values:
@@ -467,9 +469,7 @@ def simplified_workflows(values):
         controls = value.get('reviews')
         if isinstance(controls, dict):
             row['review_controls'] = {
-                kind: {key: control.get(key) for key in (
-                    'batch', 'phase', 'used', 'limit', 'decision', 'limits', 'pending'
-                ) if key in control}
+                kind: _simplified_control(control)
                 for kind, control in controls.items() if isinstance(control, dict)
             }
         history = value.get('review_history')
@@ -483,6 +483,15 @@ def simplified_workflows(values):
             row['review_history_count'] = len(history)
         workflows.append(row)
     return workflows
+
+
+def _simplified_control(control):
+    """Rename the local series fields to the documented review-control names."""
+    names = {'batch': ('batch', 'id'), 'phase': ('phase',), 'used': ('used', 'used_rounds'),
+             'limit': ('limit', 'max_rounds'), 'decision': ('decision',),
+             'limits': ('limits',), 'pending': ('pending', 'in_flight')}
+    return {name: next(control[key] for key in keys if key in control)
+            for name, keys in names.items() if any(key in control for key in keys)}
 
 
 def simplified_verification(report):

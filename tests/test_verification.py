@@ -467,6 +467,16 @@ def test_full_verification_fails_on_the_declared_range_without_a_baseline(tmp_pa
     assert result['outputs']['requirement_coverage']['scope']['uncovered'] == []
 
 
+def test_verify_tolerates_recovered_workflow_without_a_recorded_baseline(tmp_path):
+    configured(tmp_path)
+    from taolib.project import Project
+    from taolib.workflow_recovery import recover
+    preview = recover(Project(tmp_path), CHG)
+    recover(Project(tmp_path), CHG, True, preview['source_digest'])
+    code, result = report(tmp_path, 'verify', CHG)
+    assert code == 2, result
+    coverage = result['outputs']['requirement_coverage']
+    assert coverage['state'] == 'not-evaluated'
 
 def test_no_reuse_forces_configured_checks_to_execute_again(tmp_path):
     configured(tmp_path, 'from pathlib import Path\np=Path("tmp/tao/calls")\np.write_text(p.read_text()+"x" if p.exists() else "x")')

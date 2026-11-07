@@ -48,7 +48,14 @@ def read(project, identity):
 
 def local(project):
     directory = contained(project.root, '.tao/workflows')
-    return [read(project, p.stem) for p in sorted(directory.glob('CHG_*.json'))]
+    rows = []
+    for item in sorted(directory.glob('CHG_*.json')):
+        try:
+            state_path(project, item.stem)
+        except ConfigurationError:
+            continue
+        rows.append(read(project, item.stem))
+    return rows
 
 
 def locate(project, identity):

@@ -239,8 +239,8 @@ def build(project, state, old=None, provenance=None):
     if old and synchronized(project, state, old):
         for key in ('source_digest', 'source_revision'):
             data['provenance'].pop(key, None)
-        if data['lifecycle'] != 'unknown':
-            data['provenance'].pop('lifecycle_decision', None)
+        # The lifecycle decision is the only record of an explicit
+        # unknown -> active/paused authorization; keep it after sync.
         if not data['provenance'].get('unknown_fields'):
             data['provenance'].pop('unknown_fields', None)
             if data['lifecycle'] != 'unknown':
