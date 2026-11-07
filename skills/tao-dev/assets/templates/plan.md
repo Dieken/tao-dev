@@ -4,7 +4,6 @@ id: "{{DOC_ID}}"
 title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
-created: "{{CREATED}}"
 # Link existing spec_docs/design_docs only when relevant; neither is a prerequisite.
 # Use inline tasks by default, or tasks_doc for one attachment with the same change.
 change: "{{CHG_ID}}"
@@ -31,8 +30,6 @@ change: "{{CHG_ID}}"
 ## {{heading.tasks}}
 
 - [ ] `{{TASK_ID}}` {{TASK_TITLE}}
-  - relates: ["{{CHG_ID}}"]
-  - depends_on: []
   - verify: {{TASK_VERIFY}}
 
 <!-- tao:section verification -->

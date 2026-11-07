@@ -4,7 +4,6 @@ id: "{{DOC_ID}}"
 title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
-created: "{{CREATED}}"
 ---
 
 # {{TITLE}}

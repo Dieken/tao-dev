@@ -19,7 +19,7 @@ def review(locale='en', **overrides):
     labels = json.loads((ASSETS / f'locales/{locale}.json').read_text(encoding='utf-8'))
     values = labels | {
         'DOC_ID': REVIEW, 'EVD_ID': EVIDENCE, 'TITLE': 'Export review',
-        'LOCALE': locale, 'CREATED': '2026-09-18',
+        'LOCALE': locale,
         'RECORDED_AT': '2026-09-18T12:00:00+08:00',
         'SCOPE': 'An explicitly retained finding, not a completion certificate.',
         'CONSTRAINT':
@@ -47,7 +47,6 @@ def test_explicit_evidence_template_indexes_citations(tmp_path, locale):
     assert not result.diagnostics
     assert result.definitions[EVIDENCE].path == 'docs/engineering/reviews/export.md'
     assert any(r.path.endswith('export.md') and r.target == REQ for r in result.references)
-    assert result.documents['docs/engineering/reviews/export.md'].metadata['result'] == 'not_run'
     report.write_text(review(locale).replace('<!-- tao:field limits -->', ''), encoding='utf-8')
     assert validate(tmp_path, [source, report]).valid
     report.write_text(review(locale).replace('result: not_run', 'result: {{RESULT}}'), encoding='utf-8')
@@ -65,6 +64,21 @@ def test_evidence_result_extension_preserves_existing_values(tmp_path, outcome):
     assert result.documents['report.md'].metadata['result'] == outcome
     report.write_text(report.read_text(encoding='utf-8').replace(f'result: {outcome}', 'result: changes-requested'), encoding='utf-8')
     assert not validate(tmp_path, [source, report]).valid
+
+
+@pytest.mark.parametrize('coverage,valid', [(None, True), ('partial', True), ('full', False)])
+def test_optional_evidence_coverage_does_not_invent_an_outcome(tmp_path, coverage, valid):
+    source = tmp_path / 'spec.md'
+    source.write_text(spec(), encoding='utf-8')
+    report = tmp_path / 'report.md'
+    content = review().replace('../../spec.md', 'spec.md').replace('result: not_run', 'result: failed')
+    if coverage is not None:
+        content = content.replace('result: failed', f'result: failed\ncoverage: {coverage}')
+    report.write_text(content, encoding='utf-8')
+    result = validate(tmp_path, [source, report])
+    assert result.valid is valid, result.to_dict()
+    assert result.documents['report.md'].metadata['result'] == 'failed'
+    assert result.definitions[EVIDENCE].path == 'report.md'
 
 
 def test_review_html_links_reach_source_and_requirement(tmp_path):

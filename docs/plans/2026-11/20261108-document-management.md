@@ -27,9 +27,9 @@ plan/tasks 保留项目级权威进度，跨会话、协作或需要追踪的工
 <!-- tao:section design -->
 ## 实现边界
 
-skill 从文档需求选择材料，不再提供通用 implement、review code、continue、handoff 或强制阶段主线。CLI 移除 handoff 与 new/status 的 next_actions 编排字段；保留 new 计划骨架、只读 status、ID/索引、退役、出版及显式配置的检查助手。status 继续区分任务进度、验证摘要与未知审查，不把全部勾选等同交付。
+skill 从文档需求选择材料，不再提供通用 implement、review code、continue、handoff 或强制阶段主线。CLI 移除 handoff 与 new/status 的 next_actions 编排字段；保留 new 计划骨架、只读 status、ID/索引、退役、出版及文档校验。status 继续区分任务进度、验证摘要与未知审查，不把全部勾选等同交付。
 
-分发只保留被文档管理消费者读取或运行的资源；开发 tao 自身所需的工程依据留在顶层 docs。检查助手不变成执行调度器。客户端安装路径及项目隔离边界不变，不修改全局配置，不启动真实模型会话。
+分发只保留被文档管理消费者读取或运行的资源；开发 tao 自身所需的工程依据留在顶层 docs。项目测试、lint 等由项目原生命令入口管理，不在 .tao/config.toml 保存或执行。客户端安装路径及项目隔离边界不变，不修改全局配置，不启动真实模型会话。
 
 <!-- tao:section tasks -->
 ## 任务
@@ -46,18 +46,24 @@ skill 从文档需求选择材料，不再提供通用 implement、review code�
 - [x] `TASK_20261108_RRT2SEKYXQ0AVYXC` 文档结构、相关回归与实际发布界面通过集成验证。
   - relates: ["REQ_20261108_C06F8GD5AWHTY6AD"]
   - verify: 运行 Python 回归、源文档校验、book 构建与浏览器检查，记录实际覆盖范围和未验证项。
+- [x] `TASK_20261108_B3JHV9VNEFE03DGX` 全部文档 profile 与条目字段完成精简评估，必要变更同步模板、消费者和既有材料。
+  - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3"]
+  - verify: 对照注册表的全部 profile、条目、任务与退役格式说明保留或精简依据；实际生成文档并执行校验，保留 ID、关系及历史记录语义。
+- [x] `TASK_20261108_3E6F6A8FMGADVZXV` 项目检查交回原生命令入口，tao 仅管理文档校验与结果知识。
+  - relates: ["REQ_20260914_0J68SDKV86ENKER2"]
+  - verify: just check 实际执行原测试、lint 和依赖核对；CLI smoke 确认 verify 仅校验文档、旧配置及选项拒绝且不执行命令，计划验证摘要仍可查询。
 
 <!-- tao:section verification -->
 ## 验证
 
-隔离项目真实进程 smoke 已通过：new 生成计划并填入真实内容后通过源校验；show 定位任务；分别用 CHG、DOC 和计划路径读取 pending；回写文件后新进程读取 tasks_complete；迁移唯一任务集到附件后读取 in_progress 和准确的未完成任务。查询未写入文件；删除临时会话摘要不影响进度；handoff 被拒绝且没有写入；全部勾选仍为 review=unknown；隔离 HOME 未改变。
+本次补充全部 schema 字段审查与项目命令职责切换；长期字段矩阵与取舍见 [文档契约](../../engineering/documentation/contract.md)，命令及缓存归属见 [架构决定](../../engineering/decisions/per-check-reuse.md)。保留已有 DOC/CHG/TASK ID、真实日期、有效关系和计划结果摘要。
 
-- 回归：`.venv/bin/python -m pytest -q`，335 项通过，1 项真实原生发现按默认策略跳过；上游 mini-racer 在 Python 3.14 下产生两条弃用警告。
-- 静态与依赖：Ruff 的 E9/F63/F7/F82 检查及 `scripts/export_dependencies.py --check` 通过。
-- 文档：`tao verify --only docs --simplified --format json` 通过，覆盖 36 份受管理文档、97 个定义和 97 个引用；未提供历史基线，deletion_checked=false，只证明当前集合一致。
-- 出版：`tao docs build --format json` 通过，97 个稳定入口校验通过；浏览器实际打开文档协作指南、点击持久进度章节并确认可读正文与导航。
-- 分发：实际打包产物从 SKILL.md 遍历本地 Markdown 链接，15 份 references 全部可达，检查 23 份 Markdown 资源，无越出包的依赖；副本无第三方依赖的 help 正常且无 handoff。全量回归另覆盖四个客户端路径的文件复制和保护边界，不代表实际发现。
-- 生成计划：模板正文指导曾被 status 原样带入验证摘要，已移回持久计划规程；最终模板用真实 new → 填写 → status → verify smoke 确认摘要只含实际内容且文档有效。
-- 审查：集成者核对 skill、规格、设计、用户指南、CLI 及相关测试的职责一致性；复用现有 spec/design，保留对象 ID、历史计划结果及唯一进度源。代码自查确认没有残留 handoff 调用、next_actions 或旧完成状态消费者。未另行执行独立代码审查。
+- 字段：created 改可选并从全部十类模板移除；evidence.coverage 改可选，默认用正文说明范围；plan/tasks 模板省略空依赖和重复所属 CHG。移除无消费者的 results 成对标记和 handoff 模板，不删除身份、生命周期、验收或追溯关系。
+- 命令：.tao/config.toml 仅保留版本、语言与文档配置；原 Python 测试、Ruff 命令及报告路径迁到 justfile，check 另保留依赖导出核对。CLI 删除通用执行、缓存、指标和候选扫描，verify 仅校验文档；旧配置、选择器与执行参数拒绝。
+- 实际 CLI smoke：en/zh-Hans 各通过十类模板的独立生成与校验，每组 10 份文档、17 个定义、2 个引用；无需 created 或 coverage，未写入受检文件。错误 coverage、旧 --only 与 verification 配置被拒绝，无命令执行或文件副作用。
+- 实际计划 smoke：new → 填写 → verify → status 返回 pending；勾选后新进程返回 tasks_complete，验证正文准确且 review 仍为 unknown。默认骨架不含日期、空依赖或重复 CHG；隔离项目已清理。
+- 项目检查：`just check` 实际通过，323 项测试通过、1 项原生发现按默认策略跳过；包括全部 profile/locale、日期与 coverage 边界、文档关系、状态、退役、出版、复制及旧接口拒绝。Ruff 的 E9/F63/F7/F82 结果为空，依赖清单核对通过；覆盖率合并报告为 88%，原始数据保留 tmp/tao。
+- 文档：`just docs` 通过，当前 36 份文档、99 个定义、99 个引用，HTML 构建与 99 个稳定入口校验通过。未提供历史基线，deletion_checked=false，不证明历史删除追溯完整。浏览器实际点击字段最小集，确认表格可读，并从导航打开开发指南核对项目命令归属。
+- 审查：只读审查覆盖全部十类 profile、基础字段、REQ/UC/ADR/TASK、术语、导航和退役记录；集成者核对代码与文档一致性。没有独立代码审查或真实模型行为验收。
 
-限制：未运行真实客户端发现、模型会话、Windows 或其他 Python 版本；语义指导的跨客户端实际行为仍未验证。个人配置与其他项目未改动；临时 smoke 脚本、隔离项目和打包副本已清理，浏览器页与预览服务已关闭。
+限制：仅在本机 Python 3.14 运行；未实测 Windows、其他 Python 版本、真实客户端发现或模型会话。并发测试中上游 mini-racer 产生 36 条弃用警告，coverage 的父进程提示无数据，但子进程数据合并及最终报告成功；未压制警告。个人配置和其他项目未改动；普通检查日志与 HTML 留在忽略的临时目录，不另建证据文档。

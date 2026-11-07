@@ -12,7 +12,7 @@ def decision(locale="zh-Hans", context="**背景与备选：** 比较共享环�
     template = (ASSETS / "templates/decision.md").read_text(encoding='utf-8')
     values = {
         "DOC_ID": "DOC_20260914_0000000000000001", "TITLE": "Runtime choice",
-        "LOCALE": locale, "CREATED": "2026-09-14", "heading.decisions": "Decisions",
+        "LOCALE": locale, "heading.decisions": "Decisions",
         "ADR_TITLE": "Isolate dependencies", "ADR_ID": "ADR_20260914_0000000000000001",
         "label.context": "Context", "ADR_CONTEXT": "Compare environments.",
         "label.decision": "Decision", "ADR_DECISION": "Use an isolated environment.",

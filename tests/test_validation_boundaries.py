@@ -43,7 +43,7 @@ def test_all_bundled_profiles_and_locales_render_as_valid_sources(tmp_path):
                 "ADR_ID": "ADR_20260914_0000000000000001",
                 "TASK_ID": f"TASK_20260914_{index:016d}",
                 "EVD_ID": "EVD_20260914_0000000000000001",
-                "CREATED": "2026-09-14", "LOCALE": locale,
+                "LOCALE": locale,
                 "RECORDED_AT": "2026-09-14T12:00:00+08:00",
                 "TITLE": "Example" if locale == "en" else "样例",
                 "ENTRIES": "spec.md",

@@ -77,7 +77,7 @@ def test_copied_skill_uses_bundled_resources_with_prepared_dependencies(copied_s
     assert all(re.fullmatch(r'REQ_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{16}', value) for value in identifiers)
     (project / 'docs').mkdir()
     (project / 'docs/spec.md').write_text(spec(), encoding='utf-8')
-    verified = command('verify', '--only', 'docs')
+    verified = command('verify')
     assert verified['status'] == 'passed'
     assert verified['outputs']['documents']['valid']
 

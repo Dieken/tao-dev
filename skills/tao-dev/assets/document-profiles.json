@@ -42,7 +42,7 @@
     "created": {
       "type": "string",
       "format": "date",
-      "required": true
+      "required": false
     },
     "updated": {
       "type": "string",
@@ -285,8 +285,7 @@
           "profile": "tao.project.tasks/v0.1",
           "section": "tasks"
         }
-      },
-      "results_section": "verification"
+      }
     },
     "tao.project.design/v0.1": {
       "template": "templates/design.md",
@@ -440,7 +439,7 @@
             "partial",
             "unknown"
           ],
-          "required": true
+          "required": false
         }
       }
     },

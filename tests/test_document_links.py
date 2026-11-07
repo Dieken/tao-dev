@@ -12,7 +12,7 @@ SECOND = 'DOC_20260914_0000000000000011'
 
 def design(identity=DESIGN, specs=None):
     text = (ASSETS/'templates/design.md').read_text(encoding='utf-8')
-    values = {'DOC_ID': identity, 'TITLE': 'Export design', 'LOCALE': 'en', 'CREATED': '2026-09-14'}
+    values = {'DOC_ID': identity, 'TITLE': 'Export design', 'LOCALE': 'en'}
     text = re.sub(r'\{\{([^}]+)\}\}', lambda m: values.get(m[1], 'Existing export contract.'), text)
     if specs is not None:
         text = text.replace('status: draft', 'status: draft\nspec_docs: '+json.dumps(specs))

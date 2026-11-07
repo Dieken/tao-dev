@@ -4,7 +4,6 @@ id: "{{DOC_ID}}"
 title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
-created: "{{CREATED}}"
 # Optionally link spec_docs: [<spec DOC ID>].
 ---
 

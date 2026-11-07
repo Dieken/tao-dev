@@ -9,10 +9,37 @@ import pytest
 from taolib.cli import main
 from test_documents import spec
 from test_relationships import change, CHANGE_DOC, CHG, TASK, TASK_TWO
-from test_verification import split
 
 
 PLAN = "docs/plans/2026-09/20260914-export.md"
+TASKS_DOC = 'DOC_20260914_0000000000000020'
+
+
+def split(root):
+    """Move the plan's inline tasks into its declared task attachment."""
+    path = root / PLAN
+    plan = path.read_text(encoding='utf-8')
+    block = re.search(r'<!-- tao:section tasks -->(.*?)<!-- tao:section verification -->', plan, re.S)[1]
+    path.write_text(plan.replace(block, '\n## 任务\n\n任务在附件中维护。\n\n')
+                    .replace('change: ' + CHG, 'change: ' + CHG + '\ntasks_doc: ' + TASKS_DOC), encoding='utf-8')
+    (root / 'docs/tasks.md').write_text(f"""---
+schema: tao.project.tasks/v0.1
+id: {TASKS_DOC}
+title: 导出检查任务
+locale: zh-Hans
+status: draft
+created: "2026-09-14"
+change: {CHG}
+---
+
+# 导出检查任务
+
+<!-- tao:section scope -->
+## 范围
+
+承接导出检查的任务。
+
+<!-- tao:section tasks -->{block}""".replace('(#DOC', '(plans/2026-09/20260914-export.md#DOC'), encoding='utf-8')
 
 
 def make_plan(root, *, completed=False):
@@ -40,7 +67,6 @@ def test_status_without_configuration_is_read_only_and_project_scoped(tmp_path, 
     def forbidden(*args, **kwargs):
         pytest.fail("Status must not execute a process or project check")
     monkeypatch.setattr(subprocess, "run", forbidden)
-    monkeypatch.setattr("taolib.cli.execute", forbidden)
     code, report = call(tmp_path, capsys, "status", target)
     assert code == 0, report
     plan, = report["outputs"]["plans"]
@@ -148,3 +174,19 @@ def test_corrupt_task_source_never_implies_tasks_complete(tmp_path, capsys, prob
     assert row["progress"] == "unavailable"
     assert row["task_set_valid"] is False and row["task_counts"] is None
     assert row["review"] == "unknown"
+
+
+@pytest.mark.parametrize('attachment', [False, True])
+def test_documents_pass_independently_of_task_completion_or_reviews(tmp_path, capsys, attachment):
+    make_plan(tmp_path)
+    if attachment:
+        split(tmp_path)
+    code, result = call(tmp_path, capsys, 'verify')
+    assert code == 0, result
+    assert 'readiness' not in result
+    assert not {'open_tasks', 'reviews', 'requirement_coverage'} & result['outputs'].keys()
+    code, result = call(tmp_path, capsys, 'status', CHG)
+    assert code == 0, result
+    plan, = result['outputs']['plans']
+    assert plan['task_counts']['pending'] == 1
+    assert plan['review'] == 'unknown'

@@ -27,7 +27,7 @@ updated: "2026-11-08"
 
 当前产品是项目级纯 skill，资源、模板和确定性工具见 [Skill 打包与运行依赖](../engineering/skill-design.md)。文档语义工作由 agent 完成，工具能力见 [工具规程](../../skills/tao-dev/references/tools.md)，项目边界见 [项目级文档驱动 skill](project-skill.md)。
 
-出版适配采用 [现有 Sphinx 方案](../engineering/decisions/sphinx-publication.md)。客户端版本和加载方式按 [接入指南](../user/clients.md) 选择；质量预算和检查集在各项目接入时确定，见 [项目接入](../../skills/tao-dev/references/project-setup.md)。
+出版适配采用 [现有 Sphinx 方案](../engineering/decisions/sphinx-publication.md)。客户端版本和加载方式按 [接入指南](../user/clients.md) 选择；测试、lint、构建及缓存由项目的 justfile、Makefile、manifest 或 CI 管理，不纳入 .tao/config.toml。tao 只校验文档并管理结果知识，文档配置见 [项目接入](../../skills/tao-dev/references/project-setup.md)。
 
 <!-- tao:section terms -->
 ## 术语与来源
@@ -125,7 +125,7 @@ tao-dev 随 skill 分发统一、版本化的文档契约、格式注册表和�
 记录验证对象、执行条件、结果和适用范围；受影响输入变化后不能把旧证据当作当前通过。区分任务成果、格式检查、行为检查、语义审查和交付；产品不自动认证完成，成本记录区分实测与估算。
 
 <!-- tao:field acceptance -->
-**验收：** 旧版本通过不能证明新改动完成；未运行、不可用与不适用均不能显示为通过。复用检查显示实际执行时刻与输入范围，不因刷新摘要而变新。任务全勾选不推断审查通过，审查未知保持未知；计划保存当前结果摘要，普通 review/evidence 详情默认临时，不自动注册、建档或提交。token 估算不能冒充账单。
+**验收：** 旧版本通过不能证明新改动完成；未运行、不可用与不适用均不能显示为通过。项目工具若复用检查，记录其实际执行时刻与输入范围，不因刷新摘要而变新；tao 不另建命令执行或缓存系统。任务全勾选不推断审查通过，审查未知保持未知；计划保存当前结果摘要，普通 review/evidence 详情默认临时，不自动注册、建档或提交。token 估算不能冒充账单。
 
 <!-- tao:field source -->
 **来源：** Superpowers、GSD、agent-skills 的证据要求（广泛共识）；成本分类与失效规则为本协议综合。
@@ -287,7 +287,7 @@ tao-dev 自身选择正文和代码的维护语言；模板、生成文档及诊
 <!-- tao:field when -->
 **当：** 修改受检代码但保留提交号，随后在新会话恢复。
 <!-- tao:field then -->
-**则：** 受检范围与记录版本的差异检查发现未提交修改，相关证据显示已过期，任务不能仅凭旧报告被宣称完成；重新检查后记录新结果。
+**则：** agent 核对受检范围与实际文件后发现变化，记录旧结果不适用于当前输入，不能仅凭旧报告宣称任务完成；调用项目原生命令重新检查后记录新结果。tao 不自动对代码证据计算失效或认证完成。
 ```
 
 ```{uc} 翻译显示文本不改变机器含义

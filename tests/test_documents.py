@@ -92,6 +92,21 @@ def test_valid_chinese_spec_indexes_forward_references(tmp_path):
     assert result.definitions[REQ].line == 26
 
 
+@pytest.mark.parametrize("dates,valid", [
+    ("", True),
+    ('updated: "2026-11-08"\n', True),
+    ('created: "2026-09-14"\nupdated: "2026-11-08"\n', True),
+    ('created: "2026-09-14"\nupdated: "2026-09-13"\n', False),
+    ('updated: "2026-02-30"\n', False),
+])
+def test_optional_dates_preserve_identity_and_validate_when_present(tmp_path, dates, valid):
+    result = check(tmp_path, spec().replace('created: "2026-09-14"\n', dates))
+    assert result.valid is valid, result.to_dict()
+    assert set(result.definitions) == {DOC, REQ, UC}
+    if not valid:
+        assert "TAO-DOC-001" in codes(result)
+
+
 @pytest.mark.parametrize("old,new,rule", [
     ("status: draft", "status: draft\nstatus: accepted", "TAO-DOC-001"),
     ("status: draft", "status: draft\nextra: yes", "TAO-DOC-001"),

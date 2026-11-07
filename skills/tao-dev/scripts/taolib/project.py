@@ -1,5 +1,6 @@
 """Project-scoped configuration and filesystem operations."""
 
+import hashlib
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
@@ -45,6 +46,15 @@ def contained(root, relative):
     return path
 
 
+def file_digest(path):
+    """Hash a file for compare-before-write and document mutation guards."""
+    result = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            result.update(block)
+    return result.hexdigest()
+
+
 class Project:
     def __init__(self, explicit=None, *, config=None):
         if explicit is None:
@@ -58,7 +68,7 @@ class Project:
         self.config = config if config is not None else (tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {})
         if self.config and self.config.get("version") != 1:
             raise ConfigurationError("Unsupported configuration version; expected 1.")
-        if self.config.keys() - {"version", "locale", "ui", "documents", "paths", "verification"}:
+        if self.config.keys() - {"version", "locale", "ui", "documents", "paths"}:
             raise ConfigurationError("Unknown configuration keys.")
         ui = self.config.get('ui', {})
         if not isinstance(ui, dict) or ui.keys() - {'locale'} or ('locale' in ui and not valid_locale(ui['locale'])):
@@ -108,7 +118,7 @@ class Project:
         return contained(self.root, Path(self.paths[key]) / suffix)
 
 
-def select_plans(result, target=None, *, single=False):
+def select_plans(result, target=None):
     """Select only indexed project plans; never guess from timestamps."""
     plans = [doc for doc in result.documents.values()
              if doc.metadata.get("schema") == "tao.project.plan/v0.1"]
@@ -117,7 +127,7 @@ def select_plans(result, target=None, *, single=False):
                  (doc.metadata.get("id"), doc.metadata.get("change"), doc.path)]
         if not plans:
             raise ConfigurationError("No indexed plan matches the requested CHG, DOC or project-relative path.")
-    if (single or target is not None) and len(plans) != 1:
+    if target is not None and len(plans) != 1:
         candidates = ", ".join(doc.path for doc in plans) or "(none)"
         raise ConfigurationError(f"Select exactly one plan by CHG, DOC or path. Candidates: {candidates}")
     return plans

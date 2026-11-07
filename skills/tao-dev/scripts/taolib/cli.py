@@ -15,7 +15,6 @@ from .documents import ASSETS, validate
 from .identifiers import new_id, new_ids
 from .project import (ConfigurationError, ConflictError, Project, contained,
                       create_file, mutation_lock, select_plans)
-from .verification import policy, execute, file_digest, digest_json
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
@@ -63,12 +62,8 @@ def arguments(argv):
     retirement.add_argument("--replaced-by", action="append", default=[])
     retirement.add_argument("--apply", action="store_true")
     verify_parser = commands.add_parser("verify", parents=[common])
-    verify_parser.add_argument("target", nargs="?", help="Optional plan context; checks remain project-wide.")
-    verify_parser.add_argument("--only", default="docs,code")
-    verify_parser.add_argument("--scope", choices=("changed", "all"), default="all")
     verify_parser.add_argument("--dry-run", action="store_true")
     verify_parser.add_argument("--simplified", action="store_true")
-    verify_parser.add_argument("--no-reuse", action="store_true")
     docs = commands.add_parser("docs", parents=[common])
     docs.add_subparsers(dest="operation", required=True).add_parser("build", parents=[common])
     args = parser.parse_args(argv)
@@ -113,7 +108,7 @@ def skeleton(project, args, registry, existing):
         ids[kind + "_ID"] = new_id(kind, registry, existing, today=day)
         existing.add(ids[kind + "_ID"])
     labels = json.loads((ASSETS / f"locales/{locale}.json").read_text(encoding="utf-8"))
-    values = ids | labels | {"LOCALE": locale, "CREATED": day.isoformat()}
+    values = ids | labels | {"LOCALE": locale}
     template = (ASSETS / registry["profiles"]["tao.project.plan/v0.1"]["template"]).read_text(encoding="utf-8")
     rendered = re.sub(r"\{\{([^}]+)\}\}", lambda m: values.get(m[1], m[0]), template)
     create_file(project.root, path, rendered)
@@ -180,45 +175,17 @@ def plan_status(project, result, target=None, *, simplified=False):
             "output_mode": "simplified" if simplified else "full"}
 
 
-def document_snapshot(project):
-    paths = set(project.sources()) | set(project.output("retired").glob("*.jsonl"))
-    return digest_json([(p.relative_to(project.root).as_posix(), file_digest(contained(project.root, p))) for p in sorted(paths)])
-
-
 def verify(project, args, report):
-    selected = args.only.split(",")
-    if len(set(selected)) != len(selected) or set(selected) - {"docs", "code"}:
-        raise ConfigurationError("--only accepts docs, code or docs,code.")
-    config = policy(project) if "code" in selected else None
-    missing = ["code"] if "code" in selected and config is None else []
-    report.update(scope="all", checks=selected, missing_capabilities=missing,
-                  selection_reason="Project-wide explicit checks; no delivery certification.")
-    result = index(project) if args.target else None
-    if args.target:
-        report["target"] = select_plans(result, args.target, single=True)[0].path
     if args.dry_run:
-        report["status"] = "not_run" if missing else "planned"
-        report["outputs"]["commands"] = config["checks"] if config else []
-        return report, 2 if missing else 0
-    before = document_snapshot(project) if "docs" in selected else None
-    codes = [2] if missing else []
-    if "docs" in selected:
-        if not project.sources():
-            raise ConfigurationError("No managed documents matched the configured scope.")
-        result = result or index(project)
-        report["outputs"]["documents"] = result.to_dict()
-        report["diagnostics"] = [asdict(d) for d in result.diagnostics]
-        codes.append(0 if result.valid else 1)
-    if config:
-        execution = execute(project, config, reuse=not args.no_reuse)
-        report["outputs"]["execution"] = execution
-        codes.append(0 if execution["status"] == "passed" else 2 if execution["status"] == "not_run" else 1)
-    if before is not None and before != document_snapshot(project):
-        report["outputs"]["documents_changed_during_checks"] = True
-        codes.append(1)
-    code = max(codes, default=0)
-    report["status"] = "passed" if code == 0 else "not_run" if code == 2 else "failed"
-    return report, code
+        report["status"] = "planned"
+        return report, 0
+    if not project.sources():
+        raise ConfigurationError("No managed documents matched the configured scope.")
+    result = index(project)
+    report["outputs"]["documents"] = result.to_dict()
+    report["diagnostics"] = [asdict(d) for d in result.diagnostics]
+    report["status"] = "passed" if result.valid else "failed"
+    return report, 0 if result.valid else 1
 
 
 def dispatch(args):
@@ -228,7 +195,7 @@ def dispatch(args):
     project = Project(args.project)
     project.diagnostic_locale = args.diagnostic_locale or project.diagnostic_locale
     if args.command == "doctor":
-        report.update(capabilities=CAPABILITIES + (["verify.code"] if policy(project) else []), schemas=list(registry["profiles"]))
+        report.update(capabilities=CAPABILITIES, schemas=list(registry["profiles"]))
         report["outputs"] = {"project": str(project.root), "python": sys.version.split()[0], "managed_sources": len(project.sources())}
         return report, 0
     if args.command == "project":
@@ -283,7 +250,7 @@ def dispatch(args):
 
 
 def simplified_verification(report):
-    """Keep check outcomes and actionable details, omit raw input inventories."""
+    """Keep document counts and actionable diagnostics, omit the full index."""
     outputs = report.get("outputs", {})
     docs = outputs.get("documents")
     if isinstance(docs, dict):
@@ -291,11 +258,6 @@ def simplified_verification(report):
             "definitions": len(docs.get("definitions", {})), "references": len(docs.get("references", [])),
             "documents": len(docs.get("documents", {})), "section_redirects": len(docs.get("section_redirects", {}))},
             "deletion_checked": docs.get("deletion_checked")}
-    execution = outputs.get("execution")
-    if isinstance(execution, dict):
-        outputs["execution"] = {key: execution[key] for key in
-                                ("status", "checks", "elapsed_seconds", "budget_seconds", "reused", "cost")
-                                if key in execution}
     report["output_mode"] = "simplified"
     return report
 

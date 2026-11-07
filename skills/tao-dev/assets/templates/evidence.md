@@ -4,11 +4,9 @@ id: "{{DOC_ID}}"
 title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
-created: "{{CREATED}}"
 evidence: "{{EVD_ID}}"
 recorded_at: "{{RECORDED_AT}}"
 result: not_run
-coverage: unknown
 ---
 
 # {{TITLE}}

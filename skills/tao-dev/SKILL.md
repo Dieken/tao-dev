@@ -20,7 +20,7 @@ description: 项目文档与知识管理 skill；用于查找、创建、更新�
 | 创建、更新、查找长期知识 | [文档规程](references/documents.md)、对应 profile 模板与 [正文写法](references/document-content.md) |
 | 记录、读取、核对和回写项目进度 | [持久计划](references/planning.md) |
 | 审查文档的语义、依据与一致性 | [文档审查](references/review.md) |
-| 校验源文档或显式运行已配置检查 | [确定性检查](references/verification.md) |
+| 校验源文档、区分项目检查与文档检查结果 | [确定性检查](references/verification.md) |
 | 组织、出版、翻译或退役文档 | [组织](references/document-layout.md)、[出版](references/publication.md)、[本地化](references/localization.md)、[退役](references/retirement.md) |
 | CLI、可选项目配置与依赖准备 | [工具入口](references/tools.md)、[运行环境](references/runtime.md) |
 | 术语有歧义 | [术语](references/glossary.md) 与项目定义 |

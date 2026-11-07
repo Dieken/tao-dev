@@ -35,6 +35,30 @@ REQ/UC/ADR 仍采用 MyST 指令与现有关系选项。TASK 是 tasks 章节的
 
 plan.change 定义 CHG；tasks.change 引用同一计划；evidence.evidence 定义 EVD。plan 内联任务或通过 tasks_doc 指向一份附件，不同时维护两份任务。spec_docs/design_docs 如提供，应引用对应类型文档。草稿可缺尚未形成的依据，审查根据实际内容判断其完整性。
 
+## 字段最小集
+
+基础必填仅 schema、id、title、locale、status。created 与 updated 都可省略，默认模板不要求日期；提供时仍校验日期及先后关系，不自动从 ID、文件路径或 Git 推断。保留已有真实日期，不要求例行修改 updated。DOC 是文档身份，CHG/EVD 是事项与证据身份；标题供展示、locale 支持独立流转、status 表达生命周期，都不能由文件名或任务勾选替代。
+
+| 类型或结构 | 必需信息 | 按需信息与精简边界 |
+|---|---|---|
+| spec | scope、requirements，至少一个 REQ | terms、cases、questions 按需，不要求凑齐 |
+| design | overview、architecture | change、spec_docs 可选；共享设计不强制绑定一次变更 |
+| plan | change、scope、唯一任务集 | tasks_doc、spec_docs、design_docs 可选；verification 保存真实结果，不保存可执行命令配置 |
+| tasks | change、tasks、至少一个 TASK | 保留所属事项校验，不复制计划的任务集 |
+| decision | decisions、恰好一个 ADR | 文档与 ADR 是不同对象，不合并其状态 |
+| user-guide | steps | 范围、前提、排错章节按需 |
+| runbook | steps | 检查与恢复章节按实际操作风险保留 |
+| glossary | terms | term 的名称与定义必需；english、code、avoid、scope 可选且用于出版或消歧 |
+| evidence | evidence、recorded_at、result、checks、findings | change、coverage 可选；默认省略 coverage，具体范围与限制写正文，记录时间不能用普通文档日期替代 |
+| navigation | contents、单个非空 toctree | 保留固定选项和有向导航图约束；展示选项已有出版消费者，不直接删除 |
+| REQ | id、status、行为、acceptance、source | links、supersedes 可选；来源与验收不是重复行为正文，仍保留 |
+| UC | id、status、verifies、given/when/then | links、supersedes 可选；verifies 提供有类型的需求追溯 |
+| ADR | id、status、context/decision/consequences | links、supersedes 可选；取舍和后果不能由决定一句话代替 |
+| TASK | checkbox、ID、标题、verify | relates、depends_on、evidence 可选；模板省略空依赖和重复的所属 CHG，保留真实依赖及需求关系 |
+| 退役记录 | id、retired_on、reason、replaced_by | 日期与替代信息使单行记录可独立解释；空 replaced_by 表示无替代，不改协议 |
+
+spec_docs/design_docs、change、tasks_doc 不只是正文链接的副本：它们用于目标类型检查、唯一任务归属、规划材料识别和出版反向索引。evidence 的结果与覆盖范围不自动认证交付；普通可选正文 field 标记不是额外必填表单。计划摘要只按 verification 章节读取，不维护第二层 results 开闭标记。现有文档无需删除可选日期或有效关系；新建材料从最小集开始。
+
 ## 知识与记录
 
 规格、设计和 ADR 保留长期当前知识；持久 plan/tasks 是跨会话、协作或跟踪工作的权威项目进度，agent 核对事实后写回成果与阻碍，在 plan verification 合并当前摘要。完成计划作为变更记录保留，不替代长期知识。客户端临时任务和摘要不构成另一份进度源。详细 review/evidence 默认临时；显式长期记录沿用 evidence，不新增批次或审查 schema。历史检查结果、原始材料可用性和当前可复用性分别说明，不因日志消失回写任务状态。

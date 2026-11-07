@@ -42,18 +42,18 @@ def test_doctor_does_not_advertise_removed_runtime_or_workflow_commands(tmp_path
 
 def test_docs_verify_is_not_delivery_certification(tmp_path):
     project(tmp_path)
-    completed = run(tmp_path, "verify", "--only", "docs", "--scope", "changed")
+    completed = run(tmp_path, "verify")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
     assert "coverage" not in report
     assert "readiness" not in report
-    assert report["scope"] == "all"
+    assert not {"scope", "checks", "missing_capabilities", "selection_reason", "target"} & report.keys()
     assert report["outputs"]["documents"]["valid"]
 
 
 def test_docs_verify_simplified_reports_counts_without_full_index(tmp_path):
     project(tmp_path)
-    completed = run(tmp_path, "verify", "--only", "docs", "--simplified")
+    completed = run(tmp_path, "verify", "--simplified")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
     assert report["output_mode"] == "simplified"
@@ -65,26 +65,48 @@ def test_docs_verify_simplified_reports_counts_without_full_index(tmp_path):
 
 def test_verify_dry_run_simplified_keeps_planned_status(tmp_path):
     project(tmp_path)
-    completed = run(tmp_path, "verify", "--only", "docs", "--dry-run", "--simplified")
+    completed = run(tmp_path, "verify", "--dry-run", "--simplified")
     assert completed.returncode == 0, completed.stderr
     report = json.loads(completed.stdout)
     assert report["output_mode"] == "simplified"
     assert report["status"] == "planned"
 
 
-def test_full_verify_does_not_pass_when_only_docs_are_available(tmp_path):
+@pytest.mark.parametrize("options", [(), ("--simplified",)])
+def test_verify_reads_current_documents_without_executing_project_commands(tmp_path, capsys, monkeypatch, options):
+    from taolib.cli import main
     project(tmp_path)
-    completed = run(tmp_path, "verify")
-    assert completed.returncode == 2
-    assert json.loads(completed.stdout)["missing_capabilities"] == ["code"]
+    (tmp_path / "check.py").write_text('raise RuntimeError("must not execute")\n', encoding="utf-8")
+    before = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Document verification must not execute a process")
+
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    arguments = ["--project", str(tmp_path), "--format", "json", "verify", *options]
+    assert main(arguments) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "passed"
+    assert set(report["outputs"]) == {"documents"}
+    assert {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()} == before
+    source = tmp_path / "docs/spec.md"
+    source.write_text(source.read_text(encoding="utf-8").replace("schema:", "invalid_schema:"), encoding="utf-8")
+    assert main(arguments) == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "failed"
+    assert report["diagnostics"]
+    assert report["outputs"]["documents"]["valid"] is False
+    assert not (tmp_path / "tmp").exists()
 
 
 def test_dry_run_never_claims_execution(tmp_path):
     project(tmp_path)
-    report = json.loads(run(tmp_path, "verify", "--only", "docs", "--dry-run").stdout)
+    report = json.loads(run(tmp_path, "verify", "--dry-run").stdout)
     assert report["status"] == "planned"
     assert "readiness" not in report
     assert "documents" not in report["outputs"]
+    assert report["outputs"] == {}
+    assert not (tmp_path / "tmp").exists()
 
 
 def test_show_locates_definition(tmp_path):
@@ -139,7 +161,7 @@ def test_project_config_is_local_and_determines_managed_scope(tmp_path):
     (tmp_path / "manual").mkdir()
     (tmp_path / "manual/spec.md").write_text(spec(), encoding="utf-8")
     (tmp_path / "README.md").write_text("# Not managed\n", encoding="utf-8")
-    completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--only", "docs", "--format", "json"], cwd=tmp_path, text=True, capture_output=True, encoding="utf-8")
+    completed = subprocess.run([sys.executable, str(ENTRY), "verify", "--format", "json"], cwd=tmp_path, text=True, capture_output=True, encoding="utf-8")
     assert completed.returncode == 0, completed.stderr
     assert list(json.loads(completed.stdout)["outputs"]["documents"]["documents"]) == ["manual/spec.md"]
 
@@ -151,7 +173,7 @@ def test_symlinked_config_and_output_cannot_escape_project(tmp_path):
 
 
 def test_empty_managed_scope_does_not_pass_verification(tmp_path):
-    completed = run(tmp_path, "verify", "--only", "docs")
+    completed = run(tmp_path, "verify")
     assert completed.returncode == 2
     assert json.loads(completed.stdout)["status"] == "not_run"
 
@@ -311,3 +333,26 @@ def test_batch_ids_are_unique_and_read_only(tmp_path):
 def test_removed_engine_commands_are_rejected_without_writes(tmp_path, command):
     assert run(tmp_path, *command).returncode == 2
     assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("options", [
+    ("--only", "docs"), ("--only", "code"), ("--only", "docs,code"),
+    ("--only", ""), ("--no-reuse",), ("--scope", "all"), ("--scope", "changed"),
+    ("CHG_20260914_0000000000000011",), ("docs/plan.md",),
+])
+def test_removed_verify_options_are_rejected_without_execution_or_writes(tmp_path, capsys, monkeypatch, options):
+    from taolib.cli import main
+    project(tmp_path)
+    before = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Rejected options must not execute a process")
+
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    code = main(["--project", str(tmp_path), "--format", "json", "verify", *options])
+    report = json.loads(capsys.readouterr().out)
+    assert code == 2 and report["status"] == "not_run"
+    assert report["diagnostics"]
+    assert report["outputs"] == {}
+    assert {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()} == before
+    assert not (tmp_path / "tmp").exists()

@@ -2,10 +2,9 @@
 
 项目配置不是 status、ID 分配或计划骨架生成的前置条件。读取以显式 `--project <root>` 为界，不创建配置或扫描其他项目。
 
-1. `tao --project <root> project inspect` 读取现有配置并发现检查候选，不运行命令。
-2. 核对 manifest、CI、已有命令和副作用，优先复用既有工具；空项目待技术栈明确后再选最小检查集合。
-3. 在已有授权内准备必要的业务工具，保留项目门槛，不修改全局客户端或用户环境。
-4. 在项目临时目录写 TOML 草稿，保留现有无关配置。用 `tao project configure --from <项目相对草稿>` 写入；已有配置使用 inspect 返回的 config_digest 配合 `--expect` 检测冲突。
-5. 明确 docs 与 temporary 的项目内路径、书根与检查范围，忽略临时产物；只在实际运行检查后报告结果。
+1. `tao --project <root> project inspect` 只读文档配置、项目路径和 config_digest，不发现或执行测试命令。
+2. 核对受管理文档范围、书根、语言及项目内输出路径；沿用既有文档，不为接入生成无用材料。
+3. 在项目临时目录写 TOML 草稿，保留现有无关配置。用 `tao project configure --from <项目相对草稿>` 写入；已有配置使用 inspect 返回的 config_digest 配合 `--expect` 检测冲突。
+4. 忽略临时产物；用 `tao verify` 校验受管理文档，出版时显式调用 `tao docs build`。只在实际运行后报告对应范围的结果。
 
-配置只为实际需要的文档路径、出版或显式检查服务，不是开发阶段关卡；仅调查时报告候选与限制，不自动配置。项目进度始终按 [持久计划](planning.md) 保存在仓库文档，而非检查记录或客户端会话中。
+配置只为文档、语言、出版及项目内路径服务，不包含 verification、命令清单、执行预算、输入指纹或缓存策略。项目测试等直接使用 justfile、Makefile、manifest 或 CI，见 [确定性检查](verification.md)。项目进度始终按 [持久计划](planning.md) 保存在仓库文档，而非检查记录或客户端会话中。

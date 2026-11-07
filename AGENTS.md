@@ -49,8 +49,10 @@ evidence is unknown. Completed plans record changes, while current
 requirements and lasting decisions belong in specs, designs and ADRs.
 
 Use the bundled source validator and project-local Python environment
-for explicitly requested checks. Local HTML publication and configured
-code checks are separate from semantic review and actual client behavior.
+for explicitly requested document checks. Project tests, lint, build
+commands and caching belong in native entry points such as justfile,
+Makefile or CI, not .tao/config.toml. Local HTML publication and code
+checks are separate from semantic review and actual client behavior.
 Distribute the complete skill by project-local copying, or an optional
 external skills tool. Document Claude, Codex, Cursor and Kiro discovery
 paths; tao does not manage installation lifecycles or client configuration.
@@ -60,8 +62,8 @@ not require publication dependencies or automatic environment setup.
 Always pass `--no-config` to `uv`. This machine's global `uv.toml`
 declares a mirror index, so a bare `uv run` or `uv lock` re-resolves and
 rewrites every registry and wheel URL in `uv.lock`, producing a large
-diff nobody asked for. The justfile and CI already pass it; the gap is
-an ad-hoc command typed during a session. For one-off calls prefer
+diff nobody asked for. CI already passes it; justfile uses the prepared
+environment directly. For one-off calls prefer
 `.venv/bin/python` directly, which is what the justfile's own `tao` and
 `python` variables do. If `uv.lock` shows unintended mass URL changes,
 inspect the diff and preserve unrelated user changes when correcting it.

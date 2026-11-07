@@ -34,8 +34,8 @@ def test_cli_ui_locale_and_explicit_option_are_independent_of_document_locale(tm
     before = path.read_bytes()
     (tmp_path / '.tao').mkdir()
     (tmp_path / '.tao/config.toml').write_text('version = 1\nlocale = "zh-Hans"\n[ui]\nlocale = "en"\n', encoding='utf-8')
-    en = run(tmp_path, 'verify', '--only', 'docs')
-    zh = run(tmp_path, '--diagnostic-locale', 'zh-Hans', 'verify', '--only', 'docs')
+    en = run(tmp_path, 'verify')
+    zh = run(tmp_path, '--diagnostic-locale', 'zh-Hans', 'verify')
     assert en.returncode == zh.returncode == 1
     for result, language in ((en, 'en'), (zh, 'zh-Hans')):
         report = json.loads(result.stdout)
@@ -45,8 +45,8 @@ def test_cli_ui_locale_and_explicit_option_are_independent_of_document_locale(tm
 
 
 def test_cli_errors_use_requested_language_and_unknown_locale_reports_fallback(tmp_path):
-    zh = json.loads(run(tmp_path, 'verify', '--only', '', '--diagnostic-locale=zh-Hans').stdout)
-    fr = json.loads(run(tmp_path, 'verify', '--only', '', '--diagnostic-locale=fr').stdout)
+    zh = json.loads(run(tmp_path, 'verify', '--diagnostic-locale=zh-Hans').stdout)
+    fr = json.loads(run(tmp_path, 'verify', '--diagnostic-locale=fr').stdout)
     assert zh['diagnostics'][0]['message_locale'] == 'zh-Hans'
     item = fr['diagnostics'][0]
     assert item['message_locale'] == 'en' and item['locale_fallback'] is True

@@ -70,7 +70,7 @@ def test_bad_redirect_cannot_pass_docs_or_replace_the_previous_book(tmp_path, ta
     before = resolver.read_bytes()
     path = tmp_path / '.tao/config.toml'
     path.write_text(path.read_text(encoding='utf-8').replace('= "' + NEW_SECTION + '"', '= "' + target + '"'), encoding='utf-8')
-    result = run(tmp_path, 'verify', '--only', 'docs')
+    result = run(tmp_path, 'verify')
     assert result.returncode == 1, result.stdout
     assert json.loads(result.stdout)['diagnostics']
     with pytest.raises(ConfigurationError):
@@ -82,7 +82,7 @@ def test_redirects_must_point_directly_to_the_final_section(tmp_path):
     configured(tmp_path)
     path = tmp_path / '.tao/config.toml'
     path.write_text(path.read_text(encoding='utf-8') + f'"{NEW_SECTION}" = "{DOC}--scope"\n', encoding='utf-8')
-    result = run(tmp_path, 'verify', '--only', 'docs')
+    result = run(tmp_path, 'verify')
     assert result.returncode == 1, result.stdout
 
 

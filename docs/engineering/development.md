@@ -23,13 +23,15 @@ updated: "2026-11-08"
 <!-- tao:section steps -->
 ## 常用操作
 
-- `just check`：配置的代码检查及锁定依赖导出核对。
+- `just check`：依次执行 `just test`、`just lint` 和锁定依赖导出核对。
+- `just test`：运行带 Python 子进程覆盖率的回归，输出 tmp/tao/coverage/coverage.json。
+- `just lint`：运行 Ruff 的 E9/F63/F7/F82 检查，输出 tmp/tao/ruff.json。
 - `just docs`：显式文档校验与书籍构建。
 - `just package <新输出目录>`：调用 scripts/package_skill.py --output 生成纯 skill 包。
 - `just tao <参数>`：调用源码辅助 CLI；也可用 `.venv/bin/python skills/tao-dev/scripts/tao.py`。
 - 回归：在显式准备的项目环境执行维护测试；运行范围与结果如实记录，不把未运行的客户端测试写成通过。
 
-recipe 不自动准备运行环境。真实客户端试验必须显式运行并限定隔离项目；当前 Codex 发现检查无需登录，不调用模型、不复用认证，也不修改个人安装或用户级配置。
+recipe 直接使用已准备的项目 .venv，不自动安装或同步依赖。测试、lint、超时和缓存由项目命令或 CI 管理，不放入 .tao/config.toml；本仓库每次调用均实际运行，CI job 提供整体超时，不维护第二套检查回执。真实客户端试验必须显式运行并限定隔离项目；当前 Codex 发现检查无需登录，不调用模型、不复用认证，也不修改个人安装或用户级配置。
 
 ## 文档与交付
 

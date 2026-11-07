@@ -28,9 +28,11 @@ new --slug 只写计划骨架；id new TYPE --count N 返回 outputs.ids。show 
 
 `status [CHG|DOC|项目相对计划路径]`：省略目标列全部计划和未关联计划的规划材料。提供任务计数、未完成项、验证正文及推断进度 planning/pending/in_progress/tasks_complete；review 无记录为 unknown。任务可表示任何项目成果，不能从全部勾选推断已验证、已审查或已交付。
 
-`verify [计划目标] --only docs|code|docs,code`：默认 docs,code；显式执行文档检查及项目已配置的代码检查，允许真实本地结果复用，但不提供审查导入、任务完成门槛或流程 gate。检查成功只表示实际运行范围内的结果，不代替文档语义审查。
+`verify [--dry-run] [--simplified]`：只校验受管理文档。没有目标或 docs/code 选择器，不执行、缓存或汇总项目命令；不提供审查导入、任务完成门槛或流程 gate。检查成功只表示实际文档范围内的结果，不代替语义审查。
 
 提供 doctor、show、docs build、project inspect/configure 与正式对象 retire。入口的帮助与版本查询只用标准库；文档命令缺依赖时明确诊断，不自动准备环境。安装生命周期不属于 CLI。
+
+.tao/config.toml 只管理文档、语言、出版与项目内输出路径；project inspect 只读这些配置及摘要，project configure 校验并显式应用草稿。测试、lint、构建等命令由 justfile、Makefile、项目 manifest 或 CI 管理，tao 不发现或保存候选命令。
 
 <!-- tao:section invariants -->
 ## 边界
@@ -40,4 +42,4 @@ new --slug 只写计划骨架；id new TYPE --count N 返回 outputs.ids。show 
 <!-- tao:section verification -->
 ## 验证设计
 
-覆盖零计划、唯一/多个计划、内联/附件任务、所有任务完成但验证或审查未知、无配置只读、无流程建议输出、路径越界、格式错误与缺依赖。检查 docs/code 输出不能冒充语义审查、实际客户端加载或独立审查。执行结果由当前计划维护。
+覆盖零计划、唯一/多个计划、内联/附件任务、所有任务完成但验证或审查未知、无配置只读、无流程建议输出、路径越界、格式错误与缺依赖。文档校验输出不能冒充项目测试、语义审查、实际客户端加载或独立审查。执行结果由当前计划维护。

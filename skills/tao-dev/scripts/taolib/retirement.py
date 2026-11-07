@@ -7,9 +7,8 @@ from pathlib import Path
 import re
 
 from .documents import parser, validate
-from .project import ConfigurationError, ConflictError, contained, create_file, mutation_lock, replace_file
+from .project import ConfigurationError, ConflictError, contained, create_file, file_digest, mutation_lock, replace_file
 from .relationships import unique_object
-from .verification import file_digest
 
 
 def source_state(project):
