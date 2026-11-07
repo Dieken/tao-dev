@@ -16,7 +16,7 @@ status: draft
 <!-- tao:section prerequisites -->
 ## 准备条件
 
-读取与复制技能包不需要 Python。只有辅助命令需要 Python 3.11–3.14；文档命令的依赖在显式创建的项目 `.venv` 中准备，出版依赖另装。不要求 uv、全局客户端配置或自动环境准备。
+读取与复制技能包不需要 Python。只有辅助命令需要 Python 3.11–3.14；文档命令的依赖默认在项目内显式创建的专用环境 `tmp/venv-tao` 中准备，不复用业务 `.venv`，出版依赖另装。将该环境目录加入项目忽略规则；准备步骤见 [运行环境](../../skills/tao-dev/references/runtime.md)。不要求 uv、全局客户端配置或自动环境准备。
 
 <!-- tao:section steps -->
 ## 复制到项目

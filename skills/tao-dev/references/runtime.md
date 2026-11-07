@@ -8,7 +8,19 @@
 
 ## 显式准备辅助工具
 
-需要文档命令时在目标项目用 `python3 -m venv .venv` 创建环境，再用该环境的 Python 执行 `-m pip install --require-hashes -r <skill>/scripts/requirements.txt`；HTML 构建另装 `scripts/requirements-publication.txt`。随后用同一解释器调用 `<skill>/scripts/tao.py`。安装文件本身不触发 pip。
+需要文档命令时，默认在目标项目根目录显式创建专用环境 `tmp/venv-tao`，不复用业务项目的 `.venv`。将 `tmp/venv-tao/` 加入项目忽略规则；清理该目录后需重新显式准备依赖。以下为 POSIX shell 示例，`SKILL` 改为实际加载的技能目录：
+
+```sh
+SKILL=.agents/skills/tao-dev
+python3 -m venv tmp/venv-tao
+PY=tmp/venv-tao/bin/python
+"$PY" -m pip install --require-hashes -r "$SKILL/scripts/requirements.txt"
+"$PY" "$SKILL/scripts/tao.py" --project . doctor --format json
+```
+
+HTML 构建另用同一解释器执行 `-m pip install --require-hashes -r "$SKILL/scripts/requirements-publication.txt"`。Windows 使用 `python -m venv tmp/venv-tao` 创建环境，随后通过 `tmp/venv-tao/Scripts/python.exe` 安装依赖和调用脚本。
+
+命令始终使用调用者指定的解释器，不自动创建、发现或切换环境，也不在 `~/.local`、`~/Library/Application Support` 等用户级目录安装环境。安装技能文件本身不触发 pip。
 
 ## 项目发现目录
 

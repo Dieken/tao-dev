@@ -62,8 +62,9 @@ def main(argv=None, entry='tao.py'):
     except ModuleNotFoundError as exc:
         requirements = SCRIPTS / ('requirements-publication.txt' if command == 'docs' else 'requirements.txt')
         message = (f'Optional document dependency is unavailable: {exc.name}. '
-                   'Create a project-local virtual environment with python -m venv .venv, '
-                   f'then use its Python to run -m pip install -r "{requirements}" '
+                   'From the target project root, create a dedicated environment with '
+                   'python -m venv tmp/venv-tao; do not reuse the application environment. '
+                   f'Then use its Python to run -m pip install --require-hashes -r "{requirements}" '
                    'and invoke this script. Skill reading and help/version need no packages.')
         report = {'tool': 'tao-dev', 'command': command, 'status': 'not_run',
                   'outputs': {}, 'diagnostics': [{'severity': 'error', 'message': message}]}

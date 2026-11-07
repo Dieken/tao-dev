@@ -38,7 +38,7 @@ cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 
 也可自行使用 [通用 skills 命令行工具](https://github.com/vercel-labs/skills)，在目标项目内显式选择技能、客户端与项目作用域；它不是 tao 的依赖。具体用法、副本更新与移除及验证边界见 [客户端接入](docs/user/clients.md)。
 
-只有运行辅助命令才需要 Python 3.11–3.14。显式创建项目 `.venv` 并安装该技能的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。使用所选环境的 Python 调用技能所在目录的 `scripts/tao.py`，不依赖全局启动程序，也不因读取或复制技能而自动准备依赖。
+只有运行辅助命令才需要 Python 3.11–3.14。默认在目标项目的 `tmp/venv-tao` 显式创建专用环境，并安装该技能的 `scripts/requirements.txt`；构建 HTML 另需 `scripts/requirements-publication.txt`。不复用业务项目的 `.venv`，将 `tmp/venv-tao/` 加入项目忽略规则；清理该目录后需重新显式准备依赖。使用该环境的 Python 调用技能所在目录的 `scripts/tao.py`，不依赖全局启动程序，也不因读取或复制技能而自动准备依赖或在用户级目录安装环境。
 
 ## 常用用法
 
@@ -69,10 +69,10 @@ tao-dev 不自带或注册客户端事件钩子（hook）。加载技能不会�
 
 ### 直接运行辅助命令
 
-以下为 POSIX shell 示例，在项目根目录执行，前提是已显式准备 Python 环境及依赖。`SKILL` 必须指向实际加载的技能目录；Claude Code 使用 `.claude/skills/tao-dev`，Kiro 使用 `.kiro/skills/tao-dev`，在本源码仓库直接使用 `skills/tao-dev`。Windows 使用项目环境的 `.venv/Scripts/python.exe` 调用相同脚本。
+以下为 POSIX shell 示例，在项目根目录执行，前提是已按 [运行环境](skills/tao-dev/references/runtime.md) 显式准备 `tmp/venv-tao` 及依赖。`SKILL` 必须指向实际加载的技能目录；Claude Code 使用 `.claude/skills/tao-dev`，Kiro 使用 `.kiro/skills/tao-dev`，在本源码仓库直接使用 `skills/tao-dev`。Windows 使用 `tmp/venv-tao/Scripts/python.exe` 调用相同脚本。开发 tao-dev 自身仍使用由本仓库锁文件管理的 `.venv` 与 justfile。
 
 ```sh
-PY=.venv/bin/python
+PY=tmp/venv-tao/bin/python
 SKILL=.agents/skills/tao-dev
 
 # 只读查看可用能力与计划进度

@@ -24,7 +24,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 <!-- tao:section contracts -->
 ## 依赖与执行
 
-阅读与复制技能不需要 Python 或文档解析库。辅助命令使用调用者选择的 Python；明确需要时在项目 `.venv` 安装 `scripts/requirements.txt`，HTML 出版额外使用 `scripts/requirements-publication.txt`。没有 `env prepare` 或自动依赖下载，不写入系统 Python、用户数据目录或业务环境。
+阅读与复制技能不需要 Python 或文档解析库。辅助命令使用调用者选择的 Python；明确需要时默认在项目 `tmp/venv-tao` 专用环境安装 `scripts/requirements.txt`，HTML 出版额外使用 `scripts/requirements-publication.txt`，不复用业务项目的 `.venv`。该目录由项目忽略规则排除，清理后由使用者显式重建。没有 `env prepare` 或自动依赖下载，不写入系统 Python、用户数据目录或业务环境；tao-dev 自身的开发 `.venv` 仍由本仓库锁文件管理。
 
 开发依赖由 `pyproject.toml` 与 `uv.lock` 锁定，发布依赖清单由现有导出工具产生并核对一致性；读取技能不触发这些工具。缺少依赖而不可用的功能由 `doctor` 和实际错误明确报告。
 
