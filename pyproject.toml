@@ -12,6 +12,7 @@ publication = ["Sphinx>=8,<10", "myst-parser>=4,<6", "sphinx-book-theme>=1,<2"]
 [dependency-groups]
 dev = [
     "pytest>=8,<10",
+    "pytest-xdist>=3,<4",
     "coverage>=7.10.6,<8",
     "ruff>=0.15,<1",
     "mini-racer>=0.14.1,<0.15",

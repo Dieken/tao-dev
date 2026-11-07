@@ -5,7 +5,7 @@ title: 开发与维护指南
 locale: zh-Hans
 status: draft
 created: "2026-09-15"
-updated: "2026-09-17"
+updated: "2026-11-07"
 ---
 
 # 开发与维护指南
@@ -22,7 +22,7 @@ updated: "2026-09-17"
 <!-- tao:section prerequisites -->
 ## 前置条件
 
-需要 uv 和 Python 3.11–3.14。开发依赖由 pyproject.toml 声明、uv.lock 锁定，环境位于忽略的 .venv/。出版链接测试通过 Python 包 mini-racer 执行生成的浏览器脚本，随开发依赖安装，不需要 Node.js，也不加入插件运行依赖。
+需要 uv 和 Python 3.11–3.14。开发依赖由 pyproject.toml 声明、uv.lock 锁定，环境位于忽略的 .venv/。完整回归通过 Python 包 pytest-xdist 按 CPU 并行执行；出版链接测试通过 Python 包 mini-racer 执行生成的浏览器脚本。两者随开发依赖安装，不需要 Node.js，也不加入插件运行依赖。
 
 在仓库根目录准备环境和离线测试材料：
 
@@ -31,7 +31,7 @@ uv sync --no-config --locked --extra publication
 uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
 ```
 
-第二条命令显式下载带锁定哈希的 wheel 到 tmp/tao/wheels；确定性回归离线使用它们，缺少时报告前提未满足。测试通过真实独立 venv 验证运行入口，不向业务环境安装依赖；已登录 Cursor/Kiro 的普通 pytest 还会运行限时原生 hook 会话，需要客户端服务网络。
+第二条命令显式下载带锁定哈希的 wheel 到 tmp/tao/wheels；确定性回归离线使用它们，缺少时报告前提未满足。测试通过真实独立 venv 验证运行入口，不向业务环境安装依赖。完整回归以 `-n auto` 按可用 CPU 并行执行；可计费的真实会话仅在显式设置 TAO_LIVE_ACCEPTANCE=1 时运行，未设置时即使客户端已登录也跳过。
 
 <!-- tao:section steps -->
 ## 操作步骤
@@ -45,10 +45,10 @@ uv run --no-config --locked --extra publication python tests/acceptance/runtime.
 ### 日常回归
 
 ```sh
-uv run --no-config --locked --extra publication python -m pytest
+uv run --no-config --locked --extra publication python -m pytest -n auto
 ```
 
-普通 pytest 运行确定性回归、原生安装／生命周期探针，以及文档中列出的 Claude/Codex 长流程 acceptance。`just check` 对配置化代码检查使用 `--no-reuse`，所以每次都会实际执行本段回归；直接调用 `tao verify` 仍可按默认策略复用有效证据。四端 CLI 的安装检查只要求 executable；需要模型的测试还要求只读登录检查，缺少任一前提即跳过。具备认证时，Claude/Codex acceptance 会使用独立实验 workspace、复用短时 access token 并可能产生费用；Cursor/Kiro hook 会话也有 45 秒上限。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。输入绑定的独立 review 和 scope probe 仍按 [验收说明](../../tests/acceptance/README.md) 显式运行。
+普通 pytest 并行运行确定性回归和原生安装／生命周期探针；显式设置 TAO_LIVE_ACCEPTANCE=1 后，还会运行文档中列出的 Claude/Codex 长流程 acceptance 与 Cursor/Kiro 原生 hook 会话。`just check` 对配置化代码检查使用 `--no-reuse`，所以每次都会实际执行本段回归；直接调用 `tao verify` 仍可按默认策略复用有效证据。四端 CLI 的安装检查只要求 executable；选择加入的模型测试还要求只读登录检查，缺少任一前提即跳过。具备认证时，Claude/Codex acceptance 会使用独立实验 workspace、复用短时 access token 并可能产生费用；Cursor/Kiro hook 会话也有 45 秒上限。覆盖率及配置化检查通过仓库的 `.tao/config.toml` 接入；度量是观察值，门槛由原生命令执行。输入绑定的独立 review 和 scope probe 仍按 [验收说明](../../tests/acceptance/README.md) 显式运行。
 
 安装相关回归可单独运行：
 
@@ -60,9 +60,9 @@ uv run --no-config --locked --extra publication python -m pytest
 
 ### 持续集成
 
-`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 调用同一个 `just check`。每个矩阵单元安装 Claude Code、Codex、Cursor 与 Kiro CLI；不配置凭据时，CLI-only 探针运行，需认证的 Claude/Codex、Cursor/Kiro 真实会话自动跳过。具备本地认证时，`just check` 会运行隔离的长流程 acceptance，并可能产生费用。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
+`.github/workflows/ci.yml` 在 ubuntu、macOS 与 Windows 上按 Python 3.11–3.14 调用同一个 `just check`。每个矩阵单元安装 Claude Code、Codex、Cursor 与 Kiro CLI；不配置凭据时，CLI-only 探针运行，Claude/Codex、Cursor/Kiro 真实会话自动跳过。CI 不设置 TAO_LIVE_ACCEPTANCE，因此不会调用模型；本地需要包含真实会话的完整验收时显式设置该变量，`just check` 会运行隔离的长流程 acceptance，并可能产生费用。`.github/workflows/book.yml` 在 main 更新后构建本手册并发布到 GitHub Pages，产物不写回仓库。
 
-本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。`just check` 的 Python 测试、原生探针和可用的真实会话统一执行；输入绑定的独立 review、scope probe 及出版构建仍按 [验收说明](../../tests/acceptance/README.md) 单独运行。
+本机通过不构成其他平台的证据，平台相关结论以对应 CI 作业为准。`just check` 的 Python 测试与原生探针统一执行，设置 TAO_LIVE_ACCEPTANCE=1 时还包括真实会话；输入绑定的独立 review、scope probe 及出版构建仍按 [验收说明](../../tests/acceptance/README.md) 单独运行。
 
 ### 在本仓库使用 tao
 

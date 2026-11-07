@@ -13,7 +13,7 @@ environment['TAO_COVERAGE_SOURCE'] = str(ROOT / 'plugins/tao-dev/skills/tao-dev/
 environment['TAO_COVERAGE_DATA'] = str(OUTPUT / '.coverage')
 commands = [
     ['erase'],
-    ['run', '-m', 'pytest', '-q'],
+    ['run', '-m', 'pytest', '-q', '-n', 'auto'],
     ['combine'],
     ['json', '-o', str(OUTPUT / 'coverage.json')],
     ['report'],

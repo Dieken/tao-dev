@@ -94,10 +94,10 @@ hook 直接使用安装器选定的 Python，不要求 Git for Windows 提供 `s
 ```sh
 uv sync --no-config --locked --extra publication
 uv run --no-config --locked --extra publication python tests/acceptance/runtime.py --download
-uv run --no-config --locked --extra publication python -m pytest
+uv run --no-config --locked --extra publication python -m pytest -n auto
 ```
 
-第二步显式下载测试所需 wheel；准备后确定性回归离线运行。普通 pytest 还会按统一 readiness 检查 Cursor/Kiro：CLI 已安装且已登录时自动运行一次限时、可计费的真实 hook 会话，否则跳过；GitHub CI 无凭据，因此不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
+第二步显式下载测试所需 wheel；准备后完整回归以 `-n auto` 离线并行运行。可计费的真实会话默认跳过，显式设置 `TAO_LIVE_ACCEPTANCE=1` 后才按统一 readiness 检查 Claude/Codex 与 Cursor/Kiro：CLI 已安装且已登录时运行限时的模型会话，否则跳过；GitHub CI 无凭据，因此不调用模型。环境隔离、文档校验、手册构建、依赖导出和打包命令见 [开发指南](docs/engineering/development.md)。
 
 本仓库通过 [AGENTS.md](AGENTS.md) 使用自身的 skill；运行材料在 `plugins/tao-dev/`，仅供维护的资料在 `docs/`。
 

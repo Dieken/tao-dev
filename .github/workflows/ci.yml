@@ -114,9 +114,9 @@ jobs:
         run: uv sync --no-config --locked --extra publication
 
       # The same entry point is used locally and in every CI matrix cell.
-      # just check prepares locked wheels, runs the configured full pytest
-      # suite, runs optional live acceptance when readiness allows it, and
-      # performs dependency/lint verification.
+      # just check prepares locked wheels, runs the configured pytest suite
+      # in parallel, and performs dependency/lint verification. Billable
+      # model acceptance stays opt-in through TAO_LIVE_ACCEPTANCE=1.
       - name: Run unified check
         run: just check
 
