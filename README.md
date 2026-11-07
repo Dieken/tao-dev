@@ -1,21 +1,21 @@
-# tao-dev · 协作开发之道
+# tao-dev · 项目知识与文档协作
 
-项目级、文档驱动的 coding-agent skill：明确需求，选择简单设计，以计划推进实现，用真实检查支持结论，留下可维护的长期知识。
+项目级文档与知识管理 skill：维护需求、设计与决定的语义契约，以持久计划保存跨会话、跨客户端的项目进度，让实际成果回到可维护的长期知识。
 
-## 开发主线
+## 文档与持久计划
 
-**new（spec → design → plan）→ review doc → implement → review code**，支持 refine、status、continue、handoff。
+tao-dev 负责文档的创建、修订、语义审查、关联、查询、退役与出版，不编排通用开发流程。agent 自行管理执行，并把实际成果、验证结果和阻碍写回项目材料。
 
 在目标项目加载 tao-dev 后，可以直接说：
 
-> 使用 tao-dev，为导出功能增加取消操作；完成规格、设计、计划、文档审查、实现和代码审查。
+> 使用 tao-dev，更新导出功能的取消行为约定；复用现有规格与设计，为需要跨会话跟踪的工作维护一份可验证结果计划。
 
-已有授权内连续推进，不要求逐篇文档批准或 workflow 注册。每个动作给出实际结果和下一步选项；安装和使用限定在目标项目内。
+不要求每次改动都新建 spec、design、plan 三件套。小改动复用适用文档；跨会话、多人协作或需要持续跟踪的工作使用持久计划。
 
-- **结构化知识**：保留现有文档 profile、稳定 ID、正向引用与 Sphinx book；章节按实际需要组织，不强制无关内容。
-- **唯一进度来源**：任务内联 plan 或唯一 tasks 附件；status 只读，不跑检查、不写状态。任务全勾选不代表已审查或已交付。
-- **轻量记录**：长期结论回到规格、设计、ADR；计划只存当前结果摘要。详细 review/evidence 默认临时，不自动建报告或提交。
-- **无状态恢复**：continue 核对计划和实际文件；显式 handoff 只替换一份临时 Markdown，不是恢复前置条件。
+- **语义契约**：规格定义行为与验收，设计说明方案与边界，ADR 保存长期取舍；格式校验不代替内容审查。
+- **唯一项目进度**：任务默认内联 plan，必要时唯一关联 tasks 附件；任务描述可验证成果，不抄录客户端的临时执行步骤。
+- **真实结果**：agent 核对事实后更新任务与计划摘要。status 只读，不跑检查、不写状态；任务全勾选不代表已验证、已审查或已交付。
+- **长期知识**：已完成计划保留为变更记录；当前有效事实回到规格、设计、ADR 或指南。稳定 ID、正向引用与书籍导航支持换会话和换客户端继续协作。
 
 ## 项目安装
 
@@ -50,9 +50,9 @@ cp -R skills/tao-dev /path/to/project/.agents/skills/tao-dev
 
 从 [AGENTS.md](AGENTS.md) 与 [开发指南](docs/engineering/development.md) 开始。显式准备项目环境后，`just check` 执行代码检查及锁定依赖导出核对，`just docs` 校验并构建文档，`just package <新目录>` 打包完整 skill。
 
-- [用户工作方式](docs/user/workflow.md)
+- [文档协作指南](docs/user/workflow.md)
 - [文档书籍入口](docs/index.md)
-- [当前纯 skill 规格](docs/product/project-skill.md) · [设计](docs/engineering/project-skill.md) · [实施计划](docs/plans/2026-11/20261108-project-skill.md)
+- [当前 skill 规格](docs/product/project-skill.md) · [设计](docs/engineering/project-skill.md) · [文档管理重构计划](docs/plans/2026-11/20261108-document-management.md)
 - [共享 skill](skills/tao-dev/SKILL.md)
 
 ## 许可

@@ -19,7 +19,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 <!-- tao:section architecture -->
 ## 归属与导航
 
-规格维护能力及 REQ/UC，设计维护边界和实现依据，跨事项取舍抽 ADR，计划维护一次目标的任务与当前验证摘要。任务默认内联，必要时由 tasks_doc 唯一关联附件；不引入审批、生命周期或流程文件。
+规格维护能力及 REQ/UC，设计维护边界和实现依据，跨事项取舍抽 ADR，计划维护一次目标的可验证成果任务与当前验证摘要。跨会话、协作或需跟踪工作使用持久计划，局部小改动复用适用文档，不强制生成三件套。任务默认内联，必要时由 tasks_doc 唯一关联附件；客户端临时步骤不另成项目进度源，不引入审批或流程状态文件。
 
 book 以 navigation profile 和 MyST toctree 表达主位置与顺序，不另设 parent/order 或 SUMMARY。每页只有一处主位置，普通链接可跨主题引用；导航须可达、无环、无重复目标。新增文档与导航同批更新。生成编号不写进标题、文件名或稳定 href；正文、侧栏和页内目录共用编号。
 
@@ -27,7 +27,7 @@ book 以 navigation profile 和 MyST toctree 表达主位置与顺序，不另�
 
 ## 保留与临时材料
 
-普通 review/evidence 详细输出留 temporary（默认 tmp/tao）或 CI，计划合并当前简短结论。显式 handoff 只替换 temporary/handoffs/<CHG-or-DOC>.md，不建 DOC/EVD，不加入导航，不是继续工作的前置条件。
+普通 review/evidence 详细输出留 temporary（默认 tmp/tao）或 CI，计划合并当前简短结论。临时摘要不建 DOC/EVD、不自动加入导航，也不是继续工作的前置条件。agent 根据真实成果写回持久计划；完成的计划保留为变更记录，当前知识回到规格、设计、ADR 与指南。
 
 确有独立引用、审计或长期复查价值时才用 evidence profile；不能仅因执行过某轮检查就建报告。保留有价值的历史结果、输入范围及限制，不改写旧失败为成功。退役记录按现有 JSONL 格式保存到 docs/retired，区分已删除对象与仍可使用但不推荐的功能。
 

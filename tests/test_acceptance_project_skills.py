@@ -56,7 +56,7 @@ def test_copy_acceptance_checks_the_entire_bundle(monkeypatch, mutation):
         destination = Path(destination)
         if Path(source) == acceptance.SOURCE:
             if mutation == "missing-reference":
-                (destination / "references/workflow.md").unlink()
+                (destination / "references/documents.md").unlink()
             elif mutation == "changed-script":
                 (destination / "scripts/tao.py").write_text("changed", encoding="utf-8")
             else:

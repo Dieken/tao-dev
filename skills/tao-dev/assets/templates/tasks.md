@@ -5,6 +5,8 @@ title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
 created: "{{CREATED}}"
+# This is the single task attachment referenced by its owning plan's tasks_doc.
+# Use the owning plan's change; do not duplicate its task set.
 change: "{{CHG_ID}}"
 ---
 

@@ -165,12 +165,8 @@
   "For a navigation target, use a relative Markdown link with line numbers outside it; keep filename examples as code without inventing a target.": "若是导航目标，使用相对 Markdown 链接并将行号放在链接外；文件命名示例可保留代码形式，不编造目标。",
   "--only accepts docs, code or docs,code.": "--only 只接受 docs、code 或 docs,code。",
   "--count must be a positive integer.": "--count 必须为正整数。",
-  "The selected plan must have a valid, unique indexed CHG or DOC identity.": "所选计划必须具有有效、唯一且属于该计划的已索引 CHG 或 DOC 标识。",
   "No indexed plan matches the requested CHG, DOC or project-relative path.": "没有已索引计划匹配指定的 CHG、DOC 或项目相对路径。",
-  "Handoff --from must be a project-relative Markdown path.": "交接 --from 必须为项目内的 Markdown 相对路径。",
-  "Handoff --from must be a Markdown file.": "交接 --from 必须为 Markdown 文件。",
   "Formal directives cannot nest; close the preceding block.": "正式条目不能嵌套；请先关闭前一个代码围栏。",
   "Formal directive is missing its closing fence.": "正式条目缺少结束代码围栏。",
-  "Handoff summary must not be empty.": "交接摘要不能为空。",
   "environment must be a string array.": "environment 必须为字符串数组。"
 }

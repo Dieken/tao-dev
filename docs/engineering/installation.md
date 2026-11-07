@@ -14,7 +14,7 @@ spec_docs: ["DOC_20260914_E1B61A3F8V1TYAZB"]
 <!-- tao:section overview -->
 ## 目标与范围
 
-分发完整 skill，接入只发生在明确项目内。手工复制是无安装器依赖的基线，通用 skills 工具是可选便利方式；tao 不实现安装生命周期。用户操作见 [接入指南](../user/clients.md)。
+分发完整文档与知识管理 skill，包含持久计划能力而非通用开发编排，接入只发生在明确项目内。手工复制是无安装器依赖的基线，通用 skills 工具是可选便利方式；tao 不实现安装生命周期。用户操作见 [接入指南](../user/clients.md)。
 
 <!-- tao:section architecture -->
 ## 组件与数据流

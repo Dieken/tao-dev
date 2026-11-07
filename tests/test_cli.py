@@ -251,34 +251,6 @@ def test_id_collision_limit_and_full_random_alphabet():
     assert new_id("REQ", registry, set(), today=date(2026, 9, 14), random_bytes=lambda n: b"\xff" * n) == "REQ_20260914_ZZZZZZZZZZZZZZZZ"
 
 
-def test_handoff_saves_plain_temporary_summary_without_plan_mutation(tmp_path):
-    from test_relationships import change, check_change, CHG
-
-    check_change(tmp_path, change())
-    (tmp_path / "spec.md").rename(tmp_path / "docs/spec.md")
-    plan = tmp_path / "docs/plans/2026-09/20260914-export.md"
-    original = plan.read_bytes()
-    draft = tmp_path / "draft.md"
-    text = "# Continue export\n\nNext: review the implementation.\n"
-    draft.write_text(text, encoding="utf-8")
-    completed = run(tmp_path, "handoff", CHG, "--from", "draft.md")
-    assert completed.returncode == 0, completed.stdout
-    output = json.loads(completed.stdout)["outputs"]
-    target = tmp_path / output["path"]
-    assert target == tmp_path / f"tmp/tao/handoffs/{CHG}.md"
-    assert output["temporary"] is True and "id" not in output
-    assert target.read_text(encoding="utf-8") == text
-    assert plan.read_bytes() == original
-    draft.write_text("# Updated next step\n", encoding="utf-8")
-    assert run(tmp_path, "handoff", "--from", "draft.md").returncode == 0
-    assert target.read_text(encoding="utf-8") == "# Updated next step\n"
-    assert plan.read_bytes() == original
-    target.unlink()
-    assert run(tmp_path, "status", CHG).returncode == 0
-    assert not (tmp_path / ".tao").exists()
-    assert not (tmp_path / ".git").exists()
-
-
 def test_equals_json_format_is_preserved_on_parser_failure(tmp_path):
     completed = subprocess.run([sys.executable, str(ENTRY), '--project', str(tmp_path), '--format=json', 'unknown-operation'], capture_output=True, text=True, encoding="utf-8")
     assert completed.returncode == 2

@@ -33,7 +33,7 @@ def usage():
         'Usage: python <skill>/scripts/tao.py [--project <directory>] <command>',
         '',
         'Document helpers (optional dependencies in your Python environment):',
-        '  doctor, show, id new, new, status, handoff, verify, docs, project, retire',
+        '  doctor, show, id new, new, status, verify, docs, project, retire',
         '  See <command> --help for options.',
         '',
         'Reading SKILL.md and using help/version never prepares dependencies.',

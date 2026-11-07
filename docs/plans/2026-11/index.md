@@ -21,6 +21,7 @@ created: "2026-11-05"
 :maxdepth: 2
 :titlesonly:
 
+20261108-document-management.md
 20261108-project-skill.md
 20261108-project-skill/tasks.md
 ```

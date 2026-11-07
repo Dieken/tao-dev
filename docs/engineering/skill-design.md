@@ -14,14 +14,14 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P", "DOC_20260914_E1B61A3F8V1TYAZB"]
 <!-- tao:section overview -->
 ## 分发边界
 
-产品是项目级纯 skill，源码位于 skills/tao-dev。分发只包含用户项目 agent 实际读取的 SKILL.md、references、assets 和执行需要的 scripts。内部 spec/design/plan、研发测试及研究资料不打包；共享资源必须有真实读者或运行消费者。稳定 ID、结构化文档与书籍能力保留。
+产品是项目级文档与知识管理 skill，源码位于 skills/tao-dev。分发只包含用户项目 agent 实际读取的 SKILL.md、references、assets 和执行需要的 scripts，覆盖文档生命周期与持久项目计划。内部 spec/design/plan、通用工程开发规程、研发测试及研究资料不打包；共享资源必须有真实读者或运行消费者。稳定 ID、结构化文档与书籍能力保留。
 
 <!-- tao:section architecture -->
 ## 包与入口
 
 scripts/package_skill.py --output <新目录> 复制 canonical skills/tao-dev，just package <新目录> 提供同一入口。完整包可手工复制到明确项目的发现目录，或由使用者选择通用工具；具体边界见 [分发设计](installation.md)。
 
-SKILL.md 按需加载工程、动作、文档与工具参考，不能依赖开发仓库 docs 才能完成使用方任务。模板和文档注册表来自同包，不另维护客户端专用版本。
+SKILL.md 按需加载文档语义、持久计划、文档审查与工具参考，不能依赖开发仓库 docs 才能完成使用方的文档工作，也不携带通用实现或代码审查动作。模板和文档注册表来自同包，不另维护客户端专用版本。
 
 <!-- tao:section contracts -->
 ## 依赖与执行

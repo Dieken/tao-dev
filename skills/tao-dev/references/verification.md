@@ -4,10 +4,10 @@
 
 ## 配置项目检查
 
-优先复用 manifest、CI 和现有项目命令。用 `tao project inspect` 只读发现候选，核对副作用与运行条件后通过 project configure 写入配置。argv 不经隐式 shell；业务工具不安装到 tao 自身环境。检查的输入、超时及复用策略按项目配置，具体可用字段以 inspect 与当前 CLI 帮助为准。
+优先复用 manifest、CI 和现有项目命令。用 `tao project inspect` 只读发现候选，核对副作用与运行条件后通过 project configure 显式写入配置，见 [可选项目接入](project-setup.md)。argv 不经隐式 shell；业务工具不安装到 tao 自身环境。检查的输入、超时及复用策略按项目配置，具体可用字段以 inspect 与当前 CLI 帮助为准。
 
 ## 解释结果
 
 只声称实际运行或明确标识复用的结果；保留实际执行时间、输入范围、退出码和未覆盖内容。旧输入的结果不能冒充新改动通过，缺工具或未运行不等于通过。可复用本地检查记录不构成 review 回执，不需要导入审查或满足任务完成门槛。输入变化按影响重验，不降低断言来隐藏失败。
 
-计划 verification 保存当前简短摘要，详情放 temporary 或 CI 产物。任务勾选、结构检查与行为检查分别报告；审查由 agent 按 [审查规程](review.md) 执行。没有 evidence-only gate 或 finish。
+计划 verification 保存当前简短摘要，详情放 temporary 或 CI 产物。任务勾选、结构检查与行为检查分别报告；文档的内容与来源须按 [语义审查](review.md) 判断，源文档检查不能证明外部事实真实。已配置的代码检查只是可选显式助手，不是 tao 的实施阶段或完成门禁；没有配置、没有运行或结果未知时如实报告。

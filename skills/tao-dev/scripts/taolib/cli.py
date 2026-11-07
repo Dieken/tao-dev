@@ -1,4 +1,4 @@
-"""Deterministic project document helpers; skill actions have no runtime state."""
+"""Deterministic document and persistent project progress helpers."""
 
 import argparse
 from dataclasses import asdict
@@ -12,7 +12,6 @@ import time
 
 from . import __version__
 from .documents import ASSETS, validate
-from .handoff import save as save_handoff
 from .identifiers import new_id, new_ids
 from .project import (ConfigurationError, ConflictError, Project, contained,
                       create_file, mutation_lock, select_plans)
@@ -21,7 +20,7 @@ from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
 CAPABILITIES = ["doctor", "id.new", "show",
-                "new", "status", "handoff", "retire", "verify.docs",
+                "new", "status", "retire", "verify.docs",
                 "project.inspect", "project.configure"]
 if all(find_spec(module) for module in ("sphinx", "myst_parser", "sphinx_book_theme")):
     CAPABILITIES.append("docs.build")
@@ -58,9 +57,6 @@ def arguments(argv):
     status = commands.add_parser("status", parents=[common])
     status.add_argument("target", nargs="?", help="Plan CHG, DOC or project-relative path; omit to list plans.")
     status.add_argument("--simplified", action="store_true", help="Omit completed task details.")
-    handoff = commands.add_parser("handoff", parents=[common])
-    handoff.add_argument("target", nargs="?", help="Plan CHG, DOC or project-relative path.")
-    handoff.add_argument("--from", dest="source", required=True)
     retirement = commands.add_parser("retire", parents=[common])
     retirement.add_argument("id")
     retirement.add_argument("--reason", required=True)
@@ -122,7 +118,7 @@ def skeleton(project, args, registry, existing):
     rendered = re.sub(r"\{\{([^}]+)\}\}", lambda m: values.get(m[1], m[0]), template)
     create_file(project.root, path, rendered)
     return {"path": path.relative_to(project.root).as_posix(), "ids": ids,
-            "draft_complete": False, "next_actions": ["refine", "review doc"]}
+            "draft_complete": False}
 
 
 def section_summary(project, document, section):
@@ -164,7 +160,7 @@ def plan_status(project, result, target=None, *, simplified=False):
         pending = [task for task in tasks if task["status"] != "completed"]
         completed = len(tasks) - len(pending)
         progress = ("unavailable" if not task_set_valid else "planning" if not tasks
-                    else "implementation_complete" if not pending else "in_progress" if completed else "pending")
+                    else "tasks_complete" if not pending else "in_progress" if completed else "pending")
         rows.append({"id": plan.metadata.get("id"), "change": plan.metadata.get("change"),
                      "path": plan.path, "title": plan.metadata.get("title", plan.path),
                      "progress": progress, "progress_basis": "inferred_from_tasks" if task_set_valid else "unavailable",
@@ -173,18 +169,14 @@ def plan_status(project, result, target=None, *, simplified=False):
                      "task_counts": {"total": len(tasks), "completed": completed, "pending": len(pending)} if task_set_valid else None,
                      "tasks": pending if simplified else tasks, "pending_tasks": pending,
                      "verification_summary": section_summary(project, plan, "verification"),
-                     "review": "unknown",
-                     "next_actions": ["review code", "refine"] if progress == "implementation_complete"
-                     else ["refine", "review doc"] if progress in ("planning", "unavailable")
-                     else ["implement", "refine", "handoff"]})
+                     "review": "unknown"})
     planning = [{"id": doc.metadata.get("id"), "path": doc.path, "title": doc.metadata.get("title", doc.path),
-                 "progress": "planning", "review": "unknown", "next_actions": ["refine", "new", "review doc"]}
+                 "progress": "planning", "review": "unknown"}
                 for doc in result.documents.values()
                 if target is None and doc.metadata.get("schema") in ("tao.project.spec/v0.1", "tao.project.design/v0.1")
                 and (not isinstance(doc.metadata.get("id"), str) or doc.metadata["id"] not in linked)]
     return {"plans": rows, "planning": planning,
             "validation": "Read-only document diagnostics; task progress is not review or delivery certification.",
-            "next_actions": ["continue", "refine", "handoff"] if rows else ["new", "refine"],
             "output_mode": "simplified" if simplified else "full"}
 
 
@@ -280,12 +272,10 @@ def dispatch(args):
         if target is None:
             raise ConflictError("ID not found in the managed source and retirement index.")
         report["outputs"] = {"definition": asdict(target), "references": [asdict(r) for r in result.references if r.target == args.id], "url": None}
-    elif args.command == "handoff":
-        report["outputs"] = save_handoff(project, args.source, args.target, result)
     elif args.command == "status":
         report["outputs"] = plan_status(project, result, args.target, simplified=args.simplified)
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
-    if args.command in ("show", "status", "handoff"):
+    if args.command in ("show", "status"):
         report["outputs"]["documents_valid"] = result.valid
         if not result.valid:
             report["status"] = "partial"

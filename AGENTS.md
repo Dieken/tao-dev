@@ -33,13 +33,20 @@ by default. Retain separate evidence documents or raw data only when
 independent references or explicit retention needs justify them. Log
 expiry alone does not reverse historical results or task completion.
 
-The workflow is new (spec, design, plan), review doc, implement, review
-code, with refine, status, continue and explicit handoff. Continue within
-existing authorization; do not require step approvals, workflow
-registration, review receipts or finish. The plan or its single task
-attachment is the progress source. Checked tasks do not imply reviewed
-or delivered; absent review evidence is unknown. Handoff replaces one
-temporary Markdown summary and is not required to resume.
+tao manages project documents and knowledge contracts, including persistent
+plans and progress. Agents and their clients manage development execution,
+permissions, scheduling and sessions; tao does not impose a development
+pipeline. Reuse relevant specs and designs rather than creating a complete
+document set for every edit. Continue within existing authorization.
+
+For cross-session, collaborative or explicitly tracked work, keep project
+progress in the plan's inline tasks or its single task attachment. Client
+task lists are temporary execution steps, not a second project progress
+source. Write actual outcomes, remaining work, blockers and verification
+summaries back to the plan; reconcile it with current files when resuming.
+Checked tasks do not imply verified, reviewed or delivered; absent review
+evidence is unknown. Completed plans record changes, while current
+requirements and lasting decisions belong in specs, designs and ADRs.
 
 Use the bundled source validator and project-local Python environment
 for explicitly requested checks. Local HTML publication and configured

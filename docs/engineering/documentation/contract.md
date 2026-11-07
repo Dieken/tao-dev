@@ -14,7 +14,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 <!-- tao:section overview -->
 ## 适用范围
 
-开发与使用方采用同包 [格式注册表](../../../skills/tao-dev/assets/document-profiles.json)、[文档规程](../../../skills/tao-dev/references/documents.md) 与模板。README、skill 指令、临时输出不自动进入受管理集合；长期 spec/design/plan/tasks/ADR、指南、术语与导航使用现有 v0.1 profile。需要独立长期引用的 evidence 可选；handoff 使用临时 Markdown。
+开发与使用方采用同包 [格式注册表](../../../skills/tao-dev/assets/document-profiles.json)、[文档规程](../../../skills/tao-dev/references/documents.md) 与模板。README、skill 指令、临时输出不自动进入受管理集合；长期 spec/design/plan/tasks/ADR、指南、术语与导航使用现有 v0.1 profile。需要独立长期引用的 evidence 可选；不额外引入交接或流程状态文档。
 
 公开写法沿用 [EARS](https://alistairmavin.com/ears/) 的条件化需求、[Gherkin](https://cucumber.io/docs/gherkin/reference/) 的给定/当/则、[ADR](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions) 的背景/决定/后果，并参考 [arc42](https://arc42.org/overview/) 和 [Diátaxis](https://diataxis.fr/) 按内容组织。它们不是本产品获得的认证；tao 的稳定键、ID 和关系是自己的契约。
 
@@ -29,13 +29,15 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 保留 YAML 元数据、profile、DOC 和条目语法；必要语义章节仍要求存在，章节顺序、数量及不相关模板章节不再强制。自定义章节允许，稳定 section/field 键若出现不得重复。正文语言与显示标签不决定结构，locale 不改变 ID、规则号或结果。
 
-REQ/UC/ADR 仍采用 MyST 指令与现有关系选项。TASK 是 tasks 章节的扁平 checkbox，必须有唯一 TASK ID 和非空 verify；relates、depends_on、evidence 可选。提供的关系必须合法，任务依赖无环。完成勾选不要求证据附件，也不推断审查完成。
+文档契约同时约束含义：规格说明可观察行为与验收，设计解释结构、接口、不变量及失败，ADR 保留背景、决定与后果，计划定义范围、成果任务与验证方法。语义审查核对一致性、可验证性和当前事实，不能由必填字段存在推断完成。按实际知识缺口选用类型，不强制每次改动形成文档三件套。
+
+REQ/UC/ADR 仍采用 MyST 指令与现有关系选项。TASK 是 tasks 章节的扁平 checkbox，必须有唯一 TASK ID 和非空 verify；relates、depends_on、evidence 可选。提供的关系必须合法，任务依赖无环。任务描述可验证成果，不照抄客户端临时步骤；完成勾选不要求证据附件，也不推断验证、审查或交付完成。
 
 plan.change 定义 CHG；tasks.change 引用同一计划；evidence.evidence 定义 EVD。plan 内联任务或通过 tasks_doc 指向一份附件，不同时维护两份任务。spec_docs/design_docs 如提供，应引用对应类型文档。草稿可缺尚未形成的依据，审查根据实际内容判断其完整性。
 
 ## 知识与记录
 
-规格、设计和 ADR 保留长期知识；plan verification 合并当前摘要。详细 review/evidence 默认临时；显式长期记录沿用 evidence，不新增批次或审查 schema。handoff 是 temporary 下普通 Markdown，不进入索引或 book。历史检查结果、原始材料可用性和当前可复用性分别说明，不因日志消失回写任务状态。
+规格、设计和 ADR 保留长期当前知识；持久 plan/tasks 是跨会话、协作或跟踪工作的权威项目进度，agent 核对事实后写回成果与阻碍，在 plan verification 合并当前摘要。完成计划作为变更记录保留，不替代长期知识。客户端临时任务和摘要不构成另一份进度源。详细 review/evidence 默认临时；显式长期记录沿用 evidence，不新增批次或审查 schema。历史检查结果、原始材料可用性和当前可复用性分别说明，不因日志消失回写任务状态。
 
 <!-- tao:section invariants -->
 ## 标识与出版

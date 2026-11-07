@@ -5,7 +5,8 @@ title: "{{TITLE}}"
 locale: "{{LOCALE}}"
 status: draft
 created: "{{CREATED}}"
-# Optionally link spec_docs/design_docs by DOC ID and one tasks_doc attachment.
+# Link existing spec_docs/design_docs only when relevant; neither is a prerequisite.
+# Use inline tasks by default, or tasks_doc for one attachment with the same change.
 change: "{{CHG_ID}}"
 ---
 

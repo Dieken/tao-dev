@@ -1,4 +1,4 @@
-"""One line-delimited YAML envelope for validation and workflow consumers."""
+"""One line-delimited YAML envelope for document consumers."""
 import yaml
 from tao_messages import Message
 
