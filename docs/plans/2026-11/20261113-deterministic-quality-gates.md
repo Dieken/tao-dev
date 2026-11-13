@@ -44,7 +44,7 @@ design_docs: ["DOC_20260914_0VF190409FQCN197"]
   - relates: ["REQ_20260914_0J68SDKV86ENKER2"]
   - depends_on: ["TASK_20261113_DP25XJYVJ3WW4H94"]
   - verify: 对成功和失败状态生成 evidence.json，检查提交、环境、状态和实际存在的附件路径
-- [ ] `TASK_20261113_XH5CBJ7689PFKCHF` 更新公开规程并验证完整变更
+- [x] `TASK_20261113_XH5CBJ7689PFKCHF` 更新公开规程并验证完整变更
   - relates: ["REQ_20260914_95193C19C90NRXV4"]
   - depends_on: ["TASK_20261113_DP25XJYVJ3WW4H94", "TASK_20261113_R6F8E95EN2XFBJD0", "TASK_20261113_Y8KHRD9WJQ04JZ7W"]
   - verify: 运行 just check、文档 HTML 构建和源文档校验，记录实际范围、未覆盖项与限制
@@ -57,6 +57,8 @@ design_docs: ["DOC_20260914_0VF190409FQCN197"]
 2026-11-13，当前工作树：`verify --format sarif` 对无诊断、文档错误和 CLI 输入错误分别产生 SARIF 2.1.0；退出码为 0、1、2，且 invocation 分别标明检查已执行或未执行。非 `verify` 命令使用 SARIF 以退出码 2 拒绝。人工解析生成文件，核对了 schema 版本、规则号、级别、位置、原生输出和执行状态；`just check` 通过（322 项通过、1 项原生客户端发现按显式条件跳过、分支覆盖率 85%）。未使用外部 SARIF schema 校验器。
 
 2026-11-13，当前工作树：仓库脚本为成功和失败检查生成版本 1 的临时证据索引，记录 run ID、提交、UTC 时间、Python 与 tao 版本、运行环境、归一化状态，以及实际附件的路径、大小和 SHA-256；缺失附件单独列出。成功样例索引了 coverage、Ruff 和文档报告，失败样例保留 `failed` 与缺失附件；项目临时目录外的输出以退出码 2 拒绝。`just check` 通过（322 项通过、1 项原生客户端发现按显式条件跳过、分支覆盖率 85%），CI YAML 可由 PyYAML 解析。尚未在 GitHub 托管运行器验证 `steps.<id>.outcome` 和 artifact 上传行为。
+
+2026-11-13，提交 `0fa32ff` 后的完整验证：`just check` 通过，322 项测试通过，Codex 原生发现的 1 项显式验收未运行，分支覆盖率 85%；Ruff 的 E9/F63/F7/F82 检查、受管理文档校验和锁定依赖导出核对通过。`just docs` 通过，构建 112 个定义的本地 HTML，实际检查稳定链接。Python 3.14 报告 py-mini-racer 的 36 条上游弃用警告及一个覆盖率子进程无数据警告，未影响退出状态。历史 ID 删除只在提供基线的专用 PR 作业执行；普通源文档校验仍如实报告 `deletion_checked: false`。未运行 GitHub 托管工作流、Codex 原生发现或真实模型会话，也未用外部 SARIF schema 校验器。
 
 <!-- tao:section questions -->
 ## 待确认事项
