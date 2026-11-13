@@ -33,7 +33,7 @@ class ArgumentParser(argparse.ArgumentParser):
 def arguments(argv):
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", type=Path, default=argparse.SUPPRESS)
-    common.add_argument("--format", choices=("text", "json"), default=argparse.SUPPRESS)
+    common.add_argument("--format", choices=("text", "json", "sarif"), default=argparse.SUPPRESS)
     common.add_argument("--diagnostic-locale", default=argparse.SUPPRESS)
     parser = ArgumentParser(prog="tao", parents=[common])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -69,6 +69,8 @@ def arguments(argv):
     args.project = getattr(args, "project", None)
     args.format = getattr(args, "format", "text")
     args.diagnostic_locale = getattr(args, "diagnostic_locale", None)
+    if args.format == "sarif" and args.command != "verify":
+        raise ConfigurationError("--format sarif is available only for verify.")
     if args.diagnostic_locale is not None and not valid_locale(args.diagnostic_locale):
         raise ConfigurationError('--diagnostic-locale must be a language tag.')
     return args
@@ -268,10 +270,77 @@ def dispatch(args):
     return report, 0
 
 
+def sarif_location(item):
+    path = item.get("path")
+    if not isinstance(path, str):
+        return None
+    physical = {"artifactLocation": {"uri": path}}
+    line = item.get("line")
+    column = item.get("column")
+    if isinstance(line, int) and line > 0:
+        region = {"startLine": line}
+        if isinstance(column, int) and column > 0:
+            region["startColumn"] = column
+        physical["region"] = region
+    return {"physicalLocation": physical}
+
+
+def sarif(report, code):
+    diagnostics = report.get("diagnostics", [])
+    rules = sorted({item.get("rule_id") for item in diagnostics
+                    if isinstance(item.get("rule_id"), str)})
+    results = []
+    levels = {"error": "error", "warning": "warning", "info": "note"}
+    excluded = {"rule_id", "severity", "path", "line", "column", "message",
+                "related_locations"}
+    for item in diagnostics:
+        result = {
+            "ruleId": item.get("rule_id", "TAO-UNKNOWN"),
+            "level": levels.get(item.get("severity"), "none"),
+            "message": {"text": str(item.get("message", ""))},
+        }
+        location = sarif_location(item)
+        if location is not None:
+            result["locations"] = [location]
+        related = [location for value in item.get("related_locations", [])
+                   if (location := sarif_location(value)) is not None]
+        if related:
+            result["relatedLocations"] = [dict(location, id=index)
+                                          for index, location in enumerate(related, 1)]
+        properties = {key: value for key, value in item.items()
+                      if key not in excluded and value not in (None, {}, [], "")}
+        if properties:
+            result["properties"] = properties
+        results.append(result)
+    run = {
+        "tool": {"driver": {
+            "name": "tao-dev",
+            "semanticVersion": report.get("tool_version", __version__),
+            "rules": [{"id": rule, "shortDescription": {"text": rule}}
+                      for rule in rules],
+        }},
+        "invocations": [{"executionSuccessful": code in (0, 1), "exitCode": code}],
+        "results": results,
+        "properties": {
+            "protocolVersion": report.get("protocol_version"),
+            "taoStatus": report.get("status"),
+            "outputs": report.get("outputs", {}),
+        },
+    }
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [run],
+    }
+
+
 def main(argv=None):
     started = time.monotonic()
     argv = sys.argv[1:] if argv is None else argv
-    output_format = "json" if "--format=json" in argv or any(argv[i:i + 2] == ["--format", "json"] for i in range(len(argv))) else "text"
+    output_format = next((value for value in ("sarif", "json")
+                          if f"--format={value}" in argv
+                          or any(argv[i:i + 2] == ["--format", value]
+                                 for i in range(len(argv)))), "text")
     args = argparse.Namespace(command="unknown", format=output_format)
     try:
         args = arguments(argv)
@@ -282,7 +351,9 @@ def main(argv=None):
                       status="failed" if code == 1 else "not_run", diagnostics=[{
                           "rule_id": "TAO-CLI-001", "severity": "error", **diagnostic(exc, configured_locale(argv))}], outputs={})
     report["duration_seconds"] = round(time.monotonic() - started, 6)
-    if args.format == "json":
+    if args.format == "sarif":
+        print(json.dumps(sarif(report, code), ensure_ascii=False, indent=2))
+    elif args.format == "json":
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
         print(f"tao {args.command}: {report['status']}")

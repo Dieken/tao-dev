@@ -36,7 +36,7 @@ design_docs: ["DOC_20260914_0VF190409FQCN197"]
 - [x] `TASK_20261113_DP25XJYVJ3WW4H94` 接入显式文档 ID 基线和 PR 文档门禁
   - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3", "REQ_20260914_5Y6CWDE3MFMKJXSB"]
   - verify: 用有效、缺失和畸形基线运行 CLI，并检查 PR 工作流同时执行当前文档校验与目标提交删除校验
-- [ ] `TASK_20261113_R6F8E95EN2XFBJD0` 增加文档诊断的可选 SARIF 2.1.0 输出
+- [x] `TASK_20261113_R6F8E95EN2XFBJD0` 增加文档诊断的可选 SARIF 2.1.0 输出
   - relates: ["REQ_20260914_42AXMZ2KH2RAZ8M3"]
   - depends_on: ["TASK_20261113_DP25XJYVJ3WW4H94"]
   - verify: 对通过、文档错误和 CLI 输入错误运行 SARIF 输出，检查 schema、规则、位置、状态与退出码
@@ -52,7 +52,9 @@ design_docs: ["DOC_20260914_0VF190409FQCN197"]
 <!-- tao:section verification -->
 ## 验证
 
-2026-11-13，当前工作树：实现 `verify --baseline` 的版本化 JSON 输入及基线摘要，新增仓库基线导出脚本，并让 `just check` 执行 `docs-verify`；PR 工作流另行检出目标提交并执行删除检查。当前 112 个定义的 HEAD 基线验证通过；增加一个未退役 REQ 的基线以退出码 1 和 `TAO-ID-003` 失败；非法 ID 基线以退出码 2 和 `TAO-CLI-001` 拒绝。`just check` 通过（322 项通过、1 项原生客户端发现按显式条件跳过、分支覆盖率 87%），CI YAML 可由 PyYAML 解析。尚未在 GitHub 托管运行器执行工作流，远端 required-check 配置未知。
+2026-11-13，提交 `534b2e0`：实现 `verify --baseline` 的版本化 JSON 输入及基线摘要，新增仓库基线导出脚本，并让 `just check` 执行 `docs-verify`；PR 工作流另行检出目标提交并执行删除检查。当前 112 个定义的 HEAD 基线验证通过；增加一个未退役 REQ 的基线以退出码 1 和 `TAO-ID-003` 失败；非法 ID 基线以退出码 2 和 `TAO-CLI-001` 拒绝。`just check` 通过（322 项通过、1 项原生客户端发现按显式条件跳过、分支覆盖率 87%），CI YAML 可由 PyYAML 解析。尚未在 GitHub 托管运行器执行工作流，远端 required-check 配置未知。
+
+2026-11-13，当前工作树：`verify --format sarif` 对无诊断、文档错误和 CLI 输入错误分别产生 SARIF 2.1.0；退出码为 0、1、2，且 invocation 分别标明检查已执行或未执行。非 `verify` 命令使用 SARIF 以退出码 2 拒绝。人工解析生成文件，核对了 schema 版本、规则号、级别、位置、原生输出和执行状态；`just check` 通过（322 项通过、1 项原生客户端发现按显式条件跳过、分支覆盖率 85%）。未使用外部 SARIF schema 校验器。
 
 <!-- tao:section questions -->
 ## 待确认事项

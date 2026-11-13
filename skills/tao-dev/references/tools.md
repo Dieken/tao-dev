@@ -17,7 +17,7 @@
 
 ## 查询与进度
 
-日常机器可读查询使用 `--format json`。`status`／`show` 遇到无关草稿错误仍返回可用结果，并标为 `partial`、`outputs.documents_valid=false`；完整校验用 `verify`。所选任务集合缺失、关联错误或结构损坏时，进度为 `unavailable`、计数为 `null`。任务全部勾选时的 `tasks_complete` 不代表已验证、已审查或已交付，结果须从 [计划原文](planning.md#结果保存) 核对。
+日常机器可读查询使用 `--format json`。`verify` 还接受 `--format sarif`，把同一诊断映射为 SARIF 2.1.0，供静态分析平台读取；规则号、严重度、主位置、相关位置和修正信息保留在 SARIF 结果中，文档计数与删除检查状态位于 run properties。SARIF 不是 tao 的通用命令协议，其他命令拒绝该格式。`status`／`show` 遇到无关草稿错误仍返回可用结果，并标为 `partial`、`outputs.documents_valid=false`；完整校验用 `verify`。所选任务集合缺失、关联错误或结构损坏时，进度为 `unavailable`、计数为 `null`。任务全部勾选时的 `tasks_complete` 不代表已验证、已审查或已交付，结果须从 [计划原文](planning.md#结果保存) 核对。
 
 `status` 返回计数、待办和源文件位置，不复制已完成任务或验证正文；查询不运行检查。`new`／`status` 不提供下一执行动作，计划骨架不授权执行。ID 分配避开未完成草稿和退役记录中的已有 ID，不要求整本书先通过校验。
 

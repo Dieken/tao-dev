@@ -26,7 +26,7 @@ spec_docs: ["DOC_20260914_4C7N0XHQSP7CY69P"]
 
 `status [CHG|DOC|项目相对计划路径]`：省略目标时列出全部计划和未关联计划的规划材料。固定提供任务计数、`pending_tasks`、源文件位置及推断进度 `planning`、`pending`、`in_progress`、`tasks_complete`。已完成任务通过计数表达；输出不包含完整任务列表或验证正文，不生成审查结论。需要判断验证与审查时，读取计划路径中的实际记录，不能从全部勾选推断已验证、已审查或已交付。
 
-`verify [--baseline <项目相对 JSON>]`：只读校验受管理文档，固定返回 `valid`、`counts`、`deletion_checked` 与诊断，不构造完整索引再裁剪。调用方可提供带版本和来源修订的显式 ID 基线；此时额外返回基线摘要，并将未经退役的缺失 ID 作为错误。没有基线时明确报告未执行删除检查，不读取或猜测 Git 状态。需要完整索引时使用 `validate_documents.py --format json` 入口。检查成功只表示实际文档范围内的结果，不代替文档语义审查或项目测试。
+`verify [--baseline <项目相对 JSON>]`：只读校验受管理文档，原生 JSON 固定返回 `valid`、`counts`、`deletion_checked` 与诊断，不构造完整索引再裁剪。调用方可提供带版本和来源修订的显式 ID 基线；此时额外返回基线摘要，并将未经退役的缺失 ID 作为错误。没有基线时明确报告未执行删除检查，不读取或猜测 Git 状态。`--format sarif` 将同一诊断映射为 SARIF 2.1.0，并在 run properties 保留 tao 状态与原生输出；它只适用于 `verify`，不替代其他命令的 JSON 协议。需要完整索引时使用 `validate_documents.py --format json` 入口。检查成功只表示实际文档范围内的结果，不代替文档语义审查或项目测试。
 
 提供 `doctor`、`show`、`docs build`、`project inspect`、`project configure` 与正式对象退役命令 `retire`。入口的帮助与版本查询只用标准库；文档命令缺依赖时明确诊断，不自动准备环境。安装生命周期不属于 CLI。
 
