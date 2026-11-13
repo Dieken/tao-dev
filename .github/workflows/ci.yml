@@ -41,15 +41,33 @@ jobs:
       # Complete project-local skill copy acceptance runs in the deterministic
       # suite without installed clients or credentials. Native discovery is opt-in.
       - name: Run unified check
+        id: quality
+        continue-on-error: true
         run: just check
 
+      - name: Index check evidence
+        if: always()
+        run: >-
+          uv run --no-config --locked python scripts/write_evidence.py
+          --run-id "${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}-py${{ matrix.python }}"
+          --commit "${{ github.sha }}"
+          --check "unified-check=${{ steps.quality.outcome }}"
+          --attachment tmp/tao/coverage/coverage.json
+          --attachment tmp/tao/ruff.json
+          --attachment tmp/tao/docs-verify.json
+
+      - name: Preserve check outcome
+        if: always() && steps.quality.outcome != 'success'
+        run: exit 1
+
       - name: Upload diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: diagnostics-${{ matrix.os }}-py${{ matrix.python }}
           path: tmp/tao/
-          if-no-files-found: ignore
+          if-no-files-found: error
+          retention-days: 14
 
   document-baseline:
     name: Document ID deletion baseline
@@ -74,6 +92,8 @@ jobs:
         run: uv sync --no-config --locked
 
       - name: Export the base document IDs
+        id: baseline_export
+        continue-on-error: true
         run: >-
           .venv/bin/python scripts/export_document_ids.py
           --project tmp/tao/baseline-project
@@ -81,15 +101,38 @@ jobs:
           > tmp/tao/document-id-baseline.json
 
       - name: Reject unretired document ID deletion
+        id: baseline_verify
+        if: steps.baseline_export.outcome == 'success'
+        continue-on-error: true
         run: >-
           .venv/bin/python skills/tao-dev/scripts/tao.py
           verify --baseline tmp/tao/document-id-baseline.json --format json
           > tmp/tao/docs-baseline-verify.json
 
+      - name: Index baseline evidence
+        if: always()
+        run: >-
+          uv run --no-config --locked python scripts/write_evidence.py
+          --output tmp/tao/baseline-evidence.json
+          --run-id "${{ github.run_id }}-${{ github.run_attempt }}-document-baseline"
+          --commit "${{ github.sha }}"
+          --check "baseline-export=${{ steps.baseline_export.outcome }}"
+          --check "baseline-verify=${{ steps.baseline_verify.outcome }}"
+          --attachment tmp/tao/document-id-baseline.json
+          --attachment tmp/tao/docs-baseline-verify.json
+
+      - name: Preserve baseline outcome
+        if: >-
+          always() &&
+          (steps.baseline_export.outcome != 'success' ||
+          steps.baseline_verify.outcome != 'success')
+        run: exit 1
+
       - name: Upload baseline diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: document-baseline-diagnostics
           path: tmp/tao/*.json
           if-no-files-found: error
+          retention-days: 14
