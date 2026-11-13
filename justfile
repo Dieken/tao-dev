@@ -6,7 +6,7 @@ default:
     @just --list
 
 # Project checks own their commands and artifacts; prepare the environment first.
-check: test lint
+check: test lint docs-verify
     {{ python }} scripts/export_dependencies.py --check
 
 test:
@@ -16,9 +16,12 @@ lint:
     {{ python }} -c "from pathlib import Path; Path('tmp/tao').mkdir(parents=True, exist_ok=True)"
     {{ python }} -m ruff check --select E9,F63,F7,F82 --output-format json --output-file tmp/tao/ruff.json skills/tao-dev/scripts scripts tests
 
+docs-verify:
+    {{ python }} -c "from pathlib import Path; Path('tmp/tao').mkdir(parents=True, exist_ok=True)"
+    {{ tao }} verify --format json > tmp/tao/docs-verify.json
+
 # Validate the managed book, then build it explicitly.
-docs:
-    {{ tao }} verify --format json
+docs: docs-verify
     {{ tao }} docs build --format json
 
 # Choose a fresh output directory; never overwrite an existing package.

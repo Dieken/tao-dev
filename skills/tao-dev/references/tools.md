@@ -9,7 +9,7 @@
 | `tao id new <TYPE> --count <N>` | 批量生成唯一 ID；JSON 使用 `outputs.ids` |
 | `tao new --slug <slug> [--locale en\|zh-Hans]` | 仅创建持久计划骨架，不创建规格或设计 |
 | `tao status [CHG\|DOC\|计划相对路径]` | 只读计划任务计数、待完成项与源文件位置；省略目标列全部计划及规划材料 |
-| `tao verify` | 校验受管理文档；不运行项目测试、不认证交付 |
+| `tao verify [--baseline <项目相对 JSON>]` | 校验受管理文档；可对显式历史 ID 基线检查未经退役的删除，不运行项目测试、不认证交付 |
 | `tao docs build` | 构建配置书根的本地 HTML |
 | `tao project inspect` | 只读文档配置、项目路径与配置摘要 |
 | `tao project configure --from <TOML> [--expect <digest>]` | 显式应用项目配置 |
@@ -26,6 +26,18 @@
 ## 文档校验
 
 `tao verify` 只读校验受管理文档的基本元数据、必要语义结构、唯一 ID、关系及无环可达导航，返回有效性、计数、删除检查覆盖与诊断。它不执行项目测试、代码静态检查或构建，也不证明内容正确、来源真实、实现完成或交付通过；内容判断见 [语义审查](review.md)，结果保存见 [持久计划](planning.md#结果保存)。
+
+需要防止正式 ID 未经退役直接消失时，由调用方从明确的历史版本生成基线，并传入项目内 JSON 文件：
+
+```json
+{
+  "schema_version": "1",
+  "source_revision": "目标版本或提交",
+  "ids": ["DOC_...", "REQ_..."]
+}
+```
+
+文件只允许这三个字段；`ids` 必须是无重复的合法 ID 数组。提供基线后，缺失且没有退役记录的 ID 报 `TAO-ID-003`，输出同时记录基线路径、来源版本和 ID 数量。未提供基线时 `deletion_checked` 保持 `false`；tao 不猜测 Git 分支、远端或出版目录。基线生成和历史版本检出由项目 CI 管理。
 
 ## 可选项目配置
 

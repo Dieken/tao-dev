@@ -50,3 +50,46 @@ jobs:
           name: diagnostics-${{ matrix.os }}-py${{ matrix.python }}
           path: tmp/tao/
           if-no-files-found: ignore
+
+  document-baseline:
+    name: Document ID deletion baseline
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out the pull request base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: tmp/tao/baseline-project
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked environment
+        run: uv sync --no-config --locked
+
+      - name: Export the base document IDs
+        run: >-
+          .venv/bin/python scripts/export_document_ids.py
+          --project tmp/tao/baseline-project
+          --source-revision "${{ github.event.pull_request.base.sha }}"
+          > tmp/tao/document-id-baseline.json
+
+      - name: Reject unretired document ID deletion
+        run: >-
+          .venv/bin/python skills/tao-dev/scripts/tao.py
+          verify --baseline tmp/tao/document-id-baseline.json --format json
+          > tmp/tao/docs-baseline-verify.json
+
+      - name: Upload baseline diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: document-baseline-diagnostics
+          path: tmp/tao/*.json
+          if-no-files-found: error

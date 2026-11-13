@@ -14,7 +14,7 @@ from . import __version__
 from .documents import ASSETS, validate
 from .identifiers import new_id, new_ids
 from .project import (ConfigurationError, ConflictError, Project, contained,
-                      create_file, mutation_lock, select_plans)
+                      create_file, mutation_lock, relative_pattern, select_plans)
 from tao_messages import configured_locale, diagnostic, valid_locale, Message
 
 
@@ -60,7 +60,9 @@ def arguments(argv):
     retirement.add_argument("--reason", required=True)
     retirement.add_argument("--replaced-by", action="append", default=[])
     retirement.add_argument("--apply", action="store_true")
-    commands.add_parser("verify", parents=[common])
+    verify_command = commands.add_parser("verify", parents=[common])
+    verify_command.add_argument("--baseline", type=Path,
+                                help="Project-relative versioned JSON ID baseline.")
     docs = commands.add_parser("docs", parents=[common])
     docs.add_subparsers(dest="operation", required=True).add_parser("build", parents=[common])
     args = parser.parse_args(argv)
@@ -72,10 +74,38 @@ def arguments(argv):
     return args
 
 
-def index(project):
-    return validate(project.root, project.sources(), book_root=project.book_root,
+def index(project, *, baseline_ids=None):
+    return validate(project.root, project.sources(), baseline_ids=baseline_ids,
+                    book_root=project.book_root,
                     retirement_directory=project.paths["retired"], section_redirects=project.section_redirects,
                     diagnostic_locale=project.diagnostic_locale)
+
+
+def read_baseline(project, supplied, registry):
+    if supplied is None:
+        return None, None
+    value = supplied.as_posix()
+    if not relative_pattern(value):
+        raise ConfigurationError("--baseline must be a project-relative path.")
+    path = contained(project.root, supplied)
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    expected = {"schema_version", "source_revision", "ids"}
+    if not isinstance(manifest, dict) or set(manifest) != expected:
+        raise ConfigurationError("ID baseline must contain only schema_version, source_revision, and ids.")
+    if manifest["schema_version"] != "1":
+        raise ConfigurationError("Unsupported ID baseline schema_version; expected 1.")
+    if not isinstance(manifest["source_revision"], str) or not manifest["source_revision"].strip():
+        raise ConfigurationError("ID baseline source_revision must be a nonempty string.")
+    identities = manifest["ids"]
+    pattern = re.compile(registry["id"]["pattern"])
+    if (not isinstance(identities, list)
+            or any(not isinstance(identity, str) or pattern.fullmatch(identity) is None
+                   for identity in identities)
+            or len(identities) != len(set(identities))):
+        raise ConfigurationError("ID baseline ids must be a duplicate-free array of valid IDs.")
+    details = {"path": value, "schema_version": "1",
+               "source_revision": manifest["source_revision"], "ids": len(identities)}
+    return set(identities), details
 
 
 def reserved_ids(project, registry):
@@ -160,15 +190,19 @@ def plan_status(result, target=None):
             "validation": "Read-only document diagnostics; task progress is not review or delivery certification."}
 
 
-def verify(project, report):
+def verify(project, report, args, registry):
     if not project.sources():
         raise ConfigurationError("No managed documents matched the configured scope.")
-    result = index(project)
-    report["outputs"]["documents"] = {
+    baseline_ids, baseline = read_baseline(project, args.baseline, registry)
+    result = index(project, baseline_ids=baseline_ids)
+    documents = {
         "valid": result.valid,
         "counts": {"definitions": len(result.definitions), "references": len(result.references),
                    "documents": len(result.documents), "section_redirects": len(result.section_redirects)},
         "deletion_checked": result.deletion_checked}
+    if baseline is not None:
+        documents["baseline"] = baseline
+    report["outputs"]["documents"] = documents
     report["diagnostics"] = [asdict(d) for d in result.diagnostics]
     report["status"] = "passed" if result.valid else "failed"
     return report, 0 if result.valid else 1
@@ -195,7 +229,7 @@ def dispatch(args):
         report["outputs"] = build(project)
         return report, 0
     if args.command == "verify":
-        return verify(project, report)
+        return verify(project, report, args, registry)
     if args.command == "retire":
         from .retirement import retire
         outcome, code = retire(project, args.id, args.reason, args.replaced_by, apply=args.apply)
