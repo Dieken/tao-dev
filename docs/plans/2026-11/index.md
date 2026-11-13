@@ -23,4 +23,5 @@ status: draft
 20261108-document-management.md
 20261108-project-skill.md
 20261108-project-skill/tasks.md
+20261113-deterministic-quality-gates.md
 ```
