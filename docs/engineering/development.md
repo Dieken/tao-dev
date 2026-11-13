@@ -26,6 +26,7 @@ status: draft
 - `just lint`：运行 Ruff 的 E9/F63/F7/F82 检查，输出 tmp/tao/ruff.json。
 - `just docs`：复用文档校验门禁并构建文档书籍。
 - `just package <新输出目录>`：调用 `scripts/package_skill.py --output` 生成纯技能包。
+- `just bump-version [版本] [dryrun]`：默认提升下一个次版本；先用 `dryrun` 核对源码位置、历史记录和由 `uv lock`、`scripts/export_dependencies.py` 重建的锁文件、运行时清单及依赖清单。
 - `just tao <参数>`：调用源码辅助 CLI；也可用 `.venv/bin/python skills/tao-dev/scripts/tao.py`。
 - 回归：在显式准备的项目环境执行维护测试；运行范围与结果如实记录，不把未运行的客户端测试写成通过。
 

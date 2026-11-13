@@ -23,6 +23,8 @@ UPDATED = (
 # Rewritten by their own generators once the sources above change.
 GENERATED = {
     "skills/tao-dev/scripts/runtime.json": "scripts/export_dependencies.py",
+    "skills/tao-dev/scripts/requirements.txt": "scripts/export_dependencies.py",
+    "skills/tao-dev/scripts/requirements-publication.txt": "scripts/export_dependencies.py",
     "uv.lock": "uv lock",
 }
 # Historical acceptance records: a past result keeps the version it reported.
